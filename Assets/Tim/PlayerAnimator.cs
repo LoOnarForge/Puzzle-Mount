@@ -10,7 +10,8 @@ public class PlayerAnimator : MonoBehaviour
     
     [Header("Animation Settings")]
     [SerializeField] private float animationSmoothTime = 0.1f;
-    [SerializeField] private float fallDetectionDelay = 0.2f;
+    public float fallDetectionDelay = 0.2f;
+    [SerializeField] private float minimumFallSpeed = 3f;
     
     private Animator animator;
     private float currentAnimatedSpeed;
@@ -53,10 +54,10 @@ public class PlayerAnimator : MonoBehaviour
         return false;
     }
     
-    public void UpdateMovementAnimation(float targetSpeed, bool isGrounded)
+    public void UpdateMovementAnimation(float targetSpeed, bool isGrounded, float verticalVelocity = 0f)
     {
         UpdateSpeedAnimation(targetSpeed);
-        UpdateGroundedAnimation(isGrounded);
+        UpdateGroundedAnimation(isGrounded, verticalVelocity);
     }
     
     private void UpdateSpeedAnimation(float targetSpeed)
@@ -69,14 +70,14 @@ public class PlayerAnimator : MonoBehaviour
         }
     }
     
-    private void UpdateGroundedAnimation(bool isGrounded)
+    private void UpdateGroundedAnimation(bool isGrounded, float verticalVelocity = 0f)
     {
         if (HasParameter(groundedParameter))
         {
             animator.SetBool(groundedParameter, isGrounded);
         }
         
-        HandleFallingAnimation(isGrounded);
+        HandleFallingAnimation(isGrounded, verticalVelocity);
         wasGroundedLastFrame = isGrounded;
     }
     

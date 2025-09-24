@@ -13,6 +13,11 @@ public class CharacterMovement : MonoBehaviour
     [Header("Physics")]
     public float gravity = -20f;
     
+    [Header("Air Control")]
+    public bool useCoyoteTime = false;
+    public float coyoteTime = 0.2f;
+    public float momentumDecay = 2f;
+    
     private CharacterController controller;
     private PlayerInput playerInput;
     private PlayerAnimator playerAnimator;
@@ -25,6 +30,11 @@ public class CharacterMovement : MonoBehaviour
     private bool isGrounded;
     private bool isSprinting;
     private float currentSpeed;
+    
+    // Air control variables
+    private Vector3 jumpMomentum;
+    private float coyoteTimer;
+    private bool wasGroundedLastFrame;
     
     public bool IsGrounded => isGrounded;
     public float CurrentSpeed => currentSpeed;
@@ -76,7 +86,14 @@ public class CharacterMovement : MonoBehaviour
     
     private void CheckGroundStatus()
     {
+        wasGroundedLastFrame = isGrounded;
         isGrounded = controller.isGrounded;
+        
+        // Reset jump momentum when landing
+        if (isGrounded && !wasGroundedLastFrame)
+        {
+            jumpMomentum = Vector3.zero;
+        }
     }
     
     private void ReadInput()
@@ -90,10 +107,18 @@ public class CharacterMovement : MonoBehaviour
     
     private void HandleMovement()
     {
-        Vector3 moveDirection = new Vector3(moveInput.x, 0, moveInput.y);
+        Vector3 moveDirection = GetMovementDirection();
         bool shouldRun = isSprinting;
         
-        currentSpeed = CalculateMovementSpeed(shouldRun);
+        // Use stored jump momentum speed when airborne
+        if (!isGrounded && jumpMomentum.magnitude > 0.1f)
+        {
+            currentSpeed = jumpMomentum.magnitude;
+        }
+        else
+        {
+            currentSpeed = CalculateMovementSpeed(shouldRun);
+        }
         
         Vector3 movement = moveDirection * currentSpeed;
         controller.Move(movement * Time.deltaTime);
@@ -101,6 +126,54 @@ public class CharacterMovement : MonoBehaviour
         if (moveDirection != Vector3.zero)
         {
             RotatePlayer(moveDirection);
+        }
+    }
+    
+    private Vector3 GetMovementDirection()
+    {
+        Vector3 inputDirection = new Vector3(moveInput.x, 0, moveInput.y);
+        
+        if (isGrounded)
+        {
+            // Reset coyote timer when grounded
+            coyoteTimer = useCoyoteTime ? coyoteTime : 0f;
+            return inputDirection;
+        }
+        else
+        {
+            // Handle air control based on selected approach
+            if (useCoyoteTime)
+            {
+                return HandleCoyoteTimeAirControl(inputDirection);
+            }
+            else
+            {
+                return HandleImmediateAirControl();
+            }
+        }
+    }
+    
+    private Vector3 HandleImmediateAirControl()
+    {
+        // Option A: Use stored jump momentum (locked at jump time)
+        // Decay momentum over time
+        jumpMomentum = Vector3.Lerp(jumpMomentum, Vector3.zero, momentumDecay * Time.deltaTime);
+        return jumpMomentum.normalized;
+    }
+    
+    private Vector3 HandleCoyoteTimeAirControl(Vector3 inputDirection)
+    {
+        // Option B: Legacy-style coyote time
+        if (coyoteTimer > 0)
+        {
+            coyoteTimer -= Time.deltaTime;
+            return inputDirection; // Still controllable during coyote time
+        }
+        else
+        {
+            // Use stored jump momentum after coyote time
+            jumpMomentum = Vector3.Lerp(jumpMomentum, Vector3.zero, momentumDecay * Time.deltaTime);
+            return jumpMomentum.normalized;
         }
     }
     
@@ -132,6 +205,14 @@ public class CharacterMovement : MonoBehaviour
     {
         if (isGrounded)
         {
+            // Store current horizontal movement as jump momentum
+            Vector3 currentMovement = new Vector3(moveInput.x, 0, moveInput.y);
+            bool shouldRun = isSprinting;
+            float jumpSpeed = CalculateMovementSpeed(shouldRun);
+            
+            jumpMomentum = currentMovement.normalized * jumpSpeed;
+            
+            // Apply vertical jump velocity
             velocity.y = Mathf.Sqrt(jumpHeight * -2f * gravity);
         }
     }
