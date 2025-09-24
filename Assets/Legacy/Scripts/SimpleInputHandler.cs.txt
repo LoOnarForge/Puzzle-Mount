@@ -1,0 +1,69 @@
+using UnityEngine;
+
+public class SimpleInputHandler : MonoBehaviour
+{
+    [Header("Input Settings")]
+    public float inputDeadzone = 0.1f;
+    public KeyCode runKey = KeyCode.LeftShift;
+    public KeyCode pushKey = KeyCode.Space;
+    
+    private Vector2 moveInput;
+    private bool runInput;
+    private bool pushInput;
+    
+    public Vector2 MoveInput => moveInput;
+    public bool IsRunning => runInput;
+    public bool IsPushing => pushInput;
+    public bool HasMoveInput => moveInput.magnitude > inputDeadzone;
+    
+    void Update()
+    {
+        HandleKeyboardInput();
+    }
+    
+    private void HandleKeyboardInput()
+    {
+        // Movement input
+        float horizontal = 0f;
+        float vertical = 0f;
+        
+        if (Input.GetKey(KeyCode.W) || Input.GetKey(KeyCode.UpArrow))
+            vertical += 1f;
+        if (Input.GetKey(KeyCode.S) || Input.GetKey(KeyCode.DownArrow))
+            vertical -= 1f;
+        if (Input.GetKey(KeyCode.A) || Input.GetKey(KeyCode.LeftArrow))
+            horizontal -= 1f;
+        if (Input.GetKey(KeyCode.D) || Input.GetKey(KeyCode.RightArrow))
+            horizontal += 1f;
+        
+        moveInput = new Vector2(horizontal, vertical);
+        
+        // Apply deadzone
+        if (moveInput.magnitude < inputDeadzone)
+            moveInput = Vector2.zero;
+        else
+            moveInput = moveInput.normalized;
+        
+        // Run input
+        runInput = Input.GetKey(runKey);
+        
+        // Push input
+        pushInput = Input.GetKey(pushKey);
+    }
+    
+    public Vector3 GetWorldMoveDirection()
+    {
+        return new Vector3(moveInput.x, 0f, moveInput.y).normalized;
+    }
+    
+    void OnGUI()
+    {
+        GUIStyle style = new GUIStyle();
+        style.fontSize = 12;
+        style.normal.textColor = Color.yellow;
+        
+        GUI.Label(new Rect(10, Screen.height - 80, 300, 20), $"Move: ({moveInput.x:F2}, {moveInput.y:F2})", style);
+        GUI.Label(new Rect(10, Screen.height - 60, 300, 20), $"Run: {runInput} | Push: {pushInput}", style);
+        GUI.Label(new Rect(10, Screen.height - 40, 300, 20), $"Controls: WASD=Move, {runKey}=Run, {pushKey}=Push", style);
+    }
+}

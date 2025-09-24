@@ -1,0 +1,53 @@
+using UnityEngine;
+
+public class GroundChecker : MonoBehaviour
+{
+    private CharacterMovement characterMovement;
+
+    private void Awake()
+    {
+        characterMovement = GetComponentInParent<CharacterMovement>();
+
+        if (characterMovement == null)
+        {
+            Debug.LogError("CharacterMovement script not found in parent hierarchy.");
+        }
+    }
+
+    private void OnTriggerEnter(Collider other)
+    {
+        Debug.Log($"[Trigger Entered] -> {other.gameObject.name} | Layer: {LayerMask.LayerToName(other.gameObject.layer)}");
+
+        if (((1 << other.gameObject.layer) & LayerMask.GetMask("Ground")) != 0)
+        {
+     //       characterMovement.isGrounded = true;
+            Debug.Log($"[Grounded] Entered Ground Layer -> {other.gameObject.name}");
+        }
+        else
+        {
+            Debug.Log($"[Ignored] Non-Ground Object: {other.gameObject.name} | Layer: {LayerMask.LayerToName(other.gameObject.layer)}");
+        }
+    }
+
+    private void OnTriggerStay(Collider other)
+    {
+        Debug.Log($"[Trigger Stay] -> {other.gameObject.name} | Layer: {LayerMask.LayerToName(other.gameObject.layer)}");
+
+        if (((1 << other.gameObject.layer) & LayerMask.GetMask("Ground")) != 0)
+        {
+      //      characterMovement.isGrounded = true;
+        }
+    }
+
+    private void OnTriggerExit(Collider other)
+    {
+        Debug.Log($"[Trigger Exit] -> {other.gameObject.name} | Layer: {LayerMask.LayerToName(other.gameObject.layer)}");
+
+        if (((1 << other.gameObject.layer) & LayerMask.GetMask("Ground")) != 0)
+        {
+      //      characterMovement.isGrounded = false;
+            Debug.Log($"[Ungrounded] Left Ground Layer -> {other.gameObject.name}");
+        }
+    }
+
+}

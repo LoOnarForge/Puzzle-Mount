@@ -1,0 +1,189 @@
+using UnityEngine;
+using MountPuzzle.Puzzle;
+using MountPuzzle.Utilities;
+
+namespace MountPuzzle.Core
+{
+    public class QuickMigrationTool : MonoBehaviour
+    {
+        [Header("One-Click Migration")]
+        [SerializeField] private bool showUI = true;
+        
+        private void Start()
+        {
+            Debug.Log("=== Quick Migration Tool Ready ===");
+            Debug.Log("Press the 'Migrate Now' button to convert all old objects to new clean system");
+        }
+        
+        [ContextMenu("Migrate All Objects Now")]
+        public void MigrateEverything()
+        {
+            Debug.Log("=== STARTING COMPLETE MIGRATION ===");
+            
+            // Migrate pushable objects
+            MigratePushableObjects();
+            
+            // Setup core systems
+            SetupCoreComponents();
+            
+            Debug.Log("=== MIGRATION COMPLETE! ===");
+            Debug.Log("✓ All old components converted to new clean system");
+            Debug.Log("✓ Layers fixed");
+            Debug.Log("✓ Grid snapping applied");
+            Debug.Log("Your game should now work with the new clean code!");
+        }
+        
+        private void MigratePushableObjects()
+        {
+            // Find all objects with old PushableObjects component
+            PushableObjects[] oldPushables = FindObjectsByType<PushableObjects>(FindObjectsSortMode.None);
+            
+            Debug.Log($"Found {oldPushables.Length} objects to migrate");
+            
+            int migratedCount = 0;
+            
+            foreach (PushableObjects oldPushable in oldPushables)
+            {
+                GameObject obj = oldPushable.gameObject;
+                
+                Debug.Log($"Migrating: {obj.name}");
+                
+                // Remove old components
+                DestroyImmediate(oldPushable);
+                
+                MultiTag multiTag = obj.GetComponent<MultiTag>();
+                if (multiTag) DestroyImmediate(multiTag);
+                
+                // Add new PushableBlock component
+                if (obj.GetComponent<PushableBlock>() == null)
+                {
+                    obj.AddComponent<PushableBlock>();
+                }
+                
+                // Ensure required components
+                if (obj.GetComponent<Rigidbody>() == null)
+                {
+                    obj.AddComponent<Rigidbody>();
+                }
+                
+                if (obj.GetComponent<Collider>() == null)
+                {
+                    obj.AddComponent<BoxCollider>();
+                }
+                
+                // Fix layer
+                LayerHelper.SetObjectToPushableLayer(obj);
+                
+                // Snap to grid
+                GridSnapper.SnapObjectToGrid(obj.transform);
+                
+                migratedCount++;
+                Debug.Log($"✓ Successfully migrated: {obj.name}");
+            }
+            
+            Debug.Log($"Successfully migrated {migratedCount} pushable objects!");
+        }
+        
+        private void SetupCoreComponents()
+        {
+            // Setup GameManager
+            if (FindFirstObjectByType<GameManager>() == null)
+            {
+                GameObject gameManagerObj = new GameObject("Game Manager");
+                gameManagerObj.AddComponent<GameManager>();
+                Debug.Log("✓ Created Game Manager");
+            }
+            
+            // Setup InputHandler
+            if (FindFirstObjectByType<InputHandler>() == null)
+            {
+                GameObject inputObj = new GameObject("Input Handler");
+                inputObj.AddComponent<InputHandler>();
+                Debug.Log("✓ Created Input Handler");
+            }
+            
+            // Setup PuzzleManager
+            if (FindFirstObjectByType<PuzzleManager>() == null)
+            {
+                GameObject puzzleManagerObj = new GameObject("Puzzle Manager");
+                puzzleManagerObj.AddComponent<PuzzleManager>();
+                Debug.Log("✓ Created Puzzle Manager");
+            }
+            
+            // Setup Camera
+            UnityEngine.Camera mainCamera = UnityEngine.Camera.main;
+            if (mainCamera != null && mainCamera.GetComponent<MountPuzzle.Camera.CameraController>() == null)
+            {
+                mainCamera.gameObject.AddComponent<MountPuzzle.Camera.CameraController>();
+                Debug.Log("✓ Added Camera Controller");
+            }
+        }
+        
+        [ContextMenu("Check Migration Status")]
+        public void CheckStatus()
+        {
+            PushableObjects[] oldObjects = FindObjectsByType<PushableObjects>(FindObjectsSortMode.None);
+            PushableBlock[] newObjects = FindObjectsByType<PushableBlock>(FindObjectsSortMode.None);
+            
+            Debug.Log("=== MIGRATION STATUS ===");
+            Debug.Log($"Old PushableObjects: {oldObjects.Length}");
+            Debug.Log($"New PushableBlocks: {newObjects.Length}");
+            
+            if (oldObjects.Length == 0)
+            {
+                Debug.Log("✅ MIGRATION COMPLETE! All objects using new system.");
+            }
+            else
+            {
+                Debug.Log("⚠️ Migration needed. Click 'Migrate All Objects Now'");
+                
+                // List objects that need migration
+                foreach (var obj in oldObjects)
+                {
+                    Debug.Log($"  - {obj.name} (needs migration)");
+                }
+            }
+        }
+        
+        private void OnGUI()
+        {
+            if (!showUI) return;
+            
+            // Create a prominent UI panel
+            GUIStyle boxStyle = new GUIStyle(GUI.skin.box);
+            boxStyle.fontSize = 14;
+            boxStyle.normal.textColor = Color.white;
+            
+            GUIStyle buttonStyle = new GUIStyle(GUI.skin.button);
+            buttonStyle.fontSize = 16;
+            buttonStyle.fontStyle = FontStyle.Bold;
+            
+            GUIStyle titleStyle = new GUIStyle(GUI.skin.label);
+            titleStyle.fontSize = 16;
+            titleStyle.fontStyle = FontStyle.Bold;
+            titleStyle.normal.textColor = Color.yellow;
+            
+            // Main panel
+            GUI.Box(new Rect(Screen.width/2 - 200, 50, 400, 150), "", boxStyle);
+            
+            GUI.Label(new Rect(Screen.width/2 - 150, 70, 300, 30), "🔧 Quick Migration Tool", titleStyle);
+            
+            if (GUI.Button(new Rect(Screen.width/2 - 100, 105, 200, 40), "MIGRATE NOW", buttonStyle))
+            {
+                MigrateEverything();
+            }
+            
+            if (GUI.Button(new Rect(Screen.width/2 - 80, 155, 80, 25), "Check Status", GUI.skin.button))
+            {
+                CheckStatus();
+            }
+            
+            if (GUI.Button(new Rect(Screen.width/2 + 10, 155, 70, 25), "Hide Panel", GUI.skin.button))
+            {
+                showUI = false;
+            }
+            
+            GUI.Label(new Rect(Screen.width/2 - 190, 180, 380, 20), "Converts old messy components to new clean system", boxStyle);
+        }
+    }
+}

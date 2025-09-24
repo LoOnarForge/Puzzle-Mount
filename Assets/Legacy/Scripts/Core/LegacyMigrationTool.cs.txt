@@ -1,0 +1,159 @@
+using UnityEngine;
+using MountPuzzle.Puzzle;
+using MountPuzzle.Utilities;
+
+namespace MountPuzzle.Core
+{
+    public class LegacyMigrationTool : MonoBehaviour
+    {
+        [Header("Migration Settings")]
+        [SerializeField] private bool showMigrationUI = true;
+        [SerializeField] private bool deleteOldComponents = true;
+        
+        private int migratedObjects = 0;
+        
+        [ContextMenu("Migrate All Legacy Objects")]
+        public void MigrateAllLegacyObjects()
+        {
+            Debug.Log("=== Starting Legacy Migration ===");
+            migratedObjects = 0;
+            
+            MigratePushableObjects();
+            CleanupOldScripts();
+            
+            Debug.Log($"=== Migration Complete! Migrated {migratedObjects} objects ===");
+            Debug.Log("Your scene is now using the clean new system!");
+        }
+        
+        private void MigratePushableObjects()
+        {
+            // Find all objects with old PushableObjects component
+            PushableObjects[] oldPushables = FindObjectsByType<PushableObjects>(FindObjectsSortMode.None);
+            
+            Debug.Log($"Found {oldPushables.Length} objects with old PushableObjects component");
+            
+            foreach (PushableObjects oldPushable in oldPushables)
+            {
+                MigrateSinglePushableObject(oldPushable.gameObject);
+            }
+        }
+        
+        private void MigrateSinglePushableObject(GameObject obj)
+        {
+            Debug.Log($"Migrating: {obj.name}");
+            
+            // Remove old components
+            if (deleteOldComponents)
+            {
+                PushableObjects oldComponent = obj.GetComponent<PushableObjects>();
+                if (oldComponent) DestroyImmediate(oldComponent);
+                
+                MultiTag multiTag = obj.GetComponent<MultiTag>();
+                if (multiTag) DestroyImmediate(multiTag);
+            }
+            
+            // Add new PushableBlock component if not already present
+            if (obj.GetComponent<PushableBlock>() == null)
+            {
+                obj.AddComponent<PushableBlock>();
+            }
+            
+            // Ensure proper components exist
+            if (obj.GetComponent<Rigidbody>() == null)
+            {
+                obj.AddComponent<Rigidbody>();
+            }
+            
+            if (obj.GetComponent<Collider>() == null)
+            {
+                obj.AddComponent<BoxCollider>();
+            }
+            
+            // Set to correct layer
+            LayerHelper.SetObjectToPushableLayer(obj);
+            
+            // Snap to grid
+            GridSnapper.SnapObjectToGrid(obj.transform);
+            
+            migratedObjects++;
+            Debug.Log($"✓ Successfully migrated: {obj.name}");
+        }
+        
+        private void CleanupOldScripts()
+        {
+            Debug.Log("Cleaning up old script files...");
+            
+            // List of old script files that should be removed
+            string[] oldScriptPaths = {
+                "/Assets/Scripts/CharacterMovement.cs",
+                "/Assets/Scripts/PushableObjects.cs", 
+                "/Assets/Scripts/CubeSelection.cs",
+                "/Assets/Scripts/CameraFollow.cs",
+                "/Assets/Scripts/MultiTag.cs",
+                "/Assets/Scripts/GroundChecker.cs",
+                "/Assets/Scripts/FrameRateLimiter.cs",
+                "/Assets/Scripts/ObjectVsMouseInteraction.cs",
+                "/Assets/Scripts/UIVsMouseInteraction.cs",
+                "/Assets/Scripts/SelectionSprite.cs",
+                "/Assets/Scripts/YAxisDebugger.cs",
+                "/Assets/Scripts/PlayerControls.cs"
+            };
+            
+            Debug.Log("Note: Old script files should be manually deleted or moved to a backup folder");
+            Debug.Log("The new clean scripts are in organized folders (Core/, Player/, Puzzle/, etc.)");
+        }
+        
+        [ContextMenu("Check Migration Status")]
+        public void CheckMigrationStatus()
+        {
+            PushableObjects[] oldPushables = FindObjectsByType<PushableObjects>(FindObjectsSortMode.None);
+            PushableBlock[] newPushables = FindObjectsByType<PushableBlock>(FindObjectsSortMode.None);
+            
+            Debug.Log("=== Migration Status ===");
+            Debug.Log($"Old PushableObjects components: {oldPushables.Length}");
+            Debug.Log($"New PushableBlock components: {newPushables.Length}");
+            
+            if (oldPushables.Length == 0)
+            {
+                Debug.Log("✓ Migration Complete! All objects using new system.");
+            }
+            else
+            {
+                Debug.Log("⚠ Migration needed. Click 'Migrate All Legacy Objects'");
+            }
+        }
+        
+        private void OnGUI()
+        {
+            if (!showMigrationUI) return;
+            
+            GUIStyle boxStyle = new GUIStyle(GUI.skin.box);
+            boxStyle.fontSize = 12;
+            boxStyle.normal.textColor = Color.white;
+            
+            GUIStyle buttonStyle = new GUIStyle(GUI.skin.button);
+            buttonStyle.fontSize = 12;
+            
+            GUI.Box(new Rect(Screen.width - 320, 150, 300, 100), "", boxStyle);
+            
+            GUI.Label(new Rect(Screen.width - 310, 160, 280, 20), "Legacy Migration Tool", boxStyle);
+            
+            if (GUI.Button(new Rect(Screen.width - 310, 185, 130, 25), "Migrate Objects", buttonStyle))
+            {
+                MigrateAllLegacyObjects();
+            }
+            
+            if (GUI.Button(new Rect(Screen.width - 170, 185, 150, 25), "Check Status", buttonStyle))
+            {
+                CheckMigrationStatus();
+            }
+            
+            if (GUI.Button(new Rect(Screen.width - 310, 215, 100, 25), "Hide Panel", buttonStyle))
+            {
+                showMigrationUI = false;
+            }
+            
+            GUI.Label(new Rect(Screen.width - 310, 235, 280, 20), "Converts old components to new system", boxStyle);
+        }
+    }
+}

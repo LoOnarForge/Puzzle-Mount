@@ -1,0 +1,174 @@
+using UnityEngine;
+using MountPuzzle.Player;
+
+namespace MountPuzzle.Camera
+{
+    public class CameraController : MonoBehaviour
+    {
+        [Header("Target Settings")]
+        [SerializeField] private Transform target;
+        [SerializeField] private bool findPlayerAutomatically = true;
+        
+        [Header("Follow Settings")]
+        [SerializeField] private Vector3 offset = new Vector3(0, 5, -8);
+        [SerializeField] private float followSpeed = 5f;
+        [SerializeField] private float rotationSpeed = 2f;
+        
+        [Header("Camera Constraints")]
+        [SerializeField] private bool constrainY = true;
+        [SerializeField] private float fixedYPosition = 10f;
+        [SerializeField] private bool smoothDamping = true;
+        [SerializeField] private float dampingTime = 0.3f;
+        
+        [Header("Look At Settings")]
+        [SerializeField] private bool lookAtTarget = true;
+        [SerializeField] private Vector3 lookAtOffset = Vector3.up;
+        
+        private Vector3 velocity = Vector3.zero;
+        private UnityEngine.Camera cameraComponent;
+        
+        private void Awake()
+        {
+            cameraComponent = GetComponent<UnityEngine.Camera>();
+        }
+        
+        private void Start()
+        {
+            if (findPlayerAutomatically && target == null)
+            {
+                FindPlayerTarget();
+            }
+            
+            if (target == null)
+            {
+                Debug.LogWarning("CameraController: No target found! Please assign a target or ensure a PlayerController exists in the scene.");
+                enabled = false;
+            }
+        }
+        
+        private void FindPlayerTarget()
+        {
+            PlayerController player = FindFirstObjectByType<PlayerController>();
+            if (player != null)
+            {
+                target = player.transform;
+                Debug.Log("CameraController: Automatically found player target.");
+            }
+        }
+        
+        private void LateUpdate()
+        {
+            if (target == null) return;
+            
+            UpdateCameraPosition();
+            
+            if (lookAtTarget)
+            {
+                UpdateCameraRotation();
+            }
+        }
+        
+        private void UpdateCameraPosition()
+        {
+            Vector3 targetPosition = CalculateTargetPosition();
+            
+            if (smoothDamping)
+            {
+                transform.position = Vector3.SmoothDamp(
+                    transform.position, 
+                    targetPosition, 
+                    ref velocity, 
+                    dampingTime
+                );
+            }
+            else
+            {
+                transform.position = Vector3.Lerp(
+                    transform.position, 
+                    targetPosition, 
+                    followSpeed * Time.deltaTime
+                );
+            }
+        }
+        
+        private Vector3 CalculateTargetPosition()
+        {
+            Vector3 targetPosition = target.position + offset;
+            
+            if (constrainY)
+            {
+                targetPosition.y = fixedYPosition;
+            }
+            
+            return targetPosition;
+        }
+        
+        private void UpdateCameraRotation()
+        {
+            Vector3 lookAtPosition = target.position + lookAtOffset;
+            Vector3 direction = (lookAtPosition - transform.position).normalized;
+            
+            if (direction != Vector3.zero)
+            {
+                Quaternion targetRotation = Quaternion.LookRotation(direction);
+                transform.rotation = Quaternion.Slerp(
+                    transform.rotation, 
+                    targetRotation, 
+                    rotationSpeed * Time.deltaTime
+                );
+            }
+        }
+        
+        public void SetTarget(Transform newTarget)
+        {
+            target = newTarget;
+        }
+        
+        public void SetOffset(Vector3 newOffset)
+        {
+            offset = newOffset;
+        }
+        
+        public void SetFollowSpeed(float newSpeed)
+        {
+            followSpeed = Mathf.Max(0f, newSpeed);
+        }
+        
+        public Vector3 GetTargetPosition()
+        {
+            return target != null ? target.position : Vector3.zero;
+        }
+        
+        public float GetDistanceToTarget()
+        {
+            return target != null ? Vector3.Distance(transform.position, target.position) : 0f;
+        }
+        
+        private void OnDrawGizmosSelected()
+        {
+            if (target == null) return;
+            
+            // Draw connection to target
+            Gizmos.color = Color.green;
+            Gizmos.DrawLine(transform.position, target.position);
+            
+            // Draw target position
+            Gizmos.color = Color.red;
+            Gizmos.DrawWireSphere(target.position, 0.5f);
+            
+            // Draw offset visualization
+            Vector3 targetPos = CalculateTargetPosition();
+            Gizmos.color = Color.blue;
+            Gizmos.DrawWireSphere(targetPos, 0.3f);
+            
+            // Draw look at position
+            if (lookAtTarget)
+            {
+                Vector3 lookPos = target.position + lookAtOffset;
+                Gizmos.color = Color.yellow;
+                Gizmos.DrawWireSphere(lookPos, 0.2f);
+                Gizmos.DrawLine(transform.position, lookPos);
+            }
+        }
+    }
+}

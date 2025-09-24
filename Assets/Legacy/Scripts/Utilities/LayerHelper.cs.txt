@@ -1,0 +1,68 @@
+using UnityEngine;
+
+namespace MountPuzzle.Utilities
+{
+    public static class LayerHelper
+    {
+        // Layer constants for easy reference
+        public const int GROUND_LAYER = 5;
+        public const int PUSHABLE_LAYER = 6;
+        
+        // Layer names
+        public const string GROUND_LAYER_NAME = "Ground";
+        public const string PUSHABLE_LAYER_NAME = "Pushable";
+        
+        public static LayerMask GetGroundLayer()
+        {
+            return 1 << GROUND_LAYER;
+        }
+        
+        public static LayerMask GetPushableLayer()
+        {
+            return 1 << PUSHABLE_LAYER;
+        }
+        
+        public static LayerMask GetGroundAndPushableLayer()
+        {
+            return (1 << GROUND_LAYER) | (1 << PUSHABLE_LAYER);
+        }
+        
+        public static bool IsGroundLayer(int layer)
+        {
+            return layer == GROUND_LAYER;
+        }
+        
+        public static bool IsPushableLayer(int layer)
+        {
+            return layer == PUSHABLE_LAYER;
+        }
+        
+        public static bool IsInLayerMask(int layer, LayerMask layerMask)
+        {
+            return (layerMask.value & (1 << layer)) != 0;
+        }
+        
+        public static void SetObjectLayer(GameObject obj, int layer, bool includeChildren = false)
+        {
+            obj.layer = layer;
+            
+            if (includeChildren)
+            {
+                foreach (Transform child in obj.GetComponentsInChildren<Transform>())
+                {
+                    child.gameObject.layer = layer;
+                }
+            }
+        }
+        
+        public static void SetObjectToGroundLayer(GameObject obj, bool includeChildren = false)
+        {
+            SetObjectLayer(obj, GROUND_LAYER, includeChildren);
+        }
+        
+        public static void SetObjectToPushableLayer(GameObject obj, bool includeChildren = false)
+        {
+            SetObjectLayer(obj, PUSHABLE_LAYER, includeChildren);
+        }
+    }
+}

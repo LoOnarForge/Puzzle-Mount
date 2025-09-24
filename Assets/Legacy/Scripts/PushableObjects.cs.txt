@@ -1,0 +1,409 @@
+
+using UnityEngine;
+using System.Collections;
+
+public class PushableObjects : MonoBehaviour
+{
+    [Header("Movement Settings")]
+    public float moveSpeed = 5f;
+    private float fallSpeed = 9.81f;
+    private Vector3 targetPosition;
+    private bool isMoving = false;
+    private bool isFalling = false;
+
+    [Header("Selection Settings")]
+    public Color selectedCubeColor = Color.yellow;
+    public float colorTransitionSpeed = 10f;
+
+    private Renderer cubeRenderer;
+    private Color originalCubeColor;
+    private Color targetColor;
+    private Color currentColor;
+    private bool isSelected = false;
+    private Rigidbody rb;
+
+
+    void Start()
+    {
+        InitializeRigidbody();
+        InitializeCube();
+        SnapToGrid();
+        targetPosition = transform.position;
+    }
+    void Update()
+    {
+        HandleMovement();
+        UpdateColor();
+    }
+
+
+    public void TryPush(Vector3 direction)
+    {
+
+        if (isMoving || isFalling)
+        {
+            return;
+        }
+
+        CharacterMovement characterMovement = FindFirstObjectByType<CharacterMovement>();
+        if (characterMovement == null || direction == Vector3.zero || !characterMovement.IsPositionFree(transform.position + direction))
+        {
+            return;
+        }
+
+        isMoving = true;
+        targetPosition = transform.position + direction;
+    }
+
+    private void InitializeRigidbody()
+    {
+        rb = GetComponent<Rigidbody>();
+        rb.isKinematic = true;
+    }
+    private void InitializeCube()
+    {
+        cubeRenderer = GetComponent<Renderer>();
+        if (cubeRenderer != null && cubeRenderer.material != null)
+        {
+            originalCubeColor = cubeRenderer.material.color;
+            currentColor = originalCubeColor;
+            targetColor = originalCubeColor;
+        }
+    }
+    private void HandleMovement()
+    {
+        if (isMoving) MoveToTarget();
+        else if (!isFalling) CheckForGround();
+    }
+
+    public void SnapToGrid()
+    {
+        transform.position = Vector3Int.RoundToInt(transform.position);
+    }
+
+    private void MoveToTarget()
+    {
+        transform.position = Vector3.MoveTowards(transform.position, targetPosition, moveSpeed * Time.deltaTime);
+
+        if (Vector3.Distance(transform.position, targetPosition) < 0.01f)
+        {
+            transform.position = targetPosition;
+            SnapToGrid();
+            isMoving = false;
+            CheckForGround();
+        }
+    }
+
+    private void CheckForGround()
+    {
+        if (!Physics.Raycast(transform.position, Vector3.down, 1f, LayerMask.GetMask("Ground")))
+        {
+            StartFalling();
+        }
+    }
+
+    public Vector3 GetRelativePushDirection(Transform playerTransform)
+    {
+        Vector3 relativePos = transform.position - playerTransform.position;
+
+        if (Mathf.Abs(relativePos.x) > Mathf.Abs(relativePos.z))
+        {
+            return new Vector3(Mathf.Sign(relativePos.x), 0, 0);
+        }
+        else
+        {
+            return new Vector3(0, 0, Mathf.Sign(relativePos.z));
+        }
+    }
+    private void StartFalling()
+    {
+        isFalling = true;
+        rb.isKinematic = false;
+        rb.useGravity = true;
+        rb.linearVelocity = Vector3.down * fallSpeed;
+    }
+    private void OnCollisionEnter(Collision collision)
+    {
+        if (isFalling && collision.gameObject.layer == LayerMask.NameToLayer("Ground"))
+        {
+            StopFalling();
+        }
+    }
+
+    private void StopFalling()
+    {
+        isFalling = false;
+        rb.linearVelocity = Vector3.zero;
+        rb.isKinematic = true;
+        SnapToGrid();
+    }
+
+    public void Deselect()
+    {
+        SetSelected(false);
+        SnapToGrid();
+    }
+
+    public void SetSelected(bool selected)
+    {
+        if (isSelected == selected) return;
+
+        isSelected = selected;
+
+        if (isSelected) targetColor = selectedCubeColor;
+        else targetColor = originalCubeColor;
+    }
+
+    public bool IsSameSelection(GameObject cube)
+    {
+        return gameObject == cube;
+    }
+
+    private void UpdateColor()
+    {
+        if (cubeRenderer != null && cubeRenderer.material != null)
+        {
+            currentColor = Color.Lerp(currentColor, targetColor, Time.deltaTime * colorTransitionSpeed);
+            cubeRenderer.material.color = currentColor;
+        }
+    }
+    public void SetCubeColor(Color color)
+    {
+        targetColor = color;
+    }
+    public void ResetCubeColor()
+    {
+        targetColor = originalCubeColor;
+    }
+
+    public bool IsMoving()
+    {
+        return isMoving;
+    }
+
+}
+
+
+
+
+
+//using UnityEngine;
+//using System.Collections;
+
+//public class PushableObjects : MonoBehaviour
+//{
+//    [Header("Movement Settings")]
+//    public float moveSpeed = 5f;
+//    private float fallSpeed = 9.81f;
+//    private Vector3 targetPosition;
+//    private bool isMoving = false;
+//    private bool isFalling = false;
+
+//    [Header("Selection Settings")]
+//    public Color selectedCubeColor = Color.yellow;
+//    public float colorTransitionSpeed = 10f;
+
+//    private Renderer cubeRenderer;
+//    private Color originalCubeColor;
+//    private Color targetColor;
+//    private Color currentColor;
+//    private bool isSelected = false;
+//    private Rigidbody rb;
+
+
+//    void Start()
+//    {
+//        InitializeRigidbody();
+//        InitializeCube();
+//        SnapToGrid();
+//        targetPosition = transform.position;
+//    }
+//    void Update()
+//    {
+//        HandleMovement();
+//        UpdateColor();
+//    }
+
+
+//    public void TryPush(Vector3 direction)
+//    {
+
+//        if (isMoving || isFalling)
+//        {
+//            return;
+//        }
+
+//        CharacterMovement characterMovement = FindFirstObjectByType<CharacterMovement>();
+//        if (characterMovement == null || direction == Vector3.zero || !characterMovement.IsPositionFree(transform.position + direction))
+//        {
+//            return;
+//        }
+
+//        isMoving = true;
+//        targetPosition = transform.position + direction;
+//    }
+
+//    private void InitializeRigidbody()
+//    {
+//        rb = GetComponent<Rigidbody>();
+//        rb.isKinematic = true;
+//    }
+//    private void InitializeCube()
+//    {
+//        cubeRenderer = GetComponent<Renderer>();
+//        if (cubeRenderer != null && cubeRenderer.material != null)
+//        {
+//            originalCubeColor = cubeRenderer.material.color;
+//            currentColor = originalCubeColor;
+//            targetColor = originalCubeColor;
+//        }
+//    }
+//    private void HandleMovement()
+//    {
+//        if (isMoving) MoveToTarget();
+//        else if (!isFalling) CheckForGround();
+//    }
+
+//    public void SnapToGrid()
+//    {
+//        transform.position = Vector3Int.RoundToInt(transform.position);
+//    }
+
+//    private void MoveToTarget()
+//    {
+//        transform.position = Vector3.MoveTowards(transform.position, targetPosition, moveSpeed * Time.deltaTime);
+
+//        if (Vector3.Distance(transform.position, targetPosition) < 0.01f)
+//        {
+//            transform.position = targetPosition;
+//            SnapToGrid();
+//            isMoving = false;
+//            CheckForGround();
+//        }
+//    }
+
+//    //private void MoveToTarget()
+//    //{
+//    //    transform.position = Vector3.MoveTowards(transform.position, targetPosition, moveSpeed * Time.deltaTime);
+//    //    SelectionSprite.UpdatePosition(transform.position + Vector3.up * 0.2f, true);
+
+//    //    if (Vector3.Distance(transform.position, targetPosition) < 0.01f)
+//    //    {
+//    //        transform.position = targetPosition;
+//    //        SnapToGrid();
+//    //        isMoving = false;
+//    //        CheckForGround();
+//    //    }
+//    //}
+//    private void CheckForGround()
+//    {
+//        if (!Physics.Raycast(transform.position, Vector3.down, 1f, LayerMask.GetMask("Ground")))
+//        {
+//            StartFalling();
+//        }
+//    }
+
+//    public Vector3 GetRelativePushDirection(Transform playerTransform)
+//    {
+//        Vector3 relativePos = transform.position - playerTransform.position;
+
+//        if (Mathf.Abs(relativePos.x) > Mathf.Abs(relativePos.z))
+//        {
+//            return new Vector3(Mathf.Sign(relativePos.x), 0, 0);
+//        }
+//        else
+//        {
+//            return new Vector3(0, 0, Mathf.Sign(relativePos.z));
+//        }
+//    }
+//    private void StartFalling()
+//    {
+//        isFalling = true;
+//        rb.isKinematic = false;
+//        rb.useGravity = true;
+//        rb.linearVelocity = Vector3.down * fallSpeed;
+//    }
+//    private void OnCollisionEnter(Collision collision)
+//    {
+//        if (isFalling && collision.gameObject.layer == LayerMask.NameToLayer("Ground"))
+//        {
+//            StopFalling();
+//        }
+//    }
+
+//    private void StopFalling()
+//    {
+//        isFalling = false;
+//        rb.linearVelocity = Vector3.zero;
+//        rb.isKinematic = true;
+//        SnapToGrid();
+//    }
+
+//    public void Deselect()
+//    {
+//        SetSelected(false);
+//        SnapToGrid();
+//    }
+//    //public void Deselect()
+//    //{
+//    //    SetSelected(false);
+//    //    SnapToGrid();
+//    //    SelectionSprite.UpdatePosition(Vector3.zero, false);
+//    //}
+
+//    public void SetSelected(bool selected)
+//    {
+//        if (isSelected == selected) return;
+
+//        isSelected = selected;
+
+//        if (isSelected) targetColor = selectedCubeColor;
+//        else targetColor = originalCubeColor;
+//    }
+
+
+//    //public void SetSelected(bool selected)
+//    //{
+//    //    if (isSelected == selected) return;
+
+//    //    isSelected = selected;
+
+//    //    if (isSelected) targetColor = selectedCubeColor;
+//    //    else targetColor = originalCubeColor;
+
+//    //    if (isSelected)
+//    //    {
+//    //        SelectionSprite.UpdatePosition(transform.position + Vector3.up * 0.2f, true);
+//    //    }
+//    //}
+//    public bool IsSameSelection(GameObject cube)
+//    {
+//        return gameObject == cube;
+//    }
+
+//    private void UpdateColor()
+//    {
+//        if (cubeRenderer != null && cubeRenderer.material != null)
+//        {
+//            currentColor = Color.Lerp(currentColor, targetColor, Time.deltaTime * colorTransitionSpeed);
+//            cubeRenderer.material.color = currentColor;
+//        }
+//    }
+//    public void SetCubeColor(Color color)
+//    {
+//        targetColor = color;
+//    }
+//    public void ResetCubeColor()
+//    {
+//        targetColor = originalCubeColor;
+//    }
+
+//    public bool IsMoving()
+//    {
+//        return isMoving;
+//    }
+
+//}
+
+
+

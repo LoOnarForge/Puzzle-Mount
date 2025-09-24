@@ -1,0 +1,107 @@
+using UnityEngine;
+
+public class SelectionSprite : MonoBehaviour
+{
+    [Header("Sprite Settings")]
+    public float heightOffset = 0.0f;
+    public float rotationSpeed = 20f;
+
+    [SerializeField] private CubeSelection cubeSelection;
+
+    private SpriteRenderer spriteRenderer;
+    private bool isVisible = false;
+
+    void Awake()
+    {
+        spriteRenderer = GetComponent<SpriteRenderer>();
+        spriteRenderer.enabled = false;
+    }
+
+    void Start()
+    {
+        if (cubeSelection == null)
+            cubeSelection = FindFirstObjectByType<CubeSelection>();
+    }
+
+    void Update()
+    {
+        if (!isVisible || cubeSelection == null) return;
+
+        transform.Rotate(Vector3.forward * (rotationSpeed * Time.deltaTime), Space.Self);
+
+        GameObject activeCube = cubeSelection.GetActiveCube();
+        if (activeCube != null)
+        {
+            transform.position = activeCube.transform.position + Vector3.up * heightOffset;
+        }
+        else
+        {
+            isVisible = false;
+            spriteRenderer.enabled = false;
+        }
+    }
+
+    public void ShowSprite(bool show)
+    {
+        isVisible = show;
+        spriteRenderer.enabled = show;
+    }
+}
+
+
+
+
+//using UnityEngine;
+
+//public class SelectionSprite : MonoBehaviour
+//{
+//    [Header("Sprite Settings")]
+//    public float heightOffset = 0.0f;
+//    public float rotationSpeed = 20f;
+
+//    [SerializeField] private CubeSelection cubeSelection;
+
+//    private SpriteRenderer spriteRenderer;
+//    private bool isVisible = false;
+
+//    void Awake()
+//    {
+//        spriteRenderer = GetComponent<SpriteRenderer>();
+//        spriteRenderer.enabled = false;
+//    }
+
+//    void Start()
+//    {
+//        if (cubeSelection == null)
+//            cubeSelection = FindFirstObjectByType<CubeSelection>();
+//    }
+
+//    void Update()
+//    {
+//        if (!isVisible || cubeSelection == null) return;
+
+//        transform.Rotate(Vector3.forward * (rotationSpeed * Time.deltaTime), Space.Self);
+
+//        GameObject activeCube = cubeSelection.GetActiveCube();
+//        if (activeCube != null)
+//        {
+//            transform.position = activeCube.transform.position + Vector3.up * heightOffset;
+//        }
+//        else
+//        {
+//            isVisible = false;
+//            spriteRenderer.enabled = false;
+//        }
+//    }
+
+//    public void ShowSprite(bool show)
+//    {
+//        isVisible = show;
+//        spriteRenderer.enabled = show;
+//    }
+//}
+
+
+
+
+

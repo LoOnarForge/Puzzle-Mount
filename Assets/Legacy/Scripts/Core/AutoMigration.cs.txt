@@ -1,0 +1,69 @@
+using UnityEngine;
+using MountPuzzle.Puzzle;
+using MountPuzzle.Utilities;
+
+namespace MountPuzzle.Core
+{
+    [System.Serializable]
+    public class AutoMigration
+    {
+        public static void MigrateAllPushableObjects()
+        {
+            Debug.Log("=== Auto Migration Started ===");
+            
+            // Find all objects with old PushableObjects component
+            PushableObjects[] oldPushables = Object.FindObjectsByType<PushableObjects>(FindObjectsSortMode.None);
+            
+            int migratedCount = 0;
+            
+            foreach (PushableObjects oldPushable in oldPushables)
+            {
+                GameObject obj = oldPushable.gameObject;
+                
+                // Remove old components
+                Object.DestroyImmediate(oldPushable);
+                
+                MultiTag multiTag = obj.GetComponent<MultiTag>();
+                if (multiTag) Object.DestroyImmediate(multiTag);
+                
+                // Add new PushableBlock component
+                if (obj.GetComponent<PushableBlock>() == null)
+                {
+                    obj.AddComponent<PushableBlock>();
+                }
+                
+                // Ensure Rigidbody exists
+                if (obj.GetComponent<Rigidbody>() == null)
+                {
+                    obj.AddComponent<Rigidbody>();
+                }
+                
+                // Set to pushable layer
+                LayerHelper.SetObjectToPushableLayer(obj);
+                
+                // Snap to grid
+                GridSnapper.SnapObjectToGrid(obj.transform);
+                
+                migratedCount++;
+                Debug.Log($"✓ Migrated: {obj.name}");
+            }
+            
+            Debug.Log($"=== Auto Migration Complete! Migrated {migratedCount} objects ===");
+        }
+        
+        public static void CheckAndAutoMigrate()
+        {
+            PushableObjects[] oldPushables = Object.FindObjectsByType<PushableObjects>(FindObjectsSortMode.None);
+            
+            if (oldPushables.Length > 0)
+            {
+                Debug.Log($"Found {oldPushables.Length} objects that need migration. Auto-migrating...");
+                MigrateAllPushableObjects();
+            }
+            else
+            {
+                Debug.Log("✓ All objects already using new clean system!");
+            }
+        }
+    }
+}

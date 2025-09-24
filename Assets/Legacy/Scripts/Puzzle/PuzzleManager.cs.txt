@@ -1,0 +1,154 @@
+using UnityEngine;
+using System.Collections.Generic;
+using MountPuzzle.Core;
+
+namespace MountPuzzle.Puzzle
+{
+    public class PuzzleManager : MonoBehaviour
+    {
+        [Header("Puzzle Settings")]
+        [SerializeField] private LayerMask pushableLayer = 1 << 6;
+        [SerializeField] private bool enableStackPushing = true;
+        [SerializeField] private int maxStackSize = 3;
+        
+        private List<PushableBlock> allPushableBlocks = new List<PushableBlock>();
+        
+        private void Start()
+        {
+            FindAllPushableBlocks();
+        }
+        
+        private void FindAllPushableBlocks()
+        {
+            allPushableBlocks.Clear();
+            
+            PushableBlock[] blocks = FindObjectsByType<PushableBlock>(FindObjectsSortMode.None);
+            allPushableBlocks.AddRange(blocks);
+            
+            if (GameManager.Instance && GameManager.Instance.debugMode)
+            {
+                Debug.Log($"Found {allPushableBlocks.Count} pushable blocks in the scene");
+            }
+        }
+        
+        public List<PushableBlock> GetStackAt(Vector3 position)
+        {
+            List<PushableBlock> stack = new List<PushableBlock>();
+            
+            if (!enableStackPushing) return stack;
+            
+            Vector3 checkPosition = position;
+            
+            // Find all blocks in a vertical stack
+            for (int i = 0; i < maxStackSize; i++)
+            {
+                PushableBlock block = GetBlockAtPosition(checkPosition);
+                if (block == null) break;
+                
+                stack.Add(block);
+                checkPosition += Vector3.up;
+            }
+            
+            return stack;
+        }
+        
+        public PushableBlock GetBlockAtPosition(Vector3 position)
+        {
+            Collider[] colliders = Physics.OverlapBox(
+                position, 
+                Vector3.one * 0.4f, 
+                Quaternion.identity, 
+                pushableLayer
+            );
+            
+            foreach (Collider col in colliders)
+            {
+                PushableBlock block = col.GetComponent<PushableBlock>();
+                if (block != null)
+                {
+                    return block;
+                }
+            }
+            
+            return null;
+        }
+        
+        public bool CanPushStack(List<PushableBlock> stack, Vector3 direction)
+        {
+            if (stack == null || stack.Count == 0) return false;
+            
+            foreach (PushableBlock block in stack)
+            {
+                if (block.IsMoving) return false;
+                
+                Vector3 targetPosition = block.transform.position + direction;
+                if (!IsPositionFreeForStack(targetPosition, stack))
+                {
+                    return false;
+                }
+            }
+            
+            return true;
+        }
+        
+        private bool IsPositionFreeForStack(Vector3 position, List<PushableBlock> movingStack)
+        {
+            Collider[] obstacles = Physics.OverlapBox(
+                position, 
+                Vector3.one * 0.4f, 
+                Quaternion.identity, 
+                pushableLayer
+            );
+            
+            foreach (Collider obstacle in obstacles)
+            {
+                PushableBlock block = obstacle.GetComponent<PushableBlock>();
+                if (block != null && !movingStack.Contains(block))
+                {
+                    return false;
+                }
+            }
+            
+            return true;
+        }
+        
+        public void PushStack(List<PushableBlock> stack, Vector3 direction)
+        {
+            if (!CanPushStack(stack, direction)) return;
+            
+            foreach (PushableBlock block in stack)
+            {
+                block.TryPush(direction);
+            }
+        }
+        
+        public int GetMovingBlocksCount()
+        {
+            int count = 0;
+            foreach (PushableBlock block in allPushableBlocks)
+            {
+                if (block != null && block.IsMoving)
+                    count++;
+            }
+            return count;
+        }
+        
+        public bool AreAllBlocksStationary()
+        {
+            return GetMovingBlocksCount() == 0;
+        }
+        
+        private void OnGUI()
+        {
+            if (!GameManager.Instance || !GameManager.Instance.debugMode) return;
+            
+            GUIStyle style = new GUIStyle();
+            style.fontSize = 14;
+            style.normal.textColor = Color.cyan;
+            
+            int movingCount = GetMovingBlocksCount();
+            GUI.Label(new Rect(10, 110, 300, 20), $"Moving Blocks: {movingCount}/{allPushableBlocks.Count}", style);
+            GUI.Label(new Rect(10, 130, 300, 20), $"Stack Pushing: {(enableStackPushing ? "Enabled" : "Disabled")}", style);
+        }
+    }
+}

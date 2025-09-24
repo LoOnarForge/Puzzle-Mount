@@ -1,0 +1,42 @@
+using UnityEngine;
+using UnityEngine.InputSystem;
+
+public class InputTest : MonoBehaviour
+{
+    // Reference to the Input Action Asset (from the input system)
+    public InputActionAsset inputActions;
+
+    private void OnEnable()
+    {
+        // Enable all actions when the object is enabled
+        inputActions.Enable();
+    }
+
+    private void OnDisable()
+    {
+        // Disable all actions when the object is disabled
+        inputActions.Disable();
+    }
+
+    void Update()
+    {
+        // Checking each action for 1-6 key presses
+        if (Keyboard.current.digit1Key.wasPressedThisFrame)
+            Debug.Log("Action 1 triggered!");
+
+        if (Keyboard.current.digit2Key.wasPressedThisFrame)
+            Debug.Log("Action 2 triggered!");
+
+        if (Keyboard.current.digit3Key.wasPressedThisFrame)
+            Debug.Log("Action 3 triggered!");
+
+        if (Keyboard.current.digit4Key.wasPressedThisFrame)
+            Debug.Log("Action 4 triggered!");
+
+        if (Keyboard.current.digit5Key.wasPressedThisFrame)
+            Debug.Log("Action 5 triggered!");
+
+        if (Keyboard.current.digit6Key.wasPressedThisFrame)
+            Debug.Log("Action 6 triggered!");
+    }
+}

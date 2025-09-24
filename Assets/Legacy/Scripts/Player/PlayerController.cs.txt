@@ -1,0 +1,166 @@
+using UnityEngine;
+using MountPuzzle.Core;
+using MountPuzzle.Puzzle;
+
+namespace MountPuzzle.Player
+{
+    [RequireComponent(typeof(CharacterController))]
+    public class PlayerController : MonoBehaviour
+    {
+        [Header("Movement Settings")]
+        public float walkSpeed = 3f;
+        public float runSpeed = 6f;
+        public float pushSpeed = 1.5f;
+        public float rotationSpeed = 10f;
+        
+        [Header("Ground Detection")]
+        public LayerMask groundLayers = 1 << 5; // Ground layer
+        public float groundCheckDistance = 1.1f;
+        
+        [Header("Pushing")]
+        public LayerMask pushableLayers = 1 << 6; // Pushable layer  
+        public float pushDetectionRange = 1.5f;
+        
+        private CharacterController controller;
+        private InputHandler inputHandler;
+        private PlayerAnimator playerAnimator;
+        private PlayerGroundChecker groundChecker;
+        private PlayerPushDetector pushDetector;
+        
+        private float currentSpeed;
+        private bool isGrounded;
+        private bool isPushing;
+        private PushableBlock currentPushableBlock;
+        
+        public bool IsGrounded => isGrounded;
+        public bool IsPushing => isPushing;
+        public float CurrentSpeed => currentSpeed;
+        
+        private void Awake()
+        {
+            controller = GetComponent<CharacterController>();
+            inputHandler = FindFirstObjectByType<InputHandler>();
+            playerAnimator = GetComponent<PlayerAnimator>();
+            
+            groundChecker = new PlayerGroundChecker();
+            pushDetector = new PlayerPushDetector();
+            
+            if (!inputHandler)
+            {
+                Debug.LogError("InputHandler not found in scene! Please add InputHandler to a GameObject.");
+            }
+        }
+        
+        private void Update()
+        {
+            CheckGroundStatus();
+            HandleMovement();
+            HandlePushing();
+            UpdateAnimations();
+        }
+        
+        private void CheckGroundStatus()
+        {
+            isGrounded = groundChecker.IsGrounded(transform.position, groundCheckDistance, groundLayers);
+        }
+        
+        private void HandleMovement()
+        {
+            if (!inputHandler) return;
+            
+            Vector3 moveDirection = inputHandler.GetWorldMoveDirection();
+            bool shouldRun = inputHandler.IsRunning && !isPushing;
+            
+            currentSpeed = CalculateMovementSpeed(shouldRun);
+            
+            Vector3 movement = moveDirection * currentSpeed;
+            controller.Move(movement * Time.deltaTime);
+            
+            if (moveDirection != Vector3.zero)
+            {
+                RotatePlayer(moveDirection);
+            }
+        }
+        
+        private float CalculateMovementSpeed(bool shouldRun)
+        {
+            if (!inputHandler.HasMoveInput) return 0f;
+            
+            if (isPushing) return pushSpeed;
+            if (shouldRun) return runSpeed;
+            return walkSpeed;
+        }
+        
+        private void RotatePlayer(Vector3 direction)
+        {
+            Quaternion targetRotation = Quaternion.LookRotation(direction);
+            transform.rotation = Quaternion.Slerp(transform.rotation, targetRotation, rotationSpeed * Time.deltaTime);
+        }
+        
+        private void HandlePushing()
+        {
+            if (!inputHandler) return;
+            
+            currentPushableBlock = pushDetector.FindNearestPushable(
+                transform.position, 
+                transform.forward, 
+                pushDetectionRange, 
+                pushableLayers
+            );
+            
+            bool shouldPush = currentPushableBlock != null && inputHandler.HasMoveInput;
+            
+            if (shouldPush && !isPushing)
+            {
+                StartPushing();
+            }
+            else if (!shouldPush && isPushing)
+            {
+                StopPushing();
+            }
+            
+            if (isPushing && currentPushableBlock)
+            {
+                Vector3 pushDirection = inputHandler.GetWorldMoveDirection();
+                currentPushableBlock.TryPush(pushDirection);
+            }
+        }
+        
+        private void StartPushing()
+        {
+            isPushing = true;
+            if (currentPushableBlock)
+            {
+                currentPushableBlock.SetHighlighted(true);
+            }
+        }
+        
+        private void StopPushing()
+        {
+            isPushing = false;
+            if (currentPushableBlock)
+            {
+                currentPushableBlock.SetHighlighted(false);
+            }
+        }
+        
+        private void UpdateAnimations()
+        {
+            if (playerAnimator)
+            {
+                playerAnimator.UpdateMovementAnimation(currentSpeed, isPushing, isGrounded);
+            }
+        }
+        
+        private void OnDrawGizmosSelected()
+        {
+            if (!Application.isPlaying) return;
+            
+            Gizmos.color = isGrounded ? Color.green : Color.red;
+            Gizmos.DrawWireSphere(transform.position, 0.5f);
+            
+            Gizmos.color = isPushing ? Color.yellow : Color.blue;
+            Gizmos.DrawRay(transform.position + Vector3.up, transform.forward * pushDetectionRange);
+        }
+    }
+}

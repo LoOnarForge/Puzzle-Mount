@@ -1,0 +1,392 @@
+
+using UnityEngine;
+using System.Collections;
+using System.Collections.Generic;
+
+public class CubeSelection : MonoBehaviour
+{
+    [Header("Selection Settings")]
+    public float deselectionDelay = 0.5f;
+    public Color activeCubeColor = Color.red;
+    public Color selectedCubeColor = Color.yellow;
+    public LayerMask pushableLayer;
+
+    private List<GameObject> selectedCubes = new List<GameObject>();
+    private Coroutine deselectionCoroutine = null;
+    private GameObject lastSelectedCube;
+    private int activeCubeIndex = 0;
+    public int SelectedCubeCount => selectedCubes.Count;
+    [SerializeField] private SelectionSprite selectionSprite;
+
+
+    void Start()
+    {
+        if (selectionSprite == null)
+            selectionSprite = FindFirstObjectByType<SelectionSprite>();
+    }
+    public void SelectBottomThreeCubes(GameObject startCube)
+    {
+        if (startCube == lastSelectedCube)
+        {
+            return;
+        }
+
+        DeselectAllCubes();
+        lastSelectedCube = startCube;
+        activeCubeIndex = 0;
+
+        int maxSelectable = 3;
+        int count = 0;
+
+        while (count < maxSelectable)
+        {
+            if (startCube == null) break;
+
+            PushableObjects cube = startCube.GetComponent<PushableObjects>();
+            if (cube != null)
+            {
+                cube.SetSelected(true);
+                selectedCubes.Add(startCube);
+
+                Color appliedColor = count == 0 ? activeCubeColor : selectedCubeColor;
+                cube.SetCubeColor(appliedColor);
+
+                count++;
+
+                RaycastHit hit;
+                if (Physics.Raycast(startCube.transform.position + Vector3.up * 0.475f, Vector3.up, out hit, 0.95f, pushableLayer))
+                {
+                    startCube = hit.collider.gameObject;
+                }
+                else break;
+            }
+            else
+            {
+                break;
+            }
+        }
+
+        UpdateSelectionSprite();
+    }
+
+    //public void SelectBottomThreeCubes(GameObject startCube)
+    //{
+    //    if (startCube == lastSelectedCube)
+    //    {
+    //        return;
+    //    }
+
+    //    DeselectAllCubes();
+    //    lastSelectedCube = startCube;
+    //    activeCubeIndex = 0;
+
+    //    int maxSelectable = 3;
+    //    int count = 0;
+
+    //    while (count < maxSelectable)
+    //    {
+    //        if (startCube == null) break;
+
+    //        PushableObjects cube = startCube.GetComponent<PushableObjects>();
+    //        if (cube != null)
+    //        {
+    //            cube.SetSelected(true);
+    //            selectedCubes.Add(startCube);
+
+    //            Color appliedColor = count == 0 ? activeCubeColor : selectedCubeColor;
+    //            cube.SetCubeColor(appliedColor);
+
+    //            count++;
+
+    //            RaycastHit hit;
+    //            if (Physics.Raycast(startCube.transform.position + Vector3.up * 0.5f, Vector3.up, out hit, 1f, pushableLayer))
+    //            {
+    //                startCube = hit.collider.gameObject;
+    //            }
+    //            else break;
+    //        }
+    //        else
+    //        {
+    //            break;
+    //        }
+    //    }
+
+    //    UpdateSelectionSprite();
+    //}
+
+    public GameObject GetActiveCube()
+    {
+        if (selectedCubes.Count == 0) return null;
+        return selectedCubes[activeCubeIndex];
+    }
+
+    public void SwitchActiveCube()
+    {
+        if (selectedCubes.Count == 0) return;
+
+        PushableObjects previousCube = selectedCubes[activeCubeIndex].GetComponent<PushableObjects>();
+        if (previousCube != null) previousCube.SetCubeColor(selectedCubeColor);
+
+        activeCubeIndex = (activeCubeIndex + 1) % selectedCubes.Count;
+
+        PushableObjects newActiveCube = selectedCubes[activeCubeIndex].GetComponent<PushableObjects>();
+        if (newActiveCube != null) newActiveCube.SetCubeColor(activeCubeColor);
+
+        UpdateSelectionSprite();
+    }
+
+
+    public void DeselectAllCubes()
+    {
+
+        foreach (GameObject cube in selectedCubes)
+        {
+            if (cube != null)
+            {
+                PushableObjects pushable = cube.GetComponent<PushableObjects>();
+                if (pushable != null)
+                {
+                    pushable.Deselect();
+                }
+            }
+        }
+
+        selectedCubes.Clear();
+        lastSelectedCube = null;
+    }
+
+    public IEnumerator WaitBeforeDeselecting(GameObject previousSelection)
+    {
+
+        yield return new WaitForSeconds(deselectionDelay);
+
+        DeselectAllCubes();
+
+        CharacterMovement characterMovement = FindAnyObjectByType<CharacterMovement>();
+        if (characterMovement != null)
+        {
+            characterMovement.currentPushableObject = null;
+        }
+        else
+        {
+            Debug.LogError("CharacterMovement script not found in scene!");
+        }
+
+        deselectionCoroutine = null;
+    }
+    private void UpdateSelectionSprite()
+    {
+        if (selectionSprite == null) return;
+
+        GameObject activeCube = GetActiveCube();
+
+        if (activeCube != null)
+        {
+            selectionSprite.ShowSprite(true);
+        }
+        else
+        {
+            selectionSprite.ShowSprite(false);
+        }
+    }
+
+    public bool IsSameSelection(GameObject startCube)
+    {
+        if (lastSelectedCube == null) return false;
+
+        PushableObjects cube = lastSelectedCube.GetComponent<PushableObjects>();
+        return cube != null && cube.IsSameSelection(startCube);
+    }
+
+}
+
+
+
+
+
+
+
+//using UnityEngine;
+//using System.Collections;
+//using System.Collections.Generic;
+
+//public class CubeSelection : MonoBehaviour
+//{
+//    [Header("Selection Settings")]
+//    public float deselectionDelay = 0.5f;
+//    public Color activeCubeColor = Color.red;
+//    public Color selectedCubeColor = Color.yellow;
+//    public LayerMask pushableLayer;
+
+//    private List<GameObject> selectedCubes = new List<GameObject>();
+//    private Coroutine deselectionCoroutine = null;
+//    private GameObject lastSelectedCube;
+//    private int activeCubeIndex = 0;
+//    public int SelectedCubeCount => selectedCubes.Count;
+//    [SerializeField] private SelectionSprite selectionSprite;
+
+
+//    void Start()
+//    {
+//        if (selectionSprite == null)
+//            selectionSprite = FindFirstObjectByType<SelectionSprite>();
+//    }
+
+//    public void SelectBottomThreeCubes(GameObject startCube)
+//    {
+//        if (startCube == lastSelectedCube)
+//        {
+//            return;
+//        }
+
+//        DeselectAllCubes();
+//        lastSelectedCube = startCube;
+//        activeCubeIndex = 0;
+
+//        int maxSelectable = 3;
+//        int count = 0;
+
+//        while (count < maxSelectable)
+//        {
+//            if (startCube == null) break;
+
+//            PushableObjects cube = startCube.GetComponent<PushableObjects>();
+//            if (cube != null)
+//            {
+//                cube.SetSelected(true);
+//                selectedCubes.Add(startCube);
+
+//                Color appliedColor = count == 0 ? activeCubeColor : selectedCubeColor;
+//                cube.SetCubeColor(appliedColor);
+
+//                count++;
+
+//                RaycastHit hit;
+//                if (Physics.Raycast(startCube.transform.position + Vector3.up * 0.5f, Vector3.up, out hit, 1f, pushableLayer))
+//                {
+//                    startCube = hit.collider.gameObject;
+//                }
+//                else break;
+//            }
+//            else
+//            {
+//                break;
+//            }
+//        }
+
+//        UpdateSelectionSprite();
+//    }
+
+//    public GameObject GetActiveCube()
+//    {
+//        if (selectedCubes.Count == 0) return null;
+//        return selectedCubes[activeCubeIndex];
+//    }
+
+//    public void SwitchActiveCube()
+//    {
+//        if (selectedCubes.Count == 0) return;
+
+//        PushableObjects previousCube = selectedCubes[activeCubeIndex].GetComponent<PushableObjects>();
+//        if (previousCube != null) previousCube.SetCubeColor(selectedCubeColor);
+
+//        activeCubeIndex = (activeCubeIndex + 1) % selectedCubes.Count;
+
+//        PushableObjects newActiveCube = selectedCubes[activeCubeIndex].GetComponent<PushableObjects>();
+//        if (newActiveCube != null) newActiveCube.SetCubeColor(activeCubeColor);
+
+//        UpdateSelectionSprite();
+//    }
+
+
+//    public void DeselectAllCubes()
+//    {
+
+//        foreach (GameObject cube in selectedCubes)
+//        {
+//            if (cube != null)
+//            {
+//                PushableObjects pushable = cube.GetComponent<PushableObjects>();
+//                if (pushable != null)
+//                {
+//                    pushable.Deselect();
+//                }
+//            }
+//        }
+
+//        selectedCubes.Clear();
+//        lastSelectedCube = null;
+//    }
+
+//    public IEnumerator WaitBeforeDeselecting(GameObject previousSelection)
+//    {
+
+//        yield return new WaitForSeconds(deselectionDelay);
+
+//        DeselectAllCubes();
+
+//        CharacterMovement characterMovement = FindAnyObjectByType<CharacterMovement>();
+//        if (characterMovement != null)
+//        {
+//            characterMovement.currentPushableObject = null;
+//        }
+//        else
+//        {
+//            Debug.LogError("CharacterMovement script not found in scene!");
+//        }
+
+//        deselectionCoroutine = null;
+//    }
+//    private void UpdateSelectionSprite()
+//    {
+//        if (selectionSprite == null) return;
+
+//        GameObject activeCube = GetActiveCube();
+
+//        if (activeCube != null)
+//        {
+//            selectionSprite.ShowSprite(true);
+//        }
+//        else
+//        {
+//            selectionSprite.ShowSprite(false);
+//        }
+//    }
+
+//    //private void UpdateSelectionSprite()
+//    //{
+//    //    if (selectedCubes.Count == 0)
+//    //    {
+//    //        SelectionSprite.UpdatePosition(Vector3.zero, false);
+//    //        return;
+//    //    }
+
+//    //    GameObject bottomCube = selectedCubes[0];
+
+//    //    foreach (GameObject cube in selectedCubes)
+//    //    {
+//    //        if (cube.transform.position.y < bottomCube.transform.position.y)
+//    //        {
+//    //            bottomCube = cube;
+//    //        }
+//    //    }
+
+//    //    Vector3 spritePosition = bottomCube.transform.position + Vector3.up * 0.2f;
+//    //    SelectionSprite.UpdatePosition(spritePosition, true);
+//    //}
+
+//    public bool IsSameSelection(GameObject startCube)
+//    {
+//        if (lastSelectedCube == null) return false;
+
+//        PushableObjects cube = lastSelectedCube.GetComponent<PushableObjects>();
+//        return cube != null && cube.IsSameSelection(startCube);
+//    }
+
+//}
+
+
+
+
+
+

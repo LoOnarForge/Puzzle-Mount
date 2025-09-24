@@ -1,0 +1,259 @@
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+///-------------------------------------------------------------------
+///-------------------------------------------------------------------
+
+//using UnityEngine;
+//using UnityEngine.InputSystem;
+
+//public class AnimationTesting : MonoBehaviour
+//{
+//    private Animator animator;
+//    private CharacterController characterController;
+//    private bool isPlayingClimbAnimation = false;
+//    private bool isInPullUpPhase = false;
+//    private CharacterMovement characterMovement;
+
+//    void Awake()
+//    {
+//        animator = GetComponent<Animator>();
+//        characterController = GetComponent<CharacterController>();
+//        characterMovement = GetComponent<CharacterMovement>();
+//    }
+
+//    void Update()
+//    {
+//        // Start climb sequence when R is pressed
+//        if (Keyboard.current.rKey.wasPressedThisFrame && !isPlayingClimbAnimation)
+//        {
+//            isPlayingClimbAnimation = true;
+//            characterMovement.isPerformingAction = true;
+
+//            // Start with JumpGrab animation
+//            animator.Play("JumpGrab", 0, 0f);
+//            Debug.Log("JumpGrab animation started");
+//        }
+
+//        if (isPlayingClimbAnimation)
+//        {
+//            AnimatorStateInfo stateInfo = animator.GetCurrentAnimatorStateInfo(0);
+//            Debug.Log("Current Animation State: " + stateInfo.fullPathHash + " | Normalized Time: " + stateInfo.normalizedTime);
+
+//            // Transition from JumpGrab to PullUp when JumpGrab finishes
+//            if (!isInPullUpPhase && stateInfo.IsName("JumpGrab") && stateInfo.normalizedTime >= 0.95f)
+//            {
+//                isInPullUpPhase = true;
+//                animator.Play("PullUp", 0, 0f);
+//                Debug.Log("PullUp animation started");
+//            }
+
+//            // End the climb sequence after PullUp animation completes
+//            if (isInPullUpPhase && stateInfo.IsName("PullUp") && stateInfo.normalizedTime >= 0.95f)
+//            {
+//                isPlayingClimbAnimation = false;
+//                isInPullUpPhase = false;
+//                characterMovement.isPerformingAction = false;
+
+//                // Force Tim to snap to ground level
+//                characterController.Move(Vector3.down * 0.1f);
+
+//                // Reset Root Motion cleanly
+//                animator.applyRootMotion = false;
+//                animator.applyRootMotion = true;
+
+//                // Reset Speed parameter in Animator (if used in Blend Tree)
+//                animator.SetFloat("Speed", 0);
+
+//                // Debugging to confirm reset
+//                Debug.Log("Climb sequence ended");
+//                Debug.Log("Post-Climb Speed: " + animator.GetFloat("Speed"));
+
+//                // Ensure Tim transitions to Movement Blend Tree if needed
+//                if (!stateInfo.IsName("Movement Blend Tree"))
+//                {
+//                    animator.Play("Movement Blend Tree", 0, 0f);
+//                    Debug.Log("Forced transition to Movement Blend Tree");
+//                }
+//            }
+//        }
+//    }
+
+//    void FixedUpdate()
+//    {
+//        // Maintain Y-axis control during both animations
+//        if (isPlayingClimbAnimation)
+//        {
+//            Vector3 animatorRootPos = animator.rootPosition;
+//            Vector3 currentPos = transform.position;
+//            Vector3 movement = animatorRootPos - currentPos;
+//            characterController.Move(movement);
+//        }
+//    }
+
+//    void LateUpdate()
+//    {
+//        if (animator.GetBool("isClimbing") || animator.GetBool("isClimbingHigh"))
+//        {
+//            // Sync collider with animation position
+//            characterController.Move(animator.rootPosition - transform.position);
+//        }
+//    }
+
+//}
+
+
+
+//using UnityEngine;
+//using UnityEngine.InputSystem;
+
+//public class AnimationTesting : MonoBehaviour
+//{
+//    private Animator animator;
+//    private CharacterController characterController;
+//    private bool isPlayingClimbAnimation = false;
+//    private bool isInPullUpPhase = false;
+//    private CharacterMovement characterMovement;
+
+//    void Awake()
+//    {
+//        animator = GetComponent<Animator>();
+//        characterController = GetComponent<CharacterController>();
+//        characterMovement = GetComponent<CharacterMovement>();
+//    }
+
+//    void Update()
+//    {
+//        // Start climb sequence when R is pressed
+//        if (Keyboard.current.rKey.wasPressedThisFrame && !isPlayingClimbAnimation)
+//        {
+//            isPlayingClimbAnimation = true;
+//            characterMovement.isPerformingAction = true;
+
+//            // Start with JumpGrab animation
+//            animator.Play("JumpGrab", 0, 0f);
+//        }
+
+//        if (isPlayingClimbAnimation)
+//        {
+//            AnimatorStateInfo stateInfo = animator.GetCurrentAnimatorStateInfo(0);
+
+//            // Transition from JumpGrab to PullUp when JumpGrab finishes
+//            if (!isInPullUpPhase && stateInfo.IsName("JumpGrab") && stateInfo.normalizedTime >= 1f)
+//            {
+//                isInPullUpPhase = true;
+//                animator.Play("PullUp", 0, 0f);
+//            }
+
+//            // End the climb sequence after PullUp animation completes
+//            if (isInPullUpPhase && stateInfo.IsName("PullUp") && stateInfo.normalizedTime >= 1f)
+//            {
+//                isPlayingClimbAnimation = false;
+//                isInPullUpPhase = false;
+//                characterMovement.isPerformingAction = false;
+
+//                // Ensure Tim is grounded after climb
+//                characterController.Move(Vector3.down * 0.1f); // Nudge down to ground level
+
+//                // Reset Root Motion (if needed)
+//                animator.applyRootMotion = false;
+//                animator.applyRootMotion = true;
+//            }
+//        }
+//    }
+
+//    void FixedUpdate()
+//    {
+//        // Maintain Y-axis control during both animations
+//        if (isPlayingClimbAnimation)
+//        {
+//            Vector3 animatorRootPos = animator.rootPosition;
+//            Vector3 currentPos = transform.position;
+//            Vector3 movement = animatorRootPos - currentPos;
+//            characterController.Move(movement);
+//        }
+//    }
+//}
+
+
+
+
+
+//using UnityEngine;
+//using UnityEngine.InputSystem;
+
+//public class AnimationTesting : MonoBehaviour
+//{
+//    private Animator animator;
+//    private CharacterController characterController;
+//    private bool isPlayingClimbAnimation = false;
+//    private CharacterMovement characterMovement;
+
+//    void Awake()
+//    {
+//        animator = GetComponent<Animator>();
+//        characterController = GetComponent<CharacterController>();
+//        characterMovement = GetComponent<CharacterMovement>();
+//    }
+
+//    void Update()
+//    {
+//        if (Keyboard.current.rKey.wasPressedThisFrame && !isPlayingClimbAnimation)
+//        {
+//            isPlayingClimbAnimation = true;
+//            characterMovement.isPerformingAction = true; // Set action to true when animation starts
+//            animator.Play("climbing high", 0, 0f); // Start from Any State and blend in
+//        }
+
+//        if (isPlayingClimbAnimation)
+//        {
+//            AnimatorStateInfo stateInfo = animator.GetCurrentAnimatorStateInfo(0);
+//            if (stateInfo.IsName("climbing high") && stateInfo.normalizedTime >= 1f)
+//            {
+//                isPlayingClimbAnimation = false;
+//                characterMovement.isPerformingAction = false; // Reset after animation completes
+//            }
+//        }
+//    }
+
+//    void FixedUpdate()
+//    {
+//        if (isPlayingClimbAnimation)
+//        {
+//            Vector3 animatorRootPos = animator.rootPosition;
+//            Vector3 currentPos = transform.position;
+//            Vector3 movement = animatorRootPos - currentPos;
+//            characterController.Move(movement);
+//        }
+//    }
+//}
+
+

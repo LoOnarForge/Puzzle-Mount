@@ -1,0 +1,33 @@
+using UnityEngine;
+
+public class CameraFollowXZ : MonoBehaviour
+{
+    public Transform target; // Assign Tim's transform here
+    public float followSpeed = 5f; // Base follow speed
+    public float smoothFactor = 0.1f; // Adjusts how smooth the movement is
+    public float zOffset = -10f; // Adjust camera's distance from Tim on the Z-axis
+
+    private Vector3 targetPosition;
+
+    private void LateUpdate()
+    {
+        if (target == null)
+        {
+            Debug.LogWarning("CameraFollowXZ: No target assigned!");
+            return;
+        }
+
+        // Keep Y fixed, follow X and Z (Z with offset)
+        targetPosition = new Vector3(target.position.x, transform.position.y, target.position.z + zOffset);
+
+        // Calculate distance to target on XZ plane
+        float distance = Vector3.Distance(new Vector3(transform.position.x, 0, transform.position.z), new Vector3(targetPosition.x, 0, targetPosition.z));
+
+        // Adjust speed: Faster when far, slower when close
+        float dynamicSpeed = followSpeed * distance * smoothFactor;
+
+        // Smoothly move camera on X and Z axes
+        transform.position = Vector3.Lerp(transform.position, targetPosition, Time.deltaTime * dynamicSpeed);
+    }
+}
+

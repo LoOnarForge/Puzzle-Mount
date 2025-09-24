@@ -1,0 +1,39 @@
+using UnityEngine;
+using UnityEngine.InputSystem;
+
+public class ObjectVsMouseInteraction : MonoBehaviour
+{
+    public Camera playerCamera;  // The player's camera for raycasting
+    public float rayDistance = 10f;  // Max distance the ray will check for an object
+
+    private void Update()
+    {
+        // Only check for raycast if left mouse button is clicked
+        if (Mouse.current.leftButton.wasPressedThisFrame)
+        {
+            RaycastHit hit;
+            Ray ray = playerCamera.ScreenPointToRay(Mouse.current.position.ReadValue());
+
+            if (Physics.Raycast(ray, out hit, rayDistance))
+            {
+                // If we hit an object, print its name
+                //Debug.Log("Hit object: " + hit.collider.gameObject.name);
+
+                // Add custom interaction here (e.g., trigger object behavior)
+                InteractWithObject(hit.collider.gameObject);
+            }
+        }
+    }
+
+    private void InteractWithObject(GameObject hitObject)
+    {
+        // Example: Perform an action on the object
+        // You could trigger animations, change object properties, etc.
+        // For now, just change the color of the object to show interaction
+        Renderer objectRenderer = hitObject.GetComponent<Renderer>();
+        if (objectRenderer != null)
+        {
+            objectRenderer.material.color = Random.ColorHSV();
+        }
+    }
+}
