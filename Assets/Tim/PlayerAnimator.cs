@@ -7,6 +7,7 @@ public class PlayerAnimator : MonoBehaviour
     [SerializeField] private string speedParameter = "Speed";
     [SerializeField] private string groundedParameter = "IsGrounded";
     [SerializeField] private string fallingParameter = "IsFalling";
+    [SerializeField] private string jumpingParameter = "IsJumping";
     
     [Header("Animation Settings")]
     [SerializeField] private float animationSmoothTime = 0.1f;
@@ -42,6 +43,9 @@ public class PlayerAnimator : MonoBehaviour
         
         if (!HasParameter(fallingParameter))
             Debug.LogWarning($"Animation parameter '{fallingParameter}' not found in Animator Controller!");
+            
+        if (!HasParameter(jumpingParameter))
+            Debug.LogWarning($"Animation parameter '{jumpingParameter}' not found in Animator Controller!");
     }
     
     private bool HasParameter(string paramName)
@@ -52,6 +56,22 @@ public class PlayerAnimator : MonoBehaviour
                 return true;
         }
         return false;
+    }
+    
+    public void SetJumpingState(bool isJumping)
+    {
+        if (HasParameter(jumpingParameter))
+        {
+            animator.SetBool(jumpingParameter, isJumping);
+        }
+    }
+    
+    public void SetFallingState(bool isFalling)
+    {
+        if (HasParameter(fallingParameter))
+        {
+            animator.SetBool(fallingParameter, isFalling);
+        }
     }
     
     public void UpdateMovementAnimation(float targetSpeed, bool isGrounded, float verticalVelocity = 0f)
@@ -81,7 +101,7 @@ public class PlayerAnimator : MonoBehaviour
         wasGroundedLastFrame = isGrounded;
     }
     
-    private void HandleFallingAnimation(bool isGrounded)
+    private void HandleFallingAnimation(bool isGrounded, float verticalVelocity = 0f)
     {
         if (!HasParameter(fallingParameter)) return;
         
@@ -93,9 +113,20 @@ public class PlayerAnimator : MonoBehaviour
         if (!isGrounded)
         {
             fallTimer += Time.deltaTime;
-            if (fallTimer >= fallDetectionDelay)
+            
+            // Only trigger falling if we've been airborne long enough AND falling fast enough
+            bool fallingFastEnough = verticalVelocity < -minimumFallSpeed;
+            bool longEnoughAirtime = fallTimer >= fallDetectionDelay;
+            
+            if (longEnoughAirtime && fallingFastEnough)
             {
                 animator.SetBool(fallingParameter, true);
+                
+                // Reset jumping when falling starts
+                if (HasParameter(jumpingParameter))
+                {
+                    animator.SetBool(jumpingParameter, false);
+                }
             }
         }
         else

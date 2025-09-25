@@ -2,7 +2,7 @@ using UnityEngine;
 using UnityEngine.InputSystem;
 
 [RequireComponent(typeof(CharacterController))]
-public class CharacterMovement : MonoBehaviour
+public class CharacterMovement_Working : MonoBehaviour
 {
     [Header("Movement Settings")]
     public float walkSpeed = 3f;
@@ -89,16 +89,10 @@ public class CharacterMovement : MonoBehaviour
         wasGroundedLastFrame = isGrounded;
         isGrounded = controller.isGrounded;
         
-        // Reset jump momentum and jumping animation when landing
+        // Reset jump momentum when landing
         if (isGrounded && !wasGroundedLastFrame)
         {
             jumpMomentum = Vector3.zero;
-            
-            // Reset jumping animation state when landing
-            if (playerAnimator != null)
-            {
-                playerAnimator.SetJumpingState(false);
-            }
         }
     }
     
