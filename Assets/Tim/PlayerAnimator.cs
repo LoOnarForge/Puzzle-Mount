@@ -14,6 +14,10 @@ public class PlayerAnimator : MonoBehaviour
     [SerializeField] private float fallDetectionDelay = 0.2f;
     [SerializeField] private float minimumFallSpeed = 3f;
     
+    [Header("Debug - Fall Timer Visualization")]
+    [SerializeField] private float fallTimerVisual;
+    [SerializeField] private bool isCurrentlyFalling;
+    
     private Animator animator;
     private float currentAnimatedSpeed;
     private float fallTimer;
@@ -114,12 +118,16 @@ public class PlayerAnimator : MonoBehaviour
         {
             fallTimer += Time.deltaTime;
             
+            // Show timer and conditions in inspector
+            fallTimerVisual = fallTimer;
+            
             // Only trigger falling if we've been airborne long enough AND falling fast enough
             bool fallingFastEnough = verticalVelocity < -minimumFallSpeed;
             bool longEnoughAirtime = fallTimer >= fallDetectionDelay;
             
             if (longEnoughAirtime && fallingFastEnough)
             {
+                isCurrentlyFalling = true;
                 animator.SetBool(fallingParameter, true);
                 
                 // Reset jumping when falling starts
@@ -128,9 +136,16 @@ public class PlayerAnimator : MonoBehaviour
                     animator.SetBool(jumpingParameter, false);
                 }
             }
+            else
+            {
+                isCurrentlyFalling = false;
+            }
         }
         else
         {
+            // Reset everything when grounded
+            fallTimerVisual = 0f;
+            isCurrentlyFalling = false;
             animator.SetBool(fallingParameter, false);
             fallTimer = 0f;
         }

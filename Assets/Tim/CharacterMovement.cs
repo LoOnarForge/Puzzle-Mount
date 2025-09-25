@@ -97,6 +97,17 @@ public class CharacterMovement : MonoBehaviour
         wasGroundedLastFrame = isGrounded;
         isGrounded = controller.isGrounded;
         
+        // Capture momentum when walking off edge (grounded → airborne)
+        if (!isGrounded && wasGroundedLastFrame)
+        {
+            Vector3 currentMovement = new Vector3(moveInput.x, 0, moveInput.y);
+            if (currentMovement.magnitude > 0.1f)
+            {
+                // Use current built-up speed for edge momentum
+                jumpMomentum = currentMovement.normalized * currentSpeedBuildup;
+            }
+        }
+        
         // Reset jump momentum and jumping animation when landing
         if (isGrounded && !wasGroundedLastFrame)
         {
