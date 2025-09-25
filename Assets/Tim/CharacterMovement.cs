@@ -10,6 +10,13 @@ public class CharacterMovement : MonoBehaviour
     public float jumpHeight = 2f;
     public float rotationSpeed = 10f;
     
+    [Header("Speed Buildup")]
+    public float startSpeedPercent = 40f; // Percentage of max speed to start with
+    public float accelerationTime = 0.3f; // Time to reach max speed
+    
+    [Header("Debug - Speed Visualization")]
+    [SerializeField] private float currentSpeedVisual; // Shows current speed in inspector
+    
     [Header("Physics")]
     public float gravity = -20f;
     
@@ -35,6 +42,10 @@ public class CharacterMovement : MonoBehaviour
     private Vector3 jumpMomentum;
     private float coyoteTimer;
     private bool wasGroundedLastFrame;
+    
+    // Acceleration variables
+    private float currentSpeedBuildup;
+    private bool wasMovingLastFrame;
     
     public bool IsGrounded => isGrounded;
     public float CurrentSpeed => currentSpeed;
@@ -185,9 +196,28 @@ public class CharacterMovement : MonoBehaviour
     
     private float CalculateMovementSpeed(bool shouldRun)
     {
-        if (moveInput.magnitude < 0.1f) return 0f;
+        if (moveInput.magnitude < 0.1f)
+        {
+            wasMovingLastFrame = false;
+            currentSpeedBuildup = 0f;
+            return 0f;
+        }
         
-        return shouldRun ? runSpeed : walkSpeed;
+        float targetSpeed = shouldRun ? runSpeed : walkSpeed;
+        float startSpeed = targetSpeed * (startSpeedPercent / 100f);
+        
+        // Start acceleration only if player was NOT moving last frame
+        if (!wasMovingLastFrame)
+        {
+            currentSpeedBuildup = startSpeed; // Start at 40% immediately
+        }
+        
+        // Exponential buildup to max speed
+        float lerpRate = Time.deltaTime / accelerationTime * 5f; // 5f makes it exponential
+        currentSpeedBuildup = Mathf.Lerp(currentSpeedBuildup, targetSpeed, lerpRate);
+        
+        wasMovingLastFrame = true;
+        return currentSpeedBuildup;
     }
     
     private void RotatePlayer(Vector3 direction)
@@ -214,7 +244,9 @@ public class CharacterMovement : MonoBehaviour
             // Store current horizontal movement as jump momentum
             Vector3 currentMovement = new Vector3(moveInput.x, 0, moveInput.y);
             bool shouldRun = isSprinting;
-            float jumpSpeed = CalculateMovementSpeed(shouldRun);
+            
+            // Use current built-up speed for jump distance
+            float jumpSpeed = currentSpeedBuildup;
             
             jumpMomentum = currentMovement.normalized * jumpSpeed;
             
@@ -233,6 +265,10 @@ public class CharacterMovement : MonoBehaviour
     {
         if (playerAnimator != null)
         {
+            // Show actual speed buildup in inspector
+            currentSpeedVisual = currentSpeedBuildup;
+            
+            // Keep original animator logic unchanged
             float animSpeed = currentSpeed > 0.1f ? (isSprinting ? 1.0f : 0.5f) : 0f;
             playerAnimator.UpdateMovementAnimation(animSpeed, isGrounded, velocity.y);
         }
