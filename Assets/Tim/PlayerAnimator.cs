@@ -11,7 +11,7 @@ public class PlayerAnimator : MonoBehaviour
     
     [Header("Animation Settings")]
     [SerializeField] private float animationSmoothTime = 0.1f;
-    public float fallDetectionDelay = 0.2f;
+    [SerializeField] private float fallDetectionDelay = 0.2f;
     [SerializeField] private float minimumFallSpeed = 3f;
     
     private Animator animator;
@@ -134,27 +134,5 @@ public class PlayerAnimator : MonoBehaviour
             animator.SetBool(fallingParameter, false);
             fallTimer = 0f;
         }
-    }
-    
-    public void PlayTriggerAnimation(string triggerName)
-    {
-        if (HasParameter(triggerName))
-        {
-            animator.SetTrigger(triggerName);
-        }
-        else
-        {
-            Debug.LogWarning($"Trigger '{triggerName}' not found in Animator Controller!");
-        }
-    }
-    
-    public bool IsAnimationPlaying(string animationName)
-    {
-        return animator.GetCurrentAnimatorStateInfo(0).IsName(animationName);
-    }
-    
-    public float GetAnimationProgress()
-    {
-        return animator.GetCurrentAnimatorStateInfo(0).normalizedTime;
     }
 }

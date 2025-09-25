@@ -11,19 +11,17 @@ public class CharacterMovement : MonoBehaviour
     public float rotationSpeed = 10f;
     
     [Header("Speed Buildup")]
-    public float startSpeedPercent = 40f; // Percentage of max speed to start with
-    public float accelerationTime = 0.3f; // Time to reach max speed
-    
-    [Header("Debug - Speed Visualization")]
-    [SerializeField] private float currentSpeedVisual; // Shows current speed in inspector
-    
-    [Header("Physics")]
-    public float gravity = -20f;
+    public float startSpeedPercent = 40f;
+    public float accelerationTime = 0.3f;
     
     [Header("Air Control")]
-    public bool useCoyoteTime = false;
-    public float coyoteTime = 0.2f;
     public float momentumDecay = 2f;
+    
+    [Header("Debug - Speed Visualization")]
+    [SerializeField] private float currentSpeedVisual;
+    
+    // Hidden physics settings
+    private float gravity = -20f;
     
     private CharacterController controller;
     private PlayerInput playerInput;
@@ -40,10 +38,9 @@ public class CharacterMovement : MonoBehaviour
     
     // Air control variables
     private Vector3 jumpMomentum;
-    private float coyoteTimer;
     private bool wasGroundedLastFrame;
     
-    // Acceleration variables
+    // Speed buildup variables
     private float currentSpeedBuildup;
     private bool wasMovingLastFrame;
     
@@ -152,43 +149,11 @@ public class CharacterMovement : MonoBehaviour
         
         if (isGrounded)
         {
-            // Reset coyote timer when grounded
-            coyoteTimer = useCoyoteTime ? coyoteTime : 0f;
             return inputDirection;
         }
         else
         {
-            // Handle air control based on selected approach
-            if (useCoyoteTime)
-            {
-                return HandleCoyoteTimeAirControl(inputDirection);
-            }
-            else
-            {
-                return HandleImmediateAirControl();
-            }
-        }
-    }
-    
-    private Vector3 HandleImmediateAirControl()
-    {
-        // Option A: Use stored jump momentum (locked at jump time)
-        // Decay momentum over time
-        jumpMomentum = Vector3.Lerp(jumpMomentum, Vector3.zero, momentumDecay * Time.deltaTime);
-        return jumpMomentum.normalized;
-    }
-    
-    private Vector3 HandleCoyoteTimeAirControl(Vector3 inputDirection)
-    {
-        // Option B: Legacy-style coyote time
-        if (coyoteTimer > 0)
-        {
-            coyoteTimer -= Time.deltaTime;
-            return inputDirection; // Still controllable during coyote time
-        }
-        else
-        {
-            // Use stored jump momentum after coyote time
+            // Use stored jump momentum when airborne
             jumpMomentum = Vector3.Lerp(jumpMomentum, Vector3.zero, momentumDecay * Time.deltaTime);
             return jumpMomentum.normalized;
         }
@@ -213,7 +178,8 @@ public class CharacterMovement : MonoBehaviour
         }
         
         // Exponential buildup to max speed
-        float lerpRate = Time.deltaTime / accelerationTime * 5f; // 5f makes it exponential
+        float exponentialRate = 5f;
+        float lerpRate = Time.deltaTime / accelerationTime * exponentialRate;
         currentSpeedBuildup = Mathf.Lerp(currentSpeedBuildup, targetSpeed, lerpRate);
         
         wasMovingLastFrame = true;
