@@ -135,18 +135,20 @@ public class CharacterMovement : MonoBehaviour
         Vector3 moveDirection = GetMovementDirection();
         bool shouldRun = isSprinting;
         
-        // Use stored jump momentum speed when airborne
+        // When airborne, use the momentum vector directly (already has correct magnitude)
         if (!isGrounded && jumpMomentum.magnitude > 0.1f)
         {
-            currentSpeed = jumpMomentum.magnitude;
+            Vector3 movement = moveDirection; // moveDirection already contains the speed
+            controller.Move(movement * Time.deltaTime);
+            currentSpeed = moveDirection.magnitude; // For animation purposes
         }
         else
         {
+            // Ground movement - calculate speed normally
             currentSpeed = CalculateMovementSpeed(shouldRun);
+            Vector3 movement = moveDirection * currentSpeed;
+            controller.Move(movement * Time.deltaTime);
         }
-        
-        Vector3 movement = moveDirection * currentSpeed;
-        controller.Move(movement * Time.deltaTime);
         
         if (moveDirection != Vector3.zero)
         {
@@ -165,8 +167,9 @@ public class CharacterMovement : MonoBehaviour
         else
         {
             // Use stored jump momentum when airborne
+            // Don't normalize here - keep the magnitude intact
             jumpMomentum = Vector3.Lerp(jumpMomentum, Vector3.zero, momentumDecay * Time.deltaTime);
-            return jumpMomentum.normalized;
+            return jumpMomentum; // Return full vector with magnitude
         }
     }
     
@@ -218,14 +221,19 @@ public class CharacterMovement : MonoBehaviour
     {
         if (isGrounded)
         {
-            // Store current horizontal movement as jump momentum
             Vector3 currentMovement = new Vector3(moveInput.x, 0, moveInput.y);
-            bool shouldRun = isSprinting;
             
-            // Use current built-up speed for jump distance
-            float jumpSpeed = currentSpeedBuildup;
-            
-            jumpMomentum = currentMovement.normalized * jumpSpeed;
+            if (currentMovement.magnitude < 0.1f)
+            {
+                // Stationary jump - no horizontal momentum
+                jumpMomentum = Vector3.zero;
+            }
+            else
+            {
+                // Moving jump - use at least walk speed as minimum, or current buildup if higher
+                float jumpSpeed = Mathf.Max(walkSpeed, currentSpeedBuildup);
+                jumpMomentum = currentMovement.normalized * jumpSpeed;
+            }
             
             // Apply vertical jump velocity
             velocity.y = Mathf.Sqrt(jumpHeight * -2f * gravity);
