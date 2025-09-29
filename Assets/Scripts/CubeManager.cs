@@ -271,6 +271,44 @@ public class CubeManager : MonoBehaviour
     }
     
     /// <summary>
+    /// Set the cube that Tim's raycast hit as targeted, and highlight the cube at Tim's level
+    /// This ensures the cube at Tim's level is highlighted, not necessarily the bottom cube
+    /// </summary>
+    public void SetTargetedCubeAtTimLevel(Cube hitCube, Vector3 timPosition)
+    {
+        if (hitCube == null)
+        {
+            SetTargetedCube(null);
+            return;
+        }
+        
+        // Find the cube at Tim's level in the same stack
+        Cube[] stackFromTimLevel = GetStackFromTimLevel(timPosition);
+        if (stackFromTimLevel.Length > 0)
+        {
+            Cube cubeAtTimLevel = stackFromTimLevel[0]; // First cube is at Tim's level
+            
+            // Set this cube as targeted for highlighting
+            if (targetedBaseCube != cubeAtTimLevel)
+            {
+                targetedBaseCube = cubeAtTimLevel;
+                currentSelectedIndex = 0; // Start selection at Tim's level cube
+                currentStackArray = stackFromTimLevel; // Use the level-based stack
+                
+                Debug.Log($"[CubeManager] Targeted cube at Tim's level: {cubeAtTimLevel.name}, Stack size from level: {currentStackArray.Length}");
+                
+                UpdateVisualHighlights();
+                UpdateDebugInfo();
+            }
+        }
+        else
+        {
+            // Fallback to original behavior if no level-based stack found
+            SetTargetedCube(hitCube);
+        }
+    }
+    
+    /// <summary>
     /// Set the currently targeted base cube and calculate its stack
     /// </summary>
     public void SetTargetedCube(Cube baseCube)
@@ -324,6 +362,14 @@ public class CubeManager : MonoBehaviour
                 SetTargetedCube(null);
             }
         }
+    }
+    
+    /// <summary>
+    /// Get the currently targeted cube (for push validation)
+    /// </summary>
+    public Cube GetTargetedCube()
+    {
+        return targetedBaseCube;
     }
     
     /// <summary>
@@ -406,15 +452,15 @@ public class CubeManager : MonoBehaviour
     
     /// <summary>
     /// Get stack from Tim's level upward (for level-based pushing)
-    /// Tim is 2m tall, cubes are 1m tall, so raycast at ~0.9m to detect cube at Tim's level
+    /// Tim raycast hits at 0.8m above his feet, so find cube at that exact level
     /// </summary>
     public Cube[] GetStackFromTimLevel(Vector3 timPosition)
     {
-        // Raycast at Tim's eye level (slightly below 1m from ground)
-        float timEyeLevel = 0.9f;
-        Vector3 rayStart = new Vector3(timPosition.x, timEyeLevel, timPosition.z);
+        // Calculate Tim's detection level (0.8m above his feet)
+        float detectionHeight = 0.8f;
+        float timDetectionLevel = timPosition.y + detectionHeight;
         
-        // Find cube at Tim's level first
+        // Find cube at Tim's detection level first
         Cube cubeAtTimLevel = null;
         float minDistance = float.MaxValue;
         
@@ -422,8 +468,8 @@ public class CubeManager : MonoBehaviour
         {
             Vector3 cubePos = cube.transform.position;
             
-            // Check if cube is at roughly Tim's level (within 0.5m vertically)
-            if (Mathf.Abs(cubePos.y - timEyeLevel) < 0.5f)
+            // Check if cube is at roughly Tim's detection level (within 0.5m vertically)
+            if (Mathf.Abs(cubePos.y - timDetectionLevel) < 0.5f)
             {
                 float horizontalDistance = Vector2.Distance(
                     new Vector2(cubePos.x, cubePos.z), 
@@ -444,7 +490,7 @@ public class CubeManager : MonoBehaviour
         List<Cube> stackFromLevel = new List<Cube> { cubeAtTimLevel };
         Vector3 basePos = cubeAtTimLevel.transform.position;
         
-        // Find cubes above this level
+        // Find cubes above this level only (ignore cubes below Tim's level)
         List<Cube> cubesAbove = new List<Cube>();
         foreach (Cube cube in allCubes)
         {
@@ -452,13 +498,13 @@ public class CubeManager : MonoBehaviour
             
             Vector3 cubePos = cube.transform.position;
             
-            // Check alignment and if above Tim's level
+            // Check alignment and if above Tim's detection level
             float alignmentTolerance = 0.1f;
             bool isAligned = Mathf.Abs(cubePos.x - basePos.x) < alignmentTolerance && 
                            Mathf.Abs(cubePos.z - basePos.z) < alignmentTolerance;
-            bool isAbove = cubePos.y > basePos.y;
+            bool isAboveTimLevel = cubePos.y > timDetectionLevel; // Key change: above Tim's level, not cube's level
             
-            if (isAligned && isAbove)
+            if (isAligned && isAboveTimLevel)
             {
                 cubesAbove.Add(cube);
             }
@@ -468,7 +514,7 @@ public class CubeManager : MonoBehaviour
         cubesAbove.Sort((a, b) => a.transform.position.y.CompareTo(b.transform.position.y));
         stackFromLevel.AddRange(cubesAbove);
         
-        Debug.Log($"[CubeManager] Found stack from Tim's level: {stackFromLevel.Count} cubes starting with {cubeAtTimLevel.name}");
+        Debug.Log($"[CubeManager] Found stack from Tim's level (Y={timDetectionLevel:F1}): {stackFromLevel.Count} cubes starting with {cubeAtTimLevel.name}");
         return stackFromLevel.ToArray();
     }
     /// <summary>
@@ -496,7 +542,7 @@ public class CubeManager : MonoBehaviour
    
     
     /// <summary>
-    /// Get the number of cubes in current stack
+    /// Get the number of cubes in current stack  
     /// </summary>
     public int GetCurrentStackSize()
     {

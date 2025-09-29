@@ -159,18 +159,13 @@ public class CharacterMovement : MonoBehaviour
         CheckGroundStatus();
         ReadInput();
         HandleMovement();
-        CheckCubePushing(); // Always check for cubes, regardless of movement
+        CheckCubeDetection(); // Always check for nearby cubes for highlighting/selection
+        CheckCubePushing(); // Check for pushing only when moving
         HandleCubeSelection(); // Check for Tab key input
         HandleCubeRotation(); // Check for Q/E key input
         ApplyGravity();
         UpdateAnimations();
         UpdatePushDelay();
-        
-        // Check if Tim moved too far from selected cube
-        if (CubeManager.Instance != null)
-        {
-            CubeManager.Instance.CheckSelectionDistance(transform.position);
-        }
         
         // Check for push engagement reset at end of frame
         if (!isPushingThisFrame && (currentTargetCube != null))
@@ -302,8 +297,77 @@ public class CharacterMovement : MonoBehaviour
     }
     
     /// <summary>
+    /// Check for nearby cubes for highlighting and selection (runs every frame)
+    /// Based on distance and facing direction, not movement
+    /// </summary>
+    private void CheckCubeDetection()
+    {
+        // Clear targeting first
+        if (CubeManager.Instance != null)
+        {
+            CubeManager.Instance.SetTargetedCube(null);
+        }
+        
+        // Cast ray at Tim's interaction level to detect cubes he's facing
+        float detectionHeight = 0.8f;
+        Vector3 rayStart = transform.position + Vector3.up * detectionHeight;
+        Vector3 forward = transform.forward; // Use Tim's facing direction, not movement
+        
+        RaycastHit hit;
+        
+        if (Physics.Raycast(rayStart, forward, out hit, pushRange))
+        {
+            Cube cube = hit.collider.GetComponent<Cube>();
+            if (cube != null)
+            {
+                // Check if Tim is reasonably aligned (more lenient since this is for highlighting)
+                if (IsReasonablyAlignedForDetection(cube.transform))
+                {
+                    // Highlight the cube at Tim's level
+                    if (CubeManager.Instance != null)
+                    {
+                        CubeManager.Instance.SetTargetedCubeAtTimLevel(cube, transform.position);
+                    }
+                }
+            }
+        }
+    }
+    
+    /// <summary>
+    /// More lenient alignment check for cube detection/highlighting
+    /// </summary>
+    private bool IsReasonablyAlignedForDetection(Transform cubeTransform)
+    {
+        Vector3 cubeCenter = cubeTransform.position;
+        Vector3 timPos = transform.position;
+        
+        // Calculate which face of the cube Tim is closest to
+        Vector3 localOffset = timPos - cubeCenter;
+        
+        // Determine the strongest axis (which face Tim is approaching)
+        float absX = Mathf.Abs(localOffset.x);
+        float absZ = Mathf.Abs(localOffset.z);
+        
+        // More lenient tolerance for detection (can be slightly off-center)
+        float detectionTolerance = 0.6f;
+        
+        bool isAlignedToFace = false;
+        
+        if (absX > absZ) // Approaching from X direction (left/right faces)
+        {
+            isAlignedToFace = Mathf.Abs(localOffset.z) < detectionTolerance;
+        }
+        else // Approaching from Z direction (front/back faces)
+        {
+            isAlignedToFace = Mathf.Abs(localOffset.x) < detectionTolerance;
+        }
+        
+        return isAlignedToFace;
+    }
+
+    /// <summary>
     /// Check if Tim is trying to push a cube and attempt to push it
-    /// Only pushes when Tim is properly aligned and approaching from the front
+    /// Only pushes when Tim is properly aligned and has movement input
     /// </summary>
     private void CheckCubePushing()
     {
@@ -314,33 +378,33 @@ public class CharacterMovement : MonoBehaviour
             return; // No movement input - don't check for pushing
         }
         
-        // Cast ray at Tim's eye level (slightly below 1m) to detect cubes at his level
+        // Get currently targeted cube (from detection)
+        Cube targetedCube = null;
+        if (CubeManager.Instance != null)
+        {
+            targetedCube = CubeManager.Instance.GetTargetedCube();
+        }
+        
+        if (targetedCube == null)
+        {
+            return; // No cube is currently targeted
+        }
+        
+        // Cast ray in movement direction to verify Tim is pushing toward the cube
         Vector3 rayDirection = moveDirection.normalized;
-        float timEyeLevel = 0.9f; // Tim's eye level for detecting cubes at his height
-        Vector3 rayStart = transform.position + Vector3.up * timEyeLevel;
+        float detectionHeight = 0.8f;
+        Vector3 rayStart = transform.position + Vector3.up * detectionHeight;
         
         RaycastHit hit;
         
         if (Physics.Raycast(rayStart, rayDirection, out hit, pushRange))
         {
             Cube cube = hit.collider.GetComponent<Cube>();
-            if (cube != null)
+            if (cube == targetedCube)
             {
-                // Check if Tim is properly aligned to push this cube
+                // Check if Tim is properly aligned to push this cube (strict alignment for pushing)
                 if (IsProperlyAlignedToPush(cube.transform, rayDirection))
                 {
-                    // Auto-select cube at Tim's level if none is currently selected
-                    if (CubeManager.Instance != null && CubeManager.Instance.GetSelectedCube() == null)
-                    {
-                        CubeManager.Instance.AutoSelectCubeAtTimLevel(transform.position);
-                    }
-                    
-                    // Set targeted cube (this will be the cube at Tim's level)
-                    if (CubeManager.Instance != null)
-                    {
-                        CubeManager.Instance.SetTargetedCube(cube);
-                    }
-                    
                     // Get stack from Tim's level upward for pushing
                     Cube[] stackFromTimLevel = new Cube[0];
                     if (CubeManager.Instance != null)
@@ -384,8 +448,6 @@ public class CharacterMovement : MonoBehaviour
                     {
                         Debug.Log($"[PUSH] Waiting for delay... Timer: {pushDelayTimer:F2}/{initialPushDelay:F2}");
                     }
-                    
-                    return; // Exit after processing cube interaction
                 }
             }
         }
@@ -526,18 +588,20 @@ public class CharacterMovement : MonoBehaviour
         Transform cubeTransform = cube.transform;
         Quaternion startRotation = cubeTransform.rotation;
         
-        // Calculate target rotation based on axis
+        // Calculate target rotation using WORLD axes (not local)
         Quaternion deltaRotation;
         if (axis == RotationAxis.Horizontal)
         {
-            deltaRotation = Quaternion.Euler(0, degrees, 0); // Y axis
+            // Always rotate around world Y-axis (up), regardless of cube's current orientation
+            deltaRotation = Quaternion.AngleAxis(degrees, Vector3.up);
         }
         else // Vertical
         {
-            deltaRotation = Quaternion.Euler(degrees, 0, 0); // X axis
+            // Always rotate around world X-axis (right), regardless of cube's current orientation
+            deltaRotation = Quaternion.AngleAxis(degrees, Vector3.right);
         }
         
-        Quaternion targetRotation = startRotation * deltaRotation;
+        Quaternion targetRotation = deltaRotation * startRotation;
         
         // Ensure target rotation has exact 90° increments
         Vector3 targetEuler = targetRotation.eulerAngles;
