@@ -23,6 +23,16 @@ public class CharacterMovement : MonoBehaviour
     [Header("Cube Pushing")]
     public float pushRange = 1.5f;
     
+    [Header("Push Delay Settings")]
+    public float initialPushDelay = 0.2f;
+    
+    // Push delay tracking
+    private Cube currentTargetCube;
+    private Vector3 currentPushDirection;
+    private float pushDelayTimer;
+    private bool isDelayActive;
+    private bool isPushingThisFrame;
+    
     // Hidden physics settings
     private float gravity = -20f;
     
@@ -88,11 +98,23 @@ public class CharacterMovement : MonoBehaviour
     
     private void Update()
     {
+        // Reset push state at start of frame
+        isPushingThisFrame = false;
+        
         CheckGroundStatus();
         ReadInput();
         HandleMovement();
+        CheckCubePushing(); // Always check for cubes, regardless of movement
         ApplyGravity();
         UpdateAnimations();
+        UpdatePushDelay();
+        
+        // Check for push engagement reset at end of frame
+        if (!isPushingThisFrame && (currentTargetCube != null))
+        {
+            Debug.Log($"[PUSH] Reset engagement - was targeting: {currentTargetCube.name}");
+            ResetPushEngagement();
+        }
     }
     
     private void CheckGroundStatus()
@@ -154,7 +176,7 @@ public class CharacterMovement : MonoBehaviour
             // Check for cube pushing when grounded and moving
             if (movement.magnitude > 0.1f)
             {
-                CheckCubePushing(moveDirection);
+                // CheckCubePushing is now called every frame from Update()
             }
             
             controller.Move(movement * Time.deltaTime);
@@ -220,8 +242,15 @@ public class CharacterMovement : MonoBehaviour
     /// Check if Tim is trying to push a cube and attempt to push it
     /// Only pushes when Tim is properly aligned and approaching from the front
     /// </summary>
-    private void CheckCubePushing(Vector3 moveDirection)
+    private void CheckCubePushing()
     {
+        // Only check for pushing if Tim has movement input
+        Vector3 moveDirection = GetMovementDirection();
+        if (moveDirection.magnitude < 0.1f)
+        {
+            return; // No movement input - don't check for pushing
+        }
+        
         // Cast multiple rays at different heights to catch cubes at various elevations
         Vector3 rayDirection = moveDirection.normalized;
         
@@ -244,9 +273,34 @@ public class CharacterMovement : MonoBehaviour
                     // Check if Tim is properly aligned to push this cube
                     if (IsProperlyAlignedToPush(cube.transform, rayDirection))
                     {
-                        // Try to push the cube in Tim's movement direction
-                        cube.TryPush(rayDirection);
-                        return; // Exit after first successful push attempt
+                        // Tim is actively trying to push this cube
+                        isPushingThisFrame = true;
+                        
+                        // Calculate push direction from relative position
+                        Vector3 pushDirection = cube.GetRelativePushDirection(transform);
+                        
+                        // Check if this is a new push engagement or direction change
+                        if (HasPushEngagementChanged(cube, pushDirection))
+                        {
+                            StartNewPushEngagement(cube, pushDirection);
+                            Debug.Log($"[PUSH] Started new engagement - Cube: {cube.name}, Direction: {pushDirection}, Delay: {initialPushDelay}s");
+                        }
+                        
+                        // Only push if delay has elapsed (or no delay needed for continued pushing)
+                        if (!isDelayActive)
+                        {
+                            bool pushSuccess = cube.TryPush(pushDirection);
+                            if (pushSuccess)
+                            {
+                                Debug.Log($"[PUSH] Success! Cube: {cube.name}, Direction: {pushDirection}");
+                            }
+                        }
+                        else
+                        {
+                            Debug.Log($"[PUSH] Waiting for delay... Timer: {pushDelayTimer:F2}/{initialPushDelay:F2}");
+                        }
+                        
+                        return; // Exit after processing cube interaction
                     }
                 }
             }
@@ -283,6 +337,53 @@ public class CharacterMovement : MonoBehaviour
         }
         
         return isAlignedToFace;
+    }
+    
+    /// <summary>
+    /// Check if push engagement has changed (different cube or different side)
+    /// </summary>
+    private bool HasPushEngagementChanged(Cube cube, Vector3 pushDirection)
+    {
+        return currentTargetCube != cube || currentPushDirection != pushDirection;
+    }
+    
+    /// <summary>
+    /// Start engagement with a new cube or from a new direction
+    /// </summary>
+    private void StartNewPushEngagement(Cube cube, Vector3 pushDirection)
+    {
+        currentTargetCube = cube;
+        currentPushDirection = pushDirection;
+        pushDelayTimer = 0f;
+        isDelayActive = true;
+    }
+    
+    /// <summary>
+    /// Reset push engagement when Tim stops actively pushing
+    /// </summary>
+    private void ResetPushEngagement()
+    {
+        currentTargetCube = null;
+        currentPushDirection = Vector3.zero;
+        pushDelayTimer = 0f;
+        isDelayActive = false;
+    }
+    
+    /// <summary>
+    /// Update the push delay timer
+    /// </summary>
+    private void UpdatePushDelay()
+    {
+        if (isDelayActive)
+        {
+            pushDelayTimer += Time.deltaTime;
+            
+            if (pushDelayTimer >= initialPushDelay)
+            {
+                isDelayActive = false; // Delay completed - pushing can begin
+                Debug.Log($"[PUSH] Delay completed! Ready to push {currentTargetCube?.name}");
+            }
+        }
     }
     
     private void ApplyGravity()

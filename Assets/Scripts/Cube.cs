@@ -83,7 +83,6 @@ public class Cube : MonoBehaviour
         
         // Start precise movement
         StartCoroutine(MoveTo(targetPos, pushDir));
-        Debug.Log($"Cube pushed! Moving to {targetPos}");
         return true;
     }
     
