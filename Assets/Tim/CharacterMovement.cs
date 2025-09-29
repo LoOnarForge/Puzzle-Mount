@@ -20,6 +20,9 @@ public class CharacterMovement : MonoBehaviour
     [Header("Debug - Speed Visualization")]
     [SerializeField] private float currentSpeedVisual;
     
+    [Header("Cube Pushing")]
+    public float pushRange = 1.5f;
+    
     // Hidden physics settings
     private float gravity = -20f;
     
@@ -147,6 +150,13 @@ public class CharacterMovement : MonoBehaviour
             // Ground movement - calculate speed normally
             currentSpeed = CalculateMovementSpeed(shouldRun);
             Vector3 movement = moveDirection * currentSpeed;
+            
+            // Check for cube pushing when grounded and moving
+            if (movement.magnitude > 0.1f)
+            {
+                CheckCubePushing(moveDirection);
+            }
+            
             controller.Move(movement * Time.deltaTime);
         }
         
@@ -204,6 +214,75 @@ public class CharacterMovement : MonoBehaviour
     {
         Quaternion targetRotation = Quaternion.LookRotation(direction);
         transform.rotation = Quaternion.Slerp(transform.rotation, targetRotation, rotationSpeed * Time.deltaTime);
+    }
+    
+    /// <summary>
+    /// Check if Tim is trying to push a cube and attempt to push it
+    /// Only pushes when Tim is properly aligned and approaching from the front
+    /// </summary>
+    private void CheckCubePushing(Vector3 moveDirection)
+    {
+        // Cast multiple rays at different heights to catch cubes at various elevations
+        Vector3 rayDirection = moveDirection.normalized;
+        
+        // Try raycasts at different heights
+        Vector3[] rayStartPositions = {
+            transform.position + Vector3.up * 0.5f,  // Tim's center
+            transform.position + Vector3.up * 1.0f,  // Tim's chest height
+            transform.position + Vector3.up * 1.5f   // Tim's head height
+        };
+        
+        RaycastHit hit;
+        
+        foreach (Vector3 rayStart in rayStartPositions)
+        {
+            if (Physics.Raycast(rayStart, rayDirection, out hit, pushRange))
+            {
+                Cube cube = hit.collider.GetComponent<Cube>();
+                if (cube != null)
+                {
+                    // Check if Tim is properly aligned to push this cube
+                    if (IsProperlyAlignedToPush(cube.transform, rayDirection))
+                    {
+                        // Try to push the cube in Tim's movement direction
+                        cube.TryPush(rayDirection);
+                        return; // Exit after first successful push attempt
+                    }
+                }
+            }
+        }
+    }
+    
+    /// <summary>
+    /// Check if Tim is properly positioned and aligned to push a cube
+    /// </summary>
+    private bool IsProperlyAlignedToPush(Transform cubeTransform, Vector3 pushDirection)
+    {
+        Vector3 cubeCenter = cubeTransform.position;
+        Vector3 timPos = transform.position;
+        
+        // Calculate which face of the cube Tim is closest to
+        Vector3 localOffset = timPos - cubeCenter;
+        
+        // Determine the strongest axis (which face Tim is approaching)
+        float absX = Mathf.Abs(localOffset.x);
+        float absZ = Mathf.Abs(localOffset.z);
+        
+        // Tim must be approaching from a primary face direction, not a corner/edge
+        float faceTolerance = 0.4f; // Relaxed tolerance
+        
+        bool isAlignedToFace = false;
+        
+        if (absX > absZ) // Approaching from X direction (left/right faces)
+        {
+            isAlignedToFace = Mathf.Abs(localOffset.z) < faceTolerance;
+        }
+        else // Approaching from Z direction (front/back faces)
+        {
+            isAlignedToFace = Mathf.Abs(localOffset.x) < faceTolerance;
+        }
+        
+        return isAlignedToFace;
     }
     
     private void ApplyGravity()

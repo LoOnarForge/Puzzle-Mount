@@ -233,10 +233,10 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 2124630496601074580}
-  - component: {fileID: 2115197754030058868}
   - component: {fileID: 8830403057167016645}
-  - component: {fileID: 5579362749289985480}
   - component: {fileID: 4463603449021434433}
+  - component: {fileID: 2115197754030058868}
+  - component: {fileID: 5579362749289985480}
   - component: {fileID: 3452255651825751993}
   - component: {fileID: 5374539777748294626}
   m_Layer: 0
@@ -264,6 +264,48 @@ Transform:
   - {fileID: 2861745041064566886}
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 180, z: 0}
+--- !u!114 &8830403057167016645
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 478215984424799453}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 1d67d5289f3fd9d42894f29b6a9d9ab2, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::CharacterMovement
+  walkSpeed: 5
+  runSpeed: 7
+  jumpHeight: 1
+  rotationSpeed: 10
+  startSpeedPercent: 40
+  accelerationTime: 0.3
+  momentumDecay: 2
+  currentSpeedVisual: 0
+  pushRange: 1.2
+--- !u!114 &4463603449021434433
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 478215984424799453}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 041b05c648a3b3d458ada5f73a413f68, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::PlayerAnimator
+  speedParameter: Speed
+  groundedParameter: IsGrounded
+  fallingParameter: IsFalling
+  jumpingParameter: IsJumping
+  animationSmoothTime: 0.1
+  fallDetectionDelay: 0.2
+  minimumFallSpeed: 3
+  fallTimerVisual: 0
+  isCurrentlyFalling: 0
 --- !u!54 &2115197754030058868
 Rigidbody:
   m_ObjectHideFlags: 0
@@ -291,23 +333,6 @@ Rigidbody:
   m_Interpolate: 0
   m_Constraints: 0
   m_CollisionDetection: 0
---- !u!114 &8830403057167016645
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 478215984424799453}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 1d67d5289f3fd9d42894f29b6a9d9ab2, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::CharacterMovement
-  walkSpeed: 5
-  runSpeed: 7
-  jumpHeight: 1
-  rotationSpeed: 10
-  gravity: -20
 --- !u!143 &5579362749289985480
 CharacterController:
   m_ObjectHideFlags: 0
@@ -333,23 +358,6 @@ CharacterController:
   m_SkinWidth: 0.08
   m_MinMoveDistance: 0.001
   m_Center: {x: 0, y: 1, z: 0}
---- !u!114 &4463603449021434433
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 478215984424799453}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 041b05c648a3b3d458ada5f73a413f68, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::PlayerAnimator
-  speedParameter: Speed
-  groundedParameter: IsGrounded
-  fallingParameter: IsFalling
-  animationSmoothTime: 0.1
-  fallDetectionDelay: 0.2
 --- !u!95 &3452255651825751993
 Animator:
   serializedVersion: 7
