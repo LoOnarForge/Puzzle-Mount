@@ -7,38 +7,23 @@ public class Cube : MonoBehaviour
     [Header("Movement")]
     public float moveSpeed = 5f;
     
-    [Header("Gravity")]
-    public float gravityMultiplier = 2f;
-    
     private Rigidbody rb;
     private bool isMoving = false;
-    private bool isFalling = false;
     
     private void Awake()
     {
         rb = GetComponent<Rigidbody>();
         
-        // CRITICAL: Force kinematic setup to prevent physics interference
-        rb.isKinematic = true;
-        rb.useGravity = false;
-        rb.constraints = RigidbodyConstraints.None;
-        
-        // Don't set velocity on kinematic rigidbodies - Unity 6 warns against this
+        // Use built-in physics for gravity, but lock X/Z movement
+        rb.isKinematic = false;
+        rb.useGravity = true;
+        rb.constraints = RigidbodyConstraints.FreezePositionX | RigidbodyConstraints.FreezePositionZ | RigidbodyConstraints.FreezeRotation;
     }
     
     private void Start()
     {
         // Force perfect grid alignment on start
         SnapToGrid();
-    }
-    
-    private void Update()
-    {
-        // Handle gravity manually - only when not moving
-        if (!isMoving && !isFalling)
-        {
-            CheckGravity();
-        }
     }
     
     /// <summary>
@@ -49,69 +34,13 @@ public class Cube : MonoBehaviour
         Vector3 currentPos = transform.position;
         Vector3 gridPos = new Vector3(
             Mathf.Round(currentPos.x),
-            currentPos.y, // Keep Y natural - don't force to integers
+            currentPos.y, // Keep Y natural - let physics handle it
             Mathf.Round(currentPos.z)
         );
         
         // CRITICAL: Direct transform assignment ensures perfect X,Z alignment
         transform.position = gridPos;
         transform.rotation = Quaternion.identity;
-        
-        // Don't try to set velocity on kinematic rigidbodies
-    }
-    
-    /// <summary>
-    /// Check if cube should fall due to gravity and let it settle naturally
-    /// </summary>
-    private void CheckGravity()
-    {
-        // Cast ray from bottom edge of cube to check if grounded
-        Vector3 bottomCenter = transform.position + Vector3.down * 0.5f; // Cube bottom edge
-        float rayDistance = 0.1f; // Small buffer distance
-        
-        bool isGrounded = Physics.Raycast(bottomCenter, Vector3.down, rayDistance);
-        
-        if (!isGrounded)
-        {
-            // Use custom gravity system for better control
-            StartCoroutine(FallWithCustomGravity());
-        }
-    }
-    
-    /// <summary>
-    /// Apply custom gravity with adjustable speed
-    /// </summary>
-    private System.Collections.IEnumerator FallWithCustomGravity()
-    {
-        isFalling = true;
-        Vector3 velocity = Vector3.zero;
-        float customGravity = Physics.gravity.y * gravityMultiplier;
-        
-        while (true)
-        {
-            // Apply custom gravity acceleration
-            velocity.y += customGravity * Time.fixedDeltaTime;
-            
-            // Calculate next position
-            Vector3 nextPos = transform.position + velocity * Time.fixedDeltaTime;
-            
-            // Check for ground collision
-            float rayDistance = 0.6f;
-            if (Physics.Raycast(transform.position, Vector3.down, rayDistance))
-            {
-                // Found ground - settle and stop falling
-                break;
-            }
-            
-            // Move to next position
-            transform.position = nextPos;
-            
-            yield return new WaitForFixedUpdate();
-        }
-        
-        // Snap to grid and finish falling
-        SnapToGrid();
-        isFalling = false;
     }
     
     /// <summary>
@@ -119,7 +48,7 @@ public class Cube : MonoBehaviour
     /// </summary>
     public bool TryPush(Vector3 direction)
     {
-        if (isMoving || isFalling) return false;
+        if (isMoving) return false;
         
         // Convert to pure grid direction
         Vector3 pushDir = GetGridDirection(direction);
@@ -132,7 +61,7 @@ public class Cube : MonoBehaviour
         if (!IsPositionClear(targetPos)) return false;
         
         // Start precise movement
-        StartCoroutine(MoveTo(targetPos));
+        StartCoroutine(MoveTo(targetPos, pushDir));
         Debug.Log($"Cube pushed! Moving to {targetPos}");
         return true;
     }
@@ -182,10 +111,21 @@ public class Cube : MonoBehaviour
     /// <summary>
     /// Move cube to target position with perfect grid precision (X,Z only)
     /// </summary>
-    private System.Collections.IEnumerator MoveTo(Vector3 targetPosition)
+    private System.Collections.IEnumerator MoveTo(Vector3 targetPosition, Vector3 direction)
     {
         isMoving = true;
         Vector3 startPos = transform.position;
+        
+        // Temporarily unlock the movement axis
+        RigidbodyConstraints oldConstraints = rb.constraints;
+        if (direction == Vector3.right || direction == Vector3.left)
+        {
+            rb.constraints = RigidbodyConstraints.FreezePositionZ | RigidbodyConstraints.FreezeRotation;
+        }
+        else if (direction == Vector3.forward || direction == Vector3.back)
+        {
+            rb.constraints = RigidbodyConstraints.FreezePositionX | RigidbodyConstraints.FreezeRotation;
+        }
         
         // Preserve natural Y position during horizontal movement
         targetPosition.y = startPos.y;
@@ -198,33 +138,21 @@ public class Cube : MonoBehaviour
             elapsed += Time.deltaTime;
             float progress = Mathf.SmoothStep(0f, 1f, elapsed / moveTime);
             
-            // Direct transform interpolation - no physics
+            // Direct transform interpolation for horizontal movement
             Vector3 currentPos = Vector3.Lerp(startPos, targetPosition, progress);
+            currentPos.y = transform.position.y; // Let physics handle Y
             transform.position = currentPos;
             yield return null;
         }
         
-        // CRITICAL: Force exact final X,Z position, keep Y natural
+        // CRITICAL: Force exact final X,Z position
         Vector3 finalPos = targetPosition;
-        finalPos.y = transform.position.y; // Preserve current Y
+        finalPos.y = transform.position.y; // Preserve physics Y
         transform.position = finalPos;
-        transform.rotation = Quaternion.identity;
+        
+        // Re-lock all horizontal movement
+        rb.constraints = RigidbodyConstraints.FreezePositionX | RigidbodyConstraints.FreezePositionZ | RigidbodyConstraints.FreezeRotation;
         
         isMoving = false;
-        
-        // Check for gravity after movement completes
-        CheckGravity();
-    }
-    
-    /// <summary>
-    /// Force cube back to grid if it somehow gets misaligned
-    /// </summary>
-    private void OnValidate()
-    {
-        // Only snap in play mode and if rigidbody is set up
-        if (Application.isPlaying && rb != null)
-        {
-            SnapToGrid();
-        }
     }
 }
