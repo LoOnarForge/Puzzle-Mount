@@ -22,8 +22,23 @@ public class Cube : MonoBehaviour
     
     private void Start()
     {
+        // Register with CubeManager
+        if (CubeManager.Instance != null)
+        {
+            CubeManager.Instance.RegisterCube(this);
+        }
+        
         // Force perfect grid alignment on start
         SnapToGrid();
+    }
+    
+    private void OnDestroy()
+    {
+        // Unregister from CubeManager
+        if (CubeManager.Instance != null)
+        {
+            CubeManager.Instance.UnregisterCube(this);
+        }
     }
     
     /// <summary>
@@ -65,7 +80,7 @@ public class Cube : MonoBehaviour
     }
     
     /// <summary>
-    /// Push the cube in a direction - called by Tim
+    /// Push the cube or stack from Tim's level upward - called by Tim
     /// </summary>
     public bool TryPush(Vector3 direction)
     {
@@ -75,14 +90,50 @@ public class Cube : MonoBehaviour
         Vector3 pushDir = GetGridDirection(direction);
         if (pushDir == Vector3.zero) return false;
         
-        // Calculate exact target position
-        Vector3 targetPos = transform.position + pushDir;
+        // Get stack from Tim's level upward for this cube
+        Cube[] stackFromLevel = new Cube[0];
+        if (CubeManager.Instance != null)
+        {
+            // Find Tim's position - we need to get it from CharacterMovement
+            CharacterMovement tim = FindObjectOfType<CharacterMovement>();
+            if (tim != null)
+            {
+                stackFromLevel = CubeManager.Instance.GetStackFromTimLevel(tim.transform.position);
+            }
+        }
         
-        // Check if destination is completely clear
-        if (!IsPositionClear(targetPos)) return false;
+        // If no level-based stack found, just push this cube alone
+        if (stackFromLevel.Length == 0)
+        {
+            stackFromLevel = new Cube[] { this };
+        }
         
-        // Start precise movement
-        StartCoroutine(MoveTo(targetPos, pushDir));
+        Debug.Log($"[Cube] Attempting to push stack from Tim's level: {stackFromLevel.Length} cubes");
+        
+        // Check if all positions in the stack's destination are clear
+        bool allPositionsClear = true;
+        Vector3[] targetPositions = new Vector3[stackFromLevel.Length];
+        
+        for (int i = 0; i < stackFromLevel.Length; i++)
+        {
+            targetPositions[i] = stackFromLevel[i].transform.position + pushDir;
+            if (!IsPositionClear(targetPositions[i]))
+            {
+                allPositionsClear = false;
+                Debug.Log($"[Cube] Position blocked for cube {stackFromLevel[i].name} at {targetPositions[i]}");
+                break;
+            }
+        }
+        
+        if (!allPositionsClear) return false;
+        
+        // Push all cubes in the level-based stack
+        for (int i = 0; i < stackFromLevel.Length; i++)
+        {
+            stackFromLevel[i].StartCoroutine(stackFromLevel[i].MoveTo(targetPositions[i], pushDir));
+        }
+        
+        Debug.Log($"[Cube] Successfully started pushing {stackFromLevel.Length} cubes from Tim's level");
         return true;
     }
     
@@ -108,7 +159,7 @@ public class Cube : MonoBehaviour
     }
     
     /// <summary>
-    /// Check if a grid position is completely clear of obstacles
+    /// Check if a grid position is completely clear of obstacles (including other cubes in stacks)
     /// </summary>
     private bool IsPositionClear(Vector3 position)
     {
@@ -121,7 +172,18 @@ public class Cube : MonoBehaviour
             // Ignore self and triggers
             if (col.gameObject == gameObject || col.isTrigger) continue;
             
-            // Any solid collider blocks movement
+            // Check if this collider belongs to a cube that's part of our stack
+            Cube otherCube = col.GetComponent<Cube>();
+            if (otherCube != null && CubeManager.Instance != null)
+            {
+                Cube[] ourStack = CubeManager.Instance.GetEntireStackForCube(this);
+                bool isPartOfOurStack = System.Array.Exists(ourStack, cube => cube == otherCube);
+                
+                // If it's part of our stack, it's okay to overlap during movement
+                if (isPartOfOurStack) continue;
+            }
+            
+            // Any other solid collider blocks movement
             return false;
         }
         
