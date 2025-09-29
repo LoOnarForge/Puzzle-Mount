@@ -44,6 +44,27 @@ public class Cube : MonoBehaviour
     }
     
     /// <summary>
+    /// Calculate push direction based on pusher's position relative to this cube
+    /// This prevents side-pushing by always pushing away from the pusher
+    /// </summary>
+    public Vector3 GetRelativePushDirection(Transform pusherTransform)
+    {
+        Vector3 relativePosition = transform.position - pusherTransform.position;
+        
+        // Determine strongest axis and push away from pusher
+        if (Mathf.Abs(relativePosition.x) > Mathf.Abs(relativePosition.z))
+        {
+            // Pusher is on left/right side - push horizontally away
+            return new Vector3(Mathf.Sign(relativePosition.x), 0, 0);
+        }
+        else
+        {
+            // Pusher is on front/back side - push forward/backward away
+            return new Vector3(0, 0, Mathf.Sign(relativePosition.z));
+        }
+    }
+    
+    /// <summary>
     /// Push the cube in a direction - called by Tim
     /// </summary>
     public bool TryPush(Vector3 direction)
