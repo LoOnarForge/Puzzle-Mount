@@ -23,28 +23,28 @@ public class CubeManager : MonoBehaviour
     [Header("Debug Information - READ ONLY")]
     [SerializeField] private int totalCubesTracked;
     [SerializeField] private int totalStacksDetected;
-    [SerializeField] private Cube currentlyTargetedCube;
+    [SerializeField] private PowerCube currentlyTargetedCube;
     [SerializeField] private int currentStackSize;
     [SerializeField] private bool canPushCurrentStack;
-    [SerializeField] private Cube[] currentStack;
+    [SerializeField] private PowerCube[] currentStack;
     [SerializeField] private int selectedCubeIndex;
-    [SerializeField] private Cube selectedCube;
+    [SerializeField] private PowerCube selectedCube;
     
     // Singleton instance
     public static CubeManager Instance { get; private set; }
     
     // Cube tracking
-    private HashSet<Cube> allCubes = new HashSet<Cube>();
-    private Dictionary<Cube, Cube[]> stackCache = new Dictionary<Cube, Cube[]>();
-    private Dictionary<Cube, Material> originalMaterials = new Dictionary<Cube, Material>();
+    private HashSet<PowerCube> allCubes = new HashSet<PowerCube>();
+    private Dictionary<PowerCube, PowerCube[]> stackCache = new Dictionary<PowerCube, PowerCube[]>();
+    private Dictionary<PowerCube, Material> originalMaterials = new Dictionary<PowerCube, Material>();
     
     // Selection system
-    private Cube targetedBaseCube;
-    private Cube[] currentStackArray;
+    private PowerCube targetedBaseCube;
+    private PowerCube[] currentStackArray;
     private int currentSelectedIndex = 0;
     
     // Visual highlighting
-    private Cube lastHighlightedCube;
+    private PowerCube lastHighlightedCube;
     
     private void Awake()
     {
@@ -85,7 +85,7 @@ public class CubeManager : MonoBehaviour
     /// <summary>
     /// Register a cube with the manager
     /// </summary>
-    public void RegisterCube(Cube cube)
+    public void RegisterCube(PowerCube cube)
     {
         if (cube != null && allCubes.Add(cube))
         {
@@ -105,7 +105,7 @@ public class CubeManager : MonoBehaviour
     /// <summary>
     /// Unregister a cube from the manager
     /// </summary>
-    public void UnregisterCube(Cube cube)
+    public void UnregisterCube(PowerCube cube)
     {
         if (cube != null && allCubes.Remove(cube))
         {
@@ -128,9 +128,9 @@ public class CubeManager : MonoBehaviour
     public void RefreshAllCubes()
     {
         allCubes.Clear();
-        Cube[] sceneCubes = FindObjectsOfType<Cube>();
+        PowerCube[] sceneCubes = FindObjectsByType<PowerCube>(FindObjectsSortMode.None);
         
-        foreach (Cube cube in sceneCubes)
+        foreach (PowerCube cube in sceneCubes)
         {
             allCubes.Add(cube);
         }
@@ -143,10 +143,10 @@ public class CubeManager : MonoBehaviour
         if (verboseLogging && forceRefreshCubes)
         {
             Debug.Log("=== STACK DETECTION TEST ===");
-            foreach (Cube cube in allCubes)
+            foreach (PowerCube cube in allCubes)
             {
                 Debug.Log($"[CubeManager] Testing cube: {cube.name} at position {cube.transform.position}");
-                Cube[] stack = GetStackAbove(cube);
+                PowerCube[] stack = GetStackAbove(cube);
                 Debug.Log($"[CubeManager] Cube {cube.name} has stack of {stack.Length} cubes:");
                 for (int i = 0; i < stack.Length; i++)
                 {
@@ -161,28 +161,28 @@ public class CubeManager : MonoBehaviour
     /// Get the complete stack above a base cube (including the base cube itself)
     /// Only returns meaningful results when called on the bottom cube of a stack
     /// </summary>
-    public Cube[] GetStackAbove(Cube baseCube)
+    public PowerCube[] GetStackAbove(PowerCube baseCube)
     {
-        if (baseCube == null) return new Cube[0];
+        if (baseCube == null) return new PowerCube[0];
         
         // Check cache first
-        if (stackCache.TryGetValue(baseCube, out Cube[] cachedStack))
+        if (stackCache.TryGetValue(baseCube, out PowerCube[] cachedStack))
         {
             return cachedStack;
         }
         
         // Find the actual bottom cube first (cube with lowest Y position in this column)
-        Cube actualBaseCube = FindBottomCubeInColumn(baseCube);
+        PowerCube actualBaseCube = FindBottomCubeInColumn(baseCube);
         
         // If this isn't the bottom cube, return empty array to avoid duplicate stacks
         if (actualBaseCube != baseCube)
         {
-            stackCache[baseCube] = new Cube[0];
-            return new Cube[0];
+            stackCache[baseCube] = new PowerCube[0];
+            return new PowerCube[0];
         }
         
         // Calculate stack using position-based detection from the actual base
-        List<Cube> stack = new List<Cube> { actualBaseCube };
+        List<PowerCube> stack = new List<PowerCube> { actualBaseCube };
         Vector3 basePos = actualBaseCube.transform.position;
         
         if (verboseLogging)
@@ -191,8 +191,8 @@ public class CubeManager : MonoBehaviour
         }
         
         // Find all cubes that are vertically aligned with the base cube
-        List<Cube> candidateCubes = new List<Cube>();
-        foreach (Cube cube in allCubes)
+        List<PowerCube> candidateCubes = new List<PowerCube>();
+        foreach (PowerCube cube in allCubes)
         {
             if (cube == actualBaseCube) continue;
             
@@ -220,7 +220,7 @@ public class CubeManager : MonoBehaviour
         candidateCubes.Sort((a, b) => a.transform.position.y.CompareTo(b.transform.position.y));
         
         // Add candidates to stack
-        foreach (Cube candidate in candidateCubes)
+        foreach (PowerCube candidate in candidateCubes)
         {
             stack.Add(candidate);
             if (verboseLogging)
@@ -229,7 +229,7 @@ public class CubeManager : MonoBehaviour
             }
         }
         
-        Cube[] stackArray = stack.ToArray();
+        PowerCube[] stackArray = stack.ToArray();
         stackCache[actualBaseCube] = stackArray;
         
         if (verboseLogging)
@@ -243,15 +243,15 @@ public class CubeManager : MonoBehaviour
     /// <summary>
     /// Find the bottom cube in the same vertical column as the given cube
     /// </summary>
-    private Cube FindBottomCubeInColumn(Cube referenceCube)
+    private PowerCube FindBottomCubeInColumn(PowerCube referenceCube)
     {
         if (referenceCube == null) return null;
         
         Vector3 refPos = referenceCube.transform.position;
-        Cube bottomCube = referenceCube;
+        PowerCube bottomCube = referenceCube;
         float lowestY = refPos.y;
         
-        foreach (Cube cube in allCubes)
+        foreach (PowerCube cube in allCubes)
         {
             Vector3 cubePos = cube.transform.position;
             
@@ -274,7 +274,7 @@ public class CubeManager : MonoBehaviour
     /// Set the cube that Tim's raycast hit as targeted, and highlight the cube at Tim's level
     /// This ensures the cube at Tim's level is highlighted, not necessarily the bottom cube
     /// </summary>
-    public void SetTargetedCubeAtTimLevel(Cube hitCube, Vector3 timPosition)
+    public void SetTargetedCubeAtTimLevel(PowerCube hitCube, Vector3 timPosition)
     {
         if (hitCube == null)
         {
@@ -283,10 +283,10 @@ public class CubeManager : MonoBehaviour
         }
         
         // Find the cube at Tim's level in the same stack
-        Cube[] stackFromTimLevel = GetStackFromTimLevel(timPosition);
+        PowerCube[] stackFromTimLevel = GetStackFromTimLevel(timPosition);
         if (stackFromTimLevel.Length > 0)
         {
-            Cube cubeAtTimLevel = stackFromTimLevel[0]; // First cube is at Tim's level
+            PowerCube cubeAtTimLevel = stackFromTimLevel[0]; // First cube is at Tim's level
             
             // Set this cube as targeted for highlighting
             if (targetedBaseCube != cubeAtTimLevel)
@@ -313,7 +313,7 @@ public class CubeManager : MonoBehaviour
     /// <summary>
     /// Set the currently targeted base cube and calculate its stack
     /// </summary>
-    public void SetTargetedCube(Cube baseCube)
+    public void SetTargetedCube(PowerCube baseCube)
     {
         if (targetedBaseCube != baseCube)
         {
@@ -330,7 +330,7 @@ public class CubeManager : MonoBehaviour
             }
             else
             {
-                currentStackArray = new Cube[0];
+                currentStackArray = new PowerCube[0];
                 // Debug.Log("[CubeManager] No cube targeted");
             }
             
@@ -344,7 +344,7 @@ public class CubeManager : MonoBehaviour
     /// </summary>
     public void AutoSelectCubeAtTimLevel(Vector3 timPosition)
     {
-        Cube[] stackFromLevel = GetStackFromTimLevel(timPosition);
+        PowerCube[] stackFromLevel = GetStackFromTimLevel(timPosition);
         if (stackFromLevel.Length > 0)
         {
             // Set the cube at Tim's level as the targeted cube
@@ -372,7 +372,7 @@ public class CubeManager : MonoBehaviour
     /// <summary>
     /// Get the currently targeted cube (for push validation)
     /// </summary>
-    public Cube GetTargetedCube()
+    public PowerCube GetTargetedCube()
     {
         return targetedBaseCube;
     }
@@ -380,7 +380,7 @@ public class CubeManager : MonoBehaviour
     /// <summary>
     /// Get the currently selected cube from the stack (for rotation)
     /// </summary>
-    public Cube GetSelectedCube()
+    public PowerCube GetSelectedCube()
     {
         if (currentStackArray != null && currentSelectedIndex >= 0 && currentSelectedIndex < currentStackArray.Length)
         {
@@ -418,7 +418,7 @@ public class CubeManager : MonoBehaviour
         }
         
         // Highlight currently selected cube
-        Cube selectedCube = GetSelectedCube();
+        PowerCube selectedCube = GetSelectedCube();
         if (selectedCube != null && selectedCubeMaterial != null)
         {
             SetCubeMaterial(selectedCube, selectedCubeMaterial);
@@ -429,7 +429,7 @@ public class CubeManager : MonoBehaviour
     /// <summary>
     /// Set a cube's material for highlighting
     /// </summary>
-    private void SetCubeMaterial(Cube cube, Material material)
+    private void SetCubeMaterial(PowerCube cube, Material material)
     {
         if (cube != null && material != null)
         {
@@ -444,7 +444,7 @@ public class CubeManager : MonoBehaviour
     /// <summary>
     /// Restore a cube's original material
     /// </summary>
-    private void RestoreCubeMaterial(Cube cube)
+    private void RestoreCubeMaterial(PowerCube cube)
     {
         if (cube != null && originalMaterials.TryGetValue(cube, out Material originalMaterial))
         {
@@ -460,17 +460,17 @@ public class CubeManager : MonoBehaviour
     /// Get stack from Tim's level upward (for level-based pushing)
     /// Tim raycast hits at 0.8m above his feet, so find cube at that exact level
     /// </summary>
-    public Cube[] GetStackFromTimLevel(Vector3 timPosition)
+    public PowerCube[] GetStackFromTimLevel(Vector3 timPosition)
     {
         // Calculate Tim's detection level (0.8m above his feet)
         float detectionHeight = 0.8f;
         float timDetectionLevel = timPosition.y + detectionHeight;
         
         // Find cube at Tim's detection level first
-        Cube cubeAtTimLevel = null;
+        PowerCube cubeAtTimLevel = null;
         float minDistance = float.MaxValue;
         
-        foreach (Cube cube in allCubes)
+        foreach (PowerCube cube in allCubes)
         {
             Vector3 cubePos = cube.transform.position;
             
@@ -490,15 +490,15 @@ public class CubeManager : MonoBehaviour
             }
         }
         
-        if (cubeAtTimLevel == null) return new Cube[0];
+        if (cubeAtTimLevel == null) return new PowerCube[0];
         
         // Now get all cubes from this level upward in the same column
-        List<Cube> stackFromLevel = new List<Cube> { cubeAtTimLevel };
+        List<PowerCube> stackFromLevel = new List<PowerCube> { cubeAtTimLevel };
         Vector3 basePos = cubeAtTimLevel.transform.position;
         
         // Find cubes above this level only (ignore cubes below Tim's level)
-        List<Cube> cubesAbove = new List<Cube>();
-        foreach (Cube cube in allCubes)
+        List<PowerCube> cubesAbove = new List<PowerCube>();
+        foreach (PowerCube cube in allCubes)
         {
             if (cube == cubeAtTimLevel) continue;
             
@@ -526,12 +526,12 @@ public class CubeManager : MonoBehaviour
     /// <summary>
     /// Get the entire stack for any cube in the stack (for legacy compatibility)
     /// </summary>
-    public Cube[] GetEntireStackForCube(Cube anyCube)
+    public PowerCube[] GetEntireStackForCube(PowerCube anyCube)
     {
-        if (anyCube == null) return new Cube[0];
+        if (anyCube == null) return new PowerCube[0];
         
         // Find the bottom cube of this stack
-        Cube bottomCube = FindBottomCubeInColumn(anyCube);
+        PowerCube bottomCube = FindBottomCubeInColumn(anyCube);
         
         // Get the full stack from the bottom cube
         return GetStackAbove(bottomCube);

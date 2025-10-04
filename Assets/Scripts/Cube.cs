@@ -1,14 +1,42 @@
 using UnityEngine;
 
+public enum PowerLineType
+{
+    None,
+    Horizontal,
+    Vertical,
+    Corner,
+    TSection,
+    Cross
+}
+
 [RequireComponent(typeof(Rigidbody))]
 [RequireComponent(typeof(BoxCollider))]
-public class Cube : MonoBehaviour
+public class PowerCube : MonoBehaviour
 {
     [Header("Movement")]
     public float moveSpeed = 5f;
     
     [Header("Visual")]
     public Transform visualParent;
+    
+    [Header("Power Lines")]
+    public PowerLineType topFace = PowerLineType.None;
+    public PowerLineType bottomFace = PowerLineType.None;
+    public PowerLineType northFace = PowerLineType.None;
+    public PowerLineType eastFace = PowerLineType.None;
+    public PowerLineType southFace = PowerLineType.None;
+    public PowerLineType westFace = PowerLineType.None;
+    
+    [Header("PowerLine Sprite Mapping")]
+    public Sprite horizontalSprite;
+    public Sprite verticalSprite;
+    public Sprite cornerSprite;
+    public Sprite tSectionSprite;
+    public Sprite crossSprite;
+    
+    [Header("Random Rotation")]
+    public bool randomRotateOnStart = true;
     
     private Rigidbody rb;
     public bool isMoving = false;
@@ -31,8 +59,106 @@ public class Cube : MonoBehaviour
             CubeManager.Instance.RegisterCube(this);
         }
         
+        // Random rotation before grid snap
+        if (randomRotateOnStart)
+        {
+            ApplyRandomRotation();
+        }
+        
         // Force perfect grid alignment on start
         SnapToGrid();
+        
+        // Apply sprites to faces
+        UpdateFaceSprites();
+    }
+    
+    private void OnValidate()
+    {
+        // Auto-update sprites when dropdowns change in inspector (edit mode)
+        UpdateFaceSprites();
+    }
+    
+    private void UpdateFaceSprites()
+    {
+        if (visualParent == null) return;
+        
+        UpdateFaceSprite("Top Face", topFace);
+        UpdateFaceSprite("Bottom Face", bottomFace);
+        UpdateFaceSprite("North Face", northFace);
+        UpdateFaceSprite("East Face", eastFace);
+        UpdateFaceSprite("South Face", southFace);
+        UpdateFaceSprite("West Face", westFace);
+    }
+    
+    private void UpdateFaceSprite(string faceName, PowerLineType powerLineType)
+    {
+        Transform faceChild = visualParent.Find(faceName);
+        if (faceChild != null)
+        {
+            SpriteRenderer spriteRenderer = faceChild.GetComponent<SpriteRenderer>();
+            if (spriteRenderer != null)
+            {
+                spriteRenderer.sprite = GetSpriteForPowerLineType(powerLineType);
+            }
+        }
+    }
+    
+    private Sprite GetSpriteForPowerLineType(PowerLineType type)
+    {
+        switch (type)
+        {
+            case PowerLineType.None: return null; // No sprite for None
+            case PowerLineType.Horizontal: return horizontalSprite;
+            case PowerLineType.Vertical: return verticalSprite;
+            case PowerLineType.Corner: return cornerSprite;
+            case PowerLineType.TSection: return tSectionSprite;
+            case PowerLineType.Cross: return crossSprite;
+            default: return null;
+        }
+    }
+    
+    /// <summary>
+    /// Apply random rotation on at least 2 axes in 90-degree increments
+    /// </summary>
+    private void ApplyRandomRotation()
+    {
+        // Get random rotations in 90-degree increments
+        float xRot = Random.Range(0, 4) * 90f;
+        float yRot = Random.Range(0, 4) * 90f;
+        float zRot = Random.Range(0, 4) * 90f;
+        
+        // Ensure at least 2 axes are rotated (not 0)
+        int zeroCount = 0;
+        if (xRot == 0) zeroCount++;
+        if (yRot == 0) zeroCount++;
+        if (zRot == 0) zeroCount++;
+        
+        // If more than 1 axis is zero, force rotation on random axes
+        if (zeroCount > 1)
+        {
+            int[] axes = {0, 1, 2}; // X, Y, Z
+            for (int i = 0; i < 2; i++) // Ensure 2 axes are rotated
+            {
+                int randomAxis = Random.Range(i, 3);
+                int temp = axes[i];
+                axes[i] = axes[randomAxis];
+                axes[randomAxis] = temp;
+                
+                float randomRotation = Random.Range(1, 4) * 90f; // 90, 180, or 270
+                switch (axes[i])
+                {
+                    case 0: xRot = randomRotation; break;
+                    case 1: yRot = randomRotation; break;
+                    case 2: zRot = randomRotation; break;
+                }
+            }
+        }
+        
+        // Apply rotation to visual parent only
+        if (visualParent != null)
+        {
+            visualParent.localRotation = Quaternion.Euler(xRot, yRot, zRot);
+        }
     }
     
     private void OnDestroy()
@@ -111,11 +237,11 @@ public class Cube : MonoBehaviour
         if (pushDir == Vector3.zero) return false;
         
         // Get stack from Tim's level upward for this cube
-        Cube[] stackFromLevel = new Cube[0];
+        PowerCube[] stackFromLevel = new PowerCube[0];
         if (CubeManager.Instance != null)
         {
             // Find Tim's position - we need to get it from CharacterMovement
-            CharacterMovement tim = FindObjectOfType<CharacterMovement>();
+            CharacterMovement tim = FindFirstObjectByType<CharacterMovement>();
             if (tim != null)
             {
                 stackFromLevel = CubeManager.Instance.GetStackFromTimLevel(tim.transform.position);
@@ -125,7 +251,7 @@ public class Cube : MonoBehaviour
         // If no level-based stack found, just push this cube alone
         if (stackFromLevel.Length == 0)
         {
-            stackFromLevel = new Cube[] { this };
+            stackFromLevel = new PowerCube[] { this };
         }
         
         Debug.Log($"[Cube] Attempting to push stack from Tim's level: {stackFromLevel.Length} cubes");
@@ -193,10 +319,10 @@ public class Cube : MonoBehaviour
             if (col.gameObject == gameObject || col.isTrigger) continue;
             
             // Check if this collider belongs to a cube that's part of our stack
-            Cube otherCube = col.GetComponent<Cube>();
+            PowerCube otherCube = col.GetComponent<PowerCube>();
             if (otherCube != null && CubeManager.Instance != null)
             {
-                Cube[] ourStack = CubeManager.Instance.GetEntireStackForCube(this);
+                PowerCube[] ourStack = CubeManager.Instance.GetEntireStackForCube(this);
                 bool isPartOfOurStack = System.Array.Exists(ourStack, cube => cube == otherCube);
                 
                 // If it's part of our stack, it's okay to overlap during movement

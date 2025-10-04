@@ -34,7 +34,7 @@ public class CharacterMovement : MonoBehaviour
     public float continuousPushDelay = 0.1f;
     
     // Push delay tracking
-    private Cube currentTargetCube;
+    private PowerCube currentTargetCube;
     private Vector3 currentPushDirection;
     private float pushDelayTimer;
     private bool isDelayActive;
@@ -318,7 +318,7 @@ public class CharacterMovement : MonoBehaviour
         
         if (Physics.Raycast(rayStart, forward, out hit, pushRange))
         {
-            Cube cube = hit.collider.GetComponent<Cube>();
+            PowerCube cube = hit.collider.GetComponent<PowerCube>();
             if (cube != null)
             {
                 // Check if Tim is reasonably aligned (more lenient since this is for highlighting)
@@ -404,7 +404,7 @@ public class CharacterMovement : MonoBehaviour
         }
         
         // Get currently targeted cube (from detection)
-        Cube targetedCube = null;
+        PowerCube targetedCube = null;
         if (CubeManager.Instance != null)
         {
             targetedCube = CubeManager.Instance.GetTargetedCube();
@@ -424,14 +424,14 @@ public class CharacterMovement : MonoBehaviour
         
         if (Physics.Raycast(rayStart, rayDirection, out hit, pushRange))
         {
-            Cube cube = hit.collider.GetComponent<Cube>();
+            PowerCube cube = hit.collider.GetComponent<PowerCube>();
             if (cube == targetedCube)
             {
                 // Check if Tim is properly aligned to push this cube (strict alignment for pushing)
                 if (IsProperlyAlignedToPush(cube.transform, rayDirection))
                 {
                     // Get stack from Tim's level upward for pushing
-                    Cube[] stackFromTimLevel = new Cube[0];
+                    PowerCube[] stackFromTimLevel = new PowerCube[0];
                     if (CubeManager.Instance != null)
                     {
                         stackFromTimLevel = CubeManager.Instance.GetStackFromTimLevel(transform.position);
@@ -519,7 +519,7 @@ public class CharacterMovement : MonoBehaviour
     /// <summary>
     /// Check if push engagement has changed (different cube or different side)
     /// </summary>
-    private bool HasPushEngagementChanged(Cube cube, Vector3 pushDirection)
+    private bool HasPushEngagementChanged(PowerCube cube, Vector3 pushDirection)
     {
         return currentTargetCube != cube || currentPushDirection != pushDirection;
     }
@@ -527,7 +527,7 @@ public class CharacterMovement : MonoBehaviour
     /// <summary>
     /// Start engagement with a new cube or from a new direction
     /// </summary>
-    private void StartNewPushEngagement(Cube cube, Vector3 pushDirection)
+    private void StartNewPushEngagement(PowerCube cube, Vector3 pushDirection)
     {
         currentTargetCube = cube;
         currentPushDirection = pushDirection;
@@ -600,7 +600,7 @@ public class CharacterMovement : MonoBehaviour
         
         if (CubeManager.Instance != null)
         {
-            Cube selectedCube = CubeManager.Instance.GetSelectedCube();
+            PowerCube selectedCube = CubeManager.Instance.GetSelectedCube();
             if (selectedCube != null)
             {
                 // Prevent rotation while cube is being pushed/moving
@@ -618,7 +618,7 @@ public class CharacterMovement : MonoBehaviour
     /// <summary>
     /// Smoothly rotate a cube by the specified degrees around Y axis
     /// </summary>
-    private System.Collections.IEnumerator SmoothRotateCube(Cube cube, float degrees, RotationAxis axis)
+    private System.Collections.IEnumerator SmoothRotateCube(PowerCube cube, float degrees, RotationAxis axis)
     {
         if (cube == null) yield break;
         
