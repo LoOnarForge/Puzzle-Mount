@@ -16,11 +16,6 @@ public class CubeManager : MonoBehaviour
     public bool showDebugRays = false; // Disabled by default
     public bool verboseLogging = false; // Disabled by default
     
-    [Header("Visual Selection")]
-    public Material selectedCubeMaterial;
-    public Material targetedCubeMaterial;
-    public Material pushableCubeMaterial;
-    
     [Header("Debug Information - READ ONLY")]
     [SerializeField] private int totalCubesTracked;
     [SerializeField] private int totalStacksDetected;
@@ -110,13 +105,6 @@ public class CubeManager : MonoBehaviour
     {
         if (cube != null && allCubes.Remove(cube))
         {
-            // Restore original material if we had one
-            if (originalMaterials.ContainsKey(cube))
-            {
-                RestoreCubeMaterial(cube);
-                originalMaterials.Remove(cube);
-            }
-            
             Debug.Log($"[CubeManager] Unregistered cube: {cube.name}");
             InvalidateStackCache();
             UpdateDebugInfo();
@@ -411,55 +399,7 @@ public class CubeManager : MonoBehaviour
     /// </summary>
     private void UpdateVisualHighlights()
     {
-        // Clear previous highlight
-        if (lastHighlightedCube != null)
-        {
-            RestoreCubeMaterial(lastHighlightedCube);
-            lastHighlightedCube = null;
-        }
-        
-        // Highlight currently selected cube
-        PowerCube selectedCube = GetSelectedCube();
-        if (selectedCube != null)
-        {
-            // Check if Tim can push this cube (stricter alignment)
-            bool canPush = IsTimInPushablePosition(selectedCube);
-            
-            Material materialToUse;
-            if (canPush && pushableCubeMaterial != null)
-            {
-                materialToUse = pushableCubeMaterial; // Green for pushable
-            }
-            else if (selectedCubeMaterial != null)
-            {
-                materialToUse = selectedCubeMaterial; // Current color for selection only
-            }
-            else
-            {
-                materialToUse = null;
-            }
-            
-            if (materialToUse != null)
-            {
-                SetCubeMaterial(selectedCube, materialToUse);
-                lastHighlightedCube = selectedCube;
-            }
-        }
-    }
-    
-    /// <summary>
-    /// Set a cube's material for highlighting
-    /// </summary>
-    private void SetCubeMaterial(PowerCube cube, Material material)
-    {
-        if (cube != null && material != null)
-        {
-            Renderer cubeRenderer = cube.GetComponent<Renderer>();
-            if (cubeRenderer != null)
-            {
-                cubeRenderer.material = material;
-            }
-        }
+        // Visual highlights now handled by OnDrawGizmos - just store selected cube
     }
     
     /// <summary>
@@ -491,21 +431,6 @@ public class CubeManager : MonoBehaviour
         }
         
         return isAlignedToFace;
-    }
-    
-    /// <summary>
-    /// Restore a cube's original material
-    /// </summary>
-    private void RestoreCubeMaterial(PowerCube cube)
-    {
-        if (cube != null && originalMaterials.TryGetValue(cube, out Material originalMaterial))
-        {
-            Renderer cubeRenderer = cube.GetComponent<Renderer>();
-            if (cubeRenderer != null && originalMaterial != null)
-            {
-                cubeRenderer.material = originalMaterial;
-            }
-        }
     }
     
     /// <summary>
@@ -653,7 +578,11 @@ public class CubeManager : MonoBehaviour
         // Highlight selected cube
         if (selectedCube != null)
         {
-            Gizmos.color = Color.yellow;
+            // Check if Tim can push this cube
+            bool canPush = IsTimInPushablePosition(selectedCube);
+            
+            // Green for pushable, yellow for selectable only
+            Gizmos.color = canPush ? Color.green : Color.yellow;
             Gizmos.DrawWireCube(selectedCube.transform.position, Vector3.one * 1.1f);
         }
     }
