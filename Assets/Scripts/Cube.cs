@@ -232,6 +232,9 @@ public class PowerCube : MonoBehaviour
     {
         if (isMoving) return false;
         
+        // Don't allow pushing if cube is falling
+        if (!IsGrounded()) return false;
+        
         // Convert to pure grid direction
         Vector3 pushDir = GetGridDirection(direction);
         if (pushDir == Vector3.zero) return false;
@@ -281,6 +284,21 @@ public class PowerCube : MonoBehaviour
         
         Debug.Log($"[Cube] Successfully started pushing {stackFromLevel.Length} cubes from Tim's level");
         return true;
+    }
+    
+    /// <summary>
+    /// Check if cube is grounded and stable for pushing
+    /// </summary>
+    private bool IsGrounded()
+    {
+        // Cast downward from cube center to check for ground
+        Vector3 rayStart = transform.position + Vector3.up * 0.1f;
+        float rayDistance = 0.6f; // Slightly more than half cube height
+        
+        // Cast ray downward to detect ground or other cubes
+        bool isGrounded = Physics.Raycast(rayStart, Vector3.down, rayDistance);
+        
+        return isGrounded;
     }
     
     /// <summary>
