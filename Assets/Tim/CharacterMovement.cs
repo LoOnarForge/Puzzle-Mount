@@ -161,7 +161,7 @@ public class CharacterMovement : MonoBehaviour
         CheckGroundStatus();
         ReadInput();
         HandleMovement();
-        CheckCubeDetection(); // Always check for nearby cubes for highlighting/selection
+        if (isGrounded) CheckCubeDetection(); // Only check for cubes when grounded
         CheckCubePushing(); // Check for pushing only when moving
         HandleCubeSelection(); // Check for Tab key input
         HandleCubeRotation(); // Check for Q/E key input
@@ -558,6 +558,8 @@ public class CharacterMovement : MonoBehaviour
         {
             if (UnityEngine.InputSystem.Keyboard.current?.tabKey.wasPressedThisFrame == true)
             {
+                if (!isGrounded) return; // Disable selection while jumping/falling
+                
                 if (CubeManager.Instance != null)
                 {
                     CubeManager.Instance.CycleSelection();
@@ -720,6 +722,8 @@ public class CharacterMovement : MonoBehaviour
     /// </summary>
     private void OnTabPressed(InputAction.CallbackContext context)
     {
+        if (!isGrounded) return; // Disable selection while jumping/falling
+        
         if (CubeManager.Instance != null)
         {
             CubeManager.Instance.CycleSelection();
