@@ -1,4 +1,5 @@
 using UnityEngine;
+using UnityEngine.InputSystem;
 
 public class CameraFollow : MonoBehaviour
 {
@@ -21,12 +22,30 @@ public class CameraFollow : MonoBehaviour
     public bool lookAtTarget = true;
     public Vector3 lookAtOffset = Vector3.up;
     
+    [Header("Manual Control")]
+    public Key clockwiseKey = Key.X;
+    public Key counterClockwiseKey = Key.Z;
+    public Key resetKey = Key.R;
+    
     private Vector3 velocity = Vector3.zero;
     private Camera cameraComponent;
+    
+    // Preset camera angles (North, East, South, West)
+    private Vector3[] presetOffsets = new Vector3[]
+    {
+        new Vector3(0, 5, -8),    // North view (default)
+        new Vector3(8, 5, 0),     // East view  
+        new Vector3(0, 5, 8),     // South view
+        new Vector3(-8, 5, 0)     // West view
+    };
+    
+    private int currentAngleIndex = 0;
     
     private void Awake()
     {
         cameraComponent = GetComponent<Camera>();
+        // Set initial offset to first preset (North view)
+        offset = presetOffsets[0];
     }
     
     private void Start()
@@ -57,6 +76,7 @@ public class CameraFollow : MonoBehaviour
     {
         if (target == null) return;
         
+        HandleInput();
         UpdateCameraPosition();
         
         if (lookAtTarget)
@@ -86,6 +106,57 @@ public class CameraFollow : MonoBehaviour
                 followSpeed * Time.deltaTime
             );
         }
+    }
+    
+    private void HandleInput()
+    {
+        // Only allow camera rotation when Tim is stationary
+        bool isTimStationary = IsTimStationary();
+        
+        // Check for reset key (always works)
+        if (Keyboard.current != null && Keyboard.current[resetKey].wasPressedThisFrame)
+        {
+            ResetToDefault();
+        }
+        
+        // Check for clockwise rotation (X key) - only when stationary
+        if (isTimStationary && Keyboard.current != null && Keyboard.current[clockwiseKey].wasPressedThisFrame)
+        {
+            CycleClockwise();
+        }
+        
+        // Check for counterclockwise rotation (Z key) - only when stationary
+        if (isTimStationary && Keyboard.current != null && Keyboard.current[counterClockwiseKey].wasPressedThisFrame)
+        {
+            CycleCounterClockwise();
+        }
+    }
+    
+    private bool IsTimStationary()
+    {
+        CharacterMovement tim = FindFirstObjectByType<CharacterMovement>();
+        if (tim == null) return true; // Default to allowing rotation if no Tim found
+        
+        // Use the public property to check if Tim is stationary
+        return tim.IsStationary;
+    }
+    
+    private void CycleClockwise()
+    {
+        currentAngleIndex = (currentAngleIndex + 1) % presetOffsets.Length;
+        offset = presetOffsets[currentAngleIndex];
+    }
+    
+    private void CycleCounterClockwise()
+    {
+        currentAngleIndex = (currentAngleIndex - 1 + presetOffsets.Length) % presetOffsets.Length;
+        offset = presetOffsets[currentAngleIndex];
+    }
+    
+    private void ResetToDefault()
+    {
+        currentAngleIndex = 0;
+        offset = presetOffsets[0]; // North view
     }
     
     private Vector3 CalculateTargetPosition()

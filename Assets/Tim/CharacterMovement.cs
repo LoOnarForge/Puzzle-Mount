@@ -73,6 +73,7 @@ public class CharacterMovement : MonoBehaviour
     
     public bool IsGrounded => isGrounded;
     public float CurrentSpeed => currentSpeed;
+    public bool IsStationary => moveInput.magnitude < 0.1f;
     
     private void Awake()
     {
@@ -185,7 +186,7 @@ public class CharacterMovement : MonoBehaviour
         // Capture momentum when walking off edge (grounded → airborne)
         if (!isGrounded && wasGroundedLastFrame)
         {
-            Vector3 currentMovement = new Vector3(moveInput.x, 0, moveInput.y);
+            Vector3 currentMovement = GetMovementDirection();
             if (currentMovement.magnitude > 0.1f)
             {
                 // Use current built-up speed for edge momentum
@@ -254,14 +255,33 @@ public class CharacterMovement : MonoBehaviour
         
         if (isGrounded)
         {
-            return inputDirection;
+            // Transform input to be relative to camera
+            Camera mainCamera = Camera.main;
+            if (mainCamera != null)
+            {
+                Vector3 cameraForward = mainCamera.transform.forward;
+                Vector3 cameraRight = mainCamera.transform.right;
+                
+                // Project camera directions onto horizontal plane (ignore Y)
+                cameraForward.y = 0;
+                cameraRight.y = 0;
+                cameraForward.Normalize();
+                cameraRight.Normalize();
+                
+                // Calculate movement direction relative to camera
+                return cameraForward * moveInput.y + cameraRight * moveInput.x;
+            }
+            else
+            {
+                // Fallback to world directions if no camera found
+                return inputDirection;
+            }
         }
         else
         {
             // Use stored jump momentum when airborne
-            // Don't normalize here - keep the magnitude intact
             jumpMomentum = Vector3.Lerp(jumpMomentum, Vector3.zero, momentumDecay * Time.deltaTime);
-            return jumpMomentum; // Return full vector with magnitude
+            return jumpMomentum;
         }
     }
     
@@ -764,7 +784,7 @@ public class CharacterMovement : MonoBehaviour
     {
         if (isGrounded)
         {
-            Vector3 currentMovement = new Vector3(moveInput.x, 0, moveInput.y);
+            Vector3 currentMovement = GetMovementDirection();
             
             if (currentMovement.magnitude < 0.1f)
             {
