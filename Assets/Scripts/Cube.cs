@@ -7,6 +7,9 @@ public class Cube : MonoBehaviour
     [Header("Movement")]
     public float moveSpeed = 5f;
     
+    [Header("Visual")]
+    public Transform visualParent;
+    
     private Rigidbody rb;
     public bool isMoving = false;
     
@@ -56,6 +59,23 @@ public class Cube : MonoBehaviour
         // CRITICAL: Direct transform assignment ensures perfect X,Z alignment
         transform.position = gridPos;
         transform.rotation = Quaternion.identity;
+        
+        // Reset visual rotation too
+        if (visualParent != null)
+        {
+            visualParent.localRotation = Quaternion.identity;
+        }
+    }
+    
+    /// <summary>
+    /// Rotate only the visual representation, keeping collider grid-aligned
+    /// </summary>
+    public void RotateVisual(float rotationY)
+    {
+        if (visualParent != null)
+        {
+            visualParent.Rotate(0, rotationY, 0);
+        }
     }
     
     /// <summary>

@@ -624,8 +624,16 @@ public class CharacterMovement : MonoBehaviour
         
         isRotating = true; // Block further rotation input
         
-        Transform cubeTransform = cube.transform;
-        Quaternion startRotation = cubeTransform.rotation;
+        // Use visual parent for rotation instead of main transform
+        Transform visualTransform = cube.visualParent;
+        if (visualTransform == null)
+        {
+            Debug.LogWarning($"[CharacterMovement] Cube {cube.name} has no visual parent for rotation");
+            isRotating = false;
+            yield break;
+        }
+        
+        Quaternion startRotation = visualTransform.rotation;
         
         // Calculate target rotation using WORLD axes (not local)
         Quaternion deltaRotation;
@@ -653,7 +661,7 @@ public class CharacterMovement : MonoBehaviour
         float elapsedTime = 0f;
         
         // Add visual feedback - scale pulse to show rotation direction and axis
-        Vector3 originalScale = cubeTransform.localScale;
+        Vector3 originalScale = visualTransform.localScale;
         float pulseAmount = 1.1f; // Consistent pulse for all rotations
         
         while (elapsedTime < rotationDuration)
@@ -663,22 +671,22 @@ public class CharacterMovement : MonoBehaviour
             
             // Smooth rotation using ease-in-out curve
             float easedProgress = Mathf.SmoothStep(0f, 1f, progress);
-            cubeTransform.rotation = Quaternion.Slerp(startRotation, targetRotation, easedProgress);
+            visualTransform.rotation = Quaternion.Slerp(startRotation, targetRotation, easedProgress);
             
             // Pulse scale for visual feedback (only at start)
             if (progress < 0.3f)
             {
                 float scaleProgress = progress / 0.3f;
                 float currentPulse = Mathf.Lerp(pulseAmount, 1f, scaleProgress);
-                cubeTransform.localScale = originalScale * currentPulse;
+                visualTransform.localScale = originalScale * currentPulse;
             }
             
             yield return null;
         }
         
         // Ensure exact final rotation and scale
-        cubeTransform.rotation = targetRotation;
-        cubeTransform.localScale = originalScale;
+        visualTransform.rotation = targetRotation;
+        visualTransform.localScale = originalScale;
         
         isRotating = false; // Allow new rotation input
         
