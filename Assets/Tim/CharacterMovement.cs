@@ -328,6 +328,30 @@ public class CharacterMovement : MonoBehaviour
                         CubeManager.Instance.SetTargetedCubeAtTimLevel(cube, transform.position);
                     }
                 }
+                else
+                {
+                    // Not aligned, clear selection
+                    if (CubeManager.Instance != null)
+                    {
+                        CubeManager.Instance.SetTargetedCube(null);
+                    }
+                }
+            }
+            else
+            {
+                // Hit something but not a cube, clear selection
+                if (CubeManager.Instance != null)
+                {
+                    CubeManager.Instance.SetTargetedCube(null);
+                }
+            }
+        }
+        else
+        {
+            // No raycast hit, clear selection
+            if (CubeManager.Instance != null)
+            {
+                CubeManager.Instance.SetTargetedCube(null);
             }
         }
     }
