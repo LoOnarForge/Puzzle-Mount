@@ -8,7 +8,7 @@ public class Cube : MonoBehaviour
     public float moveSpeed = 5f;
     
     private Rigidbody rb;
-    private bool isMoving = false;
+    public bool isMoving = false;
     
     private void Awake()
     {

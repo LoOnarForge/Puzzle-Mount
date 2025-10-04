@@ -603,6 +603,12 @@ public class CharacterMovement : MonoBehaviour
             Cube selectedCube = CubeManager.Instance.GetSelectedCube();
             if (selectedCube != null)
             {
+                // Prevent rotation while cube is being pushed/moving
+                if (selectedCube.isMoving)
+                {
+                    return;
+                }
+                
                 StartCoroutine(SmoothRotateCube(selectedCube, degrees, axis));
                 Debug.Log($"[CharacterMovement] Started rotating cube {selectedCube.name} by {degrees} degrees around {axis} axis");
             }
