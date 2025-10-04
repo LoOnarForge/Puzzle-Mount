@@ -302,11 +302,7 @@ public class CharacterMovement : MonoBehaviour
     /// </summary>
     private void CheckCubeDetection()
     {
-        // Clear targeting first
-        if (CubeManager.Instance != null)
-        {
-            CubeManager.Instance.SetTargetedCube(null);
-        }
+        // Don't clear targeting - let the raycast below handle it
         
         // Cast ray at Tim's interaction level to detect cubes he's facing
         float detectionHeight = 0.8f;

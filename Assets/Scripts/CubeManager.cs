@@ -292,10 +292,12 @@ public class CubeManager : MonoBehaviour
             if (targetedBaseCube != cubeAtTimLevel)
             {
                 targetedBaseCube = cubeAtTimLevel;
+                int oldIndex = currentSelectedIndex;
                 currentSelectedIndex = 0; // Start selection at Tim's level cube
                 currentStackArray = stackFromTimLevel; // Use the level-based stack
                 
-                Debug.Log($"[CubeManager] Targeted cube at Tim's level: {cubeAtTimLevel.name}, Stack size from level: {currentStackArray.Length}");
+                Debug.Log($"[SELECTION] RESET: {oldIndex} -> 0 (new stack: {cubeAtTimLevel.name})");
+                // Debug.Log($"[CubeManager] Targeted cube at Tim's level: {cubeAtTimLevel.name}, Stack size from level: {currentStackArray.Length}");
                 
                 UpdateVisualHighlights();
                 UpdateDebugInfo();
@@ -316,17 +318,20 @@ public class CubeManager : MonoBehaviour
         if (targetedBaseCube != baseCube)
         {
             targetedBaseCube = baseCube;
+            int oldIndex = currentSelectedIndex;
             currentSelectedIndex = 0; // Reset selection to bottom cube
+            
+            Debug.Log($"[SELECTION] RESET: {oldIndex} -> 0 (new base: {baseCube?.name})");
             
             if (baseCube != null)
             {
                 currentStackArray = GetStackAbove(baseCube);
-                Debug.Log($"[CubeManager] Targeted cube: {baseCube.name}, Stack size: {currentStackArray.Length}");
+                // Debug.Log($"[CubeManager] Targeted cube: {baseCube.name}, Stack size: {currentStackArray.Length}");
             }
             else
             {
                 currentStackArray = new Cube[0];
-                Debug.Log("[CubeManager] No cube targeted");
+                // Debug.Log("[CubeManager] No cube targeted");
             }
             
             UpdateVisualHighlights();
@@ -392,9 +397,10 @@ public class CubeManager : MonoBehaviour
         if (currentStackArray == null || currentStackArray.Length == 0) return;
         
         int maxSelectableIndex = Mathf.Min(2, currentStackArray.Length - 1); // Max index 2 (3rd cube) or stack length - 1
+        int oldIndex = currentSelectedIndex;
         currentSelectedIndex = (currentSelectedIndex + 1) % (maxSelectableIndex + 1);
         
-        Debug.Log($"[CubeManager] Selection cycled to index {currentSelectedIndex} (cube: {GetSelectedCube()?.name})");
+        Debug.Log($"[SELECTION] TAB: {oldIndex} -> {currentSelectedIndex} (cube: {GetSelectedCube()?.name})");
         UpdateVisualHighlights();
         UpdateDebugInfo();
     }
