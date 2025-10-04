@@ -30,7 +30,8 @@ public class CharacterMovement : MonoBehaviour
     public float pushRange = 1.5f;
     
     [Header("Push Delay Settings")]
-    public float initialPushDelay = 0.2f;
+    public float initialPushDelay = 0.35f;
+    public float continuousPushDelay = 0.1f;
     
     // Push delay tracking
     private Cube currentTargetCube;
@@ -38,6 +39,7 @@ public class CharacterMovement : MonoBehaviour
     private float pushDelayTimer;
     private bool isDelayActive;
     private bool isPushingThisFrame;
+    private bool isFirstPush = true;
     
     // Hidden physics settings
     private float gravity = -20f;
@@ -465,11 +467,17 @@ public class CharacterMovement : MonoBehaviour
                             Debug.Log($"[PUSH] Success! Pushed {stackFromTimLevel.Length} cubes from Tim's level, Direction: {pushDirection}");
                             // Invalidate stack cache when cube moves
                             CubeManager.Instance?.InvalidateStackCache();
+                            
+                            // Start continuous push delay for next push
+                            pushDelayTimer = 0f;
+                            isDelayActive = true;
+                            isFirstPush = false;
                         }
                     }
                     else
                     {
-                        Debug.Log($"[PUSH] Waiting for delay... Timer: {pushDelayTimer:F2}/{initialPushDelay:F2}");
+                        float requiredDelay = isFirstPush ? initialPushDelay : continuousPushDelay;
+                        Debug.Log($"[PUSH] Waiting for delay... Timer: {pushDelayTimer:F2}/{requiredDelay:F2}");
                     }
                 }
             }
@@ -525,6 +533,7 @@ public class CharacterMovement : MonoBehaviour
         currentPushDirection = pushDirection;
         pushDelayTimer = 0f;
         isDelayActive = true;
+        isFirstPush = true;
     }
     
     /// <summary>
@@ -536,6 +545,7 @@ public class CharacterMovement : MonoBehaviour
         currentPushDirection = Vector3.zero;
         pushDelayTimer = 0f;
         isDelayActive = false;
+        isFirstPush = true;
     }
     
     /// <summary>
@@ -711,7 +721,9 @@ public class CharacterMovement : MonoBehaviour
         {
             pushDelayTimer += Time.deltaTime;
             
-            if (pushDelayTimer >= initialPushDelay)
+            float requiredDelay = isFirstPush ? initialPushDelay : continuousPushDelay;
+            
+            if (pushDelayTimer >= requiredDelay)
             {
                 isDelayActive = false; // Delay completed - pushing can begin
                 Debug.Log($"[PUSH] Delay completed! Ready to push {currentTargetCube?.name}");
