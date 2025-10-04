@@ -11175,6 +11175,68 @@ Transform:
   m_Children: []
   m_Father: {fileID: 1548923827}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!1 &1936795507
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 1936795509}
+  - component: {fileID: 1936795508}
+  m_Layer: 0
+  m_Name: Cube Manager
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!114 &1936795508
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1936795507}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 55ae8a417682e4940a6117b506096add, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::CubeManager
+  stackDetectionDistance: 3
+  cubeLayerMask:
+    serializedVersion: 2
+    m_Bits: 4294967295
+  maxSelectionDistance: 3
+  showDebugRays: 0
+  verboseLogging: 0
+  selectedCubeMaterial: {fileID: 0}
+  targetedCubeMaterial: {fileID: 0}
+  totalCubesTracked: 0
+  totalStacksDetected: 0
+  currentlyTargetedCube: {fileID: 0}
+  currentStackSize: 0
+  canPushCurrentStack: 0
+  currentStack: []
+  selectedCubeIndex: 0
+  selectedCube: {fileID: 0}
+  forceRefreshCubes: 0
+--- !u!4 &1936795509
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1936795507}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 8.47733, y: -12.04382, z: 15.42151}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 0}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &1938928987
 GameObject:
   m_ObjectHideFlags: 0
@@ -11782,6 +11844,7 @@ SceneRoots:
   m_ObjectHideFlags: 0
   m_Roots:
   - {fileID: 330585546}
+  - {fileID: 1936795509}
   - {fileID: 410087041}
   - {fileID: 832575519}
   - {fileID: 1548923827}

@@ -315,6 +315,9 @@ public class CharacterMovement : MonoBehaviour
         
         RaycastHit hit;
         
+        // Always visible raycast for cube detection
+        Debug.DrawRay(rayStart, forward * pushRange, Color.yellow);
+        
         if (Physics.Raycast(rayStart, forward, out hit, pushRange))
         {
             Cube cube = hit.collider.GetComponent<Cube>();
@@ -720,7 +723,7 @@ public class CharacterMovement : MonoBehaviour
             }
             else
             {
-                // Moving jump - use at least walk speed as minimum, or current buildup if higher
+                // Moving jump - use at least walk speed as minimum, or current buildup if higher 
                 float jumpSpeed = Mathf.Max(walkSpeed, currentSpeedBuildup);
                 jumpMomentum = currentMovement.normalized * jumpSpeed;
             }
