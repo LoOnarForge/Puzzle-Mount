@@ -19,6 +19,7 @@ public class CubeManager : MonoBehaviour
     [Header("Visual Selection")]
     public Material selectedCubeMaterial;
     public Material targetedCubeMaterial;
+    public Material pushableCubeMaterial;
     
     [Header("Debug Information - READ ONLY")]
     [SerializeField] private int totalCubesTracked;
@@ -419,10 +420,30 @@ public class CubeManager : MonoBehaviour
         
         // Highlight currently selected cube
         PowerCube selectedCube = GetSelectedCube();
-        if (selectedCube != null && selectedCubeMaterial != null)
+        if (selectedCube != null)
         {
-            SetCubeMaterial(selectedCube, selectedCubeMaterial);
-            lastHighlightedCube = selectedCube;
+            // Check if Tim can push this cube (stricter alignment)
+            bool canPush = IsTimInPushablePosition(selectedCube);
+            
+            Material materialToUse;
+            if (canPush && pushableCubeMaterial != null)
+            {
+                materialToUse = pushableCubeMaterial; // Green for pushable
+            }
+            else if (selectedCubeMaterial != null)
+            {
+                materialToUse = selectedCubeMaterial; // Current color for selection only
+            }
+            else
+            {
+                materialToUse = null;
+            }
+            
+            if (materialToUse != null)
+            {
+                SetCubeMaterial(selectedCube, materialToUse);
+                lastHighlightedCube = selectedCube;
+            }
         }
     }
     
@@ -439,6 +460,37 @@ public class CubeManager : MonoBehaviour
                 cubeRenderer.material = material;
             }
         }
+    }
+    
+    /// <summary>
+    /// Check if Tim is positioned to push the cube (uses same logic as CharacterMovement)
+    /// </summary>
+    private bool IsTimInPushablePosition(PowerCube cube)
+    {
+        CharacterMovement tim = FindFirstObjectByType<CharacterMovement>();
+        if (tim == null || cube == null) return false;
+        
+        Vector3 cubeCenter = cube.transform.position;
+        Vector3 timPos = tim.transform.position;
+        Vector3 localOffset = timPos - cubeCenter;
+        
+        float absX = Mathf.Abs(localOffset.x);
+        float absZ = Mathf.Abs(localOffset.z);
+        
+        // Use same strict tolerance as CharacterMovement.IsProperlyAlignedToPush
+        float faceTolerance = 0.4f;
+        
+        bool isAlignedToFace = false;
+        if (absX > absZ) // Approaching from X direction (left/right faces)
+        {
+            isAlignedToFace = Mathf.Abs(localOffset.z) < faceTolerance;
+        }
+        else // Approaching from Z direction (front/back faces)
+        {
+            isAlignedToFace = Mathf.Abs(localOffset.x) < faceTolerance;
+        }
+        
+        return isAlignedToFace;
     }
     
     /// <summary>
