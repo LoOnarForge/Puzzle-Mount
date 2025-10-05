@@ -255,21 +255,11 @@ public class CharacterMovement : MonoBehaviour
         
         if (isGrounded)
         {
-            // Transform input to be relative to camera
-            Camera mainCamera = Camera.main;
-            if (mainCamera != null)
+            // Get camera angle and calculate movement directions based on preset angles
+            CameraFollow cameraFollow = FindFirstObjectByType<CameraFollow>();
+            if (cameraFollow != null)
             {
-                Vector3 cameraForward = mainCamera.transform.forward;
-                Vector3 cameraRight = mainCamera.transform.right;
-                
-                // Project camera directions onto horizontal plane (ignore Y)
-                cameraForward.y = 0;
-                cameraRight.y = 0;
-                cameraForward.Normalize();
-                cameraRight.Normalize();
-                
-                // Calculate movement direction relative to camera
-                return cameraForward * moveInput.y + cameraRight * moveInput.x;
+                return GetMovementDirectionForCameraAngle(cameraFollow.CurrentAngleIndex);
             }
             else
             {
@@ -283,6 +273,39 @@ public class CharacterMovement : MonoBehaviour
             jumpMomentum = Vector3.Lerp(jumpMomentum, Vector3.zero, momentumDecay * Time.deltaTime);
             return jumpMomentum;
         }
+    }
+    
+    private Vector3 GetMovementDirectionForCameraAngle(int angleIndex)
+    {
+        // Define forward and right directions for each camera angle
+        Vector3 forward, right;
+        
+        switch (angleIndex)
+        {
+            case 0: // North view
+                forward = Vector3.forward;  // North (0,0,1)
+                right = Vector3.right;      // East (1,0,0)
+                break;
+            case 1: // East view
+                forward = Vector3.left;     // West (-1,0,0)
+                right = Vector3.forward;    // North (0,0,1)
+                break;
+            case 2: // South view
+                forward = Vector3.back;     // South (0,0,-1)
+                right = Vector3.left;       // West (-1,0,0)
+                break;
+            case 3: // West view
+                forward = Vector3.right;    // East (1,0,0)
+                right = Vector3.back;       // South (0,0,-1)
+                break;
+            default:
+                forward = Vector3.forward;
+                right = Vector3.right;
+                break;
+        }
+        
+        // Calculate movement direction: forward * W/S input + right * A/D input
+        return forward * moveInput.y + right * moveInput.x;
     }
     
     private float CalculateMovementSpeed(bool shouldRun)

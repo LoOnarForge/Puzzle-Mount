@@ -41,6 +41,9 @@ public class CameraFollow : MonoBehaviour
     
     private int currentAngleIndex = 0;
     
+    // Public property to expose current camera angle for movement calculations
+    public int CurrentAngleIndex => currentAngleIndex;
+    
     private void Awake()
     {
         cameraComponent = GetComponent<Camera>();
