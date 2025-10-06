@@ -12,6 +12,11 @@ public class CubeManager : MonoBehaviour
     
     [Header("Selection")]
     public float maxSelectionDistance = 3f; // Cancel selection when Tim moves too far
+    
+    [Header("PowerLine Colors")]
+    public Color unpoweredUnconnectedColor = Color.gray;
+    public Color unpoweredConnectedColor = Color.white;
+    
     [Header("Debug Visualization")]
     public bool showDebugRays = false; // Disabled by default
     public bool verboseLogging = false; // Disabled by default
@@ -586,4 +591,52 @@ public class CubeManager : MonoBehaviour
             Gizmos.DrawWireCube(selectedCube.transform.position, Vector3.one * 1.1f);
         }
     }
+    
+    /// <summary>
+    /// Set PowerLine color based on connection state
+    /// </summary>
+    public void SetPowerLineColor(SpriteRenderer powerLineRenderer, PowerLineState state, Color poweredColor = default)
+    {
+        if (powerLineRenderer == null) return;
+        
+        switch (state)
+        {
+            case PowerLineState.UnpoweredUnconnected:
+                powerLineRenderer.color = unpoweredUnconnectedColor;
+                break;
+            case PowerLineState.UnpoweredConnected:
+                powerLineRenderer.color = unpoweredConnectedColor;
+                break;
+            case PowerLineState.Powered:
+                powerLineRenderer.color = poweredColor != default ? poweredColor : Color.red; // Default red if no PS color provided
+                break;
+        }
+    }
+    
+    /// <summary>
+    /// Update all PowerLine colors on a cube based on their connection states
+    /// </summary>
+    public void UpdateCubePowerLineColors(PowerCube cube)
+    {
+        if (cube == null) return;
+        
+        // Get all SpriteRenderer children (face sprites)
+        SpriteRenderer[] faceRenderers = cube.GetComponentsInChildren<SpriteRenderer>();
+        
+        foreach (SpriteRenderer renderer in faceRenderers)
+        {
+            // For now, set all to unpowered&unconnected - connection logic will update this
+            SetPowerLineColor(renderer, PowerLineState.UnpoweredUnconnected);
+        }
+    }
+}
+
+/// <summary>
+/// PowerLine connection and power states
+/// </summary>
+public enum PowerLineState
+{
+    UnpoweredUnconnected,
+    UnpoweredConnected,
+    Powered
 }

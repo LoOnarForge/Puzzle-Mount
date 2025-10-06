@@ -41,6 +41,10 @@ public class PowerCube : MonoBehaviour
     private Rigidbody rb;
     public bool isMoving = false;
     
+    // PowerLine connection tracking
+    private bool[] faceConnections = new bool[6]; // Top, Bottom, North, East, South, West
+    private PowerLineState[] faceStates = new PowerLineState[6];
+    
     private void Awake()
     {
         rb = GetComponent<Rigidbody>();
@@ -400,5 +404,91 @@ public class PowerCube : MonoBehaviour
         rb.constraints = RigidbodyConstraints.FreezePositionX | RigidbodyConstraints.FreezePositionZ | RigidbodyConstraints.FreezeRotation;
         
         isMoving = false;
+    }
+    
+    // PowerLine Connection System
+    
+    private void OnTriggerEnter(Collider other)
+    {
+        if (other.gameObject.layer == LayerMask.NameToLayer("PowerLines"))
+        {
+            HandlePowerLineConnection(other, true);
+        }
+    }
+    
+    private void OnTriggerExit(Collider other)
+    {
+        if (other.gameObject.layer == LayerMask.NameToLayer("PowerLines"))
+        {
+            HandlePowerLineConnection(other, false);
+        }
+    }
+    
+    private void HandlePowerLineConnection(Collider powerLineCollider, bool connecting)
+    {
+        // Determine which face this connection belongs to
+        int faceIndex = GetFaceIndexFromCollider(powerLineCollider);
+        if (faceIndex < 0) return;
+        
+        // Update connection state
+        faceConnections[faceIndex] = connecting;
+        
+        // Update visual state
+        UpdateFaceConnectionState(faceIndex);
+        
+        Debug.Log($"[PowerCube] Face {faceIndex} {(connecting ? "connected" : "disconnected")}");
+    }
+    
+    private int GetFaceIndexFromCollider(Collider collider)
+    {
+        // Get face name from collider's parent
+        string faceName = collider.transform.parent?.name ?? collider.name;
+        
+        switch (faceName)
+        {
+            case "Top Face": return 0;
+            case "Bottom Face": return 1;
+            case "North Face": return 2;
+            case "East Face": return 3;
+            case "South Face": return 4;
+            case "West Face": return 5;
+            default: return -1;
+        }
+    }
+    
+    private void UpdateFaceConnectionState(int faceIndex)
+    {
+        // Determine new state
+        PowerLineState newState = faceConnections[faceIndex] ? 
+            PowerLineState.UnpoweredConnected : 
+            PowerLineState.UnpoweredUnconnected;
+        
+        faceStates[faceIndex] = newState;
+        
+        // Update visual color
+        ApplyFaceColor(faceIndex, newState);
+    }
+    
+    private void ApplyFaceColor(int faceIndex, PowerLineState state)
+    {
+        string[] faceNames = { "Top Face", "Bottom Face", "North Face", "East Face", "South Face", "West Face" };
+        
+        Transform faceTransform = transform.Find(faceNames[faceIndex]);
+        if (faceTransform != null)
+        {
+            SpriteRenderer renderer = faceTransform.GetComponent<SpriteRenderer>();
+            if (renderer != null && CubeManager.Instance != null)
+            {
+                CubeManager.Instance.SetPowerLineColor(renderer, state);
+            }
+        }
+    }
+    
+    public void UpdateAllFaceColors()
+    {
+        for (int i = 0; i < 6; i++)
+        {
+            ApplyFaceColor(i, faceStates[i]);
+        }
     }
 }
