@@ -7,7 +7,7 @@ public enum PowerLineType
     Horizontal,
     [InspectorName("│ Vertical")]
     Vertical,
-    [InspectorName("--- CORNERS ---")]
+    [InspectorName("────────")]
     Separator1,
     [InspectorName("┘ Corner Left Top")]
     CornerLeftTop,
@@ -17,7 +17,7 @@ public enum PowerLineType
     CornerRightBottom,
     [InspectorName("┐ Corner Bottom Left")]
     CornerBottomLeft,
-    [InspectorName("--- T-SECTIONS ---")]
+    [InspectorName("──────────")]
     Separator2,
     [InspectorName("┴ T Section Left")]
     TSectionLeft,
@@ -27,7 +27,7 @@ public enum PowerLineType
     TSectionRight,
     [InspectorName("┤ T Section Bottom")]
     TSectionBottom,
-    [InspectorName("--- SPECIAL ---")]
+    [InspectorName("────────────")]
     Separator3,
     [InspectorName("┼ Cross")]
     Cross
