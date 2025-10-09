@@ -28,12 +28,12 @@ public class PowerCube : MonoBehaviour
     public PowerLineType southFace = PowerLineType.None;
     public PowerLineType westFace = PowerLineType.None;
     
-    [Header("PowerLine Sprite Mapping")]
-    public Sprite horizontalSprite;
-    public Sprite verticalSprite;
-    public Sprite cornerSprite;
-    public Sprite tSectionSprite;
-    public Sprite crossSprite;
+    [Header("PowerLine Prefabs")]
+    public GameObject horizontalPrefab;
+    public GameObject verticalPrefab;
+    public GameObject cornerPrefab;
+    public GameObject tSectionPrefab;
+    public GameObject crossPrefab;
     
     [Header("Random Rotation")]
     public bool randomRotateOnStart = true;
