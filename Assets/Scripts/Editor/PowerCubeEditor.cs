@@ -49,13 +49,20 @@ public class PowerCubeEditor : Editor
         
         EditorGUILayout.Space();
         
-        // Draw Power Lines dropdowns
-        cube.topFace = (PowerLineType)EditorGUILayout.EnumPopup("Top Face", cube.topFace);
-        cube.bottomFace = (PowerLineType)EditorGUILayout.EnumPopup("Bottom Face", cube.bottomFace);
-        cube.northFace = (PowerLineType)EditorGUILayout.EnumPopup("North Face", cube.northFace);
-        cube.eastFace = (PowerLineType)EditorGUILayout.EnumPopup("East Face", cube.eastFace);
-        cube.southFace = (PowerLineType)EditorGUILayout.EnumPopup("South Face", cube.southFace);
-        cube.westFace = (PowerLineType)EditorGUILayout.EnumPopup("West Face", cube.westFace);
+        // Draw Power Lines dropdowns using SerializedProperty
+        SerializedProperty topFaceProp = serializedObject.FindProperty("topFace");
+        SerializedProperty bottomFaceProp = serializedObject.FindProperty("bottomFace");
+        SerializedProperty northFaceProp = serializedObject.FindProperty("northFace");
+        SerializedProperty eastFaceProp = serializedObject.FindProperty("eastFace");
+        SerializedProperty southFaceProp = serializedObject.FindProperty("southFace");
+        SerializedProperty westFaceProp = serializedObject.FindProperty("westFace");
+        
+        EditorGUILayout.PropertyField(topFaceProp, new GUIContent("Top Face"));
+        EditorGUILayout.PropertyField(bottomFaceProp, new GUIContent("Bottom Face"));
+        EditorGUILayout.PropertyField(northFaceProp, new GUIContent("North Face"));
+        EditorGUILayout.PropertyField(eastFaceProp, new GUIContent("East Face"));
+        EditorGUILayout.PropertyField(southFaceProp, new GUIContent("South Face"));
+        EditorGUILayout.PropertyField(westFaceProp, new GUIContent("West Face"));
         
         // Power Line Prefabs section
         EditorGUILayout.Space();

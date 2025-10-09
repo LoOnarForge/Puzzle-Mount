@@ -73,7 +73,7 @@ public class PowerCube : MonoBehaviour
             CubeManager.Instance.RegisterCube(this);
         }
         
-        // Random rotation before grid snap
+        // Random rotation before grid snap and before PowerLine prefab instantiation
         if (randomRotateOnStart)
         {
             ApplyRandomRotation();
@@ -125,11 +125,8 @@ public class PowerCube : MonoBehaviour
             }
         }
         
-        // Apply rotation to visual parent only
-        if (visualParent != null)
-        {
-            visualParent.localRotation = Quaternion.Euler(xRot, yRot, zRot);
-        }
+        // Apply rotation to whole cube transform
+        transform.rotation = Quaternion.Euler(xRot, yRot, zRot);
     }
     
     private void OnDestroy()
@@ -155,13 +152,6 @@ public class PowerCube : MonoBehaviour
         
         // CRITICAL: Direct transform assignment ensures perfect X,Z alignment
         transform.position = gridPos;
-        transform.rotation = Quaternion.identity;
-        
-        // Reset visual rotation too
-        if (visualParent != null)
-        {
-            visualParent.localRotation = Quaternion.identity;
-        }
     }
     
     /// <summary>
