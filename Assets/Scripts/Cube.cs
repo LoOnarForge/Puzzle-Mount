@@ -3,16 +3,33 @@ using UnityEngine;
 public enum PowerLineType
 {
     Empty,
+    [InspectorName("─ Horizontal")]
     Horizontal,
+    [InspectorName("│ Vertical")]
     Vertical,
+    [InspectorName("--- CORNERS ---")]
+    Separator1,
+    [InspectorName("┘ Corner Left Top")]
     CornerLeftTop,
+    [InspectorName("└ Corner Top Right")]
     CornerTopRight,
+    [InspectorName("┌ Corner Right Bottom")]
     CornerRightBottom,
+    [InspectorName("┐ Corner Bottom Left")]
     CornerBottomLeft,
+    [InspectorName("--- T-SECTIONS ---")]
+    Separator2,
+    [InspectorName("┴ T Section Left")]
     TSectionLeft,
+    [InspectorName("├ T Section Top")]
     TSectionTop,
+    [InspectorName("┬ T Section Right")]
     TSectionRight,
+    [InspectorName("┤ T Section Bottom")]
     TSectionBottom,
+    [InspectorName("--- SPECIAL ---")]
+    Separator3,
+    [InspectorName("┼ Cross")]
     Cross
 }
 
@@ -52,7 +69,7 @@ public class PowerCube : MonoBehaviour
     public bool isMoving = false;
     
     // PowerLine connection tracking
-    private bool[] faceConnections = new bool[6]; // Top, Bottom, North, East, South, West
+    private bool[] faceConnections = new bool[6]; // Top, Bottom, North, East, South, West    
     private PowerLineState[] faceStates = new PowerLineState[6];
     
     private void Awake()
