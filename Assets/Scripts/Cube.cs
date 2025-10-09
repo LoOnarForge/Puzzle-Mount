@@ -2,11 +2,17 @@ using UnityEngine;
 
 public enum PowerLineType
 {
-    None,
+    Empty,
     Horizontal,
     Vertical,
-    Corner,
-    TSection,
+    CornerLeftTop,
+    CornerTopRight,
+    CornerRightBottom,
+    CornerBottomLeft,
+    TSectionLeft,
+    TSectionTop,
+    TSectionRight,
+    TSectionBottom,
     Cross
 }
 
@@ -20,19 +26,23 @@ public class PowerCube : MonoBehaviour
     [Header("Visual")]
     public Transform visualParent;
     
-    [Header("Power Lines")]
-    public PowerLineType topFace = PowerLineType.None;
-    public PowerLineType bottomFace = PowerLineType.None;
-    public PowerLineType northFace = PowerLineType.None;
-    public PowerLineType eastFace = PowerLineType.None;
-    public PowerLineType southFace = PowerLineType.None;
-    public PowerLineType westFace = PowerLineType.None;
+    public PowerLineType topFace = PowerLineType.Empty;
+    public PowerLineType bottomFace = PowerLineType.Empty;
+    public PowerLineType northFace = PowerLineType.Empty;
+    public PowerLineType eastFace = PowerLineType.Empty;
+    public PowerLineType southFace = PowerLineType.Empty;
+    public PowerLineType westFace = PowerLineType.Empty;
     
-    [Header("PowerLine Prefabs")]
     public GameObject horizontalPrefab;
     public GameObject verticalPrefab;
-    public GameObject cornerPrefab;
-    public GameObject tSectionPrefab;
+    public GameObject cornerTopRightPrefab;
+    public GameObject cornerRightBottomPrefab;
+    public GameObject cornerBottomLeftPrefab;
+    public GameObject cornerLeftTopPrefab;
+    public GameObject tSectionTopPrefab;
+    public GameObject tSectionRightPrefab;
+    public GameObject tSectionBottomPrefab;
+    public GameObject tSectionLeftPrefab;
     public GameObject crossPrefab;
     
     [Header("Random Rotation")]
@@ -71,54 +81,11 @@ public class PowerCube : MonoBehaviour
         
         // Force perfect grid alignment on start
         SnapToGrid();
-        
-        // Apply sprites to faces
-        UpdateFaceSprites();
     }
     
     private void OnValidate()
     {
-        // Auto-update sprites when dropdowns change in inspector (edit mode)
-        UpdateFaceSprites();
-    }
-    
-    private void UpdateFaceSprites()
-    {
-        if (visualParent == null) return;
-        
-        UpdateFaceSprite("Top Face", topFace);
-        UpdateFaceSprite("Bottom Face", bottomFace);
-        UpdateFaceSprite("North Face", northFace);
-        UpdateFaceSprite("East Face", eastFace);
-        UpdateFaceSprite("South Face", southFace);
-        UpdateFaceSprite("West Face", westFace);
-    }
-    
-    private void UpdateFaceSprite(string faceName, PowerLineType powerLineType)
-    {
-        Transform faceChild = visualParent.Find(faceName);
-        if (faceChild != null)
-        {
-            SpriteRenderer spriteRenderer = faceChild.GetComponent<SpriteRenderer>();
-            if (spriteRenderer != null)
-            {
-                spriteRenderer.sprite = GetSpriteForPowerLineType(powerLineType);
-            }
-        }
-    }
-    
-    private Sprite GetSpriteForPowerLineType(PowerLineType type)
-    {
-        switch (type)
-        {
-            case PowerLineType.None: return null; // No sprite for None
-            case PowerLineType.Horizontal: return horizontalSprite;
-            case PowerLineType.Vertical: return verticalSprite;
-            case PowerLineType.Corner: return cornerSprite;
-            case PowerLineType.TSection: return tSectionSprite;
-            case PowerLineType.Cross: return crossSprite;
-            default: return null;
-        }
+        // Note: PowerLine prefabs are now handled by PowerCubeEditor script
     }
     
     /// <summary>

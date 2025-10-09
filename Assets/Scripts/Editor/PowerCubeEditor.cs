@@ -27,8 +27,64 @@ public class PowerCubeEditor : Editor
     {
         PowerCube cube = (PowerCube)target;
         
-        // Draw default inspector
-        DrawDefaultInspector();
+        // Draw everything except Power Lines and PowerLine Prefabs sections
+        DrawPropertiesExcluding(serializedObject, "topFace", "bottomFace", "northFace", "eastFace", "southFace", "westFace", 
+            "horizontalPrefab", "verticalPrefab", "cornerLeftTopPrefab", "cornerTopRightPrefab", "cornerRightBottomPrefab", 
+            "cornerBottomLeftPrefab", "tSectionLeftPrefab", "tSectionTopPrefab", "tSectionRightPrefab", "tSectionBottomPrefab", "crossPrefab");
+        
+        // Power Lines section with reset button
+        EditorGUILayout.Space();
+        EditorGUILayout.LabelField("Power Lines", EditorStyles.boldLabel);
+        
+        if (GUILayout.Button("RESET ALL FACES"))
+        {
+            cube.topFace = PowerLineType.Empty;
+            cube.bottomFace = PowerLineType.Empty;
+            cube.northFace = PowerLineType.Empty;
+            cube.eastFace = PowerLineType.Empty;
+            cube.southFace = PowerLineType.Empty;
+            cube.westFace = PowerLineType.Empty;
+            EditorUtility.SetDirty(cube);
+        }
+        
+        EditorGUILayout.Space();
+        
+        // Draw Power Lines dropdowns
+        cube.topFace = (PowerLineType)EditorGUILayout.EnumPopup("Top Face", cube.topFace);
+        cube.bottomFace = (PowerLineType)EditorGUILayout.EnumPopup("Bottom Face", cube.bottomFace);
+        cube.northFace = (PowerLineType)EditorGUILayout.EnumPopup("North Face", cube.northFace);
+        cube.eastFace = (PowerLineType)EditorGUILayout.EnumPopup("East Face", cube.eastFace);
+        cube.southFace = (PowerLineType)EditorGUILayout.EnumPopup("South Face", cube.southFace);
+        cube.westFace = (PowerLineType)EditorGUILayout.EnumPopup("West Face", cube.westFace);
+        
+        // Power Line Prefabs section
+        EditorGUILayout.Space();
+        EditorGUILayout.LabelField("Power Line Prefabs", EditorStyles.boldLabel);
+        SerializedProperty horizontalPrefab = serializedObject.FindProperty("horizontalPrefab");
+        SerializedProperty verticalPrefab = serializedObject.FindProperty("verticalPrefab");
+        SerializedProperty cornerLeftTopPrefab = serializedObject.FindProperty("cornerLeftTopPrefab");
+        SerializedProperty cornerTopRightPrefab = serializedObject.FindProperty("cornerTopRightPrefab");
+        SerializedProperty cornerRightBottomPrefab = serializedObject.FindProperty("cornerRightBottomPrefab");
+        SerializedProperty cornerBottomLeftPrefab = serializedObject.FindProperty("cornerBottomLeftPrefab");
+        SerializedProperty tSectionLeftPrefab = serializedObject.FindProperty("tSectionLeftPrefab");
+        SerializedProperty tSectionTopPrefab = serializedObject.FindProperty("tSectionTopPrefab");
+        SerializedProperty tSectionRightPrefab = serializedObject.FindProperty("tSectionRightPrefab");
+        SerializedProperty tSectionBottomPrefab = serializedObject.FindProperty("tSectionBottomPrefab");
+        SerializedProperty crossPrefab = serializedObject.FindProperty("crossPrefab");
+        
+        EditorGUILayout.PropertyField(horizontalPrefab);
+        EditorGUILayout.PropertyField(verticalPrefab);
+        EditorGUILayout.PropertyField(cornerLeftTopPrefab);
+        EditorGUILayout.PropertyField(cornerTopRightPrefab);
+        EditorGUILayout.PropertyField(cornerRightBottomPrefab);
+        EditorGUILayout.PropertyField(cornerBottomLeftPrefab);
+        EditorGUILayout.PropertyField(tSectionLeftPrefab);
+        EditorGUILayout.PropertyField(tSectionTopPrefab);
+        EditorGUILayout.PropertyField(tSectionRightPrefab);
+        EditorGUILayout.PropertyField(tSectionBottomPrefab);
+        EditorGUILayout.PropertyField(crossPrefab);
+        
+        serializedObject.ApplyModifiedProperties();
         
         if (!initialized) return;
         
@@ -52,14 +108,24 @@ public class PowerCubeEditor : Editor
     
     private void UpdateFacePrefab(PowerCube cube, int faceIndex, PowerLineType newType, string faceName)
     {
-        // Find or create face transform
-        Transform faceTransform = cube.transform.Find(faceName);
+        // Find face transform under Visual PC first, then at root level
+        Transform visualParent = cube.transform.Find("Visual PC");
+        Transform faceTransform = null;
+        
+        if (visualParent != null)
+        {
+            faceTransform = visualParent.Find(faceName);
+        }
+        
         if (faceTransform == null)
         {
-            GameObject faceObject = new GameObject(faceName);
-            faceObject.transform.SetParent(cube.transform);
-            faceObject.transform.localPosition = Vector3.zero;
-            faceTransform = faceObject.transform;
+            faceTransform = cube.transform.Find(faceName);
+        }
+        
+        if (faceTransform == null)
+        {
+            Debug.LogWarning($"[PowerCube] Could not find face '{faceName}' in cube hierarchy");
+            return;
         }
         
         // Clear existing PowerLine children
@@ -68,8 +134,8 @@ public class PowerCubeEditor : Editor
             DestroyImmediate(faceTransform.GetChild(i).gameObject);
         }
         
-        // Instantiate new prefab if not None
-        if (newType != PowerLineType.None)
+        // Instantiate new prefab if not Empty
+        if (newType != PowerLineType.Empty)
         {
             GameObject prefab = GetPrefabForType(cube, newType);
             if (prefab != null)
@@ -78,8 +144,6 @@ public class PowerCubeEditor : Editor
                 instance.transform.SetParent(faceTransform);
                 instance.transform.localPosition = Vector3.zero;
                 instance.transform.localRotation = Quaternion.identity;
-                
-                Debug.Log($"[PowerCube] Updated {faceName} with {newType} prefab");
             }
             else
             {
@@ -94,8 +158,14 @@ public class PowerCubeEditor : Editor
         {
             case PowerLineType.Horizontal: return cube.horizontalPrefab;
             case PowerLineType.Vertical: return cube.verticalPrefab;
-            case PowerLineType.Corner: return cube.cornerPrefab;
-            case PowerLineType.TSection: return cube.tSectionPrefab;
+            case PowerLineType.CornerTopRight: return cube.cornerTopRightPrefab;
+            case PowerLineType.CornerRightBottom: return cube.cornerRightBottomPrefab;
+            case PowerLineType.CornerBottomLeft: return cube.cornerBottomLeftPrefab;
+            case PowerLineType.CornerLeftTop: return cube.cornerLeftTopPrefab;
+            case PowerLineType.TSectionTop: return cube.tSectionTopPrefab;
+            case PowerLineType.TSectionRight: return cube.tSectionRightPrefab;
+            case PowerLineType.TSectionBottom: return cube.tSectionBottomPrefab;
+            case PowerLineType.TSectionLeft: return cube.tSectionLeftPrefab;
             case PowerLineType.Cross: return cube.crossPrefab;
             default: return null;
         }
