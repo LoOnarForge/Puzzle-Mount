@@ -115,25 +115,6 @@ public class PowerCubeEditor : Editor
     
     private void UpdateFacePrefab(PowerCube cube, int faceIndex, PowerLineType newType, string faceName)
     {
-        // Check if separator was selected
-        if (newType == PowerLineType.Separator1 || newType == PowerLineType.Separator2 || newType == PowerLineType.Separator3)
-        {
-            Debug.LogError("WRONG FACE SELECTED !!!");
-            
-            // Reset to Empty
-            switch (faceIndex)
-            {
-                case 0: cube.topFace = PowerLineType.Empty; break;
-                case 1: cube.bottomFace = PowerLineType.Empty; break;
-                case 2: cube.northFace = PowerLineType.Empty; break;
-                case 3: cube.eastFace = PowerLineType.Empty; break;
-                case 4: cube.southFace = PowerLineType.Empty; break;
-                case 5: cube.westFace = PowerLineType.Empty; break;
-            }
-            EditorUtility.SetDirty(cube);
-            return;
-        }
-        
         // Find face transform under Visual PC first, then at root level
         Transform visualParent = cube.transform.Find("Visual PC");
         Transform faceTransform = null;
@@ -224,14 +205,11 @@ public class PowerCubeEditor : Editor
     
     private bool IsRotationNeeded(PowerLineType type)
     {
-        // Skip separators
-        if (type == PowerLineType.Separator1 || type == PowerLineType.Separator2 || type == PowerLineType.Separator3)
-            return false;
-            
         return type == PowerLineType.CornerLeftTop || type == PowerLineType.CornerTopRight ||
                type == PowerLineType.CornerRightBottom || type == PowerLineType.CornerBottomLeft ||
                type == PowerLineType.TSectionLeft || type == PowerLineType.TSectionTop ||
-               type == PowerLineType.TSectionRight || type == PowerLineType.TSectionBottom;
+               type == PowerLineType.TSectionRight || type == PowerLineType.TSectionBottom ||
+               type == PowerLineType.Horizontal || type == PowerLineType.Vertical;
     }
     
     private Quaternion GetTopFaceRotation(PowerLineType type)
@@ -252,80 +230,107 @@ public class PowerCubeEditor : Editor
     
     private Quaternion GetBottomFaceRotation(PowerLineType type)
     {
+        // Same rotations as top face since they are mirror images
         switch (type)
         {
-            case PowerLineType.CornerLeftTop: return Quaternion.Euler(180, 0, 0);
-            case PowerLineType.CornerTopRight: return Quaternion.Euler(180, 0, 90);
-            case PowerLineType.CornerRightBottom: return Quaternion.Euler(180, 180, 0);
-            case PowerLineType.CornerBottomLeft: return Quaternion.Euler(180, 0, 270);
-            case PowerLineType.TSectionLeft: return Quaternion.Euler(180, 0, 0);
-            case PowerLineType.TSectionTop: return Quaternion.Euler(180, 0, 90);
-            case PowerLineType.TSectionRight: return Quaternion.Euler(180, 180, 0);
-            case PowerLineType.TSectionBottom: return Quaternion.Euler(180, 0, 270);
+            case PowerLineType.CornerLeftTop: return Quaternion.identity; // 1st quarter
+            case PowerLineType.CornerTopRight: return Quaternion.Euler(0, 0, 270); // 2nd quarter
+            case PowerLineType.CornerRightBottom: return Quaternion.Euler(0, 0, 180); // 3rd quarter
+            case PowerLineType.CornerBottomLeft: return Quaternion.Euler(0, 0, 90); // 4th quarter
+            case PowerLineType.TSectionLeft: return Quaternion.identity;
+            case PowerLineType.TSectionTop: return Quaternion.Euler(0, 0, 270);
+            case PowerLineType.TSectionRight: return Quaternion.Euler(0, 0, 180);
+            case PowerLineType.TSectionBottom: return Quaternion.Euler(0, 0, 90);
             default: return Quaternion.identity;
         }
     }
     
     private Quaternion GetNorthFaceRotation(PowerLineType type)
     {
+        // North face: 180° correction, different patterns for corners vs T-sections
+        Quaternion correction = Quaternion.Euler(0, 0, 180);
+        
         switch (type)
         {
-            case PowerLineType.CornerLeftTop: return Quaternion.Euler(90, 0, 0);
-            case PowerLineType.CornerTopRight: return Quaternion.Euler(90, 90, 0);
-            case PowerLineType.CornerRightBottom: return Quaternion.Euler(90, 180, 0);
-            case PowerLineType.CornerBottomLeft: return Quaternion.Euler(90, 270, 0);
-            case PowerLineType.TSectionLeft: return Quaternion.Euler(90, 0, 0);
-            case PowerLineType.TSectionTop: return Quaternion.Euler(90, 90, 0);
-            case PowerLineType.TSectionRight: return Quaternion.Euler(90, 180, 0);
-            case PowerLineType.TSectionBottom: return Quaternion.Euler(90, 270, 0);
+            case PowerLineType.CornerLeftTop: return correction * Quaternion.identity; // 1st quarter (correct)
+            case PowerLineType.CornerTopRight: return correction * Quaternion.Euler(0, 0, 90); // 2nd quarter (correct)
+            case PowerLineType.CornerRightBottom: return correction * Quaternion.Euler(0, 0, 180); // 3rd quarter (correct)
+            case PowerLineType.CornerBottomLeft: return correction * Quaternion.Euler(0, 0, 270); // 4th quarter (correct)
+            // T-sections: direct rotations based on memorized pattern
+            case PowerLineType.TSectionLeft: return Quaternion.Euler(0, 0, 270);   // N=270°
+            case PowerLineType.TSectionTop: return Quaternion.Euler(0, 0, 0);      // N=0°
+            case PowerLineType.TSectionRight: return Quaternion.Euler(0, 0, 90);   // N=90°
+            case PowerLineType.TSectionBottom: return Quaternion.Euler(0, 0, 180); // N=180°
+            case PowerLineType.Horizontal: return Quaternion.Euler(0, 0, 90);  // N=90°
+            case PowerLineType.Vertical: return Quaternion.Euler(0, 0, 90);  // Rotate by 90°
             default: return Quaternion.identity;
         }
     }
     
     private Quaternion GetEastFaceRotation(PowerLineType type)
     {
+        // East face: Plane rotation + correction for corners, direct rotations for T-sections
+        Quaternion planeRotation = Quaternion.Euler(0, 0, 90);
+        Quaternion correction = Quaternion.Euler(0, 0, 180);
+        
         switch (type)
         {
-            case PowerLineType.CornerLeftTop: return Quaternion.Euler(0, 0, 90);
-            case PowerLineType.CornerTopRight: return Quaternion.Euler(90, 0, 90);
-            case PowerLineType.CornerRightBottom: return Quaternion.Euler(180, 0, 90);
-            case PowerLineType.CornerBottomLeft: return Quaternion.Euler(270, 0, 90);
-            case PowerLineType.TSectionLeft: return Quaternion.Euler(0, 0, 90);
-            case PowerLineType.TSectionTop: return Quaternion.Euler(90, 0, 90);
-            case PowerLineType.TSectionRight: return Quaternion.Euler(180, 0, 90);
-            case PowerLineType.TSectionBottom: return Quaternion.Euler(270, 0, 90);
+            case PowerLineType.CornerLeftTop: return planeRotation * correction * Quaternion.identity; // 1st quarter (correct)
+            case PowerLineType.CornerTopRight: return planeRotation * correction * Quaternion.Euler(0, 0, 90); // 2nd quarter (correct)
+            case PowerLineType.CornerRightBottom: return planeRotation * correction * Quaternion.Euler(0, 0, 180); // 3rd quarter (correct) 
+            case PowerLineType.CornerBottomLeft: return planeRotation * correction * Quaternion.Euler(0, 0, 270); // 4th quarter (correct)
+            // T-sections: direct rotations based on memorized pattern
+            case PowerLineType.TSectionLeft: return Quaternion.Euler(0, 0, 0);     // E=0°
+            case PowerLineType.TSectionTop: return Quaternion.Euler(0, 0, 90);     // E=90°
+            case PowerLineType.TSectionRight: return Quaternion.Euler(0, 0, 180);  // E=180°
+            case PowerLineType.TSectionBottom: return Quaternion.Euler(0, 0, 270); // E=270°
+            case PowerLineType.Horizontal: return Quaternion.identity;
+            case PowerLineType.Vertical: return Quaternion.identity;
             default: return Quaternion.identity;
         }
     }
     
     private Quaternion GetSouthFaceRotation(PowerLineType type)
     {
+        // South face: 270° correction for corners, direct rotations for T-sections
+        Quaternion correction = Quaternion.Euler(0, 0, 270);
+        
         switch (type)
         {
-            case PowerLineType.CornerLeftTop: return Quaternion.Euler(270, 0, 0);
-            case PowerLineType.CornerTopRight: return Quaternion.Euler(270, 90, 0);
-            case PowerLineType.CornerRightBottom: return Quaternion.Euler(270, 180, 0);
-            case PowerLineType.CornerBottomLeft: return Quaternion.Euler(270, 270, 0);
-            case PowerLineType.TSectionLeft: return Quaternion.Euler(270, 0, 0);
-            case PowerLineType.TSectionTop: return Quaternion.Euler(270, 90, 0);
-            case PowerLineType.TSectionRight: return Quaternion.Euler(270, 180, 0);
-            case PowerLineType.TSectionBottom: return Quaternion.Euler(270, 270, 0);
+            case PowerLineType.CornerLeftTop: return correction * Quaternion.identity; // 1st quarter
+            case PowerLineType.CornerTopRight: return correction * Quaternion.Euler(0, 0, 270); // 2nd quarter
+            case PowerLineType.CornerRightBottom: return correction * Quaternion.Euler(0, 0, 180); // 3rd quarter
+            case PowerLineType.CornerBottomLeft: return correction * Quaternion.Euler(0, 0, 90); // 4th quarter
+            // T-sections: direct rotations based on memorized pattern
+            case PowerLineType.TSectionLeft: return Quaternion.Euler(0, 0, 270);   // S=270°
+            case PowerLineType.TSectionTop: return Quaternion.Euler(0, 0, 180);    // S=180°
+            case PowerLineType.TSectionRight: return Quaternion.Euler(0, 0, 90);   // S=90°
+            case PowerLineType.TSectionBottom: return Quaternion.Euler(0, 0, 0);   // S=0°
+            case PowerLineType.Horizontal: return Quaternion.Euler(0, 0, 90);  // S=90°
+            case PowerLineType.Vertical: return Quaternion.Euler(0, 0, 90);  // Try 90° for vertical
             default: return Quaternion.identity;
         }
     }
     
     private Quaternion GetWestFaceRotation(PowerLineType type)
     {
+        // West face: Plane rotation + correction for corners, direct rotations for T-sections
+        Quaternion planeRotation = Quaternion.Euler(0, 0, 90);
+        Quaternion correction = Quaternion.Euler(0, 0, 180);
+        
         switch (type)
         {
-            case PowerLineType.CornerLeftTop: return Quaternion.Euler(0, 0, 270);
-            case PowerLineType.CornerTopRight: return Quaternion.Euler(90, 0, 270);
-            case PowerLineType.CornerRightBottom: return Quaternion.Euler(180, 0, 270);
-            case PowerLineType.CornerBottomLeft: return Quaternion.Euler(270, 0, 270);
-            case PowerLineType.TSectionLeft: return Quaternion.Euler(0, 0, 270);
-            case PowerLineType.TSectionTop: return Quaternion.Euler(90, 0, 270);
-            case PowerLineType.TSectionRight: return Quaternion.Euler(180, 0, 270);
-            case PowerLineType.TSectionBottom: return Quaternion.Euler(270, 0, 270);
+            case PowerLineType.CornerLeftTop: return planeRotation * correction * Quaternion.identity; // 1st quarter (correct)
+            case PowerLineType.CornerTopRight: return planeRotation * correction * Quaternion.Euler(0, 0, 90); // 2nd quarter (correct)
+            case PowerLineType.CornerRightBottom: return planeRotation * correction * Quaternion.Euler(0, 0, 180); // 3rd quarter (correct)
+            case PowerLineType.CornerBottomLeft: return planeRotation * correction * Quaternion.Euler(0, 0, 270); // 4th quarter (correct)
+            // T-sections: direct rotations based on memorized pattern (same as East)
+            case PowerLineType.TSectionLeft: return Quaternion.Euler(0, 0, 0);     // W=0°
+            case PowerLineType.TSectionTop: return Quaternion.Euler(0, 0, 90);     // W=90°
+            case PowerLineType.TSectionRight: return Quaternion.Euler(0, 0, 180);  // W=180°
+            case PowerLineType.TSectionBottom: return Quaternion.Euler(0, 0, 270); // W=270°
+            case PowerLineType.Horizontal: return Quaternion.identity;
+            case PowerLineType.Vertical: return Quaternion.identity;
             default: return Quaternion.identity;
         }
     }

@@ -54,7 +54,7 @@ public class CubeManager : MonoBehaviour
         {
             Instance = this;
             DontDestroyOnLoad(gameObject);
-            // Debug.Log($"[CubeManager] Singleton instance set to: {gameObject.name}");
+            Debug.Log($"[CubeManager] Singleton instance set to: {gameObject.name}");
         }
         else
         {
@@ -97,7 +97,7 @@ public class CubeManager : MonoBehaviour
                 originalMaterials[cube] = cubeRenderer.material;
             }
             
-            // Debug.Log($"[CubeManager] Registered cube: {cube.name}");
+            Debug.Log($"[CubeManager] Registered cube: {cube.name}");
             InvalidateStackCache();
             UpdateDebugInfo();
         }
@@ -131,7 +131,7 @@ public class CubeManager : MonoBehaviour
         
         InvalidateStackCache();
         UpdateDebugInfo();
-        // Debug.Log($"[CubeManager] Refreshed - Found {allCubes.Count} cubes in scene");
+        Debug.Log($"[CubeManager] Refreshed - Found {allCubes.Count} cubes in scene");
         
         // Only test stack detection if verbose logging is enabled and we're testing
         if (verboseLogging && forceRefreshCubes)

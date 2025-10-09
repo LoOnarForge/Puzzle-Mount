@@ -69,7 +69,7 @@ public class PowerCube : MonoBehaviour
     public bool isMoving = false;
     
     // PowerLine connection tracking
-    private bool[] faceConnections = new bool[6]; // Top, Bottom, North, East, South, West    
+    private bool[] faceConnections = new bool[6]; // Top, Bottom, North, East, South, West
     private PowerLineState[] faceStates = new PowerLineState[6];
     
     private void Awake()
