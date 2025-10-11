@@ -43,32 +43,8 @@ public class TimCubeInteraction : MonoBehaviour
         characterMovement = GetComponent<CharacterMovement>();
     }
     
-    private int detectionCallCount = 0;
-    private int lastFrameCount = -1;
-
-    private Vector3 lastLoggedPosition;
-    
     private void Update()
     {
-        // Track position changes
-        Vector3 currentPos = timTransform.position;
-        if (currentPos != lastLoggedPosition)
-        {
-            Debug.Log($"F{Time.frameCount}: Tim position changed to Y={currentPos.y:F6}");
-            lastLoggedPosition = currentPos;
-        }
-        
-        // Reset counter each new frame
-        if (Time.frameCount != lastFrameCount)
-        {
-            if (detectionCallCount > 1)
-            {
-                Debug.Log($"FRAME {lastFrameCount}: CheckCubeDetection called {detectionCallCount} times!");
-            }
-            detectionCallCount = 0;
-            lastFrameCount = Time.frameCount;
-        }
-        
         // Reset push state at start of frame
         isPushingThisFrame = false;
         
@@ -162,14 +138,9 @@ public class TimCubeInteraction : MonoBehaviour
     /// </summary>
     private void CheckCubeDetection()
     {
-        // CACHE the position once at the start of the method
-        Vector3 cachedTimPosition = timTransform.position;
-        
-        Debug.Log($"F{Time.frameCount}: timTransform.name = {timTransform.name}, Y = {cachedTimPosition.y:F6}");
-        
         // Cast ray at Tim's interaction level to detect cubes he's facing
         float detectionHeight = 0.8f;
-        Vector3 rayStart = cachedTimPosition + Vector3.up * detectionHeight;
+        Vector3 rayStart = timTransform.position + Vector3.up * detectionHeight;
         Vector3 forward = timTransform.forward;
         
         RaycastHit hit;
@@ -295,8 +266,8 @@ public class TimCubeInteraction : MonoBehaviour
                             // Invalidate stack cache when cube moves
                             CubeManager.Instance?.InvalidateStackCache();
                             
-                            // Start continuous push delay for next push
-                            StartNewPushEngagement(cube, pushDirection);
+                            // Start continuous push delay for next push (don't reset engagement)
+                            StartContinuousPushDelay();
                         }
                     }
                 }
@@ -495,6 +466,16 @@ public class TimCubeInteraction : MonoBehaviour
         pushDelayTimer = 0f;
         isDelayActive = true;
         isFirstPush = true;
+    }
+    
+    /// <summary>
+    /// Start continuous push delay after a successful push (keeps same engagement)
+    /// </summary>
+    public void StartContinuousPushDelay()
+    {
+        pushDelayTimer = 0f;
+        isDelayActive = true;
+        isFirstPush = false; // Now it's a continuous push
     }
     
     /// <summary>
