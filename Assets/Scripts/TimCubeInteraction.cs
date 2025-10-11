@@ -1,6 +1,12 @@
 using UnityEngine;
 using UnityEngine.InputSystem;
 
+public enum RotationAxis
+{
+    Horizontal, // Y-axis rotation
+    Vertical    // X-axis rotation
+}
+
 /// <summary>
 /// Handles all of Tim's interactions with cubes: selection, pushing, rotation
 /// Separated from CharacterMovement to maintain clean architecture
@@ -9,12 +15,14 @@ public class TimCubeInteraction : MonoBehaviour
 {
     [Header("Detection Settings")]
     public float detectionTolerance = 0.6f;
+    public float pushRange = 1.5f;
     
     [Header("Push Delay Settings")]
     public float initialPushDelay = 0.35f;
     public float continuousPushDelay = 0.1f;
 
     private Transform timTransform;
+    private CharacterMovement characterMovement;
     
     // Push delay tracking
     private PowerCube currentTargetCube;
@@ -22,10 +30,64 @@ public class TimCubeInteraction : MonoBehaviour
     private float pushDelayTimer;
     private bool isDelayActive;
     private bool isFirstPush = true;
+    private bool isPushingThisFrame;
+    
+    // Rotation tracking
+    private bool isRotating = false;
+    
+  
     
     private void Awake()
     {
         timTransform = transform;
+        characterMovement = GetComponent<CharacterMovement>();
+    }
+    
+    private int detectionCallCount = 0;
+    private int lastFrameCount = -1;
+
+    private Vector3 lastLoggedPosition;
+    
+    private void Update()
+    {
+        // Track position changes
+        Vector3 currentPos = timTransform.position;
+        if (currentPos != lastLoggedPosition)
+        {
+            Debug.Log($"F{Time.frameCount}: Tim position changed to Y={currentPos.y:F6}");
+            lastLoggedPosition = currentPos;
+        }
+        
+        // Reset counter each new frame
+        if (Time.frameCount != lastFrameCount)
+        {
+            if (detectionCallCount > 1)
+            {
+                Debug.Log($"FRAME {lastFrameCount}: CheckCubeDetection called {detectionCallCount} times!");
+            }
+            detectionCallCount = 0;
+            lastFrameCount = Time.frameCount;
+        }
+        
+        // Reset push state at start of frame
+        isPushingThisFrame = false;
+        
+        // Only check for cubes when grounded
+        if (characterMovement.IsGrounded) 
+        {
+            CheckCubeDetection();
+            CheckCubePushing();
+        }
+        
+        HandleCubeSelection();
+        HandleCubeRotation();
+        UpdatePushDelay();
+        
+        // Check for push engagement reset at end of frame
+        if (!isPushingThisFrame && (currentTargetCube != null))
+        {
+            ResetPushEngagement();
+        }
     }
 
     /// <summary>
@@ -92,6 +154,327 @@ public class TimCubeInteraction : MonoBehaviour
         }
         
         return isAlignedToFace;
+    }
+    
+    /// <summary>
+    /// Check for nearby cubes for highlighting and selection (runs every frame)
+    /// Based on distance and facing direction, not movement
+    /// </summary>
+    private void CheckCubeDetection()
+    {
+        // CACHE the position once at the start of the method
+        Vector3 cachedTimPosition = timTransform.position;
+        
+        Debug.Log($"F{Time.frameCount}: timTransform.name = {timTransform.name}, Y = {cachedTimPosition.y:F6}");
+        
+        // Cast ray at Tim's interaction level to detect cubes he's facing
+        float detectionHeight = 0.8f;
+        Vector3 rayStart = cachedTimPosition + Vector3.up * detectionHeight;
+        Vector3 forward = timTransform.forward;
+        
+        RaycastHit hit;
+        Debug.DrawRay(rayStart, forward * pushRange, Color.yellow, Time.deltaTime);
+        
+        if (Physics.Raycast(rayStart, forward, out hit, pushRange))
+        {
+            PowerCube cube = hit.collider.GetComponent<PowerCube>();
+            if (cube != null)
+            {
+                // Check if Tim is reasonably aligned (more lenient since this is for highlighting)
+                if (IsReasonablyAlignedForDetection(cube.transform))
+                {
+                    // Highlight the cube at Tim's level
+                    if (CubeManager.Instance != null)
+                    {
+                        CubeManager.Instance.SetTargetedCubeAtTimLevel(cube, timTransform.position);
+                    }
+                }
+                else
+                {
+                    // Not aligned, clear selection
+                    if (CubeManager.Instance != null)
+                    {
+                        CubeManager.Instance.SetTargetedCube(null);
+                    }
+                }
+            }
+            else
+            {
+                // Hit something but not a cube, clear selection
+                if (CubeManager.Instance != null)
+                {
+                    CubeManager.Instance.SetTargetedCube(null);
+                }
+            }
+        }
+        else
+        {
+            // No raycast hit, clear selection
+            if (CubeManager.Instance != null)
+            {
+                CubeManager.Instance.SetTargetedCube(null);
+            }
+        }
+    }
+    
+    /// <summary>
+    /// Check if Tim is trying to push a cube and attempt to push it
+    /// Only pushes when Tim is properly aligned and has movement input
+    /// </summary>
+    private void CheckCubePushing()
+    {
+        // Only check for pushing if Tim has movement input
+        Vector3 moveDirection = characterMovement.GetMovementDirectionExternal();
+        if (moveDirection.magnitude < 0.1f)
+        {
+            return; // No movement input - don't check for pushing
+        }
+        
+        // Get currently targeted cube (from detection)
+        PowerCube targetedCube = null;
+        if (CubeManager.Instance != null)
+        {
+            targetedCube = CubeManager.Instance.GetTargetedCube();
+        }
+        
+        if (targetedCube == null)
+        {
+            return; // No cube is currently targeted
+        }
+        
+        // Cast ray in movement direction to verify Tim is pushing toward the cube
+        Vector3 rayDirection = moveDirection.normalized;
+        float detectionHeight = 0.8f;
+        Vector3 rayStart = timTransform.position + Vector3.up * detectionHeight;
+        
+        RaycastHit hit;
+        
+        // DEBUG: Show push raycast in red to distinguish from detection
+        Debug.DrawRay(rayStart, rayDirection * pushRange, Color.red);
+        
+        if (Physics.Raycast(rayStart, rayDirection, out hit, pushRange))
+        {
+            PowerCube cube = hit.collider.GetComponent<PowerCube>();
+            if (cube == targetedCube)
+            {
+                // Check if Tim is properly aligned to push this cube (strict alignment for pushing)
+                if (IsProperlyAlignedToPush(cube.transform, rayDirection))
+                {
+                    // Get stack from Tim's level upward for pushing
+                    PowerCube[] stackFromTimLevel = new PowerCube[0];
+                    if (CubeManager.Instance != null)
+                    {
+                        stackFromTimLevel = CubeManager.Instance.GetStackFromTimLevel(timTransform.position);
+                    }
+                    
+                    // Check if this level-based stack can be pushed (3 cubes or fewer)
+                    bool canPushStack = stackFromTimLevel.Length <= 3;
+                    if (!canPushStack)
+                    {
+                        return; // Don't set isPushingThisFrame - this prevents delay timer
+                    }
+                    
+                    // Tim is actively trying to push this cube
+                    isPushingThisFrame = true;
+                    
+                    // Calculate push direction from relative position
+                    Vector3 pushDirection = cube.GetRelativePushDirection(timTransform);
+                    
+                    // Check if this is a new push engagement or direction change
+                    if (HasPushEngagementChanged(cube, pushDirection))
+                    {
+                        StartNewPushEngagement(cube, pushDirection);
+                    }
+                    
+                    // Only push if delay has elapsed (or no delay needed for continued pushing)
+                    if (!isDelayActive)
+                    {
+                        bool pushSuccess = cube.TryPush(pushDirection);
+                        if (pushSuccess)
+                        {
+                            // Invalidate stack cache when cube moves
+                            CubeManager.Instance?.InvalidateStackCache();
+                            
+                            // Start continuous push delay for next push
+                            StartNewPushEngagement(cube, pushDirection);
+                        }
+                    }
+                }
+            }
+        }
+    }
+    
+    /// <summary>
+    /// Handle cube selection cycling with Tab key
+    /// </summary>
+    private void HandleCubeSelection()
+    {
+        // Use new Input System's Keyboard class as fallback if Tab action isn't available
+        if (UnityEngine.InputSystem.Keyboard.current?.tabKey.wasPressedThisFrame == true)
+        {
+            if (!characterMovement.IsGrounded) return; // Disable selection while jumping/falling
+            
+            if (CubeManager.Instance != null)
+            {
+                CubeManager.Instance.CycleSelection();
+            }
+        }
+        // Tab action is handled by HandleTabPressed callback if available
+    }
+    
+    /// <summary>
+    /// Handle cube rotation with Q/E keys
+    /// </summary>
+    private void HandleCubeRotation()
+    {
+        if (isRotating) return; // Prevent input during rotation
+        
+        // Use new Input System's Keyboard class as fallback if rotation actions aren't available
+        if (UnityEngine.InputSystem.Keyboard.current?.qKey.wasPressedThisFrame == true)
+        {
+            // Q rotates horizontally clockwise (around Y axis, positive direction)
+            RotateSelectedCube(90f, RotationAxis.Horizontal);
+        }
+        else if (UnityEngine.InputSystem.Keyboard.current?.eKey.wasPressedThisFrame == true)
+        {
+            // E rotates vertically (around X axis, positive direction)
+            RotateSelectedCube(90f, RotationAxis.Vertical);
+        }
+        // Rotation actions are handled by HandleRotateLeft/HandleRotateRight callbacks if available
+    }
+    
+    /// <summary>
+    /// Called from CharacterMovement when Tab key is pressed
+    /// </summary>
+    public void HandleTabPressed()
+    {
+        if (!characterMovement.IsGrounded) return; // Disable selection while jumping/falling
+        
+        if (CubeManager.Instance != null)
+        {
+            CubeManager.Instance.CycleSelection();
+        }
+    }
+    
+    /// <summary>
+    /// Called from CharacterMovement when Q key is pressed (rotate horizontally clockwise)
+    /// </summary>
+    public void HandleRotateLeft()
+    {
+        if (isRotating) return; // Prevent input during rotation
+        
+        // Q rotates horizontally clockwise (around Y axis, positive direction)
+        RotateSelectedCube(90f, RotationAxis.Horizontal);
+    }
+    
+    /// <summary>
+    /// Called from CharacterMovement when E key is pressed (rotate vertically)
+    /// </summary>
+    public void HandleRotateRight()
+    {
+        if (isRotating) return; // Prevent input during rotation
+        
+        // E rotates vertically (around X axis, positive direction)
+        RotateSelectedCube(90f, RotationAxis.Vertical);
+    }
+    
+    /// <summary>
+    /// Rotate the currently selected cube around specified axis with smooth animation
+    /// </summary>
+    private void RotateSelectedCube(float degrees, RotationAxis axis)
+    {
+        if (isRotating) return; // Prevent overlapping rotations
+        
+        if (CubeManager.Instance != null)
+        {
+            PowerCube selectedCube = CubeManager.Instance.GetSelectedCube();
+            if (selectedCube != null)
+            {
+                // Prevent rotation while cube is being pushed/moving
+                if (selectedCube.isMoving)
+                {
+                    return;
+                }
+                
+                StartCoroutine(SmoothRotateCube(selectedCube, degrees, axis));
+            }
+        }
+    }
+    
+    /// <summary>
+    /// Smoothly rotate a cube by the specified degrees around specified axis
+    /// </summary>
+    private System.Collections.IEnumerator SmoothRotateCube(PowerCube cube, float degrees, RotationAxis axis)
+    {
+        if (cube == null) yield break;
+        
+        isRotating = true; // Block further rotation input
+        
+        // Use visual parent for rotation instead of main transform
+        Transform visualTransform = cube.visualParent;
+        if (visualTransform == null)
+        {
+            Debug.LogWarning($"[TimCubeInteraction] Cube {cube.name} has no visual parent for rotation");
+            isRotating = false;
+            yield break;
+        }
+        
+        Quaternion startRotation = visualTransform.rotation;
+        
+        // Calculate target rotation using WORLD axes (not local)
+        Quaternion deltaRotation;
+        if (axis == RotationAxis.Horizontal)
+        {
+            // Always rotate around world Y-axis (up), regardless of cube's current orientation
+            deltaRotation = Quaternion.AngleAxis(degrees, Vector3.up);
+        }
+        else // Vertical
+        {
+            // Always rotate around world X-axis (right), regardless of cube's current orientation
+            deltaRotation = Quaternion.AngleAxis(degrees, Vector3.right);
+        }
+        
+        Quaternion targetRotation = deltaRotation * startRotation;
+        
+        // Ensure target rotation has exact 90° increments
+        Vector3 targetEuler = targetRotation.eulerAngles;
+        targetEuler.x = Mathf.Round(targetEuler.x / 90f) * 90f;
+        targetEuler.y = Mathf.Round(targetEuler.y / 90f) * 90f;
+        targetEuler.z = Mathf.Round(targetEuler.z / 90f) * 90f;
+        targetRotation = Quaternion.Euler(targetEuler);
+        
+        float rotationDuration = 0.3f; // Fast but visible rotation
+        float elapsedTime = 0f;
+        
+        // Add visual feedback - scale pulse to show rotation direction and axis
+        Vector3 originalScale = visualTransform.localScale;
+        float pulseAmount = 1.1f; // Consistent pulse for all rotations
+        
+        while (elapsedTime < rotationDuration)
+        {
+            elapsedTime += Time.deltaTime;
+            float progress = elapsedTime / rotationDuration;
+            
+            // Smooth rotation using ease-in-out curve
+            float easedProgress = Mathf.SmoothStep(0f, 1f, progress);
+            visualTransform.rotation = Quaternion.Slerp(startRotation, targetRotation, easedProgress);
+            
+            // Pulse scale for visual feedback (only at start)
+            if (progress < 0.3f)
+            {
+                float scaleProgress = progress / 0.3f;
+                float currentPulse = Mathf.Lerp(pulseAmount, 1f, scaleProgress);
+                visualTransform.localScale = originalScale * currentPulse;
+            }
+            
+            yield return null;
+        }
+        
+        // Ensure exact final rotation and scale
+        visualTransform.rotation = targetRotation;
+        visualTransform.localScale = originalScale;
+        
+        isRotating = false; // Allow new rotation input
     }
     
     /// <summary>
