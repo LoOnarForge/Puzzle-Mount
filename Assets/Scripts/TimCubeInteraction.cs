@@ -9,8 +9,19 @@ public class TimCubeInteraction : MonoBehaviour
 {
     [Header("Detection Settings")]
     public float detectionTolerance = 0.6f;
+    
+    [Header("Push Delay Settings")]
+    public float initialPushDelay = 0.35f;
+    public float continuousPushDelay = 0.1f;
 
     private Transform timTransform;
+    
+    // Push delay tracking
+    private PowerCube currentTargetCube;
+    private Vector3 currentPushDirection;
+    private float pushDelayTimer;
+    private bool isDelayActive;
+    private bool isFirstPush = true;
     
     private void Awake()
     {
@@ -82,4 +93,61 @@ public class TimCubeInteraction : MonoBehaviour
         
         return isAlignedToFace;
     }
+    
+    /// <summary>
+    /// Check if push engagement has changed (different cube or different side)
+    /// </summary>
+    public bool HasPushEngagementChanged(PowerCube cube, Vector3 pushDirection)
+    {
+        return currentTargetCube != cube || currentPushDirection != pushDirection;
+    }
+    
+    /// <summary>
+    /// Start engagement with a new cube or from a new direction
+    /// </summary>
+    public void StartNewPushEngagement(PowerCube cube, Vector3 pushDirection)
+    {
+        currentTargetCube = cube;
+        currentPushDirection = pushDirection;
+        pushDelayTimer = 0f;
+        isDelayActive = true;
+        isFirstPush = true;
+    }
+    
+    /// <summary>
+    /// Reset push engagement when Tim stops actively pushing
+    /// </summary>
+    public void ResetPushEngagement()
+    {
+        currentTargetCube = null;
+        currentPushDirection = Vector3.zero;
+        pushDelayTimer = 0f;
+        isDelayActive = false;
+        isFirstPush = true;
+    }
+    
+    /// <summary>
+    /// Update the push delay timer
+    /// </summary>
+    public void UpdatePushDelay()
+    {
+        if (isDelayActive)
+        {
+            pushDelayTimer += Time.deltaTime;
+            
+            float requiredDelay = isFirstPush ? initialPushDelay : continuousPushDelay;
+            
+            if (pushDelayTimer >= requiredDelay)
+            {
+                isDelayActive = false; // Delay completed - pushing can begin
+            }
+        }
+    }
+    
+    // Public getters for CharacterMovement to access push state
+    public PowerCube CurrentTargetCube => currentTargetCube;
+    public Vector3 CurrentPushDirection => currentPushDirection;
+    public float PushDelayTimer => pushDelayTimer;
+    public bool IsDelayActive => isDelayActive;
+    public bool IsFirstPush => isFirstPush;
 }

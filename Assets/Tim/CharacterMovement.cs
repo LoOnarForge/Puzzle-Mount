@@ -30,25 +30,16 @@ public class CharacterMovement : MonoBehaviour
     public float pushRange = 1.5f;
     
     [Header("Push Delay Settings")]
-    public float initialPushDelay = 0.35f;
-    public float continuousPushDelay = 0.1f;
-    
-    [Header("Debug - Push Detection State")]
     [SerializeField] private bool isDelayActiveDebug;
     [SerializeField] private PowerCube currentTargetCubeDebug;
     [SerializeField] private Vector3 currentPushDirectionDebug;
     [SerializeField] private float pushDelayTimerDebug;
     
-    // Push delay tracking
-    private PowerCube currentTargetCube;
-    private Vector3 currentPushDirection;
-    private float pushDelayTimer;
-    private bool isDelayActive;
-    private bool isPushingThisFrame;
-    private bool isFirstPush = true;
-    
     // Hidden physics settings
     private float gravity = -20f;
+    
+    // Push state tracking
+    private bool isPushingThisFrame;
     
     private CharacterController controller;
     private PlayerInput playerInput;
@@ -164,11 +155,11 @@ public class CharacterMovement : MonoBehaviour
     
     private void Update()
     {
-        // Sync debug variables with actual state
-        isDelayActiveDebug = isDelayActive;
-        currentTargetCubeDebug = currentTargetCube;
-        currentPushDirectionDebug = currentPushDirection;
-        pushDelayTimerDebug = pushDelayTimer;
+        // Sync debug variables with actual state from TimCubeInteraction
+        isDelayActiveDebug = cubeInteraction.IsDelayActive;
+        currentTargetCubeDebug = cubeInteraction.CurrentTargetCube;
+        currentPushDirectionDebug = cubeInteraction.CurrentPushDirection;
+        pushDelayTimerDebug = cubeInteraction.PushDelayTimer;
         
         // Reset push state at start of frame
         isPushingThisFrame = false;
@@ -182,12 +173,12 @@ public class CharacterMovement : MonoBehaviour
         HandleCubeRotation(); // Check for Q/E key input
         ApplyGravity();
         UpdateAnimations();
-        UpdatePushDelay();
+        cubeInteraction.UpdatePushDelay();
         
         // Check for push engagement reset at end of frame
-        if (!isPushingThisFrame && (currentTargetCube != null))
+        if (!isPushingThisFrame && (cubeInteraction.CurrentTargetCube != null))
         {
-            ResetPushEngagement();
+            cubeInteraction.ResetPushEngagement();
         }
     }
     
@@ -475,13 +466,13 @@ public class CharacterMovement : MonoBehaviour
                     Vector3 pushDirection = cube.GetRelativePushDirection(transform);
                     
                     // Check if this is a new push engagement or direction change
-                    if (HasPushEngagementChanged(cube, pushDirection))
+                    if (cubeInteraction.HasPushEngagementChanged(cube, pushDirection))
                     {
-                        StartNewPushEngagement(cube, pushDirection);
+                        cubeInteraction.StartNewPushEngagement(cube, pushDirection);
                     }
                     
                     // Only push if delay has elapsed (or no delay needed for continued pushing)
-                    if (!isDelayActive)
+                    if (!cubeInteraction.IsDelayActive)
                     {
                         bool pushSuccess = cube.TryPush(pushDirection);
                         if (pushSuccess)
@@ -490,50 +481,12 @@ public class CharacterMovement : MonoBehaviour
                             CubeManager.Instance?.InvalidateStackCache();
                             
                             // Start continuous push delay for next push
-                            pushDelayTimer = 0f;
-                            isDelayActive = true;
-                            isFirstPush = false;
+                            cubeInteraction.StartNewPushEngagement(cube, pushDirection);
                         }
-                    }
-                    else
-                    {
-                        float requiredDelay = isFirstPush ? initialPushDelay : continuousPushDelay;
                     }
                 }
             }
         }
-    }
-    
-    /// <summary>
-    /// Check if push engagement has changed (different cube or different side)
-    /// </summary>
-    private bool HasPushEngagementChanged(PowerCube cube, Vector3 pushDirection)
-    {
-        return currentTargetCube != cube || currentPushDirection != pushDirection;
-    }
-    
-    /// <summary>
-    /// Start engagement with a new cube or from a new direction
-    /// </summary>
-    private void StartNewPushEngagement(PowerCube cube, Vector3 pushDirection)
-    {
-        currentTargetCube = cube;
-        currentPushDirection = pushDirection;
-        pushDelayTimer = 0f;
-        isDelayActive = true;
-        isFirstPush = true;
-    }
-    
-    /// <summary>
-    /// Reset push engagement when Tim stops actively pushing
-    /// </summary>
-    private void ResetPushEngagement()
-    {
-        currentTargetCube = null;
-        currentPushDirection = Vector3.zero;
-        pushDelayTimer = 0f;
-        isDelayActive = false;
-        isFirstPush = true;
     }
     
     /// <summary>
@@ -714,24 +667,6 @@ public class CharacterMovement : MonoBehaviour
         if (CubeManager.Instance != null)
         {
             CubeManager.Instance.CycleSelection();
-        }
-    }
-    
-    /// <summary>
-    /// Update the push delay timer
-    /// </summary>
-    private void UpdatePushDelay()
-    {
-        if (isDelayActive)
-        {
-            pushDelayTimer += Time.deltaTime;
-            
-            float requiredDelay = isFirstPush ? initialPushDelay : continuousPushDelay;
-            
-            if (pushDelayTimer >= requiredDelay)
-            {
-                isDelayActive = false; // Delay completed - pushing can begin
-            }
         }
     }
     
