@@ -71,7 +71,6 @@ public class CameraFollow : MonoBehaviour
         if (player != null)
         {
             target = player.transform;
-            Debug.Log("CameraFollow: Automatically found player target.");
         }
     }
     

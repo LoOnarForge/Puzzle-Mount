@@ -186,7 +186,6 @@ public class CharacterMovement : MonoBehaviour
         // Check for push engagement reset at end of frame
         if (!isPushingThisFrame && (currentTargetCube != null))
         {
-            Debug.Log($"[PUSH] Reset engagement - was targeting: {currentTargetCube.name}");
             ResetPushEngagement();
         }
     }
@@ -377,13 +376,9 @@ public class CharacterMovement : MonoBehaviour
             PowerCube cube = hit.collider.GetComponent<PowerCube>();
             if (cube != null)
             {
-                // Debug: Log every cube hit by raycast
-                Debug.Log($"[Detection] Raycast hit {cube.name} at distance {hit.distance:F2}");
-                
                 // Check if Tim is reasonably aligned (more lenient since this is for highlighting)
                 if (IsReasonablyAlignedForDetection(cube.transform))
                 {
-                    Debug.Log($"[Detection] {cube.name} passed alignment check - setting as target");
                     // Highlight the cube at Tim's level
                     if (CubeManager.Instance != null)
                     {
@@ -392,7 +387,6 @@ public class CharacterMovement : MonoBehaviour
                 }
                 else
                 {
-                    Debug.Log($"[Detection] {cube.name} FAILED alignment check (tolerance: {detectionTolerance})");
                     // Not aligned, clear selection
                     if (CubeManager.Instance != null)
                     {
@@ -502,7 +496,6 @@ public class CharacterMovement : MonoBehaviour
                     bool canPushStack = stackFromTimLevel.Length <= 3;
                     if (!canPushStack)
                     {
-                        Debug.Log($"[PUSH] Stack from Tim's level too large to push! Size: {stackFromTimLevel.Length}");
                         return; // Don't set isPushingThisFrame - this prevents delay timer
                     }
                     
@@ -516,7 +509,6 @@ public class CharacterMovement : MonoBehaviour
                     if (HasPushEngagementChanged(cube, pushDirection))
                     {
                         StartNewPushEngagement(cube, pushDirection);
-                        Debug.Log($"[PUSH] Started new level-based engagement - Cube: {cube.name}, Direction: {pushDirection}, Stack size: {stackFromTimLevel.Length}");
                     }
                     
                     // Only push if delay has elapsed (or no delay needed for continued pushing)
@@ -525,7 +517,6 @@ public class CharacterMovement : MonoBehaviour
                         bool pushSuccess = cube.TryPush(pushDirection);
                         if (pushSuccess)
                         {
-                            Debug.Log($"[PUSH] Success! Pushed {stackFromTimLevel.Length} cubes from Tim's level, Direction: {pushDirection}");
                             // Invalidate stack cache when cube moves
                             CubeManager.Instance?.InvalidateStackCache();
                             
@@ -538,7 +529,6 @@ public class CharacterMovement : MonoBehaviour
                     else
                     {
                         float requiredDelay = isFirstPush ? initialPushDelay : continuousPushDelay;
-                        Debug.Log($"[PUSH] Waiting for delay... Timer: {pushDelayTimer:F2}/{requiredDelay:F2}");
                     }
                 }
             }
@@ -673,7 +663,6 @@ public class CharacterMovement : MonoBehaviour
                 }
                 
                 StartCoroutine(SmoothRotateCube(selectedCube, degrees, axis));
-                Debug.Log($"[CharacterMovement] Started rotating cube {selectedCube.name} by {degrees} degrees around {axis} axis");
             }
         }
     }
@@ -753,7 +742,7 @@ public class CharacterMovement : MonoBehaviour
         
         isRotating = false; // Allow new rotation input
         
-        Debug.Log($"[CharacterMovement] Completed {axis} rotation of {cube.name}. Final euler angles: {targetRotation.eulerAngles}");
+        
     }
     
     /// <summary>
@@ -805,7 +794,6 @@ public class CharacterMovement : MonoBehaviour
             if (pushDelayTimer >= requiredDelay)
             {
                 isDelayActive = false; // Delay completed - pushing can begin
-                Debug.Log($"[PUSH] Delay completed! Ready to push {currentTargetCube?.name}");
             }
         }
     }

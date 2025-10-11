@@ -54,11 +54,9 @@ public class CubeManager : MonoBehaviour
         {
             Instance = this;
             DontDestroyOnLoad(gameObject);
-            Debug.Log($"[CubeManager] Singleton instance set to: {gameObject.name}");
         }
         else
         {
-            Debug.Log($"[CubeManager] Duplicate instance found: {gameObject.name}, destroying it. Active instance: {Instance.gameObject.name}");
             Destroy(gameObject);
         }
     }
@@ -97,7 +95,6 @@ public class CubeManager : MonoBehaviour
                 originalMaterials[cube] = cubeRenderer.material;
             }
             
-            Debug.Log($"[CubeManager] Registered cube: {cube.name}");
             InvalidateStackCache();
             UpdateDebugInfo();
         }
@@ -110,7 +107,6 @@ public class CubeManager : MonoBehaviour
     {
         if (cube != null && allCubes.Remove(cube))
         {
-            Debug.Log($"[CubeManager] Unregistered cube: {cube.name}");
             InvalidateStackCache();
             UpdateDebugInfo();
         }
@@ -131,24 +127,6 @@ public class CubeManager : MonoBehaviour
         
         InvalidateStackCache();
         UpdateDebugInfo();
-        Debug.Log($"[CubeManager] Refreshed - Found {allCubes.Count} cubes in scene");
-        
-        // Only test stack detection if verbose logging is enabled and we're testing
-        if (verboseLogging && forceRefreshCubes)
-        {
-            Debug.Log("=== STACK DETECTION TEST ===");
-            foreach (PowerCube cube in allCubes)
-            {
-                Debug.Log($"[CubeManager] Testing cube: {cube.name} at position {cube.transform.position}");
-                PowerCube[] stack = GetStackAbove(cube);
-                Debug.Log($"[CubeManager] Cube {cube.name} has stack of {stack.Length} cubes:");
-                for (int i = 0; i < stack.Length; i++)
-                {
-                    Debug.Log($"  [{i}] {stack[i].name} at {stack[i].transform.position}");
-                }
-            }
-            Debug.Log("=== END STACK DETECTION TEST ===");
-        }
     }
     
     /// <summary>
@@ -179,11 +157,6 @@ public class CubeManager : MonoBehaviour
         List<PowerCube> stack = new List<PowerCube> { actualBaseCube };
         Vector3 basePos = actualBaseCube.transform.position;
         
-        if (verboseLogging)
-        {
-            Debug.Log($"[CubeManager] Starting stack detection from BOTTOM cube: {actualBaseCube.name} at position {basePos}");
-        }
-        
         // Find all cubes that are vertically aligned with the base cube
         List<PowerCube> candidateCubes = new List<PowerCube>();
         foreach (PowerCube cube in allCubes)
@@ -203,10 +176,6 @@ public class CubeManager : MonoBehaviour
             if (isAligned && isAbove)
             {
                 candidateCubes.Add(cube);
-                if (verboseLogging)
-                {
-                    Debug.Log($"[CubeManager] Found candidate cube above: {cube.name} at {cubePos}");
-                }
             }
         }
         
@@ -217,19 +186,10 @@ public class CubeManager : MonoBehaviour
         foreach (PowerCube candidate in candidateCubes)
         {
             stack.Add(candidate);
-            if (verboseLogging)
-            {
-                Debug.Log($"[CubeManager] Added to stack: {candidate.name}. Stack size now: {stack.Count}");
-            }
         }
         
         PowerCube[] stackArray = stack.ToArray();
         stackCache[actualBaseCube] = stackArray;
-        
-        if (verboseLogging)
-        {
-            Debug.Log($"[CubeManager] Final stack for {actualBaseCube.name}: {stackArray.Length} cubes");
-        }
         
         return stackArray;
     }
@@ -290,7 +250,6 @@ public class CubeManager : MonoBehaviour
                 currentSelectedIndex = 0; // Start selection at Tim's level cube
                 currentStackArray = stackFromTimLevel; // Use the level-based stack
                 
-                Debug.Log($"[SELECTION] RESET: {oldIndex} -> 0 (new stack: {cubeAtTimLevel.name})");
                 // Debug.Log($"[CubeManager] Targeted cube at Tim's level: {cubeAtTimLevel.name}, Stack size from level: {currentStackArray.Length}");
                 
                 UpdateVisualHighlights();
@@ -314,8 +273,6 @@ public class CubeManager : MonoBehaviour
             targetedBaseCube = baseCube;
             int oldIndex = currentSelectedIndex;
             currentSelectedIndex = 0; // Reset selection to bottom cube
-            
-            Debug.Log($"[SELECTION] RESET: {oldIndex} -> 0 (new base: {baseCube?.name})");
             
             if (baseCube != null)
             {
@@ -343,7 +300,6 @@ public class CubeManager : MonoBehaviour
         {
             // Set the cube at Tim's level as the targeted cube
             SetTargetedCube(stackFromLevel[0]);
-            Debug.Log($"[CubeManager] Auto-selected cube at Tim's level: {stackFromLevel[0].name}");
         }
     }
     
@@ -357,7 +313,6 @@ public class CubeManager : MonoBehaviour
             float distance = Vector3.Distance(timPosition, targetedBaseCube.transform.position);
             if (distance > maxSelectionDistance)
             {
-                Debug.Log($"[CubeManager] Tim moved too far ({distance:F1}m) from selected cube. Canceling selection.");
                 SetTargetedCube(null);
             }
         }
@@ -394,7 +349,6 @@ public class CubeManager : MonoBehaviour
         int oldIndex = currentSelectedIndex;
         currentSelectedIndex = (currentSelectedIndex + 1) % (maxSelectableIndex + 1);
         
-        Debug.Log($"[SELECTION] TAB: {oldIndex} -> {currentSelectedIndex} (cube: {GetSelectedCube()?.name})");
         UpdateVisualHighlights();
         UpdateDebugInfo();
     }
@@ -502,7 +456,6 @@ public class CubeManager : MonoBehaviour
         cubesAbove.Sort((a, b) => a.transform.position.y.CompareTo(b.transform.position.y));
         stackFromLevel.AddRange(cubesAbove);
         
-        Debug.Log($"[CubeManager] Found stack from Tim's level (Y={timDetectionLevel:F1}): {stackFromLevel.Count} cubes starting with {cubeAtTimLevel.name}");
         return stackFromLevel.ToArray();
     }
     /// <summary>

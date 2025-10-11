@@ -235,8 +235,6 @@ public class PowerCube : MonoBehaviour
             stackFromLevel = new PowerCube[] { this };
         }
         
-        Debug.Log($"[Cube] Attempting to push stack from Tim's level: {stackFromLevel.Length} cubes");
-        
         // Check if all positions in the stack's destination are clear
         bool allPositionsClear = true;
         Vector3[] targetPositions = new Vector3[stackFromLevel.Length];
@@ -247,7 +245,6 @@ public class PowerCube : MonoBehaviour
             if (!IsPositionClear(targetPositions[i]))
             {
                 allPositionsClear = false;
-                Debug.Log($"[Cube] Position blocked for cube {stackFromLevel[i].name} at {targetPositions[i]}");
                 break;
             }
         }
@@ -260,7 +257,6 @@ public class PowerCube : MonoBehaviour
             stackFromLevel[i].StartCoroutine(stackFromLevel[i].MoveTo(targetPositions[i], pushDir));
         }
         
-        Debug.Log($"[Cube] Successfully started pushing {stackFromLevel.Length} cubes from Tim's level");
         return true;
     }
     
@@ -409,8 +405,6 @@ public class PowerCube : MonoBehaviour
         
         // Update visual state
         UpdateFaceConnectionState(faceIndex);
-        
-        Debug.Log($"[PowerCube] Face {faceIndex} {(connecting ? "connected" : "disconnected")}");
     }
     
     private int GetFaceIndexFromCollider(Collider collider)
