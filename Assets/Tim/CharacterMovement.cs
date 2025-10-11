@@ -28,10 +28,17 @@ public class CharacterMovement : MonoBehaviour
     
     [Header("Cube Pushing")]
     public float pushRange = 1.5f;
+    public float detectionTolerance = 0.6f;
     
     [Header("Push Delay Settings")]
     public float initialPushDelay = 0.35f;
     public float continuousPushDelay = 0.1f;
+    
+    [Header("Debug - Push Detection State")]
+    [SerializeField] private bool isDelayActiveDebug;
+    [SerializeField] private PowerCube currentTargetCubeDebug;
+    [SerializeField] private Vector3 currentPushDirectionDebug;
+    [SerializeField] private float pushDelayTimerDebug;
     
     // Push delay tracking
     private PowerCube currentTargetCube;
@@ -156,6 +163,12 @@ public class CharacterMovement : MonoBehaviour
     
     private void Update()
     {
+        // Sync debug variables with actual state
+        isDelayActiveDebug = isDelayActive;
+        currentTargetCubeDebug = currentTargetCube;
+        currentPushDirectionDebug = currentPushDirection;
+        pushDelayTimerDebug = pushDelayTimer;
+        
         // Reset push state at start of frame
         isPushingThisFrame = false;
         
@@ -364,9 +377,13 @@ public class CharacterMovement : MonoBehaviour
             PowerCube cube = hit.collider.GetComponent<PowerCube>();
             if (cube != null)
             {
+                // Debug: Log every cube hit by raycast
+                Debug.Log($"[Detection] Raycast hit {cube.name} at distance {hit.distance:F2}");
+                
                 // Check if Tim is reasonably aligned (more lenient since this is for highlighting)
                 if (IsReasonablyAlignedForDetection(cube.transform))
                 {
+                    Debug.Log($"[Detection] {cube.name} passed alignment check - setting as target");
                     // Highlight the cube at Tim's level
                     if (CubeManager.Instance != null)
                     {
@@ -375,6 +392,7 @@ public class CharacterMovement : MonoBehaviour
                 }
                 else
                 {
+                    Debug.Log($"[Detection] {cube.name} FAILED alignment check (tolerance: {detectionTolerance})");
                     // Not aligned, clear selection
                     if (CubeManager.Instance != null)
                     {
@@ -417,7 +435,7 @@ public class CharacterMovement : MonoBehaviour
         float absZ = Mathf.Abs(localOffset.z);
         
         // More lenient tolerance for detection (can be slightly off-center)
-        float detectionTolerance = 0.6f;
+        // Now exposed as public variable for tuning
         
         bool isAlignedToFace = false;
         
