@@ -138,7 +138,7 @@ public class TimCubeInteraction : MonoBehaviour
     /// </summary>
     private void CheckCubeDetection()
     {
-        // Cast ray at Tim's interaction level to detect cubes he's facing
+        // Cast ray at Tim's interaction level to detect cubes he's facing   
         float detectionHeight = 0.8f;
         Vector3 rayStart = timTransform.position + Vector3.up * detectionHeight;
         Vector3 forward = timTransform.forward;
