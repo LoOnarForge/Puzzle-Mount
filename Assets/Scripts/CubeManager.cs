@@ -104,7 +104,7 @@ public class CubeManager : MonoBehaviour
     }
     
     /// <summary>
-    /// Unregister a cube from the manager
+    /// Unregister a cube from the manager 
     /// </summary>
     public void UnregisterCube(PowerCube cube)
     {
