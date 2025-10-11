@@ -28,7 +28,6 @@ public class CharacterMovement : MonoBehaviour
     
     [Header("Cube Pushing")]
     public float pushRange = 1.5f;
-    public float detectionTolerance = 0.6f;
     
     [Header("Push Delay Settings")]
     public float initialPushDelay = 0.35f;
@@ -54,6 +53,7 @@ public class CharacterMovement : MonoBehaviour
     private CharacterController controller;
     private PlayerInput playerInput;
     private PlayerAnimator playerAnimator;
+    private TimCubeInteraction cubeInteraction;
     private InputAction moveAction;
     private InputAction jumpAction;
     private InputAction sprintAction;
@@ -87,6 +87,7 @@ public class CharacterMovement : MonoBehaviour
         controller = GetComponent<CharacterController>();
         playerInput = GetComponent<PlayerInput>();
         playerAnimator = GetComponent<PlayerAnimator>();
+        cubeInteraction = GetComponent<TimCubeInteraction>();
         
         // Fix PlayerInput notification behavior
         if (playerInput != null)
@@ -377,7 +378,7 @@ public class CharacterMovement : MonoBehaviour
             if (cube != null)
             {
                 // Check if Tim is reasonably aligned (more lenient since this is for highlighting)
-                if (IsReasonablyAlignedForDetection(cube.transform))
+                if (cubeInteraction.IsReasonablyAlignedForDetection(cube.transform))
                 {
                     // Highlight the cube at Tim's level
                     if (CubeManager.Instance != null)
@@ -413,38 +414,6 @@ public class CharacterMovement : MonoBehaviour
         }
     }
     
-    /// <summary>
-    /// More lenient alignment check for cube detection/highlighting
-    /// </summary>
-    private bool IsReasonablyAlignedForDetection(Transform cubeTransform)
-    {
-        Vector3 cubeCenter = cubeTransform.position;
-        Vector3 timPos = transform.position;
-        
-        // Calculate which face of the cube Tim is closest to
-        Vector3 localOffset = timPos - cubeCenter;
-        
-        // Determine the strongest axis (which face Tim is approaching)
-        float absX = Mathf.Abs(localOffset.x);
-        float absZ = Mathf.Abs(localOffset.z);
-        
-        // More lenient tolerance for detection (can be slightly off-center)
-        // Now exposed as public variable for tuning
-        
-        bool isAlignedToFace = false;
-        
-        if (absX > absZ) // Approaching from X direction (left/right faces)
-        {
-            isAlignedToFace = Mathf.Abs(localOffset.z) < detectionTolerance;
-        }
-        else // Approaching from Z direction (front/back faces)
-        {
-            isAlignedToFace = Mathf.Abs(localOffset.x) < detectionTolerance;
-        }
-        
-        return isAlignedToFace;
-    }
-
     /// <summary>
     /// Check if Tim is trying to push a cube and attempt to push it
     /// Only pushes when Tim is properly aligned and has movement input
@@ -483,7 +452,7 @@ public class CharacterMovement : MonoBehaviour
             if (cube == targetedCube)
             {
                 // Check if Tim is properly aligned to push this cube (strict alignment for pushing)
-                if (IsProperlyAlignedToPush(cube.transform, rayDirection))
+                if (cubeInteraction.IsProperlyAlignedToPush(cube.transform, rayDirection))
                 {
                     // Get stack from Tim's level upward for pushing
                     PowerCube[] stackFromTimLevel = new PowerCube[0];
@@ -533,38 +502,6 @@ public class CharacterMovement : MonoBehaviour
                 }
             }
         }
-    }
-    
-    /// <summary>
-    /// Check if Tim is properly positioned and aligned to push a cube
-    /// </summary>
-    private bool IsProperlyAlignedToPush(Transform cubeTransform, Vector3 pushDirection)
-    {
-        Vector3 cubeCenter = cubeTransform.position;
-        Vector3 timPos = transform.position;
-        
-        // Calculate which face of the cube Tim is closest to
-        Vector3 localOffset = timPos - cubeCenter;
-        
-        // Determine the strongest axis (which face Tim is approaching)
-        float absX = Mathf.Abs(localOffset.x);
-        float absZ = Mathf.Abs(localOffset.z);
-        
-        // Tim must be approaching from a primary face direction, not a corner/edge
-        float faceTolerance = 0.4f; // Relaxed tolerance
-        
-        bool isAlignedToFace = false;
-        
-        if (absX > absZ) // Approaching from X direction (left/right faces)
-        {
-            isAlignedToFace = Mathf.Abs(localOffset.z) < faceTolerance;
-        }
-        else // Approaching from Z direction (front/back faces)
-        {
-            isAlignedToFace = Mathf.Abs(localOffset.x) < faceTolerance;
-        }
-        
-        return isAlignedToFace;
     }
     
     /// <summary>
