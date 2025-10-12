@@ -74,8 +74,9 @@ public class TimCubeInteraction : MonoBehaviour
         HandleCubeRotation();
         UpdatePushDelay();
         
-        // ALWAYS reset push engagement when not actively pushing this frame
-        if (!isPushingThisFrame)
+        // Only reset push engagement when Tim stops providing movement input
+        Vector3 moveDirection = characterMovement.GetMovementDirectionExternal();
+        if (moveDirection.magnitude < 0.1f)
         {
             ResetPushEngagement();
         }
@@ -186,32 +187,18 @@ public class TimCubeInteraction : MonoBehaviour
             // Tim is actively trying to push this cube
             isPushingThisFrame = true;
             
-            // Use facing direction directly as push direction (same as raycast)
-            Vector3 pushDirection = timTransform.forward;
+            // Calculate push direction based on Tim's position relative to cube (prevents wrong direction during transitions)
+            Vector3 pushDirection = hitCube.GetRelativePushDirection(timTransform);
             
-            // Only start new engagement if this is actually a new target or significantly different direction
-            bool differentTarget = currentTargetCube != hitCube;
-            bool significantDirectionChange = Vector3.Angle(currentPushDirection, pushDirection) > 5f; // 5 degree tolerance
-            
-            if (differentTarget)
+            // Only start new engagement if this is actually a new target (ignore direction changes)
+            if (currentTargetCube != hitCube)
             {
-                // Truly new cube - start fresh with initial delay
                 StartNewPushEngagement(hitCube, pushDirection);
             }
-            else if (significantDirectionChange)
+            else
             {
-                // Same cube, just direction adjustment
-                if (isFirstPush)
-                {
-                    // First time approaching this cube - use initial delay
-                    StartNewPushEngagement(hitCube, pushDirection);
-                }
-                else
-                {
-                    // Was already pushing this cube - just update direction, NO delay reset for smooth pushing
-                    currentPushDirection = pushDirection;
-                    // Don't reset timer or isDelayActive - keep pushing smoothly
-                }
+                // Same cube - just update direction without resetting delay
+                currentPushDirection = pushDirection;
             }
             
             // Only push if delay has elapsed
@@ -594,7 +581,7 @@ public class TimCubeInteraction : MonoBehaviour
         }
     }
     
-    // Public getters for CharacterMovement to access push state
+    // Public getters for CharacterMovement to access push state 
     public PowerCube CurrentTargetCube => currentTargetCube;
     public Vector3 CurrentPushDirection => currentPushDirection;
     public float PushDelayTimer => pushDelayTimer;
