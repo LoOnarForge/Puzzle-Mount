@@ -236,14 +236,13 @@ GameObject:
   - component: {fileID: 8830403057167016645}
   - component: {fileID: 546811167740978532}
   - component: {fileID: 4463603449021434433}
-  - component: {fileID: 2115197754030058868}
   - component: {fileID: 5579362749289985480}
   - component: {fileID: 3452255651825751993}
   - component: {fileID: 5374539777748294626}
   m_Layer: 0
   m_Name: Tim Jones TEMP
   m_TagString: Untagged
-  m_Icon: {fileID: -5938655980376293919, guid: 0000000000000000d000000000000000, type: 0}
+  m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
   m_IsActive: 1
@@ -324,33 +323,6 @@ MonoBehaviour:
   minimumFallSpeed: 3
   fallTimerVisual: 0
   isCurrentlyFalling: 0
---- !u!54 &2115197754030058868
-Rigidbody:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 478215984424799453}
-  serializedVersion: 5
-  m_Mass: 1
-  m_LinearDamping: 0
-  m_AngularDamping: 0.05
-  m_CenterOfMass: {x: 0, y: 0, z: 0}
-  m_InertiaTensor: {x: 1, y: 1, z: 1}
-  m_InertiaRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_IncludeLayers:
-    serializedVersion: 2
-    m_Bits: 0
-  m_ExcludeLayers:
-    serializedVersion: 2
-    m_Bits: 0
-  m_ImplicitCom: 1
-  m_ImplicitTensor: 1
-  m_UseGravity: 1
-  m_IsKinematic: 0
-  m_Interpolate: 0
-  m_Constraints: 0
-  m_CollisionDetection: 0
 --- !u!143 &5579362749289985480
 CharacterController:
   m_ObjectHideFlags: 0
