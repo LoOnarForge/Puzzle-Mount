@@ -14,15 +14,15 @@ public enum RotationAxis
 /// </summary>
 public class TimCubeInteraction : MonoBehaviour
 {
-    [Header("Cube Selection:")]
+    [Header("CUBE SELECTION:")]
     [SerializeField] private PowerCube detectedCube = null;
     [SerializeField] private PowerCube highlightedCube = null;
 
-    [Header("Detection Settings")]
-    public float detectionTolerance = 0.6f;
+    [Header("DETECTION SETTINGS")]
     public float pushRange = 1.5f;
+    [HideInInspector] public float detectionTolerance = 0.6f;
     
-    [Header("Push Delay Settings")]
+    [Header("PUSH DELAY SETTINGS")]
     public float initialPushDelay = 0.35f;
     public float continuousPushDelay = 0.1f;
 

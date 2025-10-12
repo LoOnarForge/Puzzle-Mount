@@ -4,20 +4,20 @@ using UnityEngine.InputSystem;
 [RequireComponent(typeof(CharacterController))]
 public class CharacterMovement : MonoBehaviour
 {
-    [Header("Movement Settings")]
+    [Header("MOVEMENT SETTINGS")]
     public float walkSpeed = 3f;
     public float runSpeed = 6f;
-    public float jumpHeight = 2f;
-    public float rotationSpeed = 10f;
+    [HideInInspector] public float jumpHeight = 2f;
+    [HideInInspector] public float rotationSpeed = 10f;
     
-    [Header("Speed Buildup")]
-    public float startSpeedPercent = 40f;
-    public float accelerationTime = 0.3f;
+    [Header("SPEED BUILDUP")]
+    [HideInInspector] public float startSpeedPercent = 40f;
+    [HideInInspector] public float accelerationTime = 0.3f;
     
-    [Header("Air Control")]
+    [Header("AIR CONTROL")]
     public float momentumDecay = 2f;
     
-    [Header("Debug - Speed Visualization")]
+    [Header("DEBUG - SPEED VISUALIZATION")]
     [SerializeField] private float currentSpeedVisual;
     
     // Hidden physics settings
