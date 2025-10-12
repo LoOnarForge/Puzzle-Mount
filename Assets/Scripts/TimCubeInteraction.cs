@@ -1,5 +1,6 @@
 using UnityEngine;
 using UnityEngine.InputSystem;
+using System.Collections.Generic;
 
 public enum RotationAxis
 {
@@ -38,6 +39,11 @@ public class TimCubeInteraction : MonoBehaviour
     
     // Highlighted cube tracking (moved from CubeManager)
     private PowerCube currentlyHighlightedCube = null;
+    
+    // Tim's own cube selection system
+    private PowerCube[] currentStack = null;
+    private int selectedIndex = 0;
+    private PowerCube selectedCube = null;
     
     // Public getter for highlighted cube
     public PowerCube GetHighlightedCube() { return currentlyHighlightedCube; }
@@ -127,11 +133,13 @@ public class TimCubeInteraction : MonoBehaviour
             {
                 currentlyHighlightedCube = hitCube;
                 
-                // Update CubeManager with the highlighted cube at Tim's level
-                if (CubeManager.Instance != null)
-                {
-                    CubeManager.Instance.SetTargetedCubeAtTimLevel(hitCube, timTransform.position);
-                }
+                // Update current stack and reset selection to first cube
+                currentStack = GetStackFromHighlightedCube();
+                selectedIndex = 0;
+                selectedCube = (currentStack != null && currentStack.Length > 0) ? currentStack[0] : null;
+                
+                // Update inspector field to show selected cube
+                highlightedCube = selectedCube;
             }
         }
         else
@@ -140,22 +148,13 @@ public class TimCubeInteraction : MonoBehaviour
             if (currentlyHighlightedCube != null)
             {
                 currentlyHighlightedCube = null;
+                currentStack = null;
+                selectedCube = null;
+                selectedIndex = 0;
                 
-                if (CubeManager.Instance != null)
-                {
-                    CubeManager.Instance.SetTargetedCube(null);
-                }
+                // Clear inspector field
+                highlightedCube = null;
             }
-        }
-        
-        // Update highlighted cube debug field from CubeManager (shows actual selected cube, not detected)
-        if (CubeManager.Instance != null)
-        {
-            highlightedCube = CubeManager.Instance.GetTargetedCube();
-        }
-        else
-        {
-            highlightedCube = null;
         }
     }
 
@@ -174,12 +173,8 @@ public class TimCubeInteraction : MonoBehaviour
         
         if (hitCube != null && IsProperlyAlignedToPush(hitCube.transform, timTransform.forward))
         {
-            // Get stack from Tim's level upward for pushing
-            PowerCube[] stackFromTimLevel = new PowerCube[0];
-            if (CubeManager.Instance != null)
-            {
-                stackFromTimLevel = CubeManager.Instance.GetStackFromTimLevel(timTransform.position);
-            }
+            // Get stack from highlighted cube for Tim's selection
+            PowerCube[] stackFromTimLevel = GetStackFromHighlightedCube();
             
             // Check if this level-based stack can be pushed (3 cubes or fewer)
             bool canPushStack = stackFromTimLevel.Length <= 3;
@@ -203,15 +198,17 @@ public class TimCubeInteraction : MonoBehaviour
             // Only push if delay has elapsed
             if (!isDelayActive)
             {
+                Debug.Log($"[PUSH DEBUG] PUSHING! Timer: {pushDelayTimer}, Required: {(isFirstPush ? initialPushDelay : continuousPushDelay)}");
                 bool pushSuccess = hitCube.TryPush(pushDirection);
                 if (pushSuccess)
                 {
-                    // Invalidate stack cache when cube moves
-                    CubeManager.Instance?.InvalidateStackCache();
-                    
                     // Start continuous push delay for next push
                     StartContinuousPushDelay();
                 }
+            }
+            else
+            {
+                Debug.Log($"[PUSH DEBUG] Waiting for delay. Timer: {pushDelayTimer}, Required: {(isFirstPush ? initialPushDelay : continuousPushDelay)}, Remaining: {(isFirstPush ? initialPushDelay : continuousPushDelay) - pushDelayTimer}");
             }
         }
     }
@@ -283,8 +280,7 @@ public class TimCubeInteraction : MonoBehaviour
     }
     
     /// <summary>
-    /// Check if Tim is trying to push a cube and attempt to push it
-    /// Only pushes when Tim is properly aligned and has movement input
+    /// Handle Tim's own cube selection system
     /// </summary>
     private void HandleCubeSelection()
     {
@@ -293,10 +289,7 @@ public class TimCubeInteraction : MonoBehaviour
         {
             if (!characterMovement.IsGrounded) return; // Disable selection while jumping/falling
             
-            if (CubeManager.Instance != null)
-            {
-                CubeManager.Instance.CycleSelection();
-            }
+            CycleSelection();
         }
         // Tab action is handled by HandleTabPressed callback if available
     }
@@ -329,10 +322,7 @@ public class TimCubeInteraction : MonoBehaviour
     {
         if (!characterMovement.IsGrounded) return; // Disable selection while jumping/falling
         
-        if (CubeManager.Instance != null)
-        {
-            CubeManager.Instance.CycleSelection();
-        }
+        CycleSelection();
     }
     
     /// <summary>
@@ -364,19 +354,15 @@ public class TimCubeInteraction : MonoBehaviour
     {
         if (isRotating) return; // Prevent overlapping rotations
         
-        if (CubeManager.Instance != null)
+        if (selectedCube != null)
         {
-            PowerCube selectedCube = CubeManager.Instance.GetSelectedCube();
-            if (selectedCube != null)
+            // Prevent rotation while cube is being pushed/moving
+            if (selectedCube.isMoving)
             {
-                // Prevent rotation while cube is being pushed/moving
-                if (selectedCube.isMoving)
-                {
-                    return;
-                }
-                
-                StartCoroutine(SmoothRotateCube(selectedCube, degrees, axis));
+                return;
             }
+            
+            StartCoroutine(SmoothRotateCube(selectedCube, degrees, axis));
         }
     }
     
@@ -457,6 +443,72 @@ public class TimCubeInteraction : MonoBehaviour
     }
     
     /// <summary>
+    /// Tim's own cube selection - cycle through bottom 3 cubes in highlighted stack
+    /// </summary>
+    private void CycleSelection()
+    {
+        if (currentlyHighlightedCube == null) return;
+        
+        // Update current stack based on highlighted cube
+        currentStack = GetStackFromHighlightedCube();
+        if (currentStack == null || currentStack.Length == 0) return;
+        
+        int maxSelectableIndex = Mathf.Min(2, currentStack.Length - 1); // Max index 2 (3rd cube) or stack length - 1
+        selectedIndex = (selectedIndex + 1) % (maxSelectableIndex + 1);
+        selectedCube = currentStack[selectedIndex];
+        
+        // Update inspector field when selection changes
+        highlightedCube = selectedCube;
+    }
+    
+    /// <summary>
+    /// Get stack from currently highlighted cube (simple version for Tim's needs)
+    /// </summary>
+    private PowerCube[] GetStackFromHighlightedCube()
+    {
+        if (currentlyHighlightedCube == null) return new PowerCube[0];
+        
+        // Simple stack detection - just find cubes above the highlighted cube
+        List<PowerCube> stack = new List<PowerCube> { currentlyHighlightedCube };
+        PowerCube[] allCubes = FindObjectsByType<PowerCube>(FindObjectsSortMode.None);
+        Vector3 basePos = currentlyHighlightedCube.transform.position;
+        
+        foreach (PowerCube cube in allCubes)
+        {
+            if (cube == currentlyHighlightedCube) continue;
+            
+            Vector3 cubePos = cube.transform.position;
+            float alignmentTolerance = 0.1f;
+            bool isAligned = Mathf.Abs(cubePos.x - basePos.x) < alignmentTolerance && 
+                           Mathf.Abs(cubePos.z - basePos.z) < alignmentTolerance;
+            bool isAbove = cubePos.y > basePos.y;
+            
+            if (isAligned && isAbove)
+            {
+                stack.Add(cube);
+            }
+        }
+        
+        // Sort by height
+        stack.Sort((a, b) => a.transform.position.y.CompareTo(b.transform.position.y));
+        return stack.ToArray();
+    }
+    
+    /// <summary>
+    /// Draw gizmo only for selected cube
+    /// </summary>
+    private void OnDrawGizmos()
+    {
+        // Only show gizmo for selected cube
+        if (selectedCube != null)
+        {
+            bool canPushSelected = IsProperlyAlignedToPush(selectedCube.transform, timTransform.forward);
+            Gizmos.color = canPushSelected ? Color.green : Color.yellow;
+            Gizmos.DrawWireCube(selectedCube.transform.position, selectedCube.transform.localScale * 1.1f);
+        }
+    }
+    
+    /// <summary>
     /// Check if push engagement has changed (different cube or different side)
     /// </summary>
     public bool HasPushEngagementChanged(PowerCube cube, Vector3 pushDirection)
@@ -475,8 +527,12 @@ public class TimCubeInteraction : MonoBehaviour
         isDelayActive = true;
         isFirstPush = true;
         
+        Debug.Log($"[PUSH DEBUG] Starting new engagement. Timer: {pushDelayTimer}, Required delay: {initialPushDelay}, isDelayActive: {isDelayActive}");
+        
         // Immediately update the timer to avoid 1-frame delay
         UpdatePushDelay();
+        
+        Debug.Log($"[PUSH DEBUG] After immediate update. Timer: {pushDelayTimer}, isDelayActive: {isDelayActive}");
     }
     
     /// <summary>
