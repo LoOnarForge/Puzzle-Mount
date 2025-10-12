@@ -132,12 +132,35 @@ public class TimCubeInteraction : MonoBehaviour
             // Set this cube as highlighted
             if (currentlyHighlightedCube != hitCube)
             {
+                PowerCube previouslySelectedCube = selectedCube;
                 currentlyHighlightedCube = hitCube;
                 
-                // Update current stack and reset selection to first cube
+                // Update current stack
                 currentStack = GetStackFromHighlightedCube();
-                selectedIndex = 0;
-                selectedCube = (currentStack != null && currentStack.Length > 0) ? currentStack[0] : null;
+                
+                // Try to preserve selection if the previously selected cube is still in the new stack
+                bool selectionPreserved = false;
+                if (previouslySelectedCube != null && currentStack != null)
+                {
+                    for (int i = 0; i < currentStack.Length; i++)
+                    {
+                        if (currentStack[i] == previouslySelectedCube)
+                        {
+                            // Preserve the selection
+                            selectedIndex = i;
+                            selectedCube = previouslySelectedCube;
+                            selectionPreserved = true;
+                            break;
+                        }
+                    }
+                }
+                
+                // If selection couldn't be preserved, reset to first cube
+                if (!selectionPreserved)
+                {
+                    selectedIndex = 0;
+                    selectedCube = (currentStack != null && currentStack.Length > 0) ? currentStack[0] : null;
+                }
                 
                 // Update inspector field to show selected cube
                 highlightedCube = selectedCube;
