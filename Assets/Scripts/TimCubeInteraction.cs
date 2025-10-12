@@ -45,7 +45,7 @@ public class TimCubeInteraction : MonoBehaviour
     private int selectedIndex = 0;
     private PowerCube selectedCube = null;
     
-    // Public getter for highlighted cube
+    // Public getter for highlighted cube 
     public PowerCube GetHighlightedCube() { return currentlyHighlightedCube; }
     
     // Rotation tracking
@@ -215,18 +215,13 @@ public class TimCubeInteraction : MonoBehaviour
             // Only push if delay has elapsed
             if (!isDelayActive)
             {
-                Debug.Log($"[PUSH DEBUG] PUSHING! Timer: {pushDelayTimer}, Required: {(isFirstPush ? initialPushDelay : continuousPushDelay)}");
                 bool pushSuccess = hitCube.TryPush(pushDirection);
                 if (pushSuccess)
                 {
                     // Start continuous push delay for next push
                     StartContinuousPushDelay();
                 }
-            }
-            else
-            {
-                Debug.Log($"[PUSH DEBUG] Waiting for delay. Timer: {pushDelayTimer}, Required: {(isFirstPush ? initialPushDelay : continuousPushDelay)}, Remaining: {(isFirstPush ? initialPushDelay : continuousPushDelay) - pushDelayTimer}");
-            }
+            }      
         }
     }
 
@@ -373,12 +368,7 @@ public class TimCubeInteraction : MonoBehaviour
         
         if (selectedCube != null)
         {
-            // Prevent rotation while cube is being pushed/moving
-            if (selectedCube.isMoving)
-            {
-                return;
-            }
-            
+            // Allow rotation even while cube is moving since only visuals rotate
             StartCoroutine(SmoothRotateCube(selectedCube, degrees, axis));
         }
     }
@@ -542,14 +532,9 @@ public class TimCubeInteraction : MonoBehaviour
         currentPushDirection = pushDirection;
         pushDelayTimer = 0f;
         isDelayActive = true;
-        isFirstPush = true;
-        
-        Debug.Log($"[PUSH DEBUG] Starting new engagement. Timer: {pushDelayTimer}, Required delay: {initialPushDelay}, isDelayActive: {isDelayActive}");
-        
+        isFirstPush = true;               
         // Immediately update the timer to avoid 1-frame delay
-        UpdatePushDelay();
-        
-        Debug.Log($"[PUSH DEBUG] After immediate update. Timer: {pushDelayTimer}, isDelayActive: {isDelayActive}");
+        UpdatePushDelay();        
     }
     
     /// <summary>
