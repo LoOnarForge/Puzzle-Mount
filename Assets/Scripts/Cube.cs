@@ -38,12 +38,13 @@ public enum PowerLineType
 [RequireComponent(typeof(BoxCollider))]
 public class PowerCube : MonoBehaviour
 {
-    [Header("Movement")]
+    [Header("MOVEMENT SETTINGS:")]
     public float moveSpeed = 5f;
     
-    [Header("Visual")]
+    [Header("VISUAL SETTINGS:")]
     public Transform visualParent;
     
+    [Header("POWER LINES SETTINGS:")]
     public PowerLineType topFace = PowerLineType.Empty;
     public PowerLineType bottomFace = PowerLineType.Empty;
     public PowerLineType northFace = PowerLineType.Empty;
@@ -51,23 +52,25 @@ public class PowerCube : MonoBehaviour
     public PowerLineType southFace = PowerLineType.Empty;
     public PowerLineType westFace = PowerLineType.Empty;
     
-    public GameObject horizontalPrefab;
-    public GameObject verticalPrefab;
-    public GameObject cornerTopRightPrefab;
-    public GameObject cornerRightBottomPrefab;
-    public GameObject cornerBottomLeftPrefab;
-    public GameObject cornerLeftTopPrefab;
-    public GameObject tSectionTopPrefab;
-    public GameObject tSectionRightPrefab;
-    public GameObject tSectionBottomPrefab;
-    public GameObject tSectionLeftPrefab;
-    public GameObject crossPrefab;
+    [HideInInspector] public GameObject horizontalPrefab;
+    [HideInInspector] public GameObject verticalPrefab;
+    [HideInInspector] public GameObject cornerTopRightPrefab;
+    [HideInInspector] public GameObject cornerRightBottomPrefab;
+    [HideInInspector] public GameObject cornerBottomLeftPrefab;
+    [HideInInspector] public GameObject cornerLeftTopPrefab;
+    [HideInInspector] public GameObject tSectionTopPrefab;
+    [HideInInspector] public GameObject tSectionRightPrefab;
+    [HideInInspector] public GameObject tSectionBottomPrefab;
+    [HideInInspector] public GameObject tSectionLeftPrefab;
+    [HideInInspector] public GameObject crossPrefab;
     
-    [Header("Random Rotation")]
+    [Header("ROTATION SETTINGS:")]
     public bool randomRotateOnStart = true;
     
-    private Rigidbody rb;
+    [Header("DEBUG SETTINGS:")]
     public bool isMoving = false;
+    
+    private Rigidbody rb;
     
     // PowerLine connection tracking
     private bool[] faceConnections = new bool[6]; // Top, Bottom, North, East, South, West

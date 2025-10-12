@@ -234,6 +234,7 @@ GameObject:
   m_Component:
   - component: {fileID: 2124630496601074580}
   - component: {fileID: 8830403057167016645}
+  - component: {fileID: 546811167740978532}
   - component: {fileID: 4463603449021434433}
   - component: {fileID: 2115197754030058868}
   - component: {fileID: 5579362749289985480}
@@ -242,7 +243,7 @@ GameObject:
   m_Layer: 0
   m_Name: Tim Jones TEMP
   m_TagString: Untagged
-  m_Icon: {fileID: 0}
+  m_Icon: {fileID: -5938655980376293919, guid: 0000000000000000d000000000000000, type: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
   m_IsActive: 1
@@ -277,14 +278,31 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::CharacterMovement
   walkSpeed: 5
-  runSpeed: 7
+  runSpeed: 7.5
   jumpHeight: 1
   rotationSpeed: 10
-  startSpeedPercent: 40
-  accelerationTime: 0.3
-  momentumDecay: 2
+  startSpeedPercent: 10
+  accelerationTime: 0.5
+  momentumDecay: 0.3
   currentSpeedVisual: 0
-  pushRange: 1.2
+--- !u!114 &546811167740978532
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 478215984424799453}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: b3036c99325ad6c419c99ad4dd90bbdb, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::TimCubeInteraction
+  detectedCube: {fileID: 0}
+  highlightedCube: {fileID: 0}
+  detectionTolerance: 0.6
+  pushRange: 0.7
+  initialPushDelay: 0.35
+  continuousPushDelay: 0.2
 --- !u!114 &4463603449021434433
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -302,7 +320,7 @@ MonoBehaviour:
   fallingParameter: IsFalling
   jumpingParameter: IsJumping
   animationSmoothTime: 0.1
-  fallDetectionDelay: 0.2
+  fallDetectionDelay: 0.27
   minimumFallSpeed: 3
   fallTimerVisual: 0
   isCurrentlyFalling: 0
@@ -351,7 +369,7 @@ CharacterController:
   m_ProvidesContacts: 0
   m_Enabled: 1
   serializedVersion: 3
-  m_Height: 2
+  m_Height: 1.9
   m_Radius: 0.3
   m_SlopeLimit: 45
   m_StepOffset: 0.3

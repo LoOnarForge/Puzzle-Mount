@@ -18,11 +18,11 @@ public class TimCubeInteraction : MonoBehaviour
     [SerializeField] private PowerCube detectedCube = null;
     [SerializeField] private PowerCube highlightedCube = null;
 
-    [Header("DETECTION SETTINGS")]
-    public float pushRange = 1.5f;
+    [Header("DETECTION SETTINGS:")]
     [HideInInspector] public float detectionTolerance = 0.6f;
-    
-    [Header("PUSH DELAY SETTINGS")]
+    public float pushRange = 1.5f; 
+
+    [Header("PUSH DELAY SETTINGS:")]
     public float initialPushDelay = 0.35f;
     public float continuousPushDelay = 0.1f;
 
