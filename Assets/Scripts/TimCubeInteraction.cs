@@ -193,9 +193,25 @@ public class TimCubeInteraction : MonoBehaviour
             bool differentTarget = currentTargetCube != hitCube;
             bool significantDirectionChange = Vector3.Angle(currentPushDirection, pushDirection) > 5f; // 5 degree tolerance
             
-            if (differentTarget || significantDirectionChange)
+            if (differentTarget)
             {
+                // Truly new cube - start fresh with initial delay
                 StartNewPushEngagement(hitCube, pushDirection);
+            }
+            else if (significantDirectionChange)
+            {
+                // Same cube, just direction adjustment
+                if (isFirstPush)
+                {
+                    // First time approaching this cube - use initial delay
+                    StartNewPushEngagement(hitCube, pushDirection);
+                }
+                else
+                {
+                    // Was already pushing this cube - just update direction, NO delay reset for smooth pushing
+                    currentPushDirection = pushDirection;
+                    // Don't reset timer or isDelayActive - keep pushing smoothly
+                }
             }
             
             // Only push if delay has elapsed
