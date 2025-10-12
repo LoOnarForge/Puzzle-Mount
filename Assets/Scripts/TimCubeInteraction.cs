@@ -413,6 +413,7 @@ public class TimCubeInteraction : MonoBehaviour
         if (cube == null) yield break;
         
         isRotating = true; // Block further rotation input
+        cube.CubeUnpowered(); // Disconnect power at start of rotation
         
         // Use visual parent for rotation instead of main transform
         Transform visualTransform = cube.visualParent;

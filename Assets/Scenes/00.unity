@@ -5646,7 +5646,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 2124630496601074580, guid: 8327116535cf1624d9db336499d66ebe, type: 3}
       propertyPath: m_LocalPosition.x
-      value: -1.96999
+      value: 9
       objectReference: {fileID: 0}
     - target: {fileID: 2124630496601074580, guid: 8327116535cf1624d9db336499d66ebe, type: 3}
       propertyPath: m_LocalPosition.y
@@ -5654,7 +5654,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 2124630496601074580, guid: 8327116535cf1624d9db336499d66ebe, type: 3}
       propertyPath: m_LocalPosition.z
-      value: 5.80888
+      value: -4.0300703
       objectReference: {fileID: 0}
     - target: {fileID: 2124630496601074580, guid: 8327116535cf1624d9db336499d66ebe, type: 3}
       propertyPath: m_LocalRotation.w
@@ -9562,6 +9562,42 @@ PrefabInstance:
       propertyPath: m_Name
       value: Power Source TEMP (00)
       objectReference: {fileID: 0}
+    - target: {fileID: 5131147076687689425, guid: dbd0f4ebc6a48084d9e297b9265589b0, type: 3}
+      propertyPath: m_LocalRotation.w
+      value: 0.7071068
+      objectReference: {fileID: 0}
+    - target: {fileID: 5131147076687689425, guid: dbd0f4ebc6a48084d9e297b9265589b0, type: 3}
+      propertyPath: m_LocalRotation.x
+      value: 0.7071068
+      objectReference: {fileID: 0}
+    - target: {fileID: 5131147076687689425, guid: dbd0f4ebc6a48084d9e297b9265589b0, type: 3}
+      propertyPath: m_LocalRotation.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 5131147076687689425, guid: dbd0f4ebc6a48084d9e297b9265589b0, type: 3}
+      propertyPath: m_LocalRotation.z
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 5131147076687689425, guid: dbd0f4ebc6a48084d9e297b9265589b0, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.x
+      value: 90
+      objectReference: {fileID: 0}
+    - target: {fileID: 5131147076687689425, guid: dbd0f4ebc6a48084d9e297b9265589b0, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.z
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 6094140318451116913, guid: dbd0f4ebc6a48084d9e297b9265589b0, type: 3}
+      propertyPath: m_Color.b
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 6094140318451116913, guid: dbd0f4ebc6a48084d9e297b9265589b0, type: 3}
+      propertyPath: m_Color.g
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 6094140318451116913, guid: dbd0f4ebc6a48084d9e297b9265589b0, type: 3}
+      propertyPath: m_Color.r
+      value: 1
+      objectReference: {fileID: 0}
     - target: {fileID: 8461288472443543211, guid: dbd0f4ebc6a48084d9e297b9265589b0, type: 3}
       propertyPath: m_LocalPosition.x
       value: 10
@@ -9622,7 +9658,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 2a4018850ea7481468b0bf92db03af3f, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::PowerSource
-  powerColor: {r: 1, g: 0, b: 0, a: 1}
+  powerColor: {r: 0.9685534, g: 0.28325605, b: 0.4545804, a: 1}
   maxPower: 10
   powerUsage: 0
   TriggersList: []

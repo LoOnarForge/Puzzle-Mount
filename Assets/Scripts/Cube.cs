@@ -159,6 +159,7 @@ public class PowerCube : MonoBehaviour
         }
         
         // Apply rotation to whole cube transform
+        CubeUnpowered(); // Disconnect at start of rotation
         transform.rotation = Quaternion.Euler(xRot, yRot, zRot);
     }
     
@@ -322,6 +323,7 @@ public class PowerCube : MonoBehaviour
     private System.Collections.IEnumerator MoveTo(Vector3 targetPosition, Vector3 direction)
     {
         isMoving = true;
+        CubeUnpowered(); // Disconnect at start of movement
         Vector3 startPos = transform.position;
         
         // Temporarily unlock the movement axis
@@ -366,5 +368,100 @@ public class PowerCube : MonoBehaviour
     
     // PowerLine Connection System
     
-   
+    public void CubePowered(PowerSource powerSource, SpriteRenderer sprite, Transform faceTransform, Color color)
+    {
+        // Color the sprite
+        if (sprite != null)
+            sprite.color = color;
+
+        // Update inspector using simple transform comparison
+        if (faceTransform.name == "Top Face")
+        {
+            topFaceConnectedPS = powerSource;
+            topFaceColor = color;
+        }
+        else if (faceTransform.name == "Bottom Face")
+        {
+            bottomFaceConnectedPS = powerSource;
+            bottomFaceColor = color;
+        }
+        else if (faceTransform.name == "North Face")
+        {
+            northFaceConnectedPS = powerSource;
+            northFaceColor = color;
+        }
+        else if (faceTransform.name == "East Face")
+        {
+            eastFaceConnectedPS = powerSource;
+            eastFaceColor = color;
+        }
+        else if (faceTransform.name == "South Face")
+        {
+            southFaceConnectedPS = powerSource;
+            southFaceColor = color;
+        }
+        else if (faceTransform.name == "West Face")
+        {
+            westFaceConnectedPS = powerSource;
+            westFaceColor = color;
+        }
+    }
+
+    public void CubeUnpowered()
+    {
+        // Only disconnect faces that actually have a PowerSource
+        if (topFaceConnectedPS != null)
+        {
+            topFaceConnectedPS.CubeDisconnected(this.gameObject);
+            topFaceConnectedPS = null;
+            topFaceColor = Color.white;
+            ResetFaceSprite("Top Face");
+        }
+        if (bottomFaceConnectedPS != null)
+        {
+            bottomFaceConnectedPS.CubeDisconnected(this.gameObject);
+            bottomFaceConnectedPS = null;
+            bottomFaceColor = Color.white;
+            ResetFaceSprite("Bottom Face");
+        }
+        if (northFaceConnectedPS != null)
+        {
+            northFaceConnectedPS.CubeDisconnected(this.gameObject);
+            northFaceConnectedPS = null;
+            northFaceColor = Color.white;
+            ResetFaceSprite("North Face");
+        }
+        if (eastFaceConnectedPS != null)
+        {
+            eastFaceConnectedPS.CubeDisconnected(this.gameObject);
+            eastFaceConnectedPS = null;
+            eastFaceColor = Color.white;
+            ResetFaceSprite("East Face");
+        }
+        if (southFaceConnectedPS != null)
+        {
+            southFaceConnectedPS.CubeDisconnected(this.gameObject);
+            southFaceConnectedPS = null;
+            southFaceColor = Color.white;
+            ResetFaceSprite("South Face");
+        }
+        if (westFaceConnectedPS != null)
+        {
+            westFaceConnectedPS.CubeDisconnected(this.gameObject);
+            westFaceConnectedPS = null;
+            westFaceColor = Color.white;
+            ResetFaceSprite("West Face");
+        }
+    }
+
+    private void ResetFaceSprite(string faceName)
+    {
+        Transform faceTransform = transform.Find($"Visual PC/{faceName}");
+        if (faceTransform != null && faceTransform.childCount > 0)
+        {
+            SpriteRenderer sprite = faceTransform.GetChild(0).GetComponent<SpriteRenderer>();
+            if (sprite != null)
+                sprite.color = Color.white;
+        }
+    }
 }

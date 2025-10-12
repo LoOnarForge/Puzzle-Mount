@@ -87,15 +87,22 @@ public class PowerSource : MonoBehaviour
         if (cube != null)
         {
             AddPowerCube(cube.gameObject);
+            
+            // Get the exact sprite that needs coloring
+            SpriteRenderer sprite = other.transform.parent.GetComponent<SpriteRenderer>();
+            
+            // Get the exact face transform to identify which inspector fields to update
+            Transform faceTransform = other.transform.parent.parent;
+            
+            // Tell cube exactly which sprite to color and which fields to update
+            cube.CubePowered(this, sprite, faceTransform, powerColor);
         }
     }
 
-    private void OnTriggerExit(Collider other)
+
+    public void CubeDisconnected(GameObject cubeGameObject)
     {
-        PowerCube cube = other.GetComponentInParent<PowerCube>();
-        if (cube != null)
-        {
-            RemovePowerCube(cube.gameObject);
-        }
+        RemovePowerCube(cubeGameObject);
+        powerUsage -= 1;
     }
 }
