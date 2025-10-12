@@ -32,6 +32,12 @@ public class TimCubeInteraction : MonoBehaviour
     private bool isFirstPush = true;
     private bool isPushingThisFrame;
     
+    // Highlighted cube tracking (moved from CubeManager)
+    private PowerCube currentlyHighlightedCube = null;
+    
+    // Public getter for highlighted cube
+    public PowerCube GetHighlightedCube() { return currentlyHighlightedCube; }
+    
     // Rotation tracking
     private bool isRotating = false;
     
@@ -51,8 +57,7 @@ public class TimCubeInteraction : MonoBehaviour
         // Only check for cubes when grounded
         if (characterMovement.IsGrounded) 
         {
-            CheckCubeDetection();
-            CheckCubePushing();
+            CheckCubeInteraction(); // Unified cube detection and interaction
         }
         
         HandleCubeSelection();
@@ -63,6 +68,132 @@ public class TimCubeInteraction : MonoBehaviour
         if (!isPushingThisFrame && (currentTargetCube != null))
         {
             ResetPushEngagement();
+        }
+    }
+
+    /// <summary>
+    /// Unified cube interaction - single raycast handles both detection and pushing
+    /// </summary>
+    private void CheckCubeInteraction()
+    {
+        // Cast ray at Tim's interaction level in facing direction
+        float detectionHeight = 0.8f;
+        Vector3 rayStart = timTransform.position + Vector3.up * detectionHeight;
+        Vector3 rayDirection = timTransform.forward;
+        
+        RaycastHit hit;
+        
+        // Draw both raycasts for visualization (yellow for detection, red for pushing)
+        Debug.DrawRay(rayStart, rayDirection * pushRange, Color.yellow, Time.deltaTime);
+        Debug.DrawRay(rayStart, rayDirection * pushRange, Color.red, Time.deltaTime);
+        
+        if (Physics.Raycast(rayStart, rayDirection, out hit, pushRange))
+        {
+            PowerCube hitCube = hit.collider.GetComponent<PowerCube>();
+            if (hitCube != null)
+            {
+                HandleCubeHighlighting(hitCube);
+                HandleCubePushing(hitCube);
+            }
+            else
+            {
+                HandleCubeHighlighting(null);
+            }
+        }
+        else
+        {
+            HandleCubeHighlighting(null);
+        }
+    }
+
+    /// <summary>
+    /// Handle cube highlighting logic (lenient alignment)
+    /// </summary>
+    private void HandleCubeHighlighting(PowerCube hitCube)
+    {
+        if (hitCube != null && IsReasonablyAlignedForDetection(hitCube.transform))
+        {
+            // Set this cube as highlighted
+            if (currentlyHighlightedCube != hitCube)
+            {
+                currentlyHighlightedCube = hitCube;
+                
+                // Update CubeManager with the highlighted cube at Tim's level
+                if (CubeManager.Instance != null)
+                {
+                    CubeManager.Instance.SetTargetedCubeAtTimLevel(hitCube, timTransform.position);
+                }
+            }
+        }
+        else
+        {
+            // Clear highlighting
+            if (currentlyHighlightedCube != null)
+            {
+                currentlyHighlightedCube = null;
+                
+                if (CubeManager.Instance != null)
+                {
+                    CubeManager.Instance.SetTargetedCube(null);
+                }
+            }
+        }
+    }
+
+    /// <summary>
+    /// Handle cube pushing logic (strict alignment, requires movement input)
+    /// </summary>
+    private void HandleCubePushing(PowerCube hitCube)
+    {
+        Vector3 moveDirection = characterMovement.GetMovementDirectionExternal();
+        
+        // Only handle pushing if there's movement input
+        if (moveDirection.magnitude < 0.1f)
+        {
+            return;
+        }
+        
+        if (hitCube != null && IsProperlyAlignedToPush(hitCube.transform, timTransform.forward))
+        {
+            // Get stack from Tim's level upward for pushing
+            PowerCube[] stackFromTimLevel = new PowerCube[0];
+            if (CubeManager.Instance != null)
+            {
+                stackFromTimLevel = CubeManager.Instance.GetStackFromTimLevel(timTransform.position);
+            }
+            
+            // Check if this level-based stack can be pushed (3 cubes or fewer)
+            bool canPushStack = stackFromTimLevel.Length <= 3;
+            if (!canPushStack)
+            {
+                return; // Don't set isPushingThisFrame - this prevents delay timer
+            }
+            
+            // Tim is actively trying to push this cube
+            isPushingThisFrame = true;
+            
+            // Calculate push direction from relative position
+            Vector3 pushDirection = hitCube.GetRelativePushDirection(timTransform);
+            
+            // Check if this is a new push engagement or direction change
+            if (HasPushEngagementChanged(hitCube, pushDirection))
+            {
+                StartNewPushEngagement(hitCube, pushDirection);
+            }
+            
+            // Only push if delay has elapsed (or no delay needed for continued pushing)
+            if (!isDelayActive)
+            {
+                bool pushSuccess = hitCube.TryPush(pushDirection);
+                if (pushSuccess)
+                {
+                    // Invalidate stack cache when cube moves
+                    CubeManager.Instance?.InvalidateStackCache();
+                    
+                    // Start continuous push delay for next push (don't reset engagement)
+                    StartContinuousPushDelay();
+                }
+            }
         }
     }
 
@@ -133,150 +264,8 @@ public class TimCubeInteraction : MonoBehaviour
     }
     
     /// <summary>
-    /// Check for nearby cubes for highlighting and selection (runs every frame)
-    /// Based on distance and facing direction, not movement
-    /// </summary>
-    private void CheckCubeDetection()
-    {
-        // Cast ray at Tim's interaction level to detect cubes he's facing   
-        float detectionHeight = 0.8f;
-        Vector3 rayStart = timTransform.position + Vector3.up * detectionHeight;
-        Vector3 forward = timTransform.forward;
-        
-        RaycastHit hit;
-        Debug.DrawRay(rayStart, forward * pushRange, Color.yellow, Time.deltaTime);
-        
-        if (Physics.Raycast(rayStart, forward, out hit, pushRange))
-        {
-            PowerCube cube = hit.collider.GetComponent<PowerCube>();
-            if (cube != null)
-            {
-                // Check if Tim is reasonably aligned (more lenient since this is for highlighting)
-                if (IsReasonablyAlignedForDetection(cube.transform))
-                {
-                    // Highlight the cube at Tim's level
-                    if (CubeManager.Instance != null)
-                    {
-                        CubeManager.Instance.SetTargetedCubeAtTimLevel(cube, timTransform.position);
-                    }
-                }
-                else
-                {
-                    // Not aligned, clear selection
-                    if (CubeManager.Instance != null)
-                    {
-                        CubeManager.Instance.SetTargetedCube(null);
-                    }
-                }
-            }
-            else
-            {
-                // Hit something but not a cube, clear selection
-                if (CubeManager.Instance != null)
-                {
-                    CubeManager.Instance.SetTargetedCube(null);
-                }
-            }
-        }
-        else
-        {
-            // No raycast hit, clear selection
-            if (CubeManager.Instance != null)
-            {
-                CubeManager.Instance.SetTargetedCube(null);
-            }
-        }
-    }
-    
-    /// <summary>
     /// Check if Tim is trying to push a cube and attempt to push it
     /// Only pushes when Tim is properly aligned and has movement input
-    /// </summary>
-    private void CheckCubePushing()
-    {
-        // Only check for pushing if Tim has movement input
-        Vector3 moveDirection = characterMovement.GetMovementDirectionExternal();
-        if (moveDirection.magnitude < 0.1f)
-        {
-            return; // No movement input - don't check for pushing
-        }
-        
-        // Get currently targeted cube (from detection)
-        PowerCube targetedCube = null;
-        if (CubeManager.Instance != null)
-        {
-            targetedCube = CubeManager.Instance.GetTargetedCube();
-        }
-        
-        if (targetedCube == null)
-        {
-            return; // No cube is currently targeted
-        }
-        
-        // Cast ray in movement direction to verify Tim is pushing toward the cube
-        Vector3 rayDirection = moveDirection.normalized;
-        float detectionHeight = 0.8f;
-        Vector3 rayStart = timTransform.position + Vector3.up * detectionHeight;
-        
-        RaycastHit hit;
-        
-        // DEBUG: Show push raycast in red to distinguish from detection
-        Debug.DrawRay(rayStart, rayDirection * pushRange, Color.red);
-        
-        if (Physics.Raycast(rayStart, rayDirection, out hit, pushRange))
-        {
-            PowerCube cube = hit.collider.GetComponent<PowerCube>();
-            if (cube == targetedCube)
-            {
-                // Check if Tim is properly aligned to push this cube (strict alignment for pushing)
-                if (IsProperlyAlignedToPush(cube.transform, rayDirection))
-                {
-                    // Get stack from Tim's level upward for pushing
-                    PowerCube[] stackFromTimLevel = new PowerCube[0];
-                    if (CubeManager.Instance != null)
-                    {
-                        stackFromTimLevel = CubeManager.Instance.GetStackFromTimLevel(timTransform.position);
-                    }
-                    
-                    // Check if this level-based stack can be pushed (3 cubes or fewer)
-                    bool canPushStack = stackFromTimLevel.Length <= 3;
-                    if (!canPushStack)
-                    {
-                        return; // Don't set isPushingThisFrame - this prevents delay timer
-                    }
-                    
-                    // Tim is actively trying to push this cube
-                    isPushingThisFrame = true;
-                    
-                    // Calculate push direction from relative position
-                    Vector3 pushDirection = cube.GetRelativePushDirection(timTransform);
-                    
-                    // Check if this is a new push engagement or direction change
-                    if (HasPushEngagementChanged(cube, pushDirection))
-                    {
-                        StartNewPushEngagement(cube, pushDirection);
-                    }
-                    
-                    // Only push if delay has elapsed (or no delay needed for continued pushing)
-                    if (!isDelayActive)
-                    {
-                        bool pushSuccess = cube.TryPush(pushDirection);
-                        if (pushSuccess)
-                        {
-                            // Invalidate stack cache when cube moves
-                            CubeManager.Instance?.InvalidateStackCache();
-                            
-                            // Start continuous push delay for next push (don't reset engagement)
-                            StartContinuousPushDelay();
-                        }
-                    }
-                }
-            }
-        }
-    }
-    
-    /// <summary>
-    /// Handle cube selection cycling with Tab key
     /// </summary>
     private void HandleCubeSelection()
     {
