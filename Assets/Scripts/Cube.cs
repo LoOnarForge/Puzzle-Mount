@@ -75,6 +75,8 @@ public class PowerCube : MonoBehaviour
     // PowerLine connection tracking
     private bool[] faceConnections = new bool[6]; // Top, Bottom, North, East, South, West
     private PowerLineState[] faceStates = new PowerLineState[6];
+    private Color[] facePowerColors = new Color[6];
+    private PowerSource[] faceConnectedSources = new PowerSource[6];
     
     private void Awake()
     {
@@ -366,18 +368,14 @@ public class PowerCube : MonoBehaviour
     
     private void HandlePowerLineConnection(Collider powerLineCollider, bool connecting)
     {
-        // Determine which face this connection belongs to
         int faceIndex = GetFaceIndexFromCollider(powerLineCollider);
         if (faceIndex < 0) return;
         
-        // Update connection state
         faceConnections[faceIndex] = connecting;
-        
-        // Update visual state
         UpdateFaceConnectionState(faceIndex);
     }
     
-    private int GetFaceIndexFromCollider(Collider collider)
+    public int GetFaceIndexFromCollider(Collider collider)
     {
         // Get face name from collider's parent
         string faceName = collider.transform.parent?.name ?? collider.name;
@@ -396,14 +394,11 @@ public class PowerCube : MonoBehaviour
     
     private void UpdateFaceConnectionState(int faceIndex)
     {
-        // Determine new state
         PowerLineState newState = faceConnections[faceIndex] ? 
             PowerLineState.UnpoweredConnected : 
             PowerLineState.UnpoweredUnconnected;
         
         faceStates[faceIndex] = newState;
-        
-        // Update visual color
         ApplyFaceColor(faceIndex, newState);
     }
     
@@ -417,9 +412,46 @@ public class PowerCube : MonoBehaviour
             SpriteRenderer renderer = faceTransform.GetComponent<SpriteRenderer>();
             if (renderer != null && CubeManager.Instance != null)
             {
-                CubeManager.Instance.SetPowerLineColor(renderer, state);
+                if (state == PowerLineState.Powered)
+                {
+                    renderer.color = facePowerColors[faceIndex];
+                }
+                else
+                {
+                    CubeManager.Instance.SetPowerLineColor(renderer, state);
+                }
             }
         }
+    }
+    
+    public bool TryConnectToSource(PowerSource source, int faceIndex)
+    {
+        if (source.RequestPower())
+        {
+            faceConnectedSources[faceIndex] = source;
+            faceStates[faceIndex] = PowerLineState.Powered;
+            facePowerColors[faceIndex] = source.powerColor;
+            ApplyFaceColor(faceIndex, PowerLineState.Powered);
+            return true;
+        }
+        return false;
+    }
+    
+    public void DisconnectFromSource(PowerSource source, int faceIndex)
+    {
+        if (faceConnectedSources[faceIndex] == source)
+        {
+            source.ReleasePower();
+            faceConnectedSources[faceIndex] = null;
+            faceStates[faceIndex] = faceConnections[faceIndex] ? PowerLineState.UnpoweredConnected : PowerLineState.UnpoweredUnconnected;
+            facePowerColors[faceIndex] = Color.clear;
+            ApplyFaceColor(faceIndex, faceStates[faceIndex]);
+        }
+    }
+    
+    public Color GetFacePowerColor(int faceIndex)
+    {
+        return facePowerColors[faceIndex];
     }
     
     public void UpdateAllFaceColors()
