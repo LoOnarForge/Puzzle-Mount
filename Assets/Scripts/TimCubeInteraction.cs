@@ -45,6 +45,11 @@ public class TimCubeInteraction : MonoBehaviour
     private int selectedIndex = 0;
     private PowerCube selectedCube = null;
     
+    // Cache for performance optimization
+    private PowerCube[] allCubesCache = null;
+    private float lastCubesCacheTime = 0f;
+    private const float CACHE_REFRESH_INTERVAL = 1.0f; // Refresh cache every second
+    
     // Public getter for highlighted cube 
     public PowerCube GetHighlightedCube() { return currentlyHighlightedCube; }
     
@@ -94,9 +99,11 @@ public class TimCubeInteraction : MonoBehaviour
         
         RaycastHit hit;
         
-        // Draw both raycasts for visualization (yellow for detection, red for pushing)
+#if UNITY_EDITOR
+        // Draw debug rays only in editor for performance
         Debug.DrawRay(rayStart, rayDirection * pushRange, Color.yellow, Time.deltaTime);
         Debug.DrawRay(rayStart, rayDirection * pushRange, Color.red, Time.deltaTime);
+#endif
         
         if (Physics.Raycast(rayStart, rayDirection, out hit, pushRange))
         {
@@ -136,7 +143,7 @@ public class TimCubeInteraction : MonoBehaviour
                 currentlyHighlightedCube = hitCube;
                 
                 // Update current stack
-                currentStack = GetStackFromHighlightedCube();
+                currentStack = GetStackFromHighlightedCube(hitCube);
                 
                 // Try to preserve selection if the previously selected cube is still in the new stack
                 bool selectionPreserved = false;
@@ -238,7 +245,9 @@ public class TimCubeInteraction : MonoBehaviour
             // Only push if delay has elapsed
             if (!isDelayActive)
             {
-                bool pushSuccess = hitCube.TryPush(pushDirection);
+                // Get the stack Tim detected and push it properly
+                PowerCube[] currentStack = GetStackFromHighlightedCube(hitCube);
+                bool pushSuccess = TryPushStack(currentStack, pushDirection);
                 if (pushSuccess)
                 {
                     // Start continuous push delay for next push
@@ -492,20 +501,64 @@ public class TimCubeInteraction : MonoBehaviour
     }
     
     /// <summary>
-    /// Get stack from currently highlighted cube (simple version for Tim's needs)
+    /// Try to push an entire stack of cubes - Tim handles the coordination
     /// </summary>
-    private PowerCube[] GetStackFromHighlightedCube()
+    private bool TryPushStack(PowerCube[] stack, Vector3 direction)
     {
-        if (currentlyHighlightedCube == null) return new PowerCube[0];
+        if (stack == null || stack.Length == 0) return false;
         
-        // Simple stack detection - just find cubes above the highlighted cube
-        List<PowerCube> stack = new List<PowerCube> { currentlyHighlightedCube };
-        PowerCube[] allCubes = FindObjectsByType<PowerCube>(FindObjectsSortMode.None);
-        Vector3 basePos = currentlyHighlightedCube.transform.position;
+        // Check if all cubes in the stack can be pushed
+        bool allCanMove = true;
+        foreach (var cube in stack)
+        {
+            if (!cube.CanPushSingle(direction))
+            {
+                allCanMove = false;
+                break;
+            }
+        }
+        
+        if (!allCanMove) return false;
+        
+        // Push all cubes in the stack
+        foreach (var cube in stack)
+        {
+            cube.PushSingle(direction);
+        }
+        
+        return true;
+    }
+    
+    /// <summary>
+    /// Get cached list of all cubes in scene (refreshed periodically for performance)
+    /// </summary>
+    private PowerCube[] GetAllCubesOptimized()
+    {
+        float currentTime = Time.time;
+        if (allCubesCache == null || currentTime - lastCubesCacheTime > CACHE_REFRESH_INTERVAL)
+        {
+            allCubesCache = FindObjectsByType<PowerCube>(FindObjectsSortMode.None);
+            lastCubesCacheTime = currentTime;
+        }
+        return allCubesCache;
+    }
+    
+    /// <summary>
+    /// Get stack from currently highlighted cube (optimized version)
+    /// </summary>
+    private PowerCube[] GetStackFromHighlightedCube(PowerCube targetCube = null)
+    {
+        PowerCube baseCube = targetCube ?? currentlyHighlightedCube;
+        if (baseCube == null) return new PowerCube[0];
+        
+        // Use cached cube list for better performance
+        List<PowerCube> stack = new List<PowerCube> { baseCube };
+        PowerCube[] allCubes = GetAllCubesOptimized();
+        Vector3 basePos = baseCube.transform.position;
         
         foreach (PowerCube cube in allCubes)
         {
-            if (cube == currentlyHighlightedCube) continue;
+            if (cube == baseCube) continue;
             
             Vector3 cubePos = cube.transform.position;
             float alignmentTolerance = 0.1f;

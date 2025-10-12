@@ -38,13 +38,13 @@ public enum PowerLineType
 [RequireComponent(typeof(BoxCollider))]
 public class PowerCube : MonoBehaviour
 {
-    [Header("MOVEMENT SETTINGS:")]
+    [Header("MOVEMENT")]
     public float moveSpeed = 5f;
     
-    [Header("VISUAL SETTINGS:")]
+    [Header("VISUAL")]
     public Transform visualParent;
     
-    [Header("POWER LINES SETTINGS:")]
+    [Header("POWER LINES")]
     public PowerLineType topFace = PowerLineType.Empty;
     public PowerLineType bottomFace = PowerLineType.Empty;
     public PowerLineType northFace = PowerLineType.Empty;
@@ -64,10 +64,10 @@ public class PowerCube : MonoBehaviour
     [HideInInspector] public GameObject tSectionLeftPrefab;
     [HideInInspector] public GameObject crossPrefab;
     
-    [Header("ROTATION SETTINGS:")]
+    [Header("RANDOM ROTATION")]
     public bool randomRotateOnStart = true;
     
-    [Header("DEBUG SETTINGS:")]
+    [Header("DEBUG SETTINGS")]
     public bool isMoving = false;
     
     private Rigidbody rb;
@@ -198,9 +198,9 @@ public class PowerCube : MonoBehaviour
     }
     
     /// <summary>
-    /// Push the cube or stack from Tim's level upward - called by Tim
+    /// Check if this single cube can be pushed in the given direction
     /// </summary>
-    public bool TryPush(Vector3 direction)
+    public bool CanPushSingle(Vector3 direction)
     {
         if (isMoving) return false;
         
@@ -211,38 +211,19 @@ public class PowerCube : MonoBehaviour
         Vector3 pushDir = GetGridDirection(direction);
         if (pushDir == Vector3.zero) return false;
         
-        // Get only this cube's vertical stack (cubes directly above this one)
-        PowerCube[] stackFromLevel = GetVerticalStackFromThisCube();
-        
-        // If no level-based stack found, just push this cube alone
-        if (stackFromLevel.Length == 0)
-        {
-            stackFromLevel = new PowerCube[] { this };
-        }
-        
-        // Check if all positions in the stack's destination are clear
-        bool allPositionsClear = true;
-        Vector3[] targetPositions = new Vector3[stackFromLevel.Length];
-        
-        for (int i = 0; i < stackFromLevel.Length; i++)
-        {
-            targetPositions[i] = stackFromLevel[i].transform.position + pushDir;
-            if (!IsPositionClear(targetPositions[i]))
-            {
-                allPositionsClear = false;
-                break;
-            }
-        }
-        
-        if (!allPositionsClear) return false;
-        
-        // Push all cubes in the level-based stack
-        for (int i = 0; i < stackFromLevel.Length; i++)
-        {
-            stackFromLevel[i].StartCoroutine(stackFromLevel[i].MoveTo(targetPositions[i], pushDir));
-        }
-        
-        return true;
+        // Check if target position is clear
+        Vector3 targetPosition = transform.position + pushDir;
+        return IsPositionClear(targetPosition);
+    }
+    
+    /// <summary>
+    /// Push this single cube in the given direction - called by Tim after checking CanPushSingle
+    /// </summary>
+    public void PushSingle(Vector3 direction)
+    {
+        Vector3 pushDir = GetGridDirection(direction);
+        Vector3 targetPosition = transform.position + pushDir;
+        StartCoroutine(MoveTo(targetPosition, pushDir));
     }
     
     /// <summary>
@@ -447,43 +428,5 @@ public class PowerCube : MonoBehaviour
         {
             ApplyFaceColor(i, faceStates[i]);
         }
-    }
-    
-    /// <summary>
-    /// Get vertical stack starting from this cube upward (only cubes directly above this one)
-    /// </summary>
-    private PowerCube[] GetVerticalStackFromThisCube()
-    {
-        List<PowerCube> verticalStack = new List<PowerCube> { this };
-        Vector3 basePos = transform.position;
-        
-        // Find all cubes in scene (inefficient but simple)
-        PowerCube[] allCubes = FindObjectsByType<PowerCube>(FindObjectsSortMode.None);
-        
-        // Find cubes directly above this one
-        List<PowerCube> cubesAbove = new List<PowerCube>();
-        foreach (PowerCube cube in allCubes)
-        {
-            if (cube == this) continue;
-            
-            Vector3 cubePos = cube.transform.position;
-            
-            // Check alignment (same column) and if above this cube
-            float alignmentTolerance = 0.1f;
-            bool isAligned = Mathf.Abs(cubePos.x - basePos.x) < alignmentTolerance && 
-                           Mathf.Abs(cubePos.z - basePos.z) < alignmentTolerance;
-            bool isAbove = cubePos.y > basePos.y;
-            
-            if (isAligned && isAbove)
-            {
-                cubesAbove.Add(cube);
-            }
-        }
-        
-        // Sort by height and add to stack
-        cubesAbove.Sort((a, b) => a.transform.position.y.CompareTo(b.transform.position.y));
-        verticalStack.AddRange(cubesAbove);
-        
-        return verticalStack.ToArray();
     }
 }
