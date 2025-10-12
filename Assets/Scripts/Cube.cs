@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using UnityEngine;
 
 public enum PowerLineType
@@ -217,17 +218,8 @@ public class PowerCube : MonoBehaviour
         Vector3 pushDir = GetGridDirection(direction);
         if (pushDir == Vector3.zero) return false;
         
-        // Get stack from Tim's level upward for this cube
-        PowerCube[] stackFromLevel = new PowerCube[0];
-        if (CubeManager.Instance != null)
-        {
-            // Find Tim's position - we need to get it from CharacterMovement
-            CharacterMovement tim = FindFirstObjectByType<CharacterMovement>();
-            if (tim != null)
-            {
-                stackFromLevel = CubeManager.Instance.GetStackFromTimLevel(tim.transform.position);
-            }
-        }
+        // Get only this cube's vertical stack (cubes directly above this one)
+        PowerCube[] stackFromLevel = GetVerticalStackFromThisCube();
         
         // If no level-based stack found, just push this cube alone
         if (stackFromLevel.Length == 0)
@@ -458,5 +450,43 @@ public class PowerCube : MonoBehaviour
         {
             ApplyFaceColor(i, faceStates[i]);
         }
+    }
+    
+    /// <summary>
+    /// Get vertical stack starting from this cube upward (only cubes directly above this one)
+    /// </summary>
+    private PowerCube[] GetVerticalStackFromThisCube()
+    {
+        List<PowerCube> verticalStack = new List<PowerCube> { this };
+        Vector3 basePos = transform.position;
+        
+        // Find all cubes in scene (inefficient but simple)
+        PowerCube[] allCubes = FindObjectsByType<PowerCube>(FindObjectsSortMode.None);
+        
+        // Find cubes directly above this one
+        List<PowerCube> cubesAbove = new List<PowerCube>();
+        foreach (PowerCube cube in allCubes)
+        {
+            if (cube == this) continue;
+            
+            Vector3 cubePos = cube.transform.position;
+            
+            // Check alignment (same column) and if above this cube
+            float alignmentTolerance = 0.1f;
+            bool isAligned = Mathf.Abs(cubePos.x - basePos.x) < alignmentTolerance && 
+                           Mathf.Abs(cubePos.z - basePos.z) < alignmentTolerance;
+            bool isAbove = cubePos.y > basePos.y;
+            
+            if (isAligned && isAbove)
+            {
+                cubesAbove.Add(cube);
+            }
+        }
+        
+        // Sort by height and add to stack
+        cubesAbove.Sort((a, b) => a.transform.position.y.CompareTo(b.transform.position.y));
+        verticalStack.AddRange(cubesAbove);
+        
+        return verticalStack.ToArray();
     }
 }

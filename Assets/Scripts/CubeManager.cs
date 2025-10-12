@@ -226,7 +226,7 @@ public class CubeManager : MonoBehaviour
     
     /// <summary>
     /// Set the cube that Tim's raycast hit as targeted, and highlight the cube at Tim's level
-    /// This ensures the cube at Tim's level is highlighted, not necessarily the bottom cube
+    /// Uses the actual hit cube instead of proximity search to avoid side cube selection
     /// </summary>
     public void SetTargetedCubeAtTimLevel(PowerCube hitCube, Vector3 timPosition)
     {
@@ -236,11 +236,11 @@ public class CubeManager : MonoBehaviour
             return;
         }
         
-        // Find the cube at Tim's level in the same stack
-        PowerCube[] stackFromTimLevel = GetStackFromTimLevel(timPosition);
-        if (stackFromTimLevel.Length > 0)
+        // Use the actual hit cube as the base, then find its level-based stack
+        PowerCube[] stackFromHitCube = GetStackFromSpecificCube(hitCube, timPosition);
+        if (stackFromHitCube.Length > 0)
         {
-            PowerCube cubeAtTimLevel = stackFromTimLevel[0]; // First cube is at Tim's level
+            PowerCube cubeAtTimLevel = stackFromHitCube[0]; // First cube is at Tim's level
             
             // Set this cube as targeted for highlighting
             if (targetedBaseCube != cubeAtTimLevel)
@@ -248,7 +248,7 @@ public class CubeManager : MonoBehaviour
                 targetedBaseCube = cubeAtTimLevel;
                 int oldIndex = currentSelectedIndex;
                 currentSelectedIndex = 0; // Start selection at Tim's level cube
-                currentStackArray = stackFromTimLevel; // Use the level-based stack
+                currentStackArray = stackFromHitCube; // Use the level-based stack
                 
                 // Debug.Log($"[CubeManager] Targeted cube at Tim's level: {cubeAtTimLevel.name}, Stack size from level: {currentStackArray.Length}");
                 
@@ -457,6 +457,81 @@ public class CubeManager : MonoBehaviour
         stackFromLevel.AddRange(cubesAbove);
         
         return stackFromLevel.ToArray();
+    }
+    
+    /// <summary>
+    /// Get stack from Tim's level upward using a specific hit cube as reference
+    /// This avoids proximity search and uses the actual cube that was hit by raycast
+    /// </summary>
+    public PowerCube[] GetStackFromSpecificCube(PowerCube hitCube, Vector3 timPosition)
+    {
+        if (hitCube == null) return new PowerCube[0];
+        
+        // Calculate Tim's detection level (0.8m above his feet)
+        float detectionHeight = 0.8f;
+        float timDetectionLevel = timPosition.y + detectionHeight;
+        
+        // Check if the hit cube is at Tim's level
+        Vector3 hitPos = hitCube.transform.position;
+        bool isAtTimLevel = Mathf.Abs(hitPos.y - timDetectionLevel) < 0.5f;
+        
+        if (isAtTimLevel)
+        {
+            // Hit cube is at Tim's level - use it as base
+            List<PowerCube> stackFromLevel = new List<PowerCube> { hitCube };
+            Vector3 basePos = hitPos;
+            
+            // Find cubes above this level only
+            List<PowerCube> cubesAbove = new List<PowerCube>();
+            foreach (PowerCube cube in allCubes)
+            {
+                if (cube == hitCube) continue;
+                
+                Vector3 cubePos = cube.transform.position;
+                
+                // Check alignment and if above Tim's detection level
+                float alignmentTolerance = 0.1f;
+                bool isAligned = Mathf.Abs(cubePos.x - basePos.x) < alignmentTolerance && 
+                               Mathf.Abs(cubePos.z - basePos.z) < alignmentTolerance;
+                bool isAboveTimLevel = cubePos.y > timDetectionLevel;
+                
+                if (isAligned && isAboveTimLevel)
+                {
+                    cubesAbove.Add(cube);
+                }
+            }
+            
+            // Sort by height and add to stack
+            cubesAbove.Sort((a, b) => a.transform.position.y.CompareTo(b.transform.position.y));
+            stackFromLevel.AddRange(cubesAbove);
+            
+            return stackFromLevel.ToArray();
+        }
+        else
+        {
+            // Hit cube is not at Tim's level - find cube at Tim's level in same column
+            Vector3 basePos = hitPos;
+            
+            foreach (PowerCube cube in allCubes)
+            {
+                Vector3 cubePos = cube.transform.position;
+                
+                // Check if cube is at Tim's level and in same column as hit cube
+                bool isAtTimLevel2 = Mathf.Abs(cubePos.y - timDetectionLevel) < 0.5f;
+                float alignmentTolerance = 0.1f;
+                bool isAligned = Mathf.Abs(cubePos.x - basePos.x) < alignmentTolerance && 
+                               Mathf.Abs(cubePos.z - basePos.z) < alignmentTolerance;
+                
+                if (isAtTimLevel2 && isAligned)
+                {
+                    // Found cube at Tim's level in same column - get stack from this cube
+                    return GetStackFromSpecificCube(cube, timPosition);
+                }
+            }
+            
+            // No cube found at Tim's level in this column
+            return new PowerCube[0];
+        }
     }
     /// <summary>
     /// Get the entire stack for any cube in the stack (for legacy compatibility)
