@@ -27,12 +27,22 @@ public class PowerCubeEditor : Editor
     {
         PowerCube cube = (PowerCube)target;
         
-        // Draw everything except Power Lines and PowerLine Prefabs sections
-        DrawPropertiesExcluding(serializedObject, "topFace", "bottomFace", "northFace", "eastFace", "southFace", "westFace", 
+        // Draw basic properties (Movement, Random Rotation, Debug Settings)
+        DrawPropertiesExcluding(serializedObject, "topFace", "bottomFace", "northFace", "eastFace", "southFace", "westFace",
+            "topFaceColor", "bottomFaceColor", "northFaceColor", "eastFaceColor", "southFaceColor", "westFaceColor",
+            "topFaceConnectedPS", "bottomFaceConnectedPS", "northFaceConnectedPS", "eastFaceConnectedPS", "southFaceConnectedPS", "westFaceConnectedPS",
             "horizontalPrefab", "verticalPrefab", "cornerLeftTopPrefab", "cornerTopRightPrefab", "cornerRightBottomPrefab", 
             "cornerBottomLeftPrefab", "tSectionLeftPrefab", "tSectionTopPrefab", "tSectionRightPrefab", "tSectionBottomPrefab", "crossPrefab");
         
-        // Power Lines section with reset button
+        // Draw each face section with all its properties grouped together
+        DrawFaceSection("                    ═══ TOP FACE ═══", "topFace", "topFaceColor", "topFaceConnectedPS");
+        DrawFaceSection("                  ═══ BOTTOM FACE ═══", "bottomFace", "bottomFaceColor", "bottomFaceConnectedPS");
+        DrawFaceSection("                   ═══ NORTH FACE ═══", "northFace", "northFaceColor", "northFaceConnectedPS");
+        DrawFaceSection("                    ═══ EAST FACE ═══", "eastFace", "eastFaceColor", "eastFaceConnectedPS");
+        DrawFaceSection("                   ═══ SOUTH FACE ═══", "southFace", "southFaceColor", "southFaceConnectedPS");
+        DrawFaceSection("                    ═══ WEST FACE ═══", "westFace", "westFaceColor", "westFaceConnectedPS");
+        
+        // Power Lines section with reset button  
         EditorGUILayout.Space();
         EditorGUILayout.LabelField("Power Lines", EditorStyles.boldLabel);
         
@@ -47,7 +57,7 @@ public class PowerCubeEditor : Editor
             EditorUtility.SetDirty(cube);
         }
         
-        // Temporary test buttons
+        // Temporary test buttons at the bottom
         EditorGUILayout.Space();
         EditorGUILayout.LabelField("TEMP TEST BUTTONS", EditorStyles.boldLabel);
         
@@ -77,50 +87,6 @@ public class PowerCubeEditor : Editor
         if (GUILayout.Button("All TSectionBottom")) SetAllFaces(cube, PowerLineType.TSectionBottom);
         EditorGUILayout.EndHorizontal();
         
-        EditorGUILayout.Space();
-        
-        // Draw Power Lines dropdowns using SerializedProperty
-        SerializedProperty topFaceProp = serializedObject.FindProperty("topFace");
-        SerializedProperty bottomFaceProp = serializedObject.FindProperty("bottomFace");
-        SerializedProperty northFaceProp = serializedObject.FindProperty("northFace");
-        SerializedProperty eastFaceProp = serializedObject.FindProperty("eastFace");
-        SerializedProperty southFaceProp = serializedObject.FindProperty("southFace");
-        SerializedProperty westFaceProp = serializedObject.FindProperty("westFace");
-        
-        EditorGUILayout.PropertyField(topFaceProp, new GUIContent("Top Face"));
-        EditorGUILayout.PropertyField(bottomFaceProp, new GUIContent("Bottom Face"));
-        EditorGUILayout.PropertyField(northFaceProp, new GUIContent("North Face"));
-        EditorGUILayout.PropertyField(eastFaceProp, new GUIContent("East Face"));
-        EditorGUILayout.PropertyField(southFaceProp, new GUIContent("South Face"));
-        EditorGUILayout.PropertyField(westFaceProp, new GUIContent("West Face"));
-        
-        // Power Line Prefabs section
-        EditorGUILayout.Space();
-        EditorGUILayout.LabelField("Power Line Prefabs", EditorStyles.boldLabel);
-        SerializedProperty horizontalPrefab = serializedObject.FindProperty("horizontalPrefab");
-        SerializedProperty verticalPrefab = serializedObject.FindProperty("verticalPrefab");
-        SerializedProperty cornerLeftTopPrefab = serializedObject.FindProperty("cornerLeftTopPrefab");
-        SerializedProperty cornerTopRightPrefab = serializedObject.FindProperty("cornerTopRightPrefab");
-        SerializedProperty cornerRightBottomPrefab = serializedObject.FindProperty("cornerRightBottomPrefab");
-        SerializedProperty cornerBottomLeftPrefab = serializedObject.FindProperty("cornerBottomLeftPrefab");
-        SerializedProperty tSectionLeftPrefab = serializedObject.FindProperty("tSectionLeftPrefab");
-        SerializedProperty tSectionTopPrefab = serializedObject.FindProperty("tSectionTopPrefab");
-        SerializedProperty tSectionRightPrefab = serializedObject.FindProperty("tSectionRightPrefab");
-        SerializedProperty tSectionBottomPrefab = serializedObject.FindProperty("tSectionBottomPrefab");
-        SerializedProperty crossPrefab = serializedObject.FindProperty("crossPrefab");
-        
-        EditorGUILayout.PropertyField(horizontalPrefab);
-        EditorGUILayout.PropertyField(verticalPrefab);
-        EditorGUILayout.PropertyField(cornerLeftTopPrefab);
-        EditorGUILayout.PropertyField(cornerTopRightPrefab);
-        EditorGUILayout.PropertyField(cornerRightBottomPrefab);
-        EditorGUILayout.PropertyField(cornerBottomLeftPrefab);
-        EditorGUILayout.PropertyField(tSectionLeftPrefab);
-        EditorGUILayout.PropertyField(tSectionTopPrefab);
-        EditorGUILayout.PropertyField(tSectionRightPrefab);
-        EditorGUILayout.PropertyField(tSectionBottomPrefab);
-        EditorGUILayout.PropertyField(crossPrefab);
-        
         serializedObject.ApplyModifiedProperties();
         
         if (!initialized) return;
@@ -141,6 +107,20 @@ public class PowerCubeEditor : Editor
                 lastFaceTypes[i] = currentFaceTypes[i];
             }
         }
+    }
+    
+    private void DrawFaceSection(string header, string faceProperty, string colorProperty, string connectedPSProperty)
+    {
+        EditorGUILayout.Space();
+        EditorGUILayout.LabelField(header, EditorStyles.boldLabel);
+        
+        SerializedProperty faceProp = serializedObject.FindProperty(faceProperty);
+        SerializedProperty colorProp = serializedObject.FindProperty(colorProperty);
+        SerializedProperty psProp = serializedObject.FindProperty(connectedPSProperty);
+        
+        EditorGUILayout.PropertyField(faceProp, new GUIContent("Prefab Type"));
+        EditorGUILayout.PropertyField(colorProp, new GUIContent("Line Color"));
+        EditorGUILayout.PropertyField(psProp, new GUIContent("Connected PS"));
     }
     
     private void UpdateFacePrefab(PowerCube cube, int faceIndex, PowerLineType newType, string faceName)

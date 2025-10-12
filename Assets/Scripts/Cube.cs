@@ -44,13 +44,35 @@ public class PowerCube : MonoBehaviour
     [Header("VISUAL")]
     public Transform visualParent;
     
-    [Header("POWER LINES")]
     public PowerLineType topFace = PowerLineType.Empty;
+    public Color topFaceColor = Color.white;
+    public PowerSource topFaceConnectedPS;
+    
     public PowerLineType bottomFace = PowerLineType.Empty;
+    public Color bottomFaceColor = Color.white;
+    public PowerSource bottomFaceConnectedPS;
+    
     public PowerLineType northFace = PowerLineType.Empty;
+    public Color northFaceColor = Color.white;
+    public PowerSource northFaceConnectedPS;
+    
     public PowerLineType eastFace = PowerLineType.Empty;
+    public Color eastFaceColor = Color.white;
+    public PowerSource eastFaceConnectedPS;
+    
     public PowerLineType southFace = PowerLineType.Empty;
+    public Color southFaceColor = Color.white;
+    public PowerSource southFaceConnectedPS;
+    
     public PowerLineType westFace = PowerLineType.Empty;
+    public Color westFaceColor = Color.white;
+    public PowerSource westFaceConnectedPS;
+
+    [Header("RANDOM ROTATION")]
+    public bool randomRotateOnStart = true;
+    
+    [Header("DEBUG SETTINGS")]
+    public bool isMoving = false;
     
     [HideInInspector] public GameObject horizontalPrefab;
     [HideInInspector] public GameObject verticalPrefab;
@@ -63,12 +85,6 @@ public class PowerCube : MonoBehaviour
     [HideInInspector] public GameObject tSectionBottomPrefab;
     [HideInInspector] public GameObject tSectionLeftPrefab;
     [HideInInspector] public GameObject crossPrefab;
-    
-    [Header("RANDOM ROTATION")]
-    public bool randomRotateOnStart = true;
-    
-    [Header("DEBUG SETTINGS")]
-    public bool isMoving = false;
     
     private Rigidbody rb;
     
