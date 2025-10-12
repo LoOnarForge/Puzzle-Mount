@@ -190,15 +190,26 @@ public class TimCubeInteraction : MonoBehaviour
             // Calculate push direction based on Tim's position relative to cube (prevents wrong direction during transitions)
             Vector3 pushDirection = hitCube.GetRelativePushDirection(timTransform);
             
-            // Only start new engagement if this is actually a new target (ignore direction changes)
+            // Only start new engagement if this is actually a new target OR significantly different direction
             if (currentTargetCube != hitCube)
             {
                 StartNewPushEngagement(hitCube, pushDirection);
             }
             else
             {
-                // Same cube - just update direction without resetting delay
-                currentPushDirection = pushDirection;
+                // Same cube - check if direction changed significantly (different cardinal direction)
+                bool significantDirectionChange = currentPushDirection != pushDirection;
+                
+                if (significantDirectionChange)
+                {
+                    // Direction changed to different side of cube - reset to initial delay
+                    StartNewPushEngagement(hitCube, pushDirection);
+                }
+                else
+                {
+                    // Same direction - just update without resetting delay
+                    currentPushDirection = pushDirection;
+                }
             }
             
             // Only push if delay has elapsed
