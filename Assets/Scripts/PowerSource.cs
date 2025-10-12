@@ -1,65 +1,101 @@
 using UnityEngine;
+using System.Collections.Generic;
 
 public class PowerSource : MonoBehaviour
 {
-    [Header("POWER SOURCE")]
+    [Header("POWER SOURCE:")]
     public Color powerColor = Color.red;
-    public int maxPowerCapacity = 10;
-    
-    [Header("DEBUG")]
-    public int currentPowerUsage = 0;
-    
-    public bool RequestPower()
+
+    [Header("POWER OPTIONS:")]
+    public int maxPower = 10;
+    public int powerUsage = 0;
+
+    [Header("CONNECTIONS:")]
+    public List<Collider> TriggersList = new List<Collider>();
+    public List<GameObject> connectedCubes = new List<GameObject>();
+
+
+
+    private void Start()
     {
-        if (currentPowerUsage < maxPowerCapacity)
-        {
-            currentPowerUsage++;
-            return true;
-        }
-        return false;
+        CheckForTriggers();
+        UpdatePowerColors();
+        CheckForPowerConnections();
     }
-    
-    public void ReleasePower()
+
+    private void CheckForTriggers()
     {
-        if (currentPowerUsage > 0)
+        TriggersList.Clear();
+
+        Collider[] childColliders = GetComponentsInChildren<Collider>();
+
+        foreach (Collider collider in childColliders)
         {
-            currentPowerUsage--;
-        }
-    }
-    
-    private void OnTriggerEnter(Collider other)
-    {
-        if (other.gameObject.layer == LayerMask.NameToLayer("PowerLines"))
-        {
-            HandlePowerConnection(other, true);
-        }
-    }
-    
-    private void OnTriggerExit(Collider other)
-    {
-        if (other.gameObject.layer == LayerMask.NameToLayer("PowerLines"))
-        {
-            HandlePowerConnection(other, false);
-        }
-    }
-    
-    private void HandlePowerConnection(Collider powerLineCollider, bool connecting)
-    {
-        PowerCube cube = powerLineCollider.GetComponentInParent<PowerCube>();
-        if (cube != null)
-        {
-            int faceIndex = cube.GetFaceIndexFromCollider(powerLineCollider);
-            if (faceIndex >= 0)
+            if (collider.isTrigger && collider is SphereCollider)
             {
-                if (connecting)
+                TriggersList.Add(collider);
+            }
+        }
+    }
+
+    private void CheckForPowerConnections()
+    {
+        foreach (Collider trigger in TriggersList)
+        {
+            Collider[] overlapping = Physics.OverlapSphere(trigger.transform.position, trigger.bounds.size.x / 2);
+            
+            foreach (Collider overlappingCollider in overlapping)
+            {
+                PowerCube cube = overlappingCollider.GetComponentInParent<PowerCube>();
+                if (cube != null)
                 {
-                    cube.TryConnectToSource(this, faceIndex);
-                }
-                else
-                {
-                    cube.DisconnectFromSource(this, faceIndex);
+                    AddPowerCube(cube.gameObject);
                 }
             }
+        }
+    }
+
+    private void UpdatePowerColors()
+    {
+        Transform triggersParent = transform.Find("Triggers");
+        if (triggersParent != null)
+        {
+            SpriteRenderer spriteRenderer = triggersParent.GetComponent<SpriteRenderer>();
+            if (spriteRenderer != null)
+            {
+                spriteRenderer.color = powerColor;
+            }
+        }
+    }
+
+    public void AddPowerCube(GameObject cube)
+    {
+        if (!connectedCubes.Contains(cube))
+        {
+            connectedCubes.Add(cube);
+        }
+    }
+
+    public void RemovePowerCube(GameObject cube)
+    {
+        connectedCubes.Remove(cube);
+    }
+
+    private void OnTriggerEnter(Collider other)
+    {
+        PowerCube cube = other.GetComponentInParent<PowerCube>();
+        if (cube != null)
+        {
+            AddPowerCube(cube.gameObject);
+        }
+    }
+
+    private void OnTriggerExit(Collider other)
+    {
+        PowerCube cube = other.GetComponentInParent<PowerCube>();
+        if (cube != null)
+        {
+            RemovePowerCube(cube.gameObject);
         }
     }
 }
