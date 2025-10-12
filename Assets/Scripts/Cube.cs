@@ -85,12 +85,6 @@ public class PowerCube : MonoBehaviour
     
     private void Start()
     {
-        // Register with CubeManager
-        if (CubeManager.Instance != null)
-        {
-            CubeManager.Instance.RegisterCube(this);
-        }
-        
         // Random rotation before grid snap and before PowerLine prefab instantiation
         if (randomRotateOnStart)
         {
@@ -149,11 +143,7 @@ public class PowerCube : MonoBehaviour
     
     private void OnDestroy()
     {
-        // Unregister from CubeManager
-        if (CubeManager.Instance != null)
-        {
-            CubeManager.Instance.UnregisterCube(this);
-        }
+        // Cube cleanup if needed
     }
     
     /// <summary>
@@ -304,13 +294,17 @@ public class PowerCube : MonoBehaviour
             
             // Check if this collider belongs to a cube that's part of our stack
             PowerCube otherCube = col.GetComponent<PowerCube>();
-            if (otherCube != null && CubeManager.Instance != null)
+            if (otherCube != null)
             {
-                PowerCube[] ourStack = CubeManager.Instance.GetEntireStackForCube(this);
-                bool isPartOfOurStack = System.Array.Exists(ourStack, cube => cube == otherCube);
+                // Simple check: if other cube is in same column (X,Z alignment), it's part of our stack
+                Vector3 otherPos = otherCube.transform.position;
+                Vector3 myPos = transform.position;
+                float alignmentTolerance = 0.1f;
+                bool isSameColumn = Mathf.Abs(otherPos.x - myPos.x) < alignmentTolerance && 
+                                   Mathf.Abs(otherPos.z - myPos.z) < alignmentTolerance;
                 
-                // If it's part of our stack, it's okay to overlap during movement
-                if (isPartOfOurStack) continue;
+                // If it's in our column, it's okay to overlap during movement
+                if (isSameColumn) continue;
             }
             
             // Any other solid collider blocks movement
