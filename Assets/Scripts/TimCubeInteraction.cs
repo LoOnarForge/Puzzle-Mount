@@ -13,6 +13,10 @@ public enum RotationAxis
 /// </summary>
 public class TimCubeInteraction : MonoBehaviour
 {
+    [Header("Cube Selection:")]
+    [SerializeField] private PowerCube detectedCube = null;
+    [SerializeField] private PowerCube highlightedCube = null;
+
     [Header("Detection Settings")]
     public float detectionTolerance = 0.6f;
     public float pushRange = 1.5f;
@@ -64,8 +68,8 @@ public class TimCubeInteraction : MonoBehaviour
         HandleCubeRotation();
         UpdatePushDelay();
         
-        // Check for push engagement reset at end of frame
-        if (!isPushingThisFrame && (currentTargetCube != null))
+        // ALWAYS reset push engagement when not actively pushing this frame
+        if (!isPushingThisFrame)
         {
             ResetPushEngagement();
         }
@@ -92,16 +96,21 @@ public class TimCubeInteraction : MonoBehaviour
             PowerCube hitCube = hit.collider.GetComponent<PowerCube>();
             if (hitCube != null)
             {
+                // Update debug info
+                detectedCube = hitCube;
+                
                 HandleCubeHighlighting(hitCube);
                 HandleCubePushing(hitCube);
             }
             else
             {
+                detectedCube = null;
                 HandleCubeHighlighting(null);
             }
         }
         else
         {
+            detectedCube = null;
             HandleCubeHighlighting(null);
         }
     }
@@ -138,6 +147,16 @@ public class TimCubeInteraction : MonoBehaviour
                 }
             }
         }
+        
+        // Update highlighted cube debug field from CubeManager (shows actual selected cube, not detected)
+        if (CubeManager.Instance != null)
+        {
+            highlightedCube = CubeManager.Instance.GetTargetedCube();
+        }
+        else
+        {
+            highlightedCube = null;
+        }
     }
 
     /// <summary>
@@ -150,7 +169,7 @@ public class TimCubeInteraction : MonoBehaviour
         // Only handle pushing if there's movement input
         if (moveDirection.magnitude < 0.1f)
         {
-            return;
+            return; // No movement = no pushing this frame
         }
         
         if (hitCube != null && IsProperlyAlignedToPush(hitCube.transform, timTransform.forward))
@@ -172,16 +191,16 @@ public class TimCubeInteraction : MonoBehaviour
             // Tim is actively trying to push this cube
             isPushingThisFrame = true;
             
-            // Calculate push direction from relative position
-            Vector3 pushDirection = hitCube.GetRelativePushDirection(timTransform);
+            // Use facing direction directly as push direction (same as raycast)
+            Vector3 pushDirection = timTransform.forward;
             
-            // Check if this is a new push engagement or direction change
-            if (HasPushEngagementChanged(hitCube, pushDirection))
+            // Only start new engagement if this is actually a new target or direction
+            if (currentTargetCube != hitCube || currentPushDirection != pushDirection)
             {
                 StartNewPushEngagement(hitCube, pushDirection);
             }
             
-            // Only push if delay has elapsed (or no delay needed for continued pushing)
+            // Only push if delay has elapsed
             if (!isDelayActive)
             {
                 bool pushSuccess = hitCube.TryPush(pushDirection);
@@ -190,7 +209,7 @@ public class TimCubeInteraction : MonoBehaviour
                     // Invalidate stack cache when cube moves
                     CubeManager.Instance?.InvalidateStackCache();
                     
-                    // Start continuous push delay for next push (don't reset engagement)
+                    // Start continuous push delay for next push
                     StartContinuousPushDelay();
                 }
             }
@@ -455,6 +474,9 @@ public class TimCubeInteraction : MonoBehaviour
         pushDelayTimer = 0f;
         isDelayActive = true;
         isFirstPush = true;
+        
+        // Immediately update the timer to avoid 1-frame delay
+        UpdatePushDelay();
     }
     
     /// <summary>
