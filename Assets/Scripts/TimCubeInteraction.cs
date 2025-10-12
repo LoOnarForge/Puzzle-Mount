@@ -189,8 +189,11 @@ public class TimCubeInteraction : MonoBehaviour
             // Use facing direction directly as push direction (same as raycast)
             Vector3 pushDirection = timTransform.forward;
             
-            // Only start new engagement if this is actually a new target or direction
-            if (currentTargetCube != hitCube || currentPushDirection != pushDirection)
+            // Only start new engagement if this is actually a new target or significantly different direction
+            bool differentTarget = currentTargetCube != hitCube;
+            bool significantDirectionChange = Vector3.Angle(currentPushDirection, pushDirection) > 5f; // 5 degree tolerance
+            
+            if (differentTarget || significantDirectionChange)
             {
                 StartNewPushEngagement(hitCube, pushDirection);
             }
