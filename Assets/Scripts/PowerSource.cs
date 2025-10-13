@@ -95,7 +95,7 @@ public class PowerSource : MonoBehaviour
             Transform faceTransform = other.transform.parent.parent;
             
             // Tell cube exactly which sprite to color and which fields to update
-            cube.CubePowered(this, sprite, faceTransform, powerColor);
+            cube.PoweredFromSource(this, sprite, faceTransform, powerColor);
         }
     }
 

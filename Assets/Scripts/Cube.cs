@@ -368,7 +368,7 @@ public class PowerCube : MonoBehaviour
     
     // PowerLine Connection System
     
-    public void CubePowered(PowerSource powerSource, SpriteRenderer sprite, Transform faceTransform, Color color)
+    public void PoweredFromSource(PowerSource powerSource, SpriteRenderer sprite, Transform faceTransform, Color color)
     {
         // Color the sprite
         if (sprite != null)
@@ -405,11 +405,37 @@ public class PowerCube : MonoBehaviour
             westFaceConnectedPS = powerSource;
             westFaceColor = color;
         }
+
+        // Pass power to other cubes connected to this face
+        PoweredFromCube(powerSource, faceTransform, color);
+    }
+
+    private void PoweredFromCube(PowerSource originalPS, Transform poweredFace, Color powerColor)
+    {
+        Collider[] faceColliders = poweredFace.GetComponentsInChildren<Collider>();
+        
+        foreach (Collider trigger in faceColliders)
+        {
+            if (!trigger.isTrigger) continue;
+            
+            Collider[] overlapping = Physics.OverlapSphere(trigger.transform.position, trigger.bounds.size.x / 2);
+            
+            foreach (Collider other in overlapping)
+            {
+                PowerCube otherCube = other.GetComponentInParent<PowerCube>();
+                if (otherCube == null || otherCube == this) continue;
+                
+                SpriteRenderer sprite = other.transform.parent.GetComponent<SpriteRenderer>();
+                Transform faceTransform = other.transform.parent.parent;
+                
+                otherCube.PoweredFromSource(originalPS, sprite, faceTransform, powerColor);
+            }
+        }
     }
 
     public void CubeUnpowered()
     {
-        // Only disconnect faces that actually have a PowerSource
+        // Only disconnect faces that actually have a PowerSource 
         if (topFaceConnectedPS != null)
         {
             topFaceConnectedPS.CubeDisconnected(this.gameObject);
