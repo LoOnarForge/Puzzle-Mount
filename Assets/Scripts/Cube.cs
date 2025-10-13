@@ -56,13 +56,13 @@ public class PowerCube : MonoBehaviour
     public Color northFaceColor = Color.white;
     public PowerSource northFaceConnectedPS;
     
-    public PowerLineType eastFace = PowerLineType.Empty;
-    public Color eastFaceColor = Color.white;
-    public PowerSource eastFaceConnectedPS;
-    
     public PowerLineType southFace = PowerLineType.Empty;
     public Color southFaceColor = Color.white;
     public PowerSource southFaceConnectedPS;
+    
+    public PowerLineType eastFace = PowerLineType.Empty;
+    public Color eastFaceColor = Color.white;
+    public PowerSource eastFaceConnectedPS;
     
     public PowerLineType westFace = PowerLineType.Empty;
     public Color westFaceColor = Color.white;
@@ -74,17 +74,20 @@ public class PowerCube : MonoBehaviour
     [Header("DEBUG SETTINGS")]
     public bool isMoving = false;
     
-    [HideInInspector] public GameObject horizontalPrefab;
-    [HideInInspector] public GameObject verticalPrefab;
-    [HideInInspector] public GameObject cornerTopRightPrefab;
-    [HideInInspector] public GameObject cornerRightBottomPrefab;
-    [HideInInspector] public GameObject cornerBottomLeftPrefab;
-    [HideInInspector] public GameObject cornerLeftTopPrefab;
-    [HideInInspector] public GameObject tSectionTopPrefab;
-    [HideInInspector] public GameObject tSectionRightPrefab;
-    [HideInInspector] public GameObject tSectionBottomPrefab;
-    [HideInInspector] public GameObject tSectionLeftPrefab;
-    [HideInInspector] public GameObject crossPrefab;
+    [Header("FACE REFERENCES:")]
+    public Transform topFaceTransform;
+    public Transform bottomFaceTransform;
+    public Transform northFaceTransform;
+    public Transform southFaceTransform;
+    public Transform eastFaceTransform;
+    public Transform westFaceTransform;
+    
+    [Header("POWER LINE SPRITES:")]
+    public Sprite horizontalSprite;
+    public Sprite verticalSprite;
+    public Sprite cornerSprite;
+    public Sprite tSectionSprite;
+    public Sprite crossSprite;
     
     private Rigidbody rb;
     
@@ -283,32 +286,32 @@ public class PowerCube : MonoBehaviour
         if (sprite != null)
             sprite.color = color;
 
-        if (faceTransform.name == "Top Face")
+        if (faceTransform == topFaceTransform)
         {
             topFaceConnectedPS = powerSource;
             topFaceColor = color;
         }
-        else if (faceTransform.name == "Bottom Face")
+        else if (faceTransform == bottomFaceTransform)
         {
             bottomFaceConnectedPS = powerSource;
             bottomFaceColor = color;
         }
-        else if (faceTransform.name == "North Face")
+        else if (faceTransform == northFaceTransform)
         {
             northFaceConnectedPS = powerSource;
             northFaceColor = color;
         }
-        else if (faceTransform.name == "East Face")
-        {
-            eastFaceConnectedPS = powerSource;
-            eastFaceColor = color;
-        }
-        else if (faceTransform.name == "South Face")
+        else if (faceTransform == southFaceTransform)
         {
             southFaceConnectedPS = powerSource;
             southFaceColor = color;
         }
-        else if (faceTransform.name == "West Face")
+        else if (faceTransform == eastFaceTransform)
+        {
+            eastFaceConnectedPS = powerSource;
+            eastFaceColor = color;
+        }
+        else if (faceTransform == westFaceTransform)
         {
             westFaceConnectedPS = powerSource;
             westFaceColor = color;
@@ -342,33 +345,42 @@ public class PowerCube : MonoBehaviour
 
     public void CubeUnpowered()
     {
-        DisconnectFace(ref topFaceConnectedPS, ref topFaceColor, "Top Face");
-        DisconnectFace(ref bottomFaceConnectedPS, ref bottomFaceColor, "Bottom Face");
-        DisconnectFace(ref northFaceConnectedPS, ref northFaceColor, "North Face");
-        DisconnectFace(ref eastFaceConnectedPS, ref eastFaceColor, "East Face");
-        DisconnectFace(ref southFaceConnectedPS, ref southFaceColor, "South Face");
-        DisconnectFace(ref westFaceConnectedPS, ref westFaceColor, "West Face");
+        DisconnectFace(ref topFaceConnectedPS, ref topFaceColor, topFaceTransform);
+        DisconnectFace(ref bottomFaceConnectedPS, ref bottomFaceColor, bottomFaceTransform);
+        DisconnectFace(ref northFaceConnectedPS, ref northFaceColor, northFaceTransform);
+        DisconnectFace(ref southFaceConnectedPS, ref southFaceColor, southFaceTransform);
+        DisconnectFace(ref eastFaceConnectedPS, ref eastFaceColor, eastFaceTransform);
+        DisconnectFace(ref westFaceConnectedPS, ref westFaceColor, westFaceTransform);
     }
 
-    private void DisconnectFace(ref PowerSource facePS, ref Color faceColor, string faceName)
+    private void DisconnectFace(ref PowerSource facePS, ref Color faceColor, Transform faceTransform)
     {
         if (facePS != null)
         {
             facePS.CubeDisconnected(this.gameObject);
             facePS = null;
             faceColor = Color.white;
-            ResetFaceSprite(faceName);
+            ResetFaceSprite(faceTransform);
         }
     }
 
-    private void ResetFaceSprite(string faceName)
+    private void ResetFaceSprite(Transform faceTransform)
     {
-        Transform faceTransform = transform.Find($"Visual PC/{faceName}");
-        if (faceTransform != null && faceTransform.childCount > 0)
+        if (faceTransform != null)
         {
-            SpriteRenderer sprite = faceTransform.GetChild(0).GetComponent<SpriteRenderer>();
+            SpriteRenderer sprite = faceTransform.GetComponent<SpriteRenderer>();
             if (sprite != null)
                 sprite.color = Color.white;
         }
+    }
+
+    public void TriggerEntered(PowerConnectionTrigger trigger, Collider other)
+    {
+        
+    }
+
+    public void TriggerExited(PowerConnectionTrigger trigger, Collider other)
+    {
+        
     }
 }

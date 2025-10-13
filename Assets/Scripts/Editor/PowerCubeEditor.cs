@@ -16,8 +16,8 @@ public class PowerCubeEditor : Editor
             lastFaceTypes[0] = cube.topFace;
             lastFaceTypes[1] = cube.bottomFace;
             lastFaceTypes[2] = cube.northFace;
-            lastFaceTypes[3] = cube.eastFace;
-            lastFaceTypes[4] = cube.southFace;
+            lastFaceTypes[3] = cube.southFace;
+            lastFaceTypes[4] = cube.eastFace;
             lastFaceTypes[5] = cube.westFace;
             initialized = true;
         }
@@ -28,18 +28,16 @@ public class PowerCubeEditor : Editor
         PowerCube cube = (PowerCube)target;
         
         // Draw basic properties (Movement, Random Rotation, Debug Settings)
-        DrawPropertiesExcluding(serializedObject, "topFace", "bottomFace", "northFace", "eastFace", "southFace", "westFace",
-            "topFaceColor", "bottomFaceColor", "northFaceColor", "eastFaceColor", "southFaceColor", "westFaceColor",
-            "topFaceConnectedPS", "bottomFaceConnectedPS", "northFaceConnectedPS", "eastFaceConnectedPS", "southFaceConnectedPS", "westFaceConnectedPS",
-            "horizontalPrefab", "verticalPrefab", "cornerLeftTopPrefab", "cornerTopRightPrefab", "cornerRightBottomPrefab", 
-            "cornerBottomLeftPrefab", "tSectionLeftPrefab", "tSectionTopPrefab", "tSectionRightPrefab", "tSectionBottomPrefab", "crossPrefab");
+        DrawPropertiesExcluding(serializedObject, "topFace", "bottomFace", "northFace", "southFace", "eastFace", "westFace",
+            "topFaceColor", "bottomFaceColor", "northFaceColor", "southFaceColor", "eastFaceColor", "westFaceColor",
+            "topFaceConnectedPS", "bottomFaceConnectedPS", "northFaceConnectedPS", "southFaceConnectedPS", "eastFaceConnectedPS", "westFaceConnectedPS");
         
         // Draw each face section with all its properties grouped together
         DrawFaceSection("                    ═══ TOP FACE ═══", "topFace", "topFaceColor", "topFaceConnectedPS");
         DrawFaceSection("                  ═══ BOTTOM FACE ═══", "bottomFace", "bottomFaceColor", "bottomFaceConnectedPS");
         DrawFaceSection("                   ═══ NORTH FACE ═══", "northFace", "northFaceColor", "northFaceConnectedPS");
-        DrawFaceSection("                    ═══ EAST FACE ═══", "eastFace", "eastFaceColor", "eastFaceConnectedPS");
         DrawFaceSection("                   ═══ SOUTH FACE ═══", "southFace", "southFaceColor", "southFaceConnectedPS");
+        DrawFaceSection("                    ═══ EAST FACE ═══", "eastFace", "eastFaceColor", "eastFaceConnectedPS");
         DrawFaceSection("                    ═══ WEST FACE ═══", "westFace", "westFaceColor", "westFaceConnectedPS");
         
         // Power Lines section with reset button  
@@ -51,8 +49,8 @@ public class PowerCubeEditor : Editor
             cube.topFace = PowerLineType.Empty;
             cube.bottomFace = PowerLineType.Empty;
             cube.northFace = PowerLineType.Empty;
-            cube.eastFace = PowerLineType.Empty;
             cube.southFace = PowerLineType.Empty;
+            cube.eastFace = PowerLineType.Empty;
             cube.westFace = PowerLineType.Empty;
             EditorUtility.SetDirty(cube);
         }
@@ -94,10 +92,10 @@ public class PowerCubeEditor : Editor
         // Check for changes after drawing inspector
         PowerLineType[] currentFaceTypes = {
             cube.topFace, cube.bottomFace, cube.northFace,
-            cube.eastFace, cube.southFace, cube.westFace
+            cube.southFace, cube.eastFace, cube.westFace
         };
         
-        string[] faceNames = { "Top Face", "Bottom Face", "North Face", "East Face", "South Face", "West Face" };
+        string[] faceNames = { "Top Face", "Bottom Face", "North Face", "South Face", "East Face", "West Face" };
         
         for (int i = 0; i < 6; i++)
         {
@@ -118,82 +116,146 @@ public class PowerCubeEditor : Editor
         SerializedProperty colorProp = serializedObject.FindProperty(colorProperty);
         SerializedProperty psProp = serializedObject.FindProperty(connectedPSProperty);
         
-        EditorGUILayout.PropertyField(faceProp, new GUIContent("Prefab Type"));
+        EditorGUILayout.PropertyField(faceProp, new GUIContent("Sprite Type"));
         EditorGUILayout.PropertyField(colorProp, new GUIContent("Line Color"));
         EditorGUILayout.PropertyField(psProp, new GUIContent("Connected PS"));
     }
     
     private void UpdateFacePrefab(PowerCube cube, int faceIndex, PowerLineType newType, string faceName)
     {
-        // Find face transform under Visual PC first, then at root level
-        Transform visualParent = cube.transform.Find("Visual PC");
-        Transform faceTransform = null;
-        
-        if (visualParent != null)
-        {
-            faceTransform = visualParent.Find(faceName);
-        }
+        Transform faceTransform = GetFaceTransform(cube, faceIndex);
         
         if (faceTransform == null)
         {
-            faceTransform = cube.transform.Find(faceName);
-        }
-        
-        if (faceTransform == null)
-        {
-            Debug.LogWarning($"[PowerCube] Could not find face '{faceName}' in cube hierarchy");
+            Debug.LogWarning($"[PowerCube] Face transform not assigned for {faceName}");
             return;
         }
         
-        // Clear existing PowerLine children
-        for (int i = faceTransform.childCount - 1; i >= 0; i--)
+        Transform spriteTransform = faceTransform.Find("Power Line Sprite");
+        if (spriteTransform == null)
         {
-            DestroyImmediate(faceTransform.GetChild(i).gameObject);
+            Debug.LogWarning($"[PowerCube] No 'Power Line Sprite' child found on {faceName}");
+            return;
         }
         
-        // Instantiate new prefab if not Empty
+        SpriteRenderer spriteRenderer = spriteTransform.GetComponent<SpriteRenderer>();
+        if (spriteRenderer == null)
+        {
+            Debug.LogWarning($"[PowerCube] No SpriteRenderer found on {faceName}/Power Line Sprite");
+            return;
+        }
+        
         if (newType != PowerLineType.Empty)
         {
-            GameObject prefab = GetPrefabForType(cube, newType);
-            if (prefab != null)
+            Sprite sprite = GetSpriteForType(cube, newType);
+            if (sprite != null)
             {
-                GameObject instance = PrefabUtility.InstantiatePrefab(prefab) as GameObject;
-                instance.transform.SetParent(faceTransform);
-                instance.transform.localPosition = Vector3.zero;
-                
-                // Calculate correct Z rotation based on face and sprite type
-                float zRotation = GetZRotationForFaceAndType(faceName, newType);
-                instance.transform.localRotation = Quaternion.Euler(0, 0, zRotation);
+                spriteRenderer.sprite = sprite;
+                spriteRenderer.size = sprite.bounds.size * 1.98f;
+                float rotation = GetTypeRotation(newType);
+                spriteTransform.localRotation = Quaternion.Euler(0, 0, rotation);
             }
             else
             {
-                Debug.LogWarning($"[PowerCube] No prefab assigned for {newType}");
+                Debug.LogWarning($"[PowerCube] No sprite assigned for {newType}");
+                spriteRenderer.sprite = null;
             }
+        }
+        else
+        {
+            spriteRenderer.sprite = null;
+            spriteTransform.localRotation = Quaternion.identity;
+        }
+        
+        UpdateTriggerStates(faceTransform, newType);
+    }
+    
+    private void UpdateTriggerStates(Transform faceTransform, PowerLineType lineType)
+    {
+        if (faceTransform == null) return;
+        
+        Transform upTrigger = faceTransform.Find("Up Collider");
+        Transform rightTrigger = faceTransform.Find("Right Collider");
+        Transform downTrigger = faceTransform.Find("Down Collider");
+        Transform leftTrigger = faceTransform.Find("Left Collider");
+        
+        bool[] enableStates = GetTriggerStates(lineType);
+        
+        if (upTrigger != null) upTrigger.gameObject.SetActive(enableStates[0]);
+        if (rightTrigger != null) rightTrigger.gameObject.SetActive(enableStates[1]);
+        if (downTrigger != null) downTrigger.gameObject.SetActive(enableStates[2]);
+        if (leftTrigger != null) leftTrigger.gameObject.SetActive(enableStates[3]);
+    }
+    
+    private bool[] GetTriggerStates(PowerLineType lineType)
+    {
+        switch (lineType)
+        {
+            case PowerLineType.Horizontal:
+                return new bool[] { false, true, false, true };
+            case PowerLineType.Vertical:
+                return new bool[] { true, false, true, false };
+            case PowerLineType.CornerLeftTop:
+                return new bool[] { true, false, false, true };
+            case PowerLineType.CornerTopRight:
+                return new bool[] { true, true, false, false };
+            case PowerLineType.CornerRightBottom:
+                return new bool[] { false, true, true, false };
+            case PowerLineType.CornerBottomLeft:
+                return new bool[] { false, false, true, true };
+            case PowerLineType.TSectionLeft:
+                return new bool[] { true, false, true, true };
+            case PowerLineType.TSectionTop:
+                return new bool[] { true, true, false, true };
+            case PowerLineType.TSectionRight:
+                return new bool[] { true, true, true, false };
+            case PowerLineType.TSectionBottom:
+                return new bool[] { false, true, true, true };
+            case PowerLineType.Cross:
+                return new bool[] { true, true, true, true };
+            case PowerLineType.Empty:
+            default:
+                return new bool[] { false, false, false, false };
         }
     }
     
-    private GameObject GetPrefabForType(PowerCube cube, PowerLineType type)
+    private Transform GetFaceTransform(PowerCube cube, int faceIndex)
+    {
+        switch (faceIndex)
+        {
+            case 0: return cube.topFaceTransform;
+            case 1: return cube.bottomFaceTransform;
+            case 2: return cube.northFaceTransform;
+            case 3: return cube.southFaceTransform;
+            case 4: return cube.eastFaceTransform;
+            case 5: return cube.westFaceTransform;
+            default: return null;
+        }
+    }
+    
+    private Sprite GetSpriteForType(PowerCube cube, PowerLineType type)
     {
         switch (type)
         {
-            case PowerLineType.Horizontal: return cube.horizontalPrefab;
-            case PowerLineType.Vertical: return cube.verticalPrefab;
-            case PowerLineType.CornerTopRight: return cube.cornerTopRightPrefab;
-            case PowerLineType.CornerRightBottom: return cube.cornerRightBottomPrefab;
-            case PowerLineType.CornerBottomLeft: return cube.cornerBottomLeftPrefab;
-            case PowerLineType.CornerLeftTop: return cube.cornerLeftTopPrefab;
-            case PowerLineType.TSectionTop: return cube.tSectionTopPrefab;
-            case PowerLineType.TSectionRight: return cube.tSectionRightPrefab;
-            case PowerLineType.TSectionBottom: return cube.tSectionBottomPrefab;
-            case PowerLineType.TSectionLeft: return cube.tSectionLeftPrefab;
-            case PowerLineType.Cross: return cube.crossPrefab;
+            case PowerLineType.Horizontal: return cube.horizontalSprite;
+            case PowerLineType.Vertical: return cube.verticalSprite;
+            case PowerLineType.CornerTopRight:
+            case PowerLineType.CornerRightBottom:
+            case PowerLineType.CornerBottomLeft:
+            case PowerLineType.CornerLeftTop:
+                return cube.cornerSprite;
+            case PowerLineType.TSectionTop:
+            case PowerLineType.TSectionRight:
+            case PowerLineType.TSectionBottom:
+            case PowerLineType.TSectionLeft:
+                return cube.tSectionSprite;
+            case PowerLineType.Cross: return cube.crossSprite;
             default: return null;
         }
     }
     
     private float GetZRotationForFaceAndType(string faceName, PowerLineType type)
     {
-        // Uniform rotation system - same values work on all faces
         return GetTypeRotation(type);
     }
     
@@ -201,23 +263,14 @@ public class PowerCubeEditor : Editor
     {
         switch (type)
         {
-            // Corner pieces
             case PowerLineType.CornerLeftTop: return 0f;
             case PowerLineType.CornerTopRight: return 270f;
             case PowerLineType.CornerRightBottom: return 180f; 
             case PowerLineType.CornerBottomLeft: return 90f;
-            
-            // T-section pieces 
             case PowerLineType.TSectionLeft: return 0f;
             case PowerLineType.TSectionTop: return 270f;
             case PowerLineType.TSectionRight: return 180f;
             case PowerLineType.TSectionBottom: return 90f;
-            
-            // Straight pieces and cross
-            case PowerLineType.Horizontal: return 0f;
-            case PowerLineType.Vertical: return 0f;
-            case PowerLineType.Cross: return 0f;
-            
             default: return 0f;
         }
     }
@@ -227,8 +280,8 @@ public class PowerCubeEditor : Editor
         cube.topFace = type;
         cube.bottomFace = type;
         cube.northFace = type;
-        cube.eastFace = type;
         cube.southFace = type;
+        cube.eastFace = type;
         cube.westFace = type;
         EditorUtility.SetDirty(cube);
     }
