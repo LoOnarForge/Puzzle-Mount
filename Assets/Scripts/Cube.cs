@@ -74,7 +74,9 @@ public class PowerCube : MonoBehaviour
     [Header("DEBUG SETTINGS")]
     public bool isMoving = false;
     
-    [Header("FACE REFERENCES:")]
+    #region Inspector References
+    
+    [Header("FACE TRANSFORM REFERENCES")]
     public Transform topFaceTransform;
     public Transform bottomFaceTransform;
     public Transform northFaceTransform;
@@ -82,12 +84,50 @@ public class PowerCube : MonoBehaviour
     public Transform eastFaceTransform;
     public Transform westFaceTransform;
     
-    [Header("POWER LINE SPRITES:")]
+    [Header("SPRITE REFERENCES")]
     public Sprite horizontalSprite;
     public Sprite verticalSprite;
     public Sprite cornerSprite;
     public Sprite tSectionSprite;
     public Sprite crossSprite;
+    
+    [Header("TOP FACE TRIGGERS")]
+    public PowerConnectionTrigger topUpTrigger;
+    public PowerConnectionTrigger topRightTrigger;
+    public PowerConnectionTrigger topDownTrigger;
+    public PowerConnectionTrigger topLeftTrigger;
+    
+    [Header("BOTTOM FACE TRIGGERS")]
+    public PowerConnectionTrigger bottomUpTrigger;
+    public PowerConnectionTrigger bottomRightTrigger;
+    public PowerConnectionTrigger bottomDownTrigger;
+    public PowerConnectionTrigger bottomLeftTrigger;
+    
+    [Header("NORTH FACE TRIGGERS")]
+    public PowerConnectionTrigger northUpTrigger;
+    public PowerConnectionTrigger northRightTrigger;
+    public PowerConnectionTrigger northDownTrigger;
+    public PowerConnectionTrigger northLeftTrigger;
+    
+    [Header("SOUTH FACE TRIGGERS")]
+    public PowerConnectionTrigger southUpTrigger;
+    public PowerConnectionTrigger southRightTrigger;
+    public PowerConnectionTrigger southDownTrigger;
+    public PowerConnectionTrigger southLeftTrigger;
+    
+    [Header("EAST FACE TRIGGERS")]
+    public PowerConnectionTrigger eastUpTrigger;
+    public PowerConnectionTrigger eastRightTrigger;
+    public PowerConnectionTrigger eastDownTrigger;
+    public PowerConnectionTrigger eastLeftTrigger;
+    
+    [Header("WEST FACE TRIGGERS")]
+    public PowerConnectionTrigger westUpTrigger;
+    public PowerConnectionTrigger westRightTrigger;
+    public PowerConnectionTrigger westDownTrigger;
+    public PowerConnectionTrigger westLeftTrigger;
+    
+    #endregion
     
     private Rigidbody rb;
     

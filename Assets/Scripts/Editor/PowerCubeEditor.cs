@@ -30,7 +30,15 @@ public class PowerCubeEditor : Editor
         // Draw basic properties (Movement, Random Rotation, Debug Settings)
         DrawPropertiesExcluding(serializedObject, "topFace", "bottomFace", "northFace", "southFace", "eastFace", "westFace",
             "topFaceColor", "bottomFaceColor", "northFaceColor", "southFaceColor", "eastFaceColor", "westFaceColor",
-            "topFaceConnectedPS", "bottomFaceConnectedPS", "northFaceConnectedPS", "southFaceConnectedPS", "eastFaceConnectedPS", "westFaceConnectedPS");
+            "topFaceConnectedPS", "bottomFaceConnectedPS", "northFaceConnectedPS", "southFaceConnectedPS", "eastFaceConnectedPS", "westFaceConnectedPS",
+            "topFaceTransform", "bottomFaceTransform", "northFaceTransform", "southFaceTransform", "eastFaceTransform", "westFaceTransform",
+            "horizontalSprite", "verticalSprite", "cornerSprite", "tSectionSprite", "crossSprite",
+            "topUpTrigger", "topRightTrigger", "topDownTrigger", "topLeftTrigger",
+            "bottomUpTrigger", "bottomRightTrigger", "bottomDownTrigger", "bottomLeftTrigger",
+            "northUpTrigger", "northRightTrigger", "northDownTrigger", "northLeftTrigger",
+            "southUpTrigger", "southRightTrigger", "southDownTrigger", "southLeftTrigger",
+            "eastUpTrigger", "eastRightTrigger", "eastDownTrigger", "eastLeftTrigger",
+            "westUpTrigger", "westRightTrigger", "westDownTrigger", "westLeftTrigger");
         
         // Draw each face section with all its properties grouped together
         DrawFaceSection("                    ═══ TOP FACE ═══", "topFace", "topFaceColor", "topFaceConnectedPS");
@@ -84,6 +92,71 @@ public class PowerCubeEditor : Editor
         if (GUILayout.Button("All TSectionRight")) SetAllFaces(cube, PowerLineType.TSectionRight);
         if (GUILayout.Button("All TSectionBottom")) SetAllFaces(cube, PowerLineType.TSectionBottom);
         EditorGUILayout.EndHorizontal();
+        
+        // Draw reference fields at bottom
+        EditorGUILayout.Space();
+        EditorGUILayout.LabelField("Inspector References", EditorStyles.boldLabel);
+        
+        // Face Transform References
+        EditorGUILayout.LabelField("FACE TRANSFORM REFERENCES", EditorStyles.boldLabel);
+        EditorGUILayout.PropertyField(serializedObject.FindProperty("topFaceTransform"));
+        EditorGUILayout.PropertyField(serializedObject.FindProperty("bottomFaceTransform"));
+        EditorGUILayout.PropertyField(serializedObject.FindProperty("northFaceTransform"));
+        EditorGUILayout.PropertyField(serializedObject.FindProperty("southFaceTransform"));
+        EditorGUILayout.PropertyField(serializedObject.FindProperty("eastFaceTransform"));
+        EditorGUILayout.PropertyField(serializedObject.FindProperty("westFaceTransform"));
+        
+        // Sprite References
+        EditorGUILayout.Space();
+        EditorGUILayout.LabelField("SPRITE REFERENCES", EditorStyles.boldLabel);
+        EditorGUILayout.PropertyField(serializedObject.FindProperty("horizontalSprite"));
+        EditorGUILayout.PropertyField(serializedObject.FindProperty("verticalSprite"));
+        EditorGUILayout.PropertyField(serializedObject.FindProperty("cornerSprite"));
+        EditorGUILayout.PropertyField(serializedObject.FindProperty("tSectionSprite"));
+        EditorGUILayout.PropertyField(serializedObject.FindProperty("crossSprite"));
+        
+        // Trigger References
+        EditorGUILayout.Space();
+        EditorGUILayout.LabelField("TOP FACE TRIGGERS", EditorStyles.boldLabel);
+        EditorGUILayout.PropertyField(serializedObject.FindProperty("topUpTrigger"));
+        EditorGUILayout.PropertyField(serializedObject.FindProperty("topRightTrigger"));
+        EditorGUILayout.PropertyField(serializedObject.FindProperty("topDownTrigger"));
+        EditorGUILayout.PropertyField(serializedObject.FindProperty("topLeftTrigger"));
+        
+        EditorGUILayout.Space();
+        EditorGUILayout.LabelField("BOTTOM FACE TRIGGERS", EditorStyles.boldLabel);
+        EditorGUILayout.PropertyField(serializedObject.FindProperty("bottomUpTrigger"));
+        EditorGUILayout.PropertyField(serializedObject.FindProperty("bottomRightTrigger"));
+        EditorGUILayout.PropertyField(serializedObject.FindProperty("bottomDownTrigger"));
+        EditorGUILayout.PropertyField(serializedObject.FindProperty("bottomLeftTrigger"));
+        
+        EditorGUILayout.Space();
+        EditorGUILayout.LabelField("NORTH FACE TRIGGERS", EditorStyles.boldLabel);
+        EditorGUILayout.PropertyField(serializedObject.FindProperty("northUpTrigger"));
+        EditorGUILayout.PropertyField(serializedObject.FindProperty("northRightTrigger"));
+        EditorGUILayout.PropertyField(serializedObject.FindProperty("northDownTrigger"));
+        EditorGUILayout.PropertyField(serializedObject.FindProperty("northLeftTrigger"));
+        
+        EditorGUILayout.Space();
+        EditorGUILayout.LabelField("SOUTH FACE TRIGGERS", EditorStyles.boldLabel);
+        EditorGUILayout.PropertyField(serializedObject.FindProperty("southUpTrigger"));
+        EditorGUILayout.PropertyField(serializedObject.FindProperty("southRightTrigger"));
+        EditorGUILayout.PropertyField(serializedObject.FindProperty("southDownTrigger"));
+        EditorGUILayout.PropertyField(serializedObject.FindProperty("southLeftTrigger"));
+        
+        EditorGUILayout.Space();
+        EditorGUILayout.LabelField("EAST FACE TRIGGERS", EditorStyles.boldLabel);
+        EditorGUILayout.PropertyField(serializedObject.FindProperty("eastUpTrigger"));
+        EditorGUILayout.PropertyField(serializedObject.FindProperty("eastRightTrigger"));
+        EditorGUILayout.PropertyField(serializedObject.FindProperty("eastDownTrigger"));
+        EditorGUILayout.PropertyField(serializedObject.FindProperty("eastLeftTrigger"));
+        
+        EditorGUILayout.Space();
+        EditorGUILayout.LabelField("WEST FACE TRIGGERS", EditorStyles.boldLabel);
+        EditorGUILayout.PropertyField(serializedObject.FindProperty("westUpTrigger"));
+        EditorGUILayout.PropertyField(serializedObject.FindProperty("westRightTrigger"));
+        EditorGUILayout.PropertyField(serializedObject.FindProperty("westDownTrigger"));
+        EditorGUILayout.PropertyField(serializedObject.FindProperty("westLeftTrigger"));
         
         serializedObject.ApplyModifiedProperties();
         
@@ -167,24 +240,35 @@ public class PowerCubeEditor : Editor
             spriteTransform.localRotation = Quaternion.identity;
         }
         
-        UpdateTriggerStates(faceTransform, newType);
+        UpdateTriggerStates(cube, faceIndex, newType);
     }
     
-    private void UpdateTriggerStates(Transform faceTransform, PowerLineType lineType)
+    private void UpdateTriggerStates(PowerCube cube, int faceIndex, PowerLineType lineType)
     {
-        if (faceTransform == null) return;
-        
-        Transform upTrigger = faceTransform.Find("Up Collider");
-        Transform rightTrigger = faceTransform.Find("Right Collider");
-        Transform downTrigger = faceTransform.Find("Down Collider");
-        Transform leftTrigger = faceTransform.Find("Left Collider");
-        
+        PowerConnectionTrigger[] triggers = GetFaceTriggers(cube, faceIndex);
         bool[] enableStates = GetTriggerStates(lineType);
         
-        if (upTrigger != null) upTrigger.gameObject.SetActive(enableStates[0]);
-        if (rightTrigger != null) rightTrigger.gameObject.SetActive(enableStates[1]);
-        if (downTrigger != null) downTrigger.gameObject.SetActive(enableStates[2]);
-        if (leftTrigger != null) leftTrigger.gameObject.SetActive(enableStates[3]);
+        for (int i = 0; i < 4; i++)
+        {
+            if (triggers[i] != null)
+            {
+                triggers[i].gameObject.SetActive(enableStates[i]);
+            }
+        }
+    }
+    
+    private PowerConnectionTrigger[] GetFaceTriggers(PowerCube cube, int faceIndex)
+    {
+        switch (faceIndex)
+        {
+            case 0: return new PowerConnectionTrigger[] { cube.topUpTrigger, cube.topRightTrigger, cube.topDownTrigger, cube.topLeftTrigger };
+            case 1: return new PowerConnectionTrigger[] { cube.bottomUpTrigger, cube.bottomRightTrigger, cube.bottomDownTrigger, cube.bottomLeftTrigger };
+            case 2: return new PowerConnectionTrigger[] { cube.northUpTrigger, cube.northRightTrigger, cube.northDownTrigger, cube.northLeftTrigger };
+            case 3: return new PowerConnectionTrigger[] { cube.southUpTrigger, cube.southRightTrigger, cube.southDownTrigger, cube.southLeftTrigger };
+            case 4: return new PowerConnectionTrigger[] { cube.eastUpTrigger, cube.eastRightTrigger, cube.eastDownTrigger, cube.eastLeftTrigger };
+            case 5: return new PowerConnectionTrigger[] { cube.westUpTrigger, cube.westRightTrigger, cube.westDownTrigger, cube.westLeftTrigger };
+            default: return new PowerConnectionTrigger[4];
+        }
     }
     
     private bool[] GetTriggerStates(PowerLineType lineType)
