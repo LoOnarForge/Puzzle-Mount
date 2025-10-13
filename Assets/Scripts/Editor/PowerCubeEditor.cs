@@ -204,13 +204,13 @@ public class PowerCubeEditor : Editor
             case PowerLineType.CornerBottomLeft:
                 return new bool[] { false, false, true, true };
             case PowerLineType.TSectionLeft:
-                return new bool[] { true, false, true, true };
-            case PowerLineType.TSectionTop:
                 return new bool[] { true, true, false, true };
-            case PowerLineType.TSectionRight:
+            case PowerLineType.TSectionTop:
                 return new bool[] { true, true, true, false };
-            case PowerLineType.TSectionBottom:
+            case PowerLineType.TSectionRight:
                 return new bool[] { false, true, true, true };
+            case PowerLineType.TSectionBottom:
+                return new bool[] { true, false, true, true };
             case PowerLineType.Cross:
                 return new bool[] { true, true, true, true };
             case PowerLineType.Empty:

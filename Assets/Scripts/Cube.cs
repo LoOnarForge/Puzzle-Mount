@@ -278,7 +278,7 @@ public class PowerCube : MonoBehaviour
 
 
 
-    //-----------------------------POWER LINES SECTION-----------------------------------------
+    //-----------------------------POWER LINES SECTION----------------------------------------- 
     
 
     public void PoweredFromSource(PowerSource powerSource, SpriteRenderer sprite, Transform faceTransform, Color color)
