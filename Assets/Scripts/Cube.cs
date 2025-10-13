@@ -88,8 +88,7 @@ public class PowerCube : MonoBehaviour
     
     private Rigidbody rb;
     
-    // PowerLine connection tracking
-    private bool[] faceConnections = new bool[6]; // Top, Bottom, North, East, South, West
+    private bool[] faceConnections = new bool[6];
     private PowerLineState[] faceStates = new PowerLineState[6];
     private Color[] facePowerColors = new Color[6];
     private PowerSource[] faceConnectedSources = new PowerSource[6];
@@ -98,7 +97,6 @@ public class PowerCube : MonoBehaviour
     {
         rb = GetComponent<Rigidbody>();
         
-        // Use built-in physics for gravity, but lock X/Z movement
         rb.isKinematic = false;
         rb.useGravity = true;
         rb.constraints = RigidbodyConstraints.FreezePositionX | RigidbodyConstraints.FreezePositionZ | RigidbodyConstraints.FreezeRotation;
@@ -106,87 +104,37 @@ public class PowerCube : MonoBehaviour
     
     private void Start()
     {
-        // Random rotation before grid snap and before PowerLine prefab instantiation
         if (randomRotateOnStart)
         {
             ApplyRandomRotation();
         }
         
-        // Force perfect grid alignment on start
         SnapToGrid();
     }
     
-    private void OnValidate()
-    {
-        // Note: PowerLine prefabs are now handled by PowerCubeEditor script
-    }
-    
-    /// <summary>
-    /// Apply random rotation on at least 2 axes in 90-degree increments
-    /// </summary>
     private void ApplyRandomRotation()
     {
-        // Get random rotations in 90-degree increments
         float xRot = Random.Range(0, 4) * 90f;
         float yRot = Random.Range(0, 4) * 90f;
         float zRot = Random.Range(0, 4) * 90f;
         
-        // Ensure at least 2 axes are rotated (not 0)
-        int zeroCount = 0;
-        if (xRot == 0) zeroCount++;
-        if (yRot == 0) zeroCount++;
-        if (zRot == 0) zeroCount++;
-        
-        // If more than 1 axis is zero, force rotation on random axes
-        if (zeroCount > 1)
-        {
-            int[] axes = {0, 1, 2}; // X, Y, Z
-            for (int i = 0; i < 2; i++) // Ensure 2 axes are rotated
-            {
-                int randomAxis = Random.Range(i, 3);
-                int temp = axes[i];
-                axes[i] = axes[randomAxis];
-                axes[randomAxis] = temp;
-                
-                float randomRotation = Random.Range(1, 4) * 90f; // 90, 180, or 270
-                switch (axes[i])
-                {
-                    case 0: xRot = randomRotation; break;
-                    case 1: yRot = randomRotation; break;
-                    case 2: zRot = randomRotation; break;
-                }
-            }
-        }
-        
-        // Apply rotation to whole cube transform
-        CubeUnpowered(); // Disconnect at start of rotation
+        CubeUnpowered();
         transform.rotation = Quaternion.Euler(xRot, yRot, zRot);
     }
     
-    private void OnDestroy()
-    {
-        // Cube cleanup if needed
-    }
-    
-    /// <summary>
-    /// Force cube to exact integer grid coordinates (X,Z only - Y stays natural)
-    /// </summary>
     private void SnapToGrid()
     {
         Vector3 currentPos = transform.position;
-        Vector3 gridPos = new Vector3(
+        Vector3 gridPos = new Vector3
+        (
             Mathf.Round(currentPos.x),
-            currentPos.y, // Keep Y natural - let physics handle it
+            currentPos.y,
             Mathf.Round(currentPos.z)
         );
         
-        // CRITICAL: Direct transform assignment ensures perfect X,Z alignment
         transform.position = gridPos;
     }
     
-    /// <summary>
-    /// Rotate only the visual representation, keeping collider grid-aligned
-    /// </summary>
     public void RotateVisual(float rotationY)
     {
         if (visualParent != null)
@@ -195,49 +143,33 @@ public class PowerCube : MonoBehaviour
         }
     }
     
-    /// <summary>
-    /// Calculate push direction based on pusher's position relative to this cube
-    /// This prevents side-pushing by always pushing away from the pusher
-    /// </summary>
     public Vector3 GetRelativePushDirection(Transform pusherTransform)
     {
         Vector3 relativePosition = transform.position - pusherTransform.position;
         
-        // Determine strongest axis and push away from pusher
         if (Mathf.Abs(relativePosition.x) > Mathf.Abs(relativePosition.z))
         {
-            // Pusher is on left/right side - push horizontally away
             return new Vector3(Mathf.Sign(relativePosition.x), 0, 0);
         }
         else
         {
-            // Pusher is on front/back side - push forward/backward away
             return new Vector3(0, 0, Mathf.Sign(relativePosition.z));
         }
     }
     
-    /// <summary>
-    /// Check if this single cube can be pushed in the given direction
-    /// </summary>
     public bool CanPushSingle(Vector3 direction)
     {
         if (isMoving) return false;
         
-        // Don't allow pushing if cube is falling
         if (!IsGrounded()) return false;
         
-        // Convert to pure grid direction
         Vector3 pushDir = GetGridDirection(direction);
         if (pushDir == Vector3.zero) return false;
         
-        // Check if target position is clear
         Vector3 targetPosition = transform.position + pushDir;
         return IsPositionClear(targetPosition);
     }
     
-    /// <summary>
-    /// Push this single cube in the given direction - called by Tim after checking CanPushSingle
-    /// </summary>
     public void PushSingle(Vector3 direction)
     {
         Vector3 pushDir = GetGridDirection(direction);
@@ -245,30 +177,21 @@ public class PowerCube : MonoBehaviour
         StartCoroutine(MoveTo(targetPosition, pushDir));
     }
     
-    /// <summary>
-    /// Check if cube is grounded and stable for pushing
-    /// </summary>
     private bool IsGrounded()
     {
-        // Cast downward from cube center to check for ground
         Vector3 rayStart = transform.position + Vector3.up * 0.1f;
-        float rayDistance = 0.6f; // Slightly more than half cube height
+        float rayDistance = 0.6f;
         
-        // Cast ray downward to detect ground or other cubes
         bool isGrounded = Physics.Raycast(rayStart, Vector3.down, rayDistance);
         
         return isGrounded;
     }
     
-    /// <summary>
-    /// Convert any direction to exact grid direction (no diagonals)
-    /// </summary>
     private Vector3 GetGridDirection(Vector3 direction)
     {
-        direction.y = 0; // Remove vertical component
+        direction.y = 0;
         direction.Normalize();
         
-        // Force to strongest cardinal direction only
         if (Mathf.Abs(direction.x) > Mathf.Abs(direction.z))
         {
             return direction.x > 0 ? Vector3.right : Vector3.left;
@@ -281,52 +204,39 @@ public class PowerCube : MonoBehaviour
         return Vector3.zero;
     }
     
-    /// <summary>
-    /// Check if a grid position is completely clear of obstacles (including other cubes in stacks)
-    /// </summary>
     private bool IsPositionClear(Vector3 position)
     {
-        // Use OverlapBox for precise collision checking
         Bounds checkBounds = new Bounds(position, Vector3.one * 0.9f);
         Collider[] overlapping = Physics.OverlapBox(checkBounds.center, checkBounds.extents);
         
         foreach (Collider col in overlapping)
         {
-            // Ignore self and triggers
             if (col.gameObject == gameObject || col.isTrigger) continue;
             
-            // Check if this collider belongs to a cube that's part of our stack
             PowerCube otherCube = col.GetComponent<PowerCube>();
             if (otherCube != null)
             {
-                // Simple check: if other cube is in same column (X,Z alignment), it's part of our stack
                 Vector3 otherPos = otherCube.transform.position;
                 Vector3 myPos = transform.position;
                 float alignmentTolerance = 0.1f;
                 bool isSameColumn = Mathf.Abs(otherPos.x - myPos.x) < alignmentTolerance && 
                                    Mathf.Abs(otherPos.z - myPos.z) < alignmentTolerance;
                 
-                // If it's in our column, it's okay to overlap during movement
                 if (isSameColumn) continue;
             }
             
-            // Any other solid collider blocks movement
             return false;
         }
         
         return true;
     }
     
-    /// <summary>
-    /// Move cube to target position with perfect grid precision (X,Z only)
-    /// </summary>
     private System.Collections.IEnumerator MoveTo(Vector3 targetPosition, Vector3 direction)
     {
         isMoving = true;
-        CubeUnpowered(); // Disconnect at start of movement
+        CubeUnpowered();
         Vector3 startPos = transform.position;
         
-        // Temporarily unlock the movement axis
         RigidbodyConstraints oldConstraints = rb.constraints;
         if (direction == Vector3.right || direction == Vector3.left)
         {
@@ -337,7 +247,6 @@ public class PowerCube : MonoBehaviour
             rb.constraints = RigidbodyConstraints.FreezePositionX | RigidbodyConstraints.FreezeRotation;
         }
         
-        // Preserve natural Y position during horizontal movement
         targetPosition.y = startPos.y;
         
         float elapsed = 0f;
@@ -348,33 +257,32 @@ public class PowerCube : MonoBehaviour
             elapsed += Time.deltaTime;
             float progress = Mathf.SmoothStep(0f, 1f, elapsed / moveTime);
             
-            // Direct transform interpolation for horizontal movement
             Vector3 currentPos = Vector3.Lerp(startPos, targetPosition, progress);
-            currentPos.y = transform.position.y; // Let physics handle Y
+            currentPos.y = transform.position.y;
             transform.position = currentPos;
             yield return null;
         }
         
-        // CRITICAL: Force exact final X,Z position
         Vector3 finalPos = targetPosition;
-        finalPos.y = transform.position.y; // Preserve physics Y
+        finalPos.y = transform.position.y;
         transform.position = finalPos;
         
-        // Re-lock all horizontal movement
         rb.constraints = RigidbodyConstraints.FreezePositionX | RigidbodyConstraints.FreezePositionZ | RigidbodyConstraints.FreezeRotation;
         
         isMoving = false;
     }
+
+
+
+
+    //-----------------------------POWER LINES SECTION-----------------------------------------
     
-    // PowerLine Connection System
-    
+
     public void PoweredFromSource(PowerSource powerSource, SpriteRenderer sprite, Transform faceTransform, Color color)
     {
-        // Color the sprite
         if (sprite != null)
             sprite.color = color;
 
-        // Update inspector using simple transform comparison
         if (faceTransform.name == "Top Face")
         {
             topFaceConnectedPS = powerSource;
@@ -406,7 +314,6 @@ public class PowerCube : MonoBehaviour
             westFaceColor = color;
         }
 
-        // Pass power to other cubes connected to this face
         PoweredFromCube(powerSource, faceTransform, color);
     }
 
@@ -435,48 +342,22 @@ public class PowerCube : MonoBehaviour
 
     public void CubeUnpowered()
     {
-        // Only disconnect faces that actually have a PowerSource 
-        if (topFaceConnectedPS != null)
+        DisconnectFace(ref topFaceConnectedPS, ref topFaceColor, "Top Face");
+        DisconnectFace(ref bottomFaceConnectedPS, ref bottomFaceColor, "Bottom Face");
+        DisconnectFace(ref northFaceConnectedPS, ref northFaceColor, "North Face");
+        DisconnectFace(ref eastFaceConnectedPS, ref eastFaceColor, "East Face");
+        DisconnectFace(ref southFaceConnectedPS, ref southFaceColor, "South Face");
+        DisconnectFace(ref westFaceConnectedPS, ref westFaceColor, "West Face");
+    }
+
+    private void DisconnectFace(ref PowerSource facePS, ref Color faceColor, string faceName)
+    {
+        if (facePS != null)
         {
-            topFaceConnectedPS.CubeDisconnected(this.gameObject);
-            topFaceConnectedPS = null;
-            topFaceColor = Color.white;
-            ResetFaceSprite("Top Face");
-        }
-        if (bottomFaceConnectedPS != null)
-        {
-            bottomFaceConnectedPS.CubeDisconnected(this.gameObject);
-            bottomFaceConnectedPS = null;
-            bottomFaceColor = Color.white;
-            ResetFaceSprite("Bottom Face");
-        }
-        if (northFaceConnectedPS != null)
-        {
-            northFaceConnectedPS.CubeDisconnected(this.gameObject);
-            northFaceConnectedPS = null;
-            northFaceColor = Color.white;
-            ResetFaceSprite("North Face");
-        }
-        if (eastFaceConnectedPS != null)
-        {
-            eastFaceConnectedPS.CubeDisconnected(this.gameObject);
-            eastFaceConnectedPS = null;
-            eastFaceColor = Color.white;
-            ResetFaceSprite("East Face");
-        }
-        if (southFaceConnectedPS != null)
-        {
-            southFaceConnectedPS.CubeDisconnected(this.gameObject);
-            southFaceConnectedPS = null;
-            southFaceColor = Color.white;
-            ResetFaceSprite("South Face");
-        }
-        if (westFaceConnectedPS != null)
-        {
-            westFaceConnectedPS.CubeDisconnected(this.gameObject);
-            westFaceConnectedPS = null;
-            westFaceColor = Color.white;
-            ResetFaceSprite("West Face");
+            facePS.CubeDisconnected(this.gameObject);
+            facePS = null;
+            faceColor = Color.white;
+            ResetFaceSprite(faceName);
         }
     }
 
