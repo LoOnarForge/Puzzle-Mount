@@ -46,25 +46,6 @@ public class PowerSource : MonoBehaviour
     public void RemovePowerCube(GameObject cube)
     {
         connectedCubes.Remove(cube);
-    }
-
-    private void OnTriggerEnter(Collider other)
-    {
-        PowerConnectionTrigger trigger = other.GetComponent<PowerConnectionTrigger>();
-        if (trigger != null)
-        {
-            PowerCube cube = trigger.cubeScript;
-            if (cube != null)
-            {
-                AddPowerCube(cube.gameObject);
-            }
-            trigger.PowerReceived(this, powerColor);
-        }
-    }
-
-    public void CubeDisconnected(GameObject cubeGameObject)
-    {
-        RemovePowerCube(cubeGameObject);
         powerUsage -= 1;
     }
 }
