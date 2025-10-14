@@ -1,0 +1,69 @@
+PUZZLE MOUNT - GAME DESIGN DOCUMENT
+Game Overview
+Grid-based puzzle platformer set in South American temple ruins. Player controls Tim, an explorer who pushes and rotates cubes to connect power lines from sources to targets. Combines precise cube manipulation with platforming elements in an Indiana Jones-inspired setting.
+Core Mechanics
+Cube Types
+Basic Cube - Standard moveable and rotatable block with power lines
+Heavy Cube - Can only be rotated, cannot be pushed
+Static Cube - Fixed environmental obstacles, cannot move or rotate
+Power Source - Generates power, cannot be moved, feeds power into connected lines
+Power Mixer - Combines different colored power types into new colors
+Power Target - End goal that must receive power (switches, gates, devices)
+Power Line Types
+Straight Line - Connects two opposite faces
+L-Corner - 90-degree connection between adjacent faces
+T-Junction - Three-way connection with one input, two outputs
+Cross - Four-way connection, all directions connected
+Power System
+Directional Flow - Power always flows away from sources
+Color Types - Multiple power colors (Red, Blue, Yellow, etc.)
+Power Mixing - Different colors combine to create new colors
+Face Independence - Each cube face operates separately unless internally connected
+Surface Types
+Normal - Standard grip and movement
+Sticky - Locks cubes in place when contacted
+Slippery - Cubes slide until hitting obstacle, player cannot stop mid-slide
+Brittle - Surface breaks after 1-3 cube pushes over it
+Pressure Plates - Activated by cube weight, trigger mechanisms
+Environmental Mechanics
+Bridges - Built from collected wood pieces, span gaps and chasms
+Cranes/Elevators - Move cubes to higher levels, require collected materials
+Moving Platforms - Power-activated temporary paths
+Switches/Gates - Opened by powered connections
+Chasms - Can be filled with unwanted cubes to create crossing paths
+Player Actions
+Tim's Movement
+Walk - Precise movement for accurate cube positioning
+Run - Faster movement with slight reach extension
+Jump - Basic platforming over obstacles
+Cube Manipulation
+Push - Move cube stacks (maximum 3 cubes) in cardinal directions
+Rotate - Turn cubes 90 degrees to align power lines (Q/E keys)
+Tab Selection - Cycle through available cubes in stack at Tim's level
+Push Timing System
+Initial Delay - 0.35 seconds before first push to prevent accidental moves
+Continuous Delay - 0.1 seconds between subsequent pushes for precision control
+Contact Required - Must maintain contact with cube to continue pushing sequence
+Environmental Variety
+Lava Zones - Hot surfaces, dramatic lighting, ember effects
+Cave Interior - Dark atmosphere, ancient temple architecture
+Icy Areas - Slippery surfaces, snow effects, cold themes
+Forest Ruins - Overgrown elements, natural lighting, wooden structures
+Resource Collection & Building
+Wood Pieces - Collected in levels, used for bridge construction
+Metal Parts - Required for crane and elevator mechanisms
+Rope - Needed for rope bridges and pulley systems
+No Global Resources - All materials found in the level where they're needed
+Progression System
+Environmental Complexity - New mechanics introduced gradually across levels
+Visual Camp - Vehicle assembly shows progress, decorative collectibles
+Vehicle Escape - Collect parts to build escape vehicle as ultimate goal
+Game Modes
+Story Mode - Standard puzzle progression
+Limited Moves - Complete level with maximum 50 cube pushes
+Timed Challenges - Speed-based puzzle solving
+Technical Details
+Grid System - All movement and placement on 1-meter grid
+Visual-Only Rotation - Cube mesh rotates while collider stays grid-aligned
+Raycast Detection - Precise cube targeting and interaction
+Child Object Lines - Each power line as separate GameObject for individual control

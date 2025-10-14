@@ -2,26 +2,20 @@ using UnityEngine;
 
 public class PowerConnectionTrigger : MonoBehaviour
 {
-    [Header("REFERENCES:")]
+    [Header("REFERENCES")]
     public PowerCube cubeScript;
     public SpriteRenderer faceSprite;
+    public Transform parentFace;
     
-    [Header("POWER STATE:")]
+    [Header("POWER STATE")]
     public bool isTriggerPowerReceiver = false;
     
-    private void OnTriggerEnter(Collider other)
+    public void PowerReceived(PowerSource source, Color powerColor)
     {
+        isTriggerPowerReceiver = true;
         if (cubeScript != null)
         {
-          //  cubeScript.TriggerEntered(this, other);
-        }
-    }
-    
-    private void OnTriggerExit(Collider other)
-    {
-        if (cubeScript != null)
-        {
-          //  cubeScript.TriggerExited(this, other);
+        //    cubeScript.FacePowered(parentFace, this, source, powerColor);
         }
     }
 }

@@ -131,11 +131,6 @@ public class PowerCube : MonoBehaviour
     
     private Rigidbody rb;
     
-    private bool[] faceConnections = new bool[6];
-    private PowerLineState[] faceStates = new PowerLineState[6];
-    private Color[] facePowerColors = new Color[6];
-    private PowerSource[] faceConnectedSources = new PowerSource[6];
-    
     private void Awake()
     {
         rb = GetComponent<Rigidbody>();
@@ -143,6 +138,8 @@ public class PowerCube : MonoBehaviour
         rb.isKinematic = false;
         rb.useGravity = true;
         rb.constraints = RigidbodyConstraints.FreezePositionX | RigidbodyConstraints.FreezePositionZ | RigidbodyConstraints.FreezeRotation;
+        
+        InitializeFaceData();
     }
     
     private void Start()
@@ -161,7 +158,6 @@ public class PowerCube : MonoBehaviour
         float yRot = Random.Range(0, 4) * 90f;
         float zRot = Random.Range(0, 4) * 90f;
         
-        CubeUnpowered();
         transform.rotation = Quaternion.Euler(xRot, yRot, zRot);
     }
     
@@ -277,7 +273,6 @@ public class PowerCube : MonoBehaviour
     private System.Collections.IEnumerator MoveTo(Vector3 targetPosition, Vector3 direction)
     {
         isMoving = true;
-        CubeUnpowered();
         Vector3 startPos = transform.position;
         
         RigidbodyConstraints oldConstraints = rb.constraints;
@@ -320,107 +315,54 @@ public class PowerCube : MonoBehaviour
 
     //-----------------------------POWER LINES SECTION----------------------------------------- 
     
-
-    public void PoweredFromSource(PowerSource powerSource, SpriteRenderer sprite, Transform faceTransform, Color color)
+    public struct FaceData
     {
-        if (sprite != null)
-            sprite.color = color;
-
-        if (faceTransform == topFaceTransform)
-        {
-            topFaceConnectedPS = powerSource;
-            topFaceColor = color;
-        }
-        else if (faceTransform == bottomFaceTransform)
-        {
-            bottomFaceConnectedPS = powerSource;
-            bottomFaceColor = color;
-        }
-        else if (faceTransform == northFaceTransform)
-        {
-            northFaceConnectedPS = powerSource;
-            northFaceColor = color;
-        }
-        else if (faceTransform == southFaceTransform)
-        {
-            southFaceConnectedPS = powerSource;
-            southFaceColor = color;
-        }
-        else if (faceTransform == eastFaceTransform)
-        {
-            eastFaceConnectedPS = powerSource;
-            eastFaceColor = color;
-        }
-        else if (faceTransform == westFaceTransform)
-        {
-            westFaceConnectedPS = powerSource;
-            westFaceColor = color;
-        }
-
-        PoweredFromCube(powerSource, faceTransform, color);
+        public SpriteRenderer faceSprite;
+        public PowerConnectionTrigger[] triggers;
+        public PowerLineType lineType;
     }
 
-    private void PoweredFromCube(PowerSource originalPS, Transform poweredFace, Color powerColor)
+    private FaceData topFaceData;
+    private FaceData bottomFaceData;
+    private FaceData northFaceData;
+    private FaceData southFaceData;
+    private FaceData eastFaceData;
+    private FaceData westFaceData;
+
+    private void InitializeFaceData()
     {
-        Collider[] faceColliders = poweredFace.GetComponentsInChildren<Collider>();
+        topFaceData = CreateFaceData(topFaceTransform, topFace, topUpTrigger, topRightTrigger, topDownTrigger, topLeftTrigger);
+        bottomFaceData = CreateFaceData(bottomFaceTransform, bottomFace, bottomUpTrigger, bottomRightTrigger, bottomDownTrigger, bottomLeftTrigger);
+        northFaceData = CreateFaceData(northFaceTransform, northFace, northUpTrigger, northRightTrigger, northDownTrigger, northLeftTrigger);
+        southFaceData = CreateFaceData(southFaceTransform, southFace, southUpTrigger, southRightTrigger, southDownTrigger, southLeftTrigger);
+        eastFaceData = CreateFaceData(eastFaceTransform, eastFace, eastUpTrigger, eastRightTrigger, eastDownTrigger, eastLeftTrigger);
+        westFaceData = CreateFaceData(westFaceTransform, westFace, westUpTrigger, westRightTrigger, westDownTrigger, westLeftTrigger);
+    }
+
+    private FaceData CreateFaceData(Transform faceTransform, PowerLineType lineType, PowerConnectionTrigger up, PowerConnectionTrigger right, PowerConnectionTrigger down, PowerConnectionTrigger left)
+    {
+        FaceData data = new FaceData();
+        data.lineType = lineType;
         
-        foreach (Collider trigger in faceColliders)
-        {
-            if (!trigger.isTrigger) continue;
-            
-            Collider[] overlapping = Physics.OverlapSphere(trigger.transform.position, trigger.bounds.size.x / 2);
-            
-            foreach (Collider other in overlapping)
-            {
-                PowerCube otherCube = other.GetComponentInParent<PowerCube>();
-                if (otherCube == null || otherCube == this) continue;
-                
-                SpriteRenderer sprite = other.transform.parent.GetComponent<SpriteRenderer>();
-                Transform faceTransform = other.transform.parent.parent;
-                
-                otherCube.PoweredFromSource(originalPS, sprite, faceTransform, powerColor);
-            }
-        }
-    }
-
-    public void CubeUnpowered()
-    {
-        DisconnectFace(ref topFaceConnectedPS, ref topFaceColor, topFaceTransform);
-        DisconnectFace(ref bottomFaceConnectedPS, ref bottomFaceColor, bottomFaceTransform);
-        DisconnectFace(ref northFaceConnectedPS, ref northFaceColor, northFaceTransform);
-        DisconnectFace(ref southFaceConnectedPS, ref southFaceColor, southFaceTransform);
-        DisconnectFace(ref eastFaceConnectedPS, ref eastFaceColor, eastFaceTransform);
-        DisconnectFace(ref westFaceConnectedPS, ref westFaceColor, westFaceTransform);
-    }
-
-    private void DisconnectFace(ref PowerSource facePS, ref Color faceColor, Transform faceTransform)
-    {
-        if (facePS != null)
-        {
-            facePS.CubeDisconnected(this.gameObject);
-            facePS = null;
-            faceColor = Color.white;
-            ResetFaceSprite(faceTransform);
-        }
-    }
-
-    private void ResetFaceSprite(Transform faceTransform)
-    {
         if (faceTransform != null)
         {
-            SpriteRenderer sprite = faceTransform.GetComponent<SpriteRenderer>();
-            if (sprite != null)
-                sprite.color = Color.white;
+            Transform spriteChild = faceTransform.Find("Power Line Sprite");
+            if (spriteChild != null)
+            {
+                data.faceSprite = spriteChild.GetComponent<SpriteRenderer>();
+            }
         }
+        
+        List<PowerConnectionTrigger> activeTriggers = new List<PowerConnectionTrigger>();
+        
+        if (up != null && up.gameObject.activeInHierarchy) activeTriggers.Add(up);
+        if (right != null && right.gameObject.activeInHierarchy) activeTriggers.Add(right);
+        if (down != null && down.gameObject.activeInHierarchy) activeTriggers.Add(down);
+        if (left != null && left.gameObject.activeInHierarchy) activeTriggers.Add(left);
+        
+        data.triggers = activeTriggers.ToArray();
+        
+        return data;
     }
 
-    public void TriggerEntered(PowerConnectionTrigger trigger, Collider other)
-    {
-        
-    }
-
-    public void TriggerExited(PowerConnectionTrigger trigger, Collider other)
-    {
-        
-    }
 }

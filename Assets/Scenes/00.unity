@@ -2655,7 +2655,6 @@ Transform:
   - {fileID: 1538918572}
   - {fileID: 639251476}
   - {fileID: 1871665596}
-  - {fileID: 1701480783977473714}
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!4 &639251476 stripped
@@ -8230,11 +8229,6 @@ MeshFilter:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 2145086516}
   m_Mesh: {fileID: 10202, guid: 0000000000000000e000000000000000, type: 0}
---- !u!4 &1701480783977473714 stripped
-Transform:
-  m_CorrespondingSourceObject: {fileID: 8461288472443543211, guid: dbd0f4ebc6a48084d9e297b9265589b0, type: 3}
-  m_PrefabInstance: {fileID: 5121128807805926635}
-  m_PrefabAsset: {fileID: 0}
 --- !u!1001 &4624205611414200611
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -8292,58 +8286,17 @@ PrefabInstance:
     m_AddedGameObjects: []
     m_AddedComponents: []
   m_SourcePrefab: {fileID: 100100000, guid: 06a0f59d8cc113345893a152fa66c870, type: 3}
---- !u!1 &5079153507918102371 stripped
-GameObject:
-  m_CorrespondingSourceObject: {fileID: 2980458030988621035, guid: dbd0f4ebc6a48084d9e297b9265589b0, type: 3}
-  m_PrefabInstance: {fileID: 5121128807805926635}
-  m_PrefabAsset: {fileID: 0}
 --- !u!1001 &5121128807805926635
 PrefabInstance:
   m_ObjectHideFlags: 0
   serializedVersion: 2
   m_Modification:
     serializedVersion: 3
-    m_TransformParent: {fileID: 609989326}
+    m_TransformParent: {fileID: 0}
     m_Modifications:
     - target: {fileID: 2980458030988621035, guid: dbd0f4ebc6a48084d9e297b9265589b0, type: 3}
       propertyPath: m_Name
       value: Power Source TEMP (00)
-      objectReference: {fileID: 0}
-    - target: {fileID: 5131147076687689425, guid: dbd0f4ebc6a48084d9e297b9265589b0, type: 3}
-      propertyPath: m_LocalRotation.w
-      value: 0.7071068
-      objectReference: {fileID: 0}
-    - target: {fileID: 5131147076687689425, guid: dbd0f4ebc6a48084d9e297b9265589b0, type: 3}
-      propertyPath: m_LocalRotation.x
-      value: 0.7071068
-      objectReference: {fileID: 0}
-    - target: {fileID: 5131147076687689425, guid: dbd0f4ebc6a48084d9e297b9265589b0, type: 3}
-      propertyPath: m_LocalRotation.y
-      value: 0
-      objectReference: {fileID: 0}
-    - target: {fileID: 5131147076687689425, guid: dbd0f4ebc6a48084d9e297b9265589b0, type: 3}
-      propertyPath: m_LocalRotation.z
-      value: 0
-      objectReference: {fileID: 0}
-    - target: {fileID: 5131147076687689425, guid: dbd0f4ebc6a48084d9e297b9265589b0, type: 3}
-      propertyPath: m_LocalEulerAnglesHint.x
-      value: 90
-      objectReference: {fileID: 0}
-    - target: {fileID: 5131147076687689425, guid: dbd0f4ebc6a48084d9e297b9265589b0, type: 3}
-      propertyPath: m_LocalEulerAnglesHint.z
-      value: 0
-      objectReference: {fileID: 0}
-    - target: {fileID: 6094140318451116913, guid: dbd0f4ebc6a48084d9e297b9265589b0, type: 3}
-      propertyPath: m_Color.b
-      value: 1
-      objectReference: {fileID: 0}
-    - target: {fileID: 6094140318451116913, guid: dbd0f4ebc6a48084d9e297b9265589b0, type: 3}
-      propertyPath: m_Color.g
-      value: 1
-      objectReference: {fileID: 0}
-    - target: {fileID: 6094140318451116913, guid: dbd0f4ebc6a48084d9e297b9265589b0, type: 3}
-      propertyPath: m_Color.r
-      value: 1
       objectReference: {fileID: 0}
     - target: {fileID: 8461288472443543211, guid: dbd0f4ebc6a48084d9e297b9265589b0, type: 3}
       propertyPath: m_LocalPosition.x
@@ -8388,28 +8341,8 @@ PrefabInstance:
     m_RemovedComponents: []
     m_RemovedGameObjects: []
     m_AddedGameObjects: []
-    m_AddedComponents:
-    - targetCorrespondingSourceObject: {fileID: 2980458030988621035, guid: dbd0f4ebc6a48084d9e297b9265589b0, type: 3}
-      insertIndex: 1
-      addedObject: {fileID: 5593899650695823043}
+    m_AddedComponents: []
   m_SourcePrefab: {fileID: 100100000, guid: dbd0f4ebc6a48084d9e297b9265589b0, type: 3}
---- !u!114 &5593899650695823043
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 5079153507918102371}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 2a4018850ea7481468b0bf92db03af3f, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::PowerSource
-  powerColor: {r: 0.9685534, g: 0.28325605, b: 0.4545804, a: 1}
-  maxPower: 10
-  powerUsage: 0
-  TriggersList: []
-  connectedCubes: []
 --- !u!1660057539 &9223372036854775807
 SceneRoots:
   m_ObjectHideFlags: 0
@@ -8424,4 +8357,5 @@ SceneRoots:
   - {fileID: 1429237337}
   - {fileID: 1097024146}
   - {fileID: 2089665453}
+  - {fileID: 5121128807805926635}
   - {fileID: 4624205611414200611}
