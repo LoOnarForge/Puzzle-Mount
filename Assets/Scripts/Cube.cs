@@ -365,4 +365,34 @@ public class PowerCube : MonoBehaviour
         return data;
     }
 
+    public void FacePowered(Transform face, PowerConnectionTrigger receiverTrigger, PowerSource source, Color powerColor)
+    {
+        source.AddPowerCube(this.gameObject);
+        
+        FaceData faceData = GetFaceData(face);
+        
+        if (faceData.faceSprite != null)
+        {
+            faceData.faceSprite.color = powerColor;
+        }
+        
+        foreach (PowerConnectionTrigger trigger in faceData.triggers)
+        {
+            if (trigger == receiverTrigger) continue;
+            
+            trigger.SecondaryPowerReceived(source, powerColor);
+        }
+    }
+
+    private FaceData GetFaceData(Transform face)
+    {
+        if (face == topFaceTransform) return topFaceData;
+        if (face == bottomFaceTransform) return bottomFaceData;
+        if (face == northFaceTransform) return northFaceData;
+        if (face == southFaceTransform) return southFaceData;
+        if (face == eastFaceTransform) return eastFaceData;
+        if (face == westFaceTransform) return westFaceData;
+        
+        return new FaceData();
+    }
 }

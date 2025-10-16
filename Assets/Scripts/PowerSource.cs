@@ -40,6 +40,7 @@ public class PowerSource : MonoBehaviour
         if (!connectedCubes.Contains(cube))
         {
             connectedCubes.Add(cube);
+            powerUsage += 1;
         }
     }
 

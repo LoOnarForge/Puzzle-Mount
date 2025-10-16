@@ -9,37 +9,51 @@ public class PowerConnectionTrigger : MonoBehaviour
     public PowerSource parentPowerSource;
     
     [Header("POWER STATE")]
-    public bool isTriggerPowerSource = false;
+    public bool isPowered = false;
     public bool isTriggerPowerReceiver = false;
     
     private Color currentPowerColor;
     
     private void Awake()
     {
-        if (isTriggerPowerSource && parentPowerSource != null)
+        if (parentPowerSource != null)
         {
+            isPowered = true;
             currentPowerColor = parentPowerSource.powerColor;
         }
     }
     
-    private void OnTriggerEnter(Collider other)
+    private void OnTriggerStay(Collider other)
     {
         PowerConnectionTrigger otherTrigger = other.GetComponent<PowerConnectionTrigger>();
         if (otherTrigger == null) return;
         
-        if (isTriggerPowerSource)
+        if (isPowered && !otherTrigger.isPowered && parentPowerSource != null)
         {
-            otherTrigger.PowerReceived(parentPowerSource, currentPowerColor);
+            if (parentPowerSource.powerUsage < parentPowerSource.maxPower)
+            {
+                otherTrigger.PowerReceived(parentPowerSource, currentPowerColor);
+            }
         }
     }
     
     public void PowerReceived(PowerSource source, Color powerColor)
     {
+        isPowered = true;
         isTriggerPowerReceiver = true;
         currentPowerColor = powerColor;
+        parentPowerSource = source;
         if (cubeScript != null)
         {
-        //    cubeScript.FacePowered(parentFace, this, source, powerColor);
+            cubeScript.FacePowered(parentFace, this, source, powerColor);
         }
+    }
+    
+    public void SecondaryPowerReceived(PowerSource source, Color powerColor)
+    {
+        isPowered = true;
+        isTriggerPowerReceiver = false;
+        currentPowerColor = powerColor;
+        parentPowerSource = source;
     }
 }
