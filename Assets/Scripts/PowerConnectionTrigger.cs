@@ -28,12 +28,37 @@ public class PowerConnectionTrigger : MonoBehaviour
         PowerConnectionTrigger otherTrigger = other.GetComponent<PowerConnectionTrigger>();
         if (otherTrigger == null) return;
         
+        if (isPowered && parentPowerSource != null)
+        {
+            if (otherTrigger.parentPowerSource == parentPowerSource && !otherTrigger.isPowered)
+            {
+                if (cubeScript != null)
+                {
+                    cubeScript.UnpowerFace(parentFace);
+                }
+                return;
+            }
+        }
+        
         if (isPowered && !otherTrigger.isPowered && parentPowerSource != null)
         {
             if (parentPowerSource.powerUsage < parentPowerSource.maxPower)
             {
                 otherTrigger.PowerReceived(parentPowerSource, currentPowerColor);
             }
+        }
+    }
+    
+    private void OnTriggerExit(Collider other)
+    {
+        if (!isTriggerPowerReceiver) return;
+        
+        PowerConnectionTrigger otherTrigger = other.GetComponent<PowerConnectionTrigger>();
+        if (otherTrigger == null) return;
+        
+        if (otherTrigger.isPowered && cubeScript != null)
+        {
+            cubeScript.UnpowerFace(parentFace);
         }
     }
     

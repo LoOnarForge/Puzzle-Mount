@@ -320,6 +320,7 @@ public class PowerCube : MonoBehaviour
         public SpriteRenderer faceSprite;
         public PowerConnectionTrigger[] triggers;
         public PowerLineType lineType;
+        public PowerSource connectedPowerSource;
     }
 
     private FaceData topFaceData;
@@ -367,9 +368,13 @@ public class PowerCube : MonoBehaviour
 
     public void FacePowered(Transform face, PowerConnectionTrigger receiverTrigger, PowerSource source, Color powerColor)
     {
-        source.AddPowerCube(this.gameObject);
-        
         FaceData faceData = GetFaceData(face);
+        
+        if (faceData.connectedPowerSource == null)
+        {
+            source.AddPowerCube(this.gameObject);
+            SetFacePowerSource(face, source);
+        }
         
         if (faceData.faceSprite != null)
         {
@@ -382,6 +387,39 @@ public class PowerCube : MonoBehaviour
             
             trigger.SecondaryPowerReceived(source, powerColor);
         }
+    }
+    
+    public void UnpowerFace(Transform face)
+    {
+        FaceData faceData = GetFaceData(face);
+        
+        if (faceData.connectedPowerSource != null)
+        {
+            faceData.connectedPowerSource.RemovePowerCube(this.gameObject);
+            SetFacePowerSource(face, null);
+        }
+        
+        foreach (PowerConnectionTrigger trigger in faceData.triggers)
+        {
+            trigger.isPowered = false;
+            trigger.isTriggerPowerReceiver = false;
+            trigger.parentPowerSource = null;
+        }
+        
+        if (faceData.faceSprite != null)
+        {
+            faceData.faceSprite.color = Color.white;
+        }
+    }
+    
+    private void SetFacePowerSource(Transform face, PowerSource source)
+    {
+        if (face == topFaceTransform) topFaceData.connectedPowerSource = source;
+        else if (face == bottomFaceTransform) bottomFaceData.connectedPowerSource = source;
+        else if (face == northFaceTransform) northFaceData.connectedPowerSource = source;
+        else if (face == southFaceTransform) southFaceData.connectedPowerSource = source;
+        else if (face == eastFaceTransform) eastFaceData.connectedPowerSource = source;
+        else if (face == westFaceTransform) westFaceData.connectedPowerSource = source;
     }
 
     private FaceData GetFaceData(Transform face)
