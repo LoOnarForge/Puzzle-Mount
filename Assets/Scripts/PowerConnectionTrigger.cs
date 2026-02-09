@@ -28,16 +28,13 @@ public class PowerConnectionTrigger : MonoBehaviour
         PowerConnectionTrigger otherTrigger = other.GetComponent<PowerConnectionTrigger>();
         if (otherTrigger == null) return;
         
-        if (isPowered && parentPowerSource != null)
+        if (isPowered && isTriggerPowerReceiver && !otherTrigger.isPowered)
         {
-            if (otherTrigger.parentPowerSource == parentPowerSource && !otherTrigger.isPowered)
+            if (cubeScript != null)
             {
-                if (cubeScript != null)
-                {
-                    cubeScript.UnpowerFace(parentFace);
-                }
-                return;
+                cubeScript.UnpowerFace(parentFace);
             }
+            return;
         }
         
         if (isPowered && !otherTrigger.isPowered && parentPowerSource != null)
