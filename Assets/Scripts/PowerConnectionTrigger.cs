@@ -53,7 +53,7 @@ public class PowerConnectionTrigger : MonoBehaviour
         PowerConnectionTrigger otherTrigger = other.GetComponent<PowerConnectionTrigger>();
         if (otherTrigger == null) return;
         
-        if (otherTrigger.isPowered && cubeScript != null)
+        if (cubeScript != null)
         {
             cubeScript.UnpowerFace(parentFace);
         }
