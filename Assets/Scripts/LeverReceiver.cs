@@ -1,11 +1,11 @@
 using System.Collections.Generic;
 using UnityEngine;
 
-/// <summary>
+
 /// Attach to the lever object in the world.
-/// Assign this to PowerReceiverBase on the ReceiverCube.
+/// Assign this to PowerReceiverBase to let the leaver know that it is powered and operatrional.
 /// Player clicks to toggle. Calls Toggle() on all targets only when powered with correct color and enough power.
-/// </summary>
+
 public class LeverReceiver : MonoBehaviour
 {
     [Header("REQUIREMENTS")]
@@ -13,7 +13,7 @@ public class LeverReceiver : MonoBehaviour
     public int minimumPower = 1;
 
     [Header("TARGETS")]
-    public List<LeverTarget> targets = new List<LeverTarget>();
+    public List<MonoBehaviour> targets = new List<MonoBehaviour>();
 
     [Header("STATE")]
     public bool isOn = false;
@@ -24,7 +24,7 @@ public class LeverReceiver : MonoBehaviour
 
     private const float ColorTolerance = 0.05f;
 
-    /// <summary>Called by PowerReceiverBase when power is connected.</summary>
+    /// Called by PowerReceiverBase when power is connected.
     public void PassColorAndPower(Color incomingColor, int incomingPower)
     {
         bool colorMatches = ColorsMatch(incomingColor, ColorManager.Instance.GetColor(requiredColorIndex));
@@ -39,8 +39,9 @@ public class LeverReceiver : MonoBehaviour
         isPowered = true;
         currentPowerColor = incomingColor;
 
-        foreach (LeverTarget target in targets)
+        foreach (MonoBehaviour mb in targets)
         {
+            ILeverTarget target = mb as ILeverTarget;
             if (target != null)
                 target.SetPowerColor(incomingColor);
         }
@@ -51,7 +52,7 @@ public class LeverReceiver : MonoBehaviour
         }
     }
 
-    /// <summary>Called by PowerReceiverBase when power is disconnected.</summary>
+    /// Called by PowerReceiverBase when power is disconnected.
     public void OnPowerLost()
     {
         isPowered = false;
@@ -75,8 +76,9 @@ public class LeverReceiver : MonoBehaviour
 
     private void ToggleAllTargets()
     {
-        foreach (LeverTarget target in targets)
+        foreach (MonoBehaviour mb in targets)
         {
+            ILeverTarget target = mb as ILeverTarget;
             if (target != null)
                 target.Toggle();
         }

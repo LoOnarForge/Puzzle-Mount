@@ -1,14 +1,14 @@
 using System.Collections;
 using UnityEngine;
 
-/// <summary>
+
 /// Attach to the door object in the world.
 /// Assign this to PowerReceiverBase on the ReceiverCube.
 /// Holds its own color and power requirements.
 /// Changes material color based on power state and logs received power info.
 /// Waits for connectionDelay seconds before acting on power to avoid false triggers.
-/// </summary>
-public class DoorReceiver : MonoBehaviour
+
+public class EndGateController : MonoBehaviour
 {
     [Header("REQUIREMENTS")]
     public int requiredColorIndex;
@@ -23,7 +23,7 @@ public class DoorReceiver : MonoBehaviour
     private static readonly int BaseColorProperty = Shader.PropertyToID("_BaseColor");
     private Coroutine pendingConnection;
 
-    /// <summary>Called by PowerReceiverBase when power is connected.</summary>
+    /// Called by PowerReceiverBase when power is connected.
     public void PassColorAndPower(Color incomingColor, int incomingPower)
     {
         bool colorMatches = ColorsMatch(incomingColor, ColorManager.Instance.GetColor(requiredColorIndex));
@@ -31,14 +31,14 @@ public class DoorReceiver : MonoBehaviour
 
         if (!colorMatches)
         {
-            Debug.Log("[DoorReceiver] Power connected - not the correct type of power provided.");
+            Debug.Log("[EndGateController] Power connected - incorrect color.");
             return;
         }
 
         if (!powerSufficient)
         {
             int missing = minimumPower - incomingPower;
-            Debug.Log($"[DoorReceiver] Power connected - missing {missing} MW.");
+            Debug.Log($"[EndGateController] Power connected - missing {missing} MW.");
             return;
         }
 
@@ -48,11 +48,9 @@ public class DoorReceiver : MonoBehaviour
         }
     }
 
-    /// <summary>Called by PowerReceiverBase when power is disconnected.</summary>
+    /// Called by PowerReceiverBase when power is disconnected.
     public void OnPowerLost()
     {
-        Debug.Log($"[ORDER CHECK] Frame {Time.frameCount} - Door disconnected.");
-
         if (pendingConnection != null)
         {
             StopCoroutine(pendingConnection);
@@ -74,7 +72,7 @@ public class DoorReceiver : MonoBehaviour
             doorRenderer.material.SetColor(BaseColorProperty, incomingColor);
         }
 
-        Debug.Log($"[DoorReceiver] Requirements met | Color: {incomingColor} | Power received: {incomingPower} | Door requires: {minimumPower}");
+        Debug.Log($"[EndGateController] Requirements met | Color: {incomingColor} | Power: {incomingPower}/{minimumPower}");
 
         pendingConnection = null;
     }
