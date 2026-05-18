@@ -1,10 +1,10 @@
+using System.Collections.Generic;
 using UnityEngine;
-using UnityEngine.Events;
 
 /// <summary>
 /// Attach to the lever object in the world.
 /// Assign this to PowerReceiverBase on the ReceiverCube.
-/// Player clicks to toggle. Only fires events when powered with correct color and enough power.
+/// Player clicks to toggle. Calls Toggle() on all targets only when powered with correct color and enough power.
 /// </summary>
 public class LeverReceiver : MonoBehaviour
 {
@@ -12,13 +12,15 @@ public class LeverReceiver : MonoBehaviour
     public int requiredColorIndex;
     public int minimumPower = 1;
 
+    [Header("TARGETS")]
+    public List<LeverTarget> targets = new List<LeverTarget>();
+
     [Header("STATE")]
     public bool isOn = false;
     public bool isPowered = false;
 
-    [Header("EVENTS")]
-    public UnityEvent OnSwitchedOn;
-    public UnityEvent OnSwitchedOff;
+    private bool targetsToggled = false;
+    private Color currentPowerColor = Color.white;
 
     private const float ColorTolerance = 0.05f;
 
@@ -35,22 +37,29 @@ public class LeverReceiver : MonoBehaviour
         }
 
         isPowered = true;
+        currentPowerColor = incomingColor;
 
-        if (isOn)
+        foreach (LeverTarget target in targets)
         {
-            OnSwitchedOn?.Invoke();
+            if (target != null)
+                target.SetPowerColor(incomingColor);
+        }
+
+        if (isOn && !targetsToggled)
+        {
+            ToggleAllTargets();
         }
     }
 
     /// <summary>Called by PowerReceiverBase when power is disconnected.</summary>
     public void OnPowerLost()
     {
-        if (isPowered && isOn)
-        {
-            OnSwitchedOff?.Invoke();
-        }
-
         isPowered = false;
+
+        if (targetsToggled)
+        {
+            ToggleAllTargets();
+        }
     }
 
     private void OnMouseDown()
@@ -61,14 +70,18 @@ public class LeverReceiver : MonoBehaviour
 
         if (!isPowered) return;
 
-        if (isOn)
+        ToggleAllTargets();
+    }
+
+    private void ToggleAllTargets()
+    {
+        foreach (LeverTarget target in targets)
         {
-            OnSwitchedOn?.Invoke();
+            if (target != null)
+                target.Toggle();
         }
-        else
-        {
-            OnSwitchedOff?.Invoke();
-        }
+
+        targetsToggled = !targetsToggled;
     }
 
     private bool ColorsMatch(Color a, Color b)
