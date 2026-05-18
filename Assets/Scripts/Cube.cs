@@ -391,8 +391,6 @@ public class PowerCube : MonoBehaviour
     
     public void UnpowerFace(Transform face)
     {
-        Debug.Log($"[ORDER CHECK] Frame {Time.frameCount} - Cube '{gameObject.name}' face '{face.name}' unpowering.");
-
         FaceData faceData = GetFaceData(face);
         
         if (faceData.connectedPowerSource != null)
