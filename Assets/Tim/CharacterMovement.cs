@@ -27,6 +27,7 @@ public class CharacterMovement : MonoBehaviour
     private PlayerInput playerInput;
     private PlayerAnimator playerAnimator;
     private TimCubeInteraction cubeInteraction;
+    private CameraFollow cameraFollow;
     private InputAction moveAction;
     private InputAction jumpAction;
     private InputAction sprintAction;
@@ -61,6 +62,7 @@ public class CharacterMovement : MonoBehaviour
         playerInput = GetComponent<PlayerInput>();
         playerAnimator = GetComponent<PlayerAnimator>();
         cubeInteraction = GetComponent<TimCubeInteraction>();
+        cameraFollow = FindFirstObjectByType<CameraFollow>();
         
         // Fix PlayerInput notification behavior
         if (playerInput != null)
@@ -222,7 +224,6 @@ public class CharacterMovement : MonoBehaviour
         if (isGrounded)
         {
             // Get camera angle and calculate movement directions based on preset angles
-            CameraFollow cameraFollow = FindFirstObjectByType<CameraFollow>();
             if (cameraFollow != null)
             {
                 return GetMovementDirectionForCameraAngle(cameraFollow.CurrentAngleIndex);

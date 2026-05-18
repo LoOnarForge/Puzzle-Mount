@@ -29,6 +29,7 @@ public class CameraFollow : MonoBehaviour
     
     private Vector3 velocity = Vector3.zero;
     private Camera cameraComponent;
+    private CharacterMovement tim;
     
     // Preset camera angles (North, East, South, West)
     private Vector3[] presetOffsets = new Vector3[]
@@ -53,6 +54,8 @@ public class CameraFollow : MonoBehaviour
     
     private void Start()
     {
+        tim = FindFirstObjectByType<CharacterMovement>();
+        
         if (findPlayerAutomatically && target == null)
         {
             FindPlayerTarget();
@@ -67,10 +70,9 @@ public class CameraFollow : MonoBehaviour
     
     private void FindPlayerTarget()
     {
-        CharacterMovement player = FindFirstObjectByType<CharacterMovement>();
-        if (player != null)
+        if (tim != null)
         {
-            target = player.transform;
+            target = tim.transform;
         }
     }
     
@@ -136,10 +138,7 @@ public class CameraFollow : MonoBehaviour
     
     private bool IsTimStationary()
     {
-        CharacterMovement tim = FindFirstObjectByType<CharacterMovement>();
-        if (tim == null) return true; // Default to allowing rotation if no Tim found
-        
-        // Use the public property to check if Tim is stationary
+        if (tim == null) return true;
         return tim.IsStationary;
     }
     
