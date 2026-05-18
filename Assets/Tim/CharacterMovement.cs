@@ -31,9 +31,6 @@ public class CharacterMovement : MonoBehaviour
     private InputAction moveAction;
     private InputAction jumpAction;
     private InputAction sprintAction;
-    private InputAction tabAction;
-    private InputAction rotateLeftAction;
-    private InputAction rotateRightAction;
     
     private Vector2 moveInput;
     private Vector3 velocity;
@@ -80,61 +77,18 @@ public class CharacterMovement : MonoBehaviour
         moveAction = playerInput.actions["Move"];
         jumpAction = playerInput.actions["Jump"];
         sprintAction = playerInput.actions["Sprint"];
-        
-        // Try to get Tab action, create if it doesn't exist
-        try
-        {
-            tabAction = playerInput.actions["Tab"];
-        }
-        catch
-        {
-            // Tab action doesn't exist in the input actions asset
-            // For now, we'll use a fallback method in HandleCubeSelection
-            tabAction = null;
-        }
-        
-        // Try to get rotation actions (Q/E keys)
-        try
-        {
-            rotateLeftAction = playerInput.actions["RotateLeft"];
-            rotateRightAction = playerInput.actions["RotateRight"];
-        }
-        catch
-        {
-            // Rotation actions don't exist, we'll use fallback in HandleCubeRotation
-            rotateLeftAction = null;
-            rotateRightAction = null;
-        }
     }
     
     private void OnEnable()
     {
         if (jumpAction != null)
             jumpAction.performed += OnJump;
-            
-        if (tabAction != null)
-            tabAction.performed += OnTabPressed;
-            
-        if (rotateLeftAction != null)
-            rotateLeftAction.performed += OnRotateLeft;
-            
-        if (rotateRightAction != null)
-            rotateRightAction.performed += OnRotateRight;
     }
     
     private void OnDisable()
     {
         if (jumpAction != null)
             jumpAction.performed -= OnJump;
-            
-        if (tabAction != null)
-            tabAction.performed -= OnTabPressed;
-            
-        if (rotateLeftAction != null)
-            rotateLeftAction.performed -= OnRotateLeft;
-            
-        if (rotateRightAction != null)
-            rotateRightAction.performed -= OnRotateRight;
     }
     
     private void Update()
@@ -358,30 +312,6 @@ public class CharacterMovement : MonoBehaviour
             // Keep original animator logic unchanged
             float animSpeed = currentSpeed > 0.1f ? (isSprinting ? 1.0f : 0.5f) : 0f;
             playerAnimator.UpdateMovementAnimation(animSpeed, isGrounded, velocity.y);
-        }
-    }
-    
-    private void OnTabPressed(InputAction.CallbackContext context)
-    {
-        if (cubeInteraction != null)
-        {
-            cubeInteraction.HandleTabPressed();
-        }
-    }
-    
-    private void OnRotateLeft(InputAction.CallbackContext context)
-    {
-        if (cubeInteraction != null)
-        {
-            cubeInteraction.HandleRotateLeft();
-        }
-    }
-    
-    private void OnRotateRight(InputAction.CallbackContext context)
-    {
-        if (cubeInteraction != null)
-        {
-            cubeInteraction.HandleRotateRight();
         }
     }
 }

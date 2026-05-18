@@ -328,14 +328,10 @@ public class TimCubeInteraction : MonoBehaviour
     /// </summary>
     private void HandleCubeSelection()
     {
-        // Use new Input System's Keyboard class as fallback if Tab action isn't available
-        if (UnityEngine.InputSystem.Keyboard.current?.tabKey.wasPressedThisFrame == true)
-        {
-            if (!characterMovement.IsGrounded) return; // Disable selection while jumping/falling
-            
-            CycleSelection();
-        }
-        // Tab action is handled by HandleTabPressed callback if available
+        if (UnityEngine.InputSystem.Keyboard.current?.tabKey.wasPressedThisFrame != true) return;
+        if (!characterMovement.IsGrounded) return;
+        
+        CycleSelection();
     }
     
     /// <summary>
@@ -343,20 +339,16 @@ public class TimCubeInteraction : MonoBehaviour
     /// </summary>
     private void HandleCubeRotation()
     {
-        if (isRotating) return; // Prevent input during rotation
+        if (isRotating) return;
         
-        // Use new Input System's Keyboard class as fallback if rotation actions aren't available
         if (UnityEngine.InputSystem.Keyboard.current?.qKey.wasPressedThisFrame == true)
         {
-            // Q rotates horizontally clockwise (around Y axis, positive direction)
             RotateSelectedCube(90f, RotationAxis.Horizontal);
         }
         else if (UnityEngine.InputSystem.Keyboard.current?.eKey.wasPressedThisFrame == true)
         {
-            // E rotates vertically (around X axis, positive direction)
             RotateSelectedCube(90f, RotationAxis.Vertical);
         }
-        // Rotation actions are handled by HandleRotateLeft/HandleRotateRight callbacks if available
     }
     
     /// <summary>
