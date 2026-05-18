@@ -11,7 +11,7 @@ using UnityEngine;
 public class DoorReceiver : MonoBehaviour
 {
     [Header("REQUIREMENTS")]
-    public Color requiredColor = Color.red;
+    public int requiredColorIndex;
     public int minimumPower = 1;
 
     [Header("TIMING")]
@@ -26,7 +26,7 @@ public class DoorReceiver : MonoBehaviour
     /// <summary>Called by PowerReceiverBase when power is connected.</summary>
     public void PassColorAndPower(Color incomingColor, int incomingPower)
     {
-        bool colorMatches = ColorsMatch(incomingColor, requiredColor);
+        bool colorMatches = ColorsMatch(incomingColor, ColorManager.Instance.GetColor(requiredColorIndex));
         bool powerSufficient = incomingPower >= minimumPower;
 
         if (!colorMatches)

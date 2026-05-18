@@ -19,6 +19,13 @@ public class PowerConnectionTrigger : MonoBehaviour
         if (parentPowerSource != null)
         {
             isPowered = true;
+        }
+    }
+
+    private void Start()
+    {
+        if (parentPowerSource != null)
+        {
             currentPowerColor = parentPowerSource.powerColor;
         }
     }

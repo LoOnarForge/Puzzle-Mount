@@ -1,10 +1,12 @@
 using UnityEngine;
 using System.Collections.Generic;
 
+[DefaultExecutionOrder(-50)]
 public class PowerSource : MonoBehaviour
 {
     [Header("POWER SOURCE")]
-    public Color powerColor = Color.red;
+    public int colorIndex;
+    [HideInInspector] public Color powerColor;
 
     [Header("POWER OPTIONS")]
     public int maxPower = 10;
@@ -24,6 +26,7 @@ public class PowerSource : MonoBehaviour
 
     private void Start()
     {
+        powerColor = ColorManager.Instance.GetColor(colorIndex);
         UpdatePowerColors();
     }
 

@@ -10,7 +10,7 @@ public class PowerReceiverBase : MonoBehaviour
 {
     [Header("FINAL RECEIVERS - assign only one")]
     public DoorReceiver door;
-    // public LeverReceiver lever;  // uncomment when added
+    public LeverReceiver lever;
 
     [Header("DEBUG")]
     [SerializeField] private bool isPowered = false;
@@ -27,7 +27,7 @@ public class PowerReceiverBase : MonoBehaviour
         currentPower = incomingPower;
 
         door?.PassColorAndPower(incomingColor, incomingPower);
-        // lever?.PassColorAndPower(incomingColor, incomingPower);
+        lever?.PassColorAndPower(incomingColor, incomingPower);
     }
 
     /// <summary>Called by PowerReceiverTrigger when the powered face exits.</summary>
@@ -40,6 +40,6 @@ public class PowerReceiverBase : MonoBehaviour
         currentPower = 0;
 
         door?.OnPowerLost();
-        // lever?.OnPowerLost();
+        lever?.OnPowerLost();
     }
 }
