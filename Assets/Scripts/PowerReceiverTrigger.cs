@@ -18,7 +18,13 @@ public class PowerReceiverTrigger : MonoBehaviour
     {
         PowerConnectionTrigger incomingFace = other.GetComponent<PowerConnectionTrigger>();
         if (incomingFace == null) return;
-        if (!incomingFace.isPowered) return;
+
+        if (!incomingFace.isPowered)
+        {
+            receiverBase.OnPowerDisconnected();
+            return;
+        }
+
         if (incomingFace.parentPowerSource == null) return;
 
         PowerSource source = incomingFace.parentPowerSource;

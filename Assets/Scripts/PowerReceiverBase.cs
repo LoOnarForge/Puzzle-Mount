@@ -20,6 +20,8 @@ public class PowerReceiverBase : MonoBehaviour
     /// <summary>Called by PowerReceiverTrigger when a powered face is touching.</summary>
     public void OnPowerConnected(Color incomingColor, int incomingPower)
     {
+        if (isPowered) return;
+
         isPowered = true;
         currentColor = incomingColor;
         currentPower = incomingPower;
@@ -31,6 +33,8 @@ public class PowerReceiverBase : MonoBehaviour
     /// <summary>Called by PowerReceiverTrigger when the powered face exits.</summary>
     public void OnPowerDisconnected()
     {
+        if (!isPowered) return;
+
         isPowered = false;
         currentColor = Color.clear;
         currentPower = 0;
