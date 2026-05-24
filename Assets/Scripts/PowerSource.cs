@@ -68,10 +68,10 @@ public class PowerSource : MonoBehaviour
                 return;
             }
 
-            PowerCube neighborCube = neighbor.parentCubeScript;
-            if (neighborCube == null) continue;
+            RunodePower neighborRunode = neighbor.parentRunodePower;
+            if (neighborRunode == null) continue;
 
-            if (neighborCube.IsPowered && neighborCube.poweredBySource != this)
+            if (neighborRunode.IsPowered && neighborRunode.poweredBySource != this)
             {
                 TriggerGameOver();
                 return;
@@ -85,13 +85,13 @@ public class PowerSource : MonoBehaviour
             neighbor.currentPowerColor = powerColor;
             neighbor.distanceFromSource = distance;
 
-            if (!neighborCube.IsPowered)
+            if (!neighborRunode.IsPowered)
             {
                 totalCubesPowered++;
-                neighborCube.SetPowered(this, powerColor, distance);
+                neighborRunode.SetPowered(this, powerColor, distance);
             }
 
-            foreach (PowerConnectionTrigger outgoing in neighborCube.GetAllTriggers())
+            foreach (PowerConnectionTrigger outgoing in neighborRunode.GetAllTriggers())
             {
                 if (outgoing == neighbor) continue;
                 if (visited.Contains(outgoing)) continue;

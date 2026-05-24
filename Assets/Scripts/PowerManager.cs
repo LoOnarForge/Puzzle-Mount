@@ -50,10 +50,10 @@ public class PowerManager : MonoBehaviour
 
     private void ClearAllCubeStates()
     {
-        PowerCube[] allCubes = FindObjectsByType<PowerCube>(FindObjectsSortMode.None);
-        foreach (PowerCube cube in allCubes)
+        RunodePower[] allRunodes = FindObjectsByType<RunodePower>(FindObjectsSortMode.None);
+        foreach (RunodePower runode in allRunodes)
         {
-            cube.ClearPowerState();
+            runode.ClearPowerState();
         }
     }
 }

@@ -15,8 +15,8 @@ public enum RotationAxis
 public class TimCubeInteraction : MonoBehaviour
 {
     [Header("CUBE SELECTION:")]
-    [SerializeField] private PowerCube detectedCube = null;
-    [SerializeField] private PowerCube highlightedCube = null;
+    [SerializeField] private RunodeMovement detectedCube = null;
+    [SerializeField] private RunodeMovement highlightedCube = null;
 
     [Header("DETECTION SETTINGS:")]
     [HideInInspector] public float detectionTolerance = 0.6f;
@@ -30,28 +30,27 @@ public class TimCubeInteraction : MonoBehaviour
     private CharacterMovement characterMovement;
     
     // Push delay tracking
-    private PowerCube currentTargetCube;
+    private RunodeMovement currentTargetCube;
     private Vector3 currentPushDirection;
     private float pushDelayTimer;
     private bool isDelayActive;
     private bool isFirstPush = true;
     private bool isPushingThisFrame;
     
-    // Highlighted cube tracking (moved from CubeManager)
-    private PowerCube currentlyHighlightedCube = null;
+    // Highlighted cube tracking
+    private RunodeMovement currentlyHighlightedCube = null;
     
     // Tim's own cube selection system
-    private PowerCube[] currentStack = null;
+    private RunodeMovement[] currentStack = null;
     private int selectedIndex = 0;
-    private PowerCube selectedCube = null;
+    private RunodeMovement selectedCube = null;
     
     // Cache for performance optimization
-    private PowerCube[] allCubesCache = null;
+    private RunodeMovement[] allCubesCache = null;
     private float lastCubesCacheTime = 0f;
-    private const float CACHE_REFRESH_INTERVAL = 1.0f; // Refresh cache every second
+    private const float CACHE_REFRESH_INTERVAL = 1.0f;
     
-    // Public getter for highlighted cube 
-    public PowerCube GetHighlightedCube() { return currentlyHighlightedCube; }
+    public RunodeMovement GetHighlightedCube() { return currentlyHighlightedCube; }
     
     // Rotation tracking
     private bool isRotating = false;
@@ -107,7 +106,7 @@ public class TimCubeInteraction : MonoBehaviour
         
         if (Physics.Raycast(rayStart, rayDirection, out hit, pushRange))
         {
-            PowerCube hitCube = hit.collider.GetComponent<PowerCube>();
+            RunodeMovement hitCube = hit.collider.GetComponent<RunodeMovement>();
             if (hitCube != null)
             {
                 // Update debug info
@@ -132,20 +131,17 @@ public class TimCubeInteraction : MonoBehaviour
 
     /// Handle cube highlighting logic (lenient alignment)
 
-    private void HandleCubeHighlighting(PowerCube hitCube)
+    private void HandleCubeHighlighting(RunodeMovement hitCube)
     {
         if (hitCube != null && IsReasonablyAlignedForDetection(hitCube.transform))
         {
-            // Set this cube as highlighted
             if (currentlyHighlightedCube != hitCube)
             {
-                PowerCube previouslySelectedCube = selectedCube;
+                RunodeMovement previouslySelectedCube = selectedCube;
                 currentlyHighlightedCube = hitCube;
                 
-                // Update current stack
                 currentStack = GetStackFromHighlightedCube(hitCube);
                 
-                // Try to preserve selection if the previously selected cube is still in the new stack
                 bool selectionPreserved = false;
                 if (previouslySelectedCube != null && currentStack != null)
                 {
@@ -153,7 +149,6 @@ public class TimCubeInteraction : MonoBehaviour
                     {
                         if (currentStack[i] == previouslySelectedCube)
                         {
-                            // Preserve the selection
                             selectedIndex = i;
                             selectedCube = previouslySelectedCube;
                             selectionPreserved = true;
@@ -162,97 +157,65 @@ public class TimCubeInteraction : MonoBehaviour
                     }
                 }
                 
-                // If selection couldn't be preserved, reset to first cube
                 if (!selectionPreserved)
                 {
                     selectedIndex = 0;
                     selectedCube = (currentStack != null && currentStack.Length > 0) ? currentStack[0] : null;
                 }
                 
-                // Update inspector field to show selected cube
                 highlightedCube = selectedCube;
             }
         }
         else
         {
-            // Clear highlighting
             if (currentlyHighlightedCube != null)
             {
                 currentlyHighlightedCube = null;
                 currentStack = null;
                 selectedCube = null;
                 selectedIndex = 0;
-                
-                // Clear inspector field
                 highlightedCube = null;
             }
         }
     }
 
-
-    /// Handle cube pushing logic (strict alignment, requires movement input)
-
-    private void HandleCubePushing(PowerCube hitCube)
+    private void HandleCubePushing(RunodeMovement hitCube)
     {
         Vector3 moveDirection = characterMovement.GetMovementDirectionExternal();
         
-        // Only handle pushing if there's movement input
         if (moveDirection.magnitude < 0.1f)
-        {
-            return; // No movement = no pushing this frame
-        }
+            return;
         
         if (hitCube != null && IsProperlyAlignedToPush(hitCube.transform, timTransform.forward))
         {
-            // Get stack from highlighted cube for Tim's selection
-            PowerCube[] stackFromTimLevel = GetStackFromHighlightedCube();
+            RunodeMovement[] stackFromTimLevel = GetStackFromHighlightedCube();
             
-            // Check if this level-based stack can be pushed (3 cubes or fewer)
-            bool canPushStack = stackFromTimLevel.Length <= 3;
-            if (!canPushStack)
-            {
-                return; // Don't set isPushingThisFrame - this prevents delay timer
-            }
+            if (stackFromTimLevel.Length > 3)
+                return;
             
-            // Tim is actively trying to push this cube
             isPushingThisFrame = true;
             
-            // Calculate push direction based on Tim's position relative to cube (prevents wrong direction during transitions)
             Vector3 pushDirection = hitCube.GetRelativePushDirection(timTransform);
             
-            // Only start new engagement if this is actually a new target OR significantly different direction
             if (currentTargetCube != hitCube)
             {
                 StartNewPushEngagement(hitCube, pushDirection);
             }
             else
             {
-                // Same cube - check if direction changed significantly (different cardinal direction)
                 bool significantDirectionChange = currentPushDirection != pushDirection;
-                
                 if (significantDirectionChange)
-                {
-                    // Direction changed to different side of cube - reset to initial delay
                     StartNewPushEngagement(hitCube, pushDirection);
-                }
                 else
-                {
-                    // Same direction - just update without resetting delay
                     currentPushDirection = pushDirection;
-                }
             }
             
-            // Only push if delay has elapsed
             if (!isDelayActive)
             {
-                // Get the stack Tim detected and push it properly
-                PowerCube[] currentStack = GetStackFromHighlightedCube(hitCube);
+                RunodeMovement[] currentStack = GetStackFromHighlightedCube(hitCube);
                 bool pushSuccess = TryPushStack(currentStack, pushDirection);
                 if (pushSuccess)
-                {
-                    // Start continuous push delay for next push
                     StartContinuousPushDelay();
-                }
             }      
         }
     }
@@ -400,7 +363,7 @@ public class TimCubeInteraction : MonoBehaviour
     /// <summary>
     /// Smoothly rotate a cube by the specified degrees around specified axis
     /// </summary>
-    private System.Collections.IEnumerator SmoothRotateCube(PowerCube cube, float degrees, RotationAxis axis)
+    private System.Collections.IEnumerator SmoothRotateCube(RunodeMovement cube, float degrees, RotationAxis axis)
     {
         if (cube == null) yield break;
         
@@ -497,24 +460,16 @@ public class TimCubeInteraction : MonoBehaviour
     /// <summary>
     /// Try to push an entire stack of cubes - Tim handles the coordination
     /// </summary>
-    private bool TryPushStack(PowerCube[] stack, Vector3 direction)
+    private bool TryPushStack(RunodeMovement[] stack, Vector3 direction)
     {
         if (stack == null || stack.Length == 0) return false;
         
-        // Check if all cubes in the stack can be pushed
-        bool allCanMove = true;
         foreach (var cube in stack)
         {
             if (!cube.CanPushSingle(direction))
-            {
-                allCanMove = false;
-                break;
-            }
+                return false;
         }
         
-        if (!allCanMove) return false;
-        
-        // Push all cubes in the stack
         foreach (var cube in stack)
         {
             cube.PushSingle(direction);
@@ -523,47 +478,37 @@ public class TimCubeInteraction : MonoBehaviour
         return true;
     }
     
-    /// <summary>
-    /// Get cached list of all cubes in scene (refreshed periodically for performance)
-    /// </summary>
-    private PowerCube[] GetAllCubesOptimized()
+    private RunodeMovement[] GetAllCubesOptimized()
     {
         float currentTime = Time.time;
         if (allCubesCache == null || currentTime - lastCubesCacheTime > CACHE_REFRESH_INTERVAL)
         {
-            allCubesCache = FindObjectsByType<PowerCube>(FindObjectsSortMode.None);
+            allCubesCache = FindObjectsByType<RunodeMovement>(FindObjectsSortMode.None);
             lastCubesCacheTime = currentTime;
         }
         return allCubesCache;
     }
     
-    /// <summary>
-    /// Get stack from currently highlighted cube (optimized version)
-    /// </summary>
-    private PowerCube[] GetStackFromHighlightedCube(PowerCube targetCube = null)
+    private RunodeMovement[] GetStackFromHighlightedCube(RunodeMovement targetCube = null)
     {
-        PowerCube baseCube = targetCube ?? currentlyHighlightedCube;
-        if (baseCube == null) return new PowerCube[0];
+        RunodeMovement baseCube = targetCube ?? currentlyHighlightedCube;
+        if (baseCube == null) return new RunodeMovement[0];
         
-        // Use cached cube list for better performance
-        List<PowerCube> stack = new List<PowerCube> { baseCube };
-        PowerCube[] allCubes = GetAllCubesOptimized();
+        List<RunodeMovement> stack = new List<RunodeMovement> { baseCube };
+        RunodeMovement[] allCubes = GetAllCubesOptimized();
         Vector3 basePos = baseCube.transform.position;
         
-        foreach (PowerCube cube in allCubes)
+        foreach (RunodeMovement cube in allCubes)
         {
             if (cube == baseCube) continue;
             
             Vector3 cubePos = cube.transform.position;
-            float alignmentTolerance = 0.1f;
-            bool isAligned = Mathf.Abs(cubePos.x - basePos.x) < alignmentTolerance && 
-                           Mathf.Abs(cubePos.z - basePos.z) < alignmentTolerance;
+            bool isAligned = Mathf.Abs(cubePos.x - basePos.x) < 0.1f && 
+                             Mathf.Abs(cubePos.z - basePos.z) < 0.1f;
             bool isAbove = cubePos.y > basePos.y;
             
             if (isAligned && isAbove)
-            {
                 stack.Add(cube);
-            }
         }
         
         // Sort by height
@@ -588,38 +533,28 @@ public class TimCubeInteraction : MonoBehaviour
     /// <summary>
     /// Check if push engagement has changed (different cube or different side)
     /// </summary>
-    public bool HasPushEngagementChanged(PowerCube cube, Vector3 pushDirection)
+    public bool HasPushEngagementChanged(RunodeMovement cube, Vector3 pushDirection)
     {
         return currentTargetCube != cube || currentPushDirection != pushDirection;
     }
     
-    /// <summary>
-    /// Start engagement with a new cube or from a new direction
-    /// </summary>
-    public void StartNewPushEngagement(PowerCube cube, Vector3 pushDirection)
+    public void StartNewPushEngagement(RunodeMovement cube, Vector3 pushDirection)
     {
         currentTargetCube = cube;
         currentPushDirection = pushDirection;
         pushDelayTimer = 0f;
         isDelayActive = true;
-        isFirstPush = true;               
-        // Immediately update the timer to avoid 1-frame delay
+        isFirstPush = true;
         UpdatePushDelay();        
     }
     
-    /// <summary>
-    /// Start continuous push delay after a successful push (keeps same engagement)
-    /// </summary>
     public void StartContinuousPushDelay()
     {
         pushDelayTimer = 0f;
         isDelayActive = true;
-        isFirstPush = false; // Now it's a continuous push
+        isFirstPush = false;
     }
     
-    /// <summary>
-    /// Reset push engagement when Tim stops actively pushing
-    /// </summary>
     public void ResetPushEngagement()
     {
         currentTargetCube = null;
@@ -629,26 +564,18 @@ public class TimCubeInteraction : MonoBehaviour
         isFirstPush = true;
     }
     
-    /// <summary>
-    /// Update the push delay timer
-    /// </summary>
     public void UpdatePushDelay()
     {
         if (isDelayActive)
         {
             pushDelayTimer += Time.deltaTime;
-            
             float requiredDelay = isFirstPush ? initialPushDelay : continuousPushDelay;
-            
             if (pushDelayTimer >= requiredDelay)
-            {
-                isDelayActive = false; // Delay completed - pushing can begin
-            }
+                isDelayActive = false;
         }
     }
     
-    // Public getters for CharacterMovement to access push state 
-    public PowerCube CurrentTargetCube => currentTargetCube;
+    public RunodeMovement CurrentTargetCube => currentTargetCube;
     public Vector3 CurrentPushDirection => currentPushDirection;
     public float PushDelayTimer => pushDelayTimer;
     public bool IsDelayActive => isDelayActive;

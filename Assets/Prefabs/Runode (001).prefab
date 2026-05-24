@@ -66,10 +66,13 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 01082f98fe8057f41b6b4eb89ea9eade, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::PowerConnectionTrigger
-  cubeScript: {fileID: 2468573375728371697}
-  faceSprite: {fileID: 2602776576543496328}
-  parentFace: {fileID: 2421310631974465171}
-  isTriggerPowerReceiver: 0
+  isPowered: 0
+  currentPowerColor: {r: 1, g: 1, b: 1, a: 1}
+  parentPowerSource: {fileID: 0}
+  parentRunodePower: {fileID: 0}
+  neighboursRunodePower: {fileID: 0}
+  currentNeighbor: {fileID: 0}
+  distanceFromSource: 0
 --- !u!1 &256958726186090889
 GameObject:
   m_ObjectHideFlags: 0
@@ -136,10 +139,13 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 01082f98fe8057f41b6b4eb89ea9eade, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::PowerConnectionTrigger
-  cubeScript: {fileID: 2468573375728371697}
-  faceSprite: {fileID: 2602776576543496328}
-  parentFace: {fileID: 2421310631974465171}
-  isTriggerPowerReceiver: 0
+  isPowered: 0
+  currentPowerColor: {r: 1, g: 1, b: 1, a: 1}
+  parentPowerSource: {fileID: 0}
+  parentRunodePower: {fileID: 0}
+  neighboursRunodePower: {fileID: 0}
+  currentNeighbor: {fileID: 0}
+  distanceFromSource: 0
 --- !u!1 &903061691307512632
 GameObject:
   m_ObjectHideFlags: 0
@@ -206,10 +212,13 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 01082f98fe8057f41b6b4eb89ea9eade, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::PowerConnectionTrigger
-  cubeScript: {fileID: 2468573375728371697}
-  faceSprite: {fileID: 4929707604199579210}
-  parentFace: {fileID: 6309637829272969919}
-  isTriggerPowerReceiver: 0
+  isPowered: 0
+  currentPowerColor: {r: 1, g: 1, b: 1, a: 1}
+  parentPowerSource: {fileID: 0}
+  parentRunodePower: {fileID: 0}
+  neighboursRunodePower: {fileID: 0}
+  currentNeighbor: {fileID: 0}
+  distanceFromSource: 0
 --- !u!1 &1255116012855202520
 GameObject:
   m_ObjectHideFlags: 0
@@ -372,10 +381,13 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 01082f98fe8057f41b6b4eb89ea9eade, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::PowerConnectionTrigger
-  cubeScript: {fileID: 2468573375728371697}
-  faceSprite: {fileID: 947647361431457}
-  parentFace: {fileID: 4255508259831731859}
-  isTriggerPowerReceiver: 0
+  isPowered: 0
+  currentPowerColor: {r: 1, g: 1, b: 1, a: 1}
+  parentPowerSource: {fileID: 0}
+  parentRunodePower: {fileID: 0}
+  neighboursRunodePower: {fileID: 0}
+  currentNeighbor: {fileID: 0}
+  distanceFromSource: 0
 --- !u!1 &1605514324082184512
 GameObject:
   m_ObjectHideFlags: 0
@@ -442,10 +454,13 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 01082f98fe8057f41b6b4eb89ea9eade, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::PowerConnectionTrigger
-  cubeScript: {fileID: 2468573375728371697}
-  faceSprite: {fileID: 656368859329153283}
-  parentFace: {fileID: 1650578456666125385}
-  isTriggerPowerReceiver: 0
+  isPowered: 0
+  currentPowerColor: {r: 1, g: 1, b: 1, a: 1}
+  parentPowerSource: {fileID: 0}
+  parentRunodePower: {fileID: 0}
+  neighboursRunodePower: {fileID: 0}
+  currentNeighbor: {fileID: 0}
+  distanceFromSource: 0
 --- !u!1 &1713973422714764187
 GameObject:
   m_ObjectHideFlags: 0
@@ -512,10 +527,13 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 01082f98fe8057f41b6b4eb89ea9eade, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::PowerConnectionTrigger
-  cubeScript: {fileID: 2468573375728371697}
-  faceSprite: {fileID: 947647361431457}
-  parentFace: {fileID: 4255508259831731859}
-  isTriggerPowerReceiver: 0
+  isPowered: 0
+  currentPowerColor: {r: 1, g: 1, b: 1, a: 1}
+  parentPowerSource: {fileID: 0}
+  parentRunodePower: {fileID: 0}
+  neighboursRunodePower: {fileID: 0}
+  currentNeighbor: {fileID: 0}
+  distanceFromSource: 0
 --- !u!1 &1740145358810814003
 GameObject:
   m_ObjectHideFlags: 0
@@ -673,10 +691,13 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 01082f98fe8057f41b6b4eb89ea9eade, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::PowerConnectionTrigger
-  cubeScript: {fileID: 2468573375728371697}
-  faceSprite: {fileID: 2196421280246574987}
-  parentFace: {fileID: 4255761680888067080}
-  isTriggerPowerReceiver: 0
+  isPowered: 0
+  currentPowerColor: {r: 1, g: 1, b: 1, a: 1}
+  parentPowerSource: {fileID: 0}
+  parentRunodePower: {fileID: 0}
+  neighboursRunodePower: {fileID: 0}
+  currentNeighbor: {fileID: 0}
+  distanceFromSource: 0
 --- !u!1 &2948211203080497335
 GameObject:
   m_ObjectHideFlags: 0
@@ -743,10 +764,13 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 01082f98fe8057f41b6b4eb89ea9eade, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::PowerConnectionTrigger
-  cubeScript: {fileID: 2468573375728371697}
-  faceSprite: {fileID: 8986232780159384417}
-  parentFace: {fileID: 2141669613130573510}
-  isTriggerPowerReceiver: 0
+  isPowered: 0
+  currentPowerColor: {r: 1, g: 1, b: 1, a: 1}
+  parentPowerSource: {fileID: 0}
+  parentRunodePower: {fileID: 0}
+  neighboursRunodePower: {fileID: 0}
+  currentNeighbor: {fileID: 0}
+  distanceFromSource: 0
 --- !u!1 &2996265923161110340
 GameObject:
   m_ObjectHideFlags: 0
@@ -904,10 +928,13 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 01082f98fe8057f41b6b4eb89ea9eade, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::PowerConnectionTrigger
-  cubeScript: {fileID: 2468573375728371697}
-  faceSprite: {fileID: 656368859329153283}
-  parentFace: {fileID: 1650578456666125385}
-  isTriggerPowerReceiver: 0
+  isPowered: 0
+  currentPowerColor: {r: 1, g: 1, b: 1, a: 1}
+  parentPowerSource: {fileID: 0}
+  parentRunodePower: {fileID: 0}
+  neighboursRunodePower: {fileID: 0}
+  currentNeighbor: {fileID: 0}
+  distanceFromSource: 0
 --- !u!1 &3270592482244802616
 GameObject:
   m_ObjectHideFlags: 0
@@ -1070,10 +1097,13 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 01082f98fe8057f41b6b4eb89ea9eade, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::PowerConnectionTrigger
-  cubeScript: {fileID: 2468573375728371697}
-  faceSprite: {fileID: 2196421280246574987}
-  parentFace: {fileID: 4255761680888067080}
-  isTriggerPowerReceiver: 0
+  isPowered: 0
+  currentPowerColor: {r: 1, g: 1, b: 1, a: 1}
+  parentPowerSource: {fileID: 0}
+  parentRunodePower: {fileID: 0}
+  neighboursRunodePower: {fileID: 0}
+  currentNeighbor: {fileID: 0}
+  distanceFromSource: 0
 --- !u!1 &3580967271121867832
 GameObject:
   m_ObjectHideFlags: 0
@@ -1140,10 +1170,13 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 01082f98fe8057f41b6b4eb89ea9eade, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::PowerConnectionTrigger
-  cubeScript: {fileID: 2468573375728371697}
-  faceSprite: {fileID: 656368859329153283}
-  parentFace: {fileID: 1650578456666125385}
-  isTriggerPowerReceiver: 0
+  isPowered: 0
+  currentPowerColor: {r: 1, g: 1, b: 1, a: 1}
+  parentPowerSource: {fileID: 0}
+  parentRunodePower: {fileID: 0}
+  neighboursRunodePower: {fileID: 0}
+  currentNeighbor: {fileID: 0}
+  distanceFromSource: 0
 --- !u!1 &3711909430795705581
 GameObject:
   m_ObjectHideFlags: 0
@@ -1306,10 +1339,13 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 01082f98fe8057f41b6b4eb89ea9eade, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::PowerConnectionTrigger
-  cubeScript: {fileID: 2468573375728371697}
-  faceSprite: {fileID: 2196421280246574987}
-  parentFace: {fileID: 4255761680888067080}
-  isTriggerPowerReceiver: 0
+  isPowered: 0
+  currentPowerColor: {r: 1, g: 1, b: 1, a: 1}
+  parentPowerSource: {fileID: 0}
+  parentRunodePower: {fileID: 0}
+  neighboursRunodePower: {fileID: 0}
+  currentNeighbor: {fileID: 0}
+  distanceFromSource: 0
 --- !u!1 &3783779952492546369
 GameObject:
   m_ObjectHideFlags: 0
@@ -1376,10 +1412,13 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 01082f98fe8057f41b6b4eb89ea9eade, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::PowerConnectionTrigger
-  cubeScript: {fileID: 2468573375728371697}
-  faceSprite: {fileID: 947647361431457}
-  parentFace: {fileID: 4255508259831731859}
-  isTriggerPowerReceiver: 0
+  isPowered: 0
+  currentPowerColor: {r: 1, g: 1, b: 1, a: 1}
+  parentPowerSource: {fileID: 0}
+  parentRunodePower: {fileID: 0}
+  neighboursRunodePower: {fileID: 0}
+  currentNeighbor: {fileID: 0}
+  distanceFromSource: 0
 --- !u!1 &4203112097955032824
 GameObject:
   m_ObjectHideFlags: 0
@@ -1446,10 +1485,13 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 01082f98fe8057f41b6b4eb89ea9eade, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::PowerConnectionTrigger
-  cubeScript: {fileID: 2468573375728371697}
-  faceSprite: {fileID: 4929707604199579210}
-  parentFace: {fileID: 6309637829272969919}
-  isTriggerPowerReceiver: 0
+  isPowered: 0
+  currentPowerColor: {r: 1, g: 1, b: 1, a: 1}
+  parentPowerSource: {fileID: 0}
+  parentRunodePower: {fileID: 0}
+  neighboursRunodePower: {fileID: 0}
+  currentNeighbor: {fileID: 0}
+  distanceFromSource: 0
 --- !u!1 &4267034148755210112
 GameObject:
   m_ObjectHideFlags: 0
@@ -1550,11 +1592,12 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 4382139065683007888}
-  - component: {fileID: 2468573375728371697}
   - component: {fileID: 4993241424715736830}
   - component: {fileID: 7390467724354592081}
+  - component: {fileID: 5839054870106546969}
+  - component: {fileID: 2488290630945031056}
   m_Layer: 0
-  m_Name: Power Cube (001)
+  m_Name: Runode (001)
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -1576,75 +1619,6 @@ Transform:
   - {fileID: 1319260775747140642}
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
---- !u!114 &2468573375728371697
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 4396683100612142563}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 8eba61a665f550540bcec3ea75cdd863, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::Cube
-  moveSpeed: 5
-  visualParent: {fileID: 1319260775747140642}
-  topFace: 0
-  topFaceColor: {r: 1, g: 1, b: 1, a: 1}
-  topFaceConnectedPS: {fileID: 0}
-  bottomFace: 0
-  bottomFaceColor: {r: 1, g: 1, b: 1, a: 1}
-  bottomFaceConnectedPS: {fileID: 0}
-  northFace: 0
-  northFaceColor: {r: 1, g: 1, b: 1, a: 1}
-  northFaceConnectedPS: {fileID: 0}
-  southFace: 0
-  southFaceColor: {r: 1, g: 1, b: 1, a: 1}
-  southFaceConnectedPS: {fileID: 0}
-  eastFace: 0
-  eastFaceColor: {r: 1, g: 1, b: 1, a: 1}
-  eastFaceConnectedPS: {fileID: 0}
-  westFace: 0
-  westFaceColor: {r: 1, g: 1, b: 1, a: 1}
-  westFaceConnectedPS: {fileID: 0}
-  randomRotateOnStart: 0
-  isMoving: 0
-  topFaceTransform: {fileID: 4255508259831731859}
-  bottomFaceTransform: {fileID: 6309637829272969919}
-  northFaceTransform: {fileID: 2421310631974465171}
-  southFaceTransform: {fileID: 1650578456666125385}
-  eastFaceTransform: {fileID: 4255761680888067080}
-  westFaceTransform: {fileID: 2141669613130573510}
-  horizontalSprite: {fileID: -621088084, guid: 88b338f3ac0dba24cb9aafaafa9397da, type: 3}
-  verticalSprite: {fileID: 1066172363, guid: 88b338f3ac0dba24cb9aafaafa9397da, type: 3}
-  cornerSprite: {fileID: -2119537049, guid: 88b338f3ac0dba24cb9aafaafa9397da, type: 3}
-  tSectionSprite: {fileID: -779058951, guid: 88b338f3ac0dba24cb9aafaafa9397da, type: 3}
-  crossSprite: {fileID: -133059019, guid: 88b338f3ac0dba24cb9aafaafa9397da, type: 3}
-  topUpTrigger: {fileID: 5360095149438489250}
-  topRightTrigger: {fileID: 6556220306439765263}
-  topDownTrigger: {fileID: 2724850869644956629}
-  topLeftTrigger: {fileID: 4036653240094930036}
-  bottomUpTrigger: {fileID: 8093890226227310177}
-  bottomRightTrigger: {fileID: 1337118920133020317}
-  bottomDownTrigger: {fileID: 3249166903802878014}
-  bottomLeftTrigger: {fileID: 1860933572672174899}
-  northUpTrigger: {fileID: 5965308580510983567}
-  northRightTrigger: {fileID: 2920517225191465773}
-  northDownTrigger: {fileID: 1372916029845382402}
-  northLeftTrigger: {fileID: 7674387298967017616}
-  southUpTrigger: {fileID: 135914212556747657}
-  southRightTrigger: {fileID: 1417424106238726437}
-  southDownTrigger: {fileID: 1592589438873919567}
-  southLeftTrigger: {fileID: 6541983371314597094}
-  eastUpTrigger: {fileID: 1697779850238653441}
-  eastRightTrigger: {fileID: 721581348716638313}
-  eastDownTrigger: {fileID: 6190898523276163762}
-  eastLeftTrigger: {fileID: 3189287260501976135}
-  westUpTrigger: {fileID: 4029435927595612797}
-  westRightTrigger: {fileID: 3614749007194693248}
-  westDownTrigger: {fileID: 2519941875258040581}
-  westLeftTrigger: {fileID: 2629676729460073819}
 --- !u!65 &4993241424715736830
 BoxCollider:
   m_ObjectHideFlags: 0
@@ -1693,6 +1667,87 @@ Rigidbody:
   m_Interpolate: 0
   m_Constraints: 112
   m_CollisionDetection: 0
+--- !u!114 &5839054870106546969
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 4396683100612142563}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: a9e3c8a99a632cb49b81c78d932033cf, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::RunodeMovement
+  moveSpeed: 5
+  visualParent: {fileID: 1319260775747140642}
+  randomRotateOnStart: 0
+  isMoving: 0
+--- !u!114 &2488290630945031056
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 4396683100612142563}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 5c903f28f5274c94ba62ada9a7a9a24d, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::RunodePower
+  topFace: 0
+  topFaceColor: {r: 1, g: 1, b: 1, a: 1}
+  topFaceConnectedPS: {fileID: 0}
+  bottomFace: 0
+  bottomFaceColor: {r: 1, g: 1, b: 1, a: 1}
+  bottomFaceConnectedPS: {fileID: 0}
+  northFace: 0
+  northFaceColor: {r: 1, g: 1, b: 1, a: 1}
+  northFaceConnectedPS: {fileID: 0}
+  southFace: 0
+  southFaceColor: {r: 1, g: 1, b: 1, a: 1}
+  southFaceConnectedPS: {fileID: 0}
+  eastFace: 0
+  eastFaceColor: {r: 1, g: 1, b: 1, a: 1}
+  eastFaceConnectedPS: {fileID: 0}
+  westFace: 0
+  westFaceColor: {r: 1, g: 1, b: 1, a: 1}
+  westFaceConnectedPS: {fileID: 0}
+  topFaceTransform: {fileID: 4255508259831731859}
+  bottomFaceTransform: {fileID: 6309637829272969919}
+  northFaceTransform: {fileID: 2421310631974465171}
+  southFaceTransform: {fileID: 1650578456666125385}
+  eastFaceTransform: {fileID: 4255761680888067080}
+  westFaceTransform: {fileID: 2141669613130573510}
+  horizontalSprite: {fileID: -621088084, guid: 88b338f3ac0dba24cb9aafaafa9397da, type: 3}
+  verticalSprite: {fileID: 1066172363, guid: 88b338f3ac0dba24cb9aafaafa9397da, type: 3}
+  cornerSprite: {fileID: -2119537049, guid: 88b338f3ac0dba24cb9aafaafa9397da, type: 3}
+  tSectionSprite: {fileID: -779058951, guid: 88b338f3ac0dba24cb9aafaafa9397da, type: 3}
+  crossSprite: {fileID: -133059019, guid: 88b338f3ac0dba24cb9aafaafa9397da, type: 3}
+  topUpTrigger: {fileID: 5360095149438489250}
+  topRightTrigger: {fileID: 6556220306439765263}
+  topDownTrigger: {fileID: 2724850869644956629}
+  topLeftTrigger: {fileID: 4036653240094930036}
+  bottomUpTrigger: {fileID: 8093890226227310177}
+  bottomRightTrigger: {fileID: 1337118920133020317}
+  bottomDownTrigger: {fileID: 3249166903802878014}
+  bottomLeftTrigger: {fileID: 1860933572672174899}
+  northUpTrigger: {fileID: 5965308580510983567}
+  northRightTrigger: {fileID: 2920517225191465773}
+  northDownTrigger: {fileID: 1372916029845382402}
+  northLeftTrigger: {fileID: 7674387298967017616}
+  southUpTrigger: {fileID: 135914212556747657}
+  southRightTrigger: {fileID: 1417424106238726437}
+  southDownTrigger: {fileID: 1592589438873919567}
+  southLeftTrigger: {fileID: 6541983371314597094}
+  eastUpTrigger: {fileID: 1697779850238653441}
+  eastRightTrigger: {fileID: 721581348716638313}
+  eastDownTrigger: {fileID: 6190898523276163762}
+  eastLeftTrigger: {fileID: 3189287260501976135}
+  westUpTrigger: {fileID: 4029435927595612797}
+  westRightTrigger: {fileID: 3614749007194693248}
+  westDownTrigger: {fileID: 2519941875258040581}
+  westLeftTrigger: {fileID: 2629676729460073819}
 --- !u!1 &4607819062750235410
 GameObject:
   m_ObjectHideFlags: 0
@@ -1850,10 +1905,13 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 01082f98fe8057f41b6b4eb89ea9eade, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::PowerConnectionTrigger
-  cubeScript: {fileID: 2468573375728371697}
-  faceSprite: {fileID: 8986232780159384417}
-  parentFace: {fileID: 2141669613130573510}
-  isTriggerPowerReceiver: 0
+  isPowered: 0
+  currentPowerColor: {r: 1, g: 1, b: 1, a: 1}
+  parentPowerSource: {fileID: 0}
+  parentRunodePower: {fileID: 0}
+  neighboursRunodePower: {fileID: 0}
+  currentNeighbor: {fileID: 0}
+  distanceFromSource: 0
 --- !u!1 &5385759640338954792
 GameObject:
   m_ObjectHideFlags: 0
@@ -1920,10 +1978,13 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 01082f98fe8057f41b6b4eb89ea9eade, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::PowerConnectionTrigger
-  cubeScript: {fileID: 2468573375728371697}
-  faceSprite: {fileID: 8986232780159384417}
-  parentFace: {fileID: 2141669613130573510}
-  isTriggerPowerReceiver: 0
+  isPowered: 0
+  currentPowerColor: {r: 1, g: 1, b: 1, a: 1}
+  parentPowerSource: {fileID: 0}
+  parentRunodePower: {fileID: 0}
+  neighboursRunodePower: {fileID: 0}
+  currentNeighbor: {fileID: 0}
+  distanceFromSource: 0
 --- !u!1 &6205533501376278816
 GameObject:
   m_ObjectHideFlags: 0
@@ -2081,10 +2142,13 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 01082f98fe8057f41b6b4eb89ea9eade, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::PowerConnectionTrigger
-  cubeScript: {fileID: 2468573375728371697}
-  faceSprite: {fileID: 4929707604199579210}
-  parentFace: {fileID: 6309637829272969919}
-  isTriggerPowerReceiver: 0
+  isPowered: 0
+  currentPowerColor: {r: 1, g: 1, b: 1, a: 1}
+  parentPowerSource: {fileID: 0}
+  parentRunodePower: {fileID: 0}
+  neighboursRunodePower: {fileID: 0}
+  currentNeighbor: {fileID: 0}
+  distanceFromSource: 0
 --- !u!1 &6284183367026697750
 GameObject:
   m_ObjectHideFlags: 0
@@ -2247,10 +2311,13 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 01082f98fe8057f41b6b4eb89ea9eade, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::PowerConnectionTrigger
-  cubeScript: {fileID: 2468573375728371697}
-  faceSprite: {fileID: 947647361431457}
-  parentFace: {fileID: 4255508259831731859}
-  isTriggerPowerReceiver: 0
+  isPowered: 0
+  currentPowerColor: {r: 1, g: 1, b: 1, a: 1}
+  parentPowerSource: {fileID: 0}
+  parentRunodePower: {fileID: 0}
+  neighboursRunodePower: {fileID: 0}
+  currentNeighbor: {fileID: 0}
+  distanceFromSource: 0
 --- !u!1 &6780629234580330614
 GameObject:
   m_ObjectHideFlags: 0
@@ -2317,10 +2384,13 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 01082f98fe8057f41b6b4eb89ea9eade, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::PowerConnectionTrigger
-  cubeScript: {fileID: 2468573375728371697}
-  faceSprite: {fileID: 2196421280246574987}
-  parentFace: {fileID: 4255761680888067080}
-  isTriggerPowerReceiver: 0
+  isPowered: 0
+  currentPowerColor: {r: 1, g: 1, b: 1, a: 1}
+  parentPowerSource: {fileID: 0}
+  parentRunodePower: {fileID: 0}
+  neighboursRunodePower: {fileID: 0}
+  currentNeighbor: {fileID: 0}
+  distanceFromSource: 0
 --- !u!1 &7122232723664263463
 GameObject:
   m_ObjectHideFlags: 0
@@ -2387,10 +2457,13 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 01082f98fe8057f41b6b4eb89ea9eade, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::PowerConnectionTrigger
-  cubeScript: {fileID: 2468573375728371697}
-  faceSprite: {fileID: 8986232780159384417}
-  parentFace: {fileID: 2141669613130573510}
-  isTriggerPowerReceiver: 0
+  isPowered: 0
+  currentPowerColor: {r: 1, g: 1, b: 1, a: 1}
+  parentPowerSource: {fileID: 0}
+  parentRunodePower: {fileID: 0}
+  neighboursRunodePower: {fileID: 0}
+  currentNeighbor: {fileID: 0}
+  distanceFromSource: 0
 --- !u!1 &7420341340388990145
 GameObject:
   m_ObjectHideFlags: 0
@@ -2644,10 +2717,13 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 01082f98fe8057f41b6b4eb89ea9eade, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::PowerConnectionTrigger
-  cubeScript: {fileID: 2468573375728371697}
-  faceSprite: {fileID: 2602776576543496328}
-  parentFace: {fileID: 2421310631974465171}
-  isTriggerPowerReceiver: 0
+  isPowered: 0
+  currentPowerColor: {r: 1, g: 1, b: 1, a: 1}
+  parentPowerSource: {fileID: 0}
+  parentRunodePower: {fileID: 0}
+  neighboursRunodePower: {fileID: 0}
+  currentNeighbor: {fileID: 0}
+  distanceFromSource: 0
 --- !u!1 &7848714869680366527
 GameObject:
   m_ObjectHideFlags: 0
@@ -2714,10 +2790,13 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 01082f98fe8057f41b6b4eb89ea9eade, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::PowerConnectionTrigger
-  cubeScript: {fileID: 2468573375728371697}
-  faceSprite: {fileID: 4929707604199579210}
-  parentFace: {fileID: 6309637829272969919}
-  isTriggerPowerReceiver: 0
+  isPowered: 0
+  currentPowerColor: {r: 1, g: 1, b: 1, a: 1}
+  parentPowerSource: {fileID: 0}
+  parentRunodePower: {fileID: 0}
+  neighboursRunodePower: {fileID: 0}
+  currentNeighbor: {fileID: 0}
+  distanceFromSource: 0
 --- !u!1 &8262652896884329704
 GameObject:
   m_ObjectHideFlags: 0
@@ -2784,10 +2863,13 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 01082f98fe8057f41b6b4eb89ea9eade, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::PowerConnectionTrigger
-  cubeScript: {fileID: 2468573375728371697}
-  faceSprite: {fileID: 2602776576543496328}
-  parentFace: {fileID: 2421310631974465171}
-  isTriggerPowerReceiver: 0
+  isPowered: 0
+  currentPowerColor: {r: 1, g: 1, b: 1, a: 1}
+  parentPowerSource: {fileID: 0}
+  parentRunodePower: {fileID: 0}
+  neighboursRunodePower: {fileID: 0}
+  currentNeighbor: {fileID: 0}
+  distanceFromSource: 0
 --- !u!1 &8585572678101904529
 GameObject:
   m_ObjectHideFlags: 0
@@ -2950,10 +3032,13 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 01082f98fe8057f41b6b4eb89ea9eade, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::PowerConnectionTrigger
-  cubeScript: {fileID: 2468573375728371697}
-  faceSprite: {fileID: 656368859329153283}
-  parentFace: {fileID: 1650578456666125385}
-  isTriggerPowerReceiver: 0
+  isPowered: 0
+  currentPowerColor: {r: 1, g: 1, b: 1, a: 1}
+  parentPowerSource: {fileID: 0}
+  parentRunodePower: {fileID: 0}
+  neighboursRunodePower: {fileID: 0}
+  currentNeighbor: {fileID: 0}
+  distanceFromSource: 0
 --- !u!1 &9007398393680257591
 GameObject:
   m_ObjectHideFlags: 0

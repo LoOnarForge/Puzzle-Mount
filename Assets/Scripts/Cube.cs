@@ -1,8 +1,9 @@
-using System.Collections.Generic;
-using UnityEngine;
+// ============================================================
+// COMMENTED OUT — replaced by RunodeMovement.cs + RunodePower.cs
+// Keep this file as reference until the new scripts are confirmed working.
+// ============================================================
 
-public enum PowerLineType
-{
+/*
     Empty,
     [InspectorName("─ Horizontal")]
     Horizontal,
@@ -422,3 +423,5 @@ public class PowerCube : MonoBehaviour
             face.faceSprite.color = color;
     }
 }
+
+*/

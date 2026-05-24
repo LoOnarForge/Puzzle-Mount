@@ -1,7 +1,9 @@
-using UnityEngine;
-using UnityEditor;
+// ============================================================
+// COMMENTED OUT — replaced by RunodeEditor.cs
+// Keep this file as reference until the new editor is confirmed working.
+// ============================================================
 
-[CustomEditor(typeof(PowerCube))]
+/*
 public class PowerCubeEditor : Editor
 {
     private PowerLineType[] lastFaceTypes = new PowerLineType[6];
@@ -370,3 +372,5 @@ public class PowerCubeEditor : Editor
         EditorUtility.SetDirty(cube);
     }
 }
+
+*/
