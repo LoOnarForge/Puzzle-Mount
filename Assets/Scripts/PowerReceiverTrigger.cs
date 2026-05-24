@@ -1,10 +1,8 @@
 using UnityEngine;
 
-/// <summary>
 /// Sits on the active connection point collider on the ReceiverCube.
-/// Detects when a powered cube face touches it and passes color and power to PowerReceiverBase.
-/// Power stops here, nothing propagates beyond this point.
-/// </summary>
+/// Detects when a powered trigger touches it and passes color and power to PowerReceiverBase.
+/// Power stops here - nothing propagates beyond this point.
 public class PowerReceiverTrigger : MonoBehaviour
 {
     private PowerReceiverBase receiverBase;
@@ -14,7 +12,25 @@ public class PowerReceiverTrigger : MonoBehaviour
         receiverBase = GetComponentInParent<PowerReceiverBase>();
     }
 
+    private void OnTriggerEnter(Collider other)
+    {
+        EvaluateContact(other);
+    }
+
     private void OnTriggerStay(Collider other)
+    {
+        EvaluateContact(other);
+    }
+
+    private void OnTriggerExit(Collider other)
+    {
+        PowerConnectionTrigger incomingFace = other.GetComponent<PowerConnectionTrigger>();
+        if (incomingFace == null) return;
+
+        receiverBase.OnPowerDisconnected();
+    }
+
+    private void EvaluateContact(Collider other)
     {
         PowerConnectionTrigger incomingFace = other.GetComponent<PowerConnectionTrigger>();
         if (incomingFace == null) return;
@@ -25,20 +41,6 @@ public class PowerReceiverTrigger : MonoBehaviour
             return;
         }
 
-        if (incomingFace.parentPowerSource == null) return;
-
-        PowerSource source = incomingFace.parentPowerSource;
-        Color incomingColor = source.powerColor;
-        int remainingPower = source.maxPower - source.powerUsage;
-
-        receiverBase.OnPowerConnected(incomingColor, remainingPower);
-    }
-
-    private void OnTriggerExit(Collider other)
-    {
-        PowerConnectionTrigger incomingFace = other.GetComponent<PowerConnectionTrigger>();
-        if (incomingFace == null) return;
-
-        receiverBase.OnPowerDisconnected();
+        receiverBase.OnPowerConnected(incomingFace.currentPowerColor, incomingFace.distanceFromSource);
     }
 }

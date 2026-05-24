@@ -304,23 +304,29 @@ public class PowerCube : MonoBehaviour
         Vector3 finalPos = targetPosition;
         finalPos.y = transform.position.y;
         transform.position = finalPos;
-        
+
         rb.constraints = RigidbodyConstraints.FreezePositionX | RigidbodyConstraints.FreezePositionZ | RigidbodyConstraints.FreezeRotation;
-        
+
         isMoving = false;
+        PowerManager.Instance.RequestPowerFlowCheck();
     }
 
 
 
 
-    //-----------------------------POWER LINES SECTION----------------------------------------- 
-    
+    //-----------------------------POWER LINES SECTION-----------------------------------------
+
+    [Header("POWER STATE")]
+    public bool IsPowered { get; private set; } = false;
+    public PowerSource poweredBySource { get; private set; } = null;
+    public Color currentPowerColor { get; private set; } = Color.white;
+    public int distanceFromSource { get; private set; } = 0;
+
     public struct FaceData
     {
         public SpriteRenderer faceSprite;
         public PowerConnectionTrigger[] triggers;
         public PowerLineType lineType;
-        public PowerSource connectedPowerSource;
     }
 
     private FaceData topFaceData;
@@ -344,94 +350,75 @@ public class PowerCube : MonoBehaviour
     {
         FaceData data = new FaceData();
         data.lineType = lineType;
-        
+
         if (faceTransform != null)
         {
             Transform spriteChild = faceTransform.Find("Power Line Sprite");
             if (spriteChild != null)
-            {
                 data.faceSprite = spriteChild.GetComponent<SpriteRenderer>();
-            }
         }
-        
+
         List<PowerConnectionTrigger> activeTriggers = new List<PowerConnectionTrigger>();
-        
+
         if (up != null && up.gameObject.activeInHierarchy) activeTriggers.Add(up);
         if (right != null && right.gameObject.activeInHierarchy) activeTriggers.Add(right);
         if (down != null && down.gameObject.activeInHierarchy) activeTriggers.Add(down);
         if (left != null && left.gameObject.activeInHierarchy) activeTriggers.Add(left);
-        
+
         data.triggers = activeTriggers.ToArray();
-        
+
         return data;
     }
 
-    public void FacePowered(Transform face, PowerConnectionTrigger receiverTrigger, PowerSource source, Color powerColor)
+    /// Called by PowerManager before BFS. Resets this cube to unpowered state.
+    public void ClearPowerState()
     {
-        FaceData faceData = GetFaceData(face);
-        
-        if (faceData.connectedPowerSource == null)
-        {
-            source.AddPowerCube(this.gameObject);
-            SetFacePowerSource(face, source);
-        }
-        
-        if (faceData.faceSprite != null)
-        {
-            faceData.faceSprite.color = powerColor;
-        }
-        
-        foreach (PowerConnectionTrigger trigger in faceData.triggers)
-        {
-            if (trigger == receiverTrigger) continue;
-            
-            trigger.SecondaryPowerReceived(source, powerColor);
-        }
-    }
-    
-    public void UnpowerFace(Transform face)
-    {
-        FaceData faceData = GetFaceData(face);
-        
-        if (faceData.connectedPowerSource != null)
-        {
-            Debug.Log($"{gameObject.name} unpowered.");
-            faceData.connectedPowerSource.RemovePowerCube(this.gameObject);
-            SetFacePowerSource(face, null);
-        }
-        
-        foreach (PowerConnectionTrigger trigger in faceData.triggers)
-        {
-            trigger.isPowered = false;
-            trigger.isTriggerPowerReceiver = false;
-            trigger.parentPowerSource = null;
-        }
-        
-        if (faceData.faceSprite != null)
-        {
-            faceData.faceSprite.color = Color.white;
-        }
-    }
-    
-    private void SetFacePowerSource(Transform face, PowerSource source)
-    {
-        if (face == topFaceTransform) topFaceData.connectedPowerSource = source;
-        else if (face == bottomFaceTransform) bottomFaceData.connectedPowerSource = source;
-        else if (face == northFaceTransform) northFaceData.connectedPowerSource = source;
-        else if (face == southFaceTransform) southFaceData.connectedPowerSource = source;
-        else if (face == eastFaceTransform) eastFaceData.connectedPowerSource = source;
-        else if (face == westFaceTransform) westFaceData.connectedPowerSource = source;
+        bool wasPowered = IsPowered;
+
+        IsPowered = false;
+        poweredBySource = null;
+        currentPowerColor = Color.white;
+        distanceFromSource = 0;
+
+        if (wasPowered)
+            ApplyVisualColor(Color.white);
     }
 
-    private FaceData GetFaceData(Transform face)
+    /// Called by PowerSource BFS when this cube is reached and powered.
+    public void SetPowered(PowerSource source, Color color, int distance)
     {
-        if (face == topFaceTransform) return topFaceData;
-        if (face == bottomFaceTransform) return bottomFaceData;
-        if (face == northFaceTransform) return northFaceData;
-        if (face == southFaceTransform) return southFaceData;
-        if (face == eastFaceTransform) return eastFaceData;
-        if (face == westFaceTransform) return westFaceData;
-        
-        return new FaceData();
+        IsPowered = true;
+        poweredBySource = source;
+        currentPowerColor = color;
+        distanceFromSource = distance;
+
+        ApplyVisualColor(color);
+    }
+
+    /// Returns all active triggers across all faces. Used by BFS to continue outward.
+    public IEnumerable<PowerConnectionTrigger> GetAllTriggers()
+    {
+        foreach (PowerConnectionTrigger t in topFaceData.triggers) yield return t;
+        foreach (PowerConnectionTrigger t in bottomFaceData.triggers) yield return t;
+        foreach (PowerConnectionTrigger t in northFaceData.triggers) yield return t;
+        foreach (PowerConnectionTrigger t in southFaceData.triggers) yield return t;
+        foreach (PowerConnectionTrigger t in eastFaceData.triggers) yield return t;
+        foreach (PowerConnectionTrigger t in westFaceData.triggers) yield return t;
+    }
+
+    private void ApplyVisualColor(Color color)
+    {
+        ApplyFaceColor(topFaceData, color);
+        ApplyFaceColor(bottomFaceData, color);
+        ApplyFaceColor(northFaceData, color);
+        ApplyFaceColor(southFaceData, color);
+        ApplyFaceColor(eastFaceData, color);
+        ApplyFaceColor(westFaceData, color);
+    }
+
+    private void ApplyFaceColor(FaceData face, Color color)
+    {
+        if (face.faceSprite != null)
+            face.faceSprite.color = color;
     }
 }

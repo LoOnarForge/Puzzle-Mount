@@ -8,10 +8,10 @@ public enum RotationAxis
     Vertical    // X-axis rotation
 }
 
-/// <summary>
+
 /// Handles all of Tim's interactions with cubes: selection, pushing, rotation
 /// Separated from CharacterMovement to maintain clean architecture
-/// </summary>
+
 public class TimCubeInteraction : MonoBehaviour
 {
     [Header("CUBE SELECTION:")]
@@ -87,9 +87,9 @@ public class TimCubeInteraction : MonoBehaviour
         }
     }
 
-    /// <summary>
+
     /// Unified cube interaction - single raycast handles both detection and pushing
-    /// </summary>
+
     private void CheckCubeInteraction()
     {
         // Cast ray at Tim's interaction level in facing direction
@@ -129,9 +129,9 @@ public class TimCubeInteraction : MonoBehaviour
         }
     }
 
-    /// <summary>
+
     /// Handle cube highlighting logic (lenient alignment)
-    /// </summary>
+
     private void HandleCubeHighlighting(PowerCube hitCube)
     {
         if (hitCube != null && IsReasonablyAlignedForDetection(hitCube.transform))
@@ -189,9 +189,9 @@ public class TimCubeInteraction : MonoBehaviour
         }
     }
 
-    /// <summary>
+
     /// Handle cube pushing logic (strict alignment, requires movement input)
-    /// </summary>
+
     private void HandleCubePushing(PowerCube hitCube)
     {
         Vector3 moveDirection = characterMovement.GetMovementDirectionExternal();
@@ -257,10 +257,10 @@ public class TimCubeInteraction : MonoBehaviour
         }
     }
 
-    /// <summary>
+
     /// Check if Tim is reasonably aligned with a cube for detection/highlighting
     /// More lenient than push alignment - allows slightly off-center detection
-    /// </summary>
+ 
     public bool IsReasonablyAlignedForDetection(Transform cubeTransform)
     {
         Vector3 cubeCenter = cubeTransform.position;
@@ -290,10 +290,10 @@ public class TimCubeInteraction : MonoBehaviour
         return isAlignedToFace;
     }
     
-    /// <summary>
+ 
     /// Check if Tim is properly aligned to push a cube in the given direction
     /// Stricter tolerance than detection - requires precise face alignment
-    /// </summary>
+  
     public bool IsProperlyAlignedToPush(Transform cubeTransform, Vector3 pushDirection)
     {
         Vector3 cubeCenter = cubeTransform.position;
@@ -323,9 +323,9 @@ public class TimCubeInteraction : MonoBehaviour
         return isAlignedToFace;
     }
     
-    /// <summary>
+
     /// Handle Tim's own cube selection system
-    /// </summary>
+ 
     private void HandleCubeSelection()
     {
         if (UnityEngine.InputSystem.Keyboard.current?.tabKey.wasPressedThisFrame != true) return;
@@ -334,9 +334,9 @@ public class TimCubeInteraction : MonoBehaviour
         CycleSelection();
     }
     
-    /// <summary>
+  
     /// Handle cube rotation with Q/E keys
-    /// </summary>
+ 
     private void HandleCubeRotation()
     {
         if (isRotating) return;
@@ -351,9 +351,9 @@ public class TimCubeInteraction : MonoBehaviour
         }
     }
     
-    /// <summary>
+    
     /// Called from CharacterMovement when Tab key is pressed
-    /// </summary>
+   
     public void HandleTabPressed()
     {
         if (!characterMovement.IsGrounded) return; // Disable selection while jumping/falling
@@ -361,9 +361,9 @@ public class TimCubeInteraction : MonoBehaviour
         CycleSelection();
     }
     
-    /// <summary>
+ 
     /// Called from CharacterMovement when Q key is pressed (rotate horizontally clockwise)
-    /// </summary>
+    
     public void HandleRotateLeft()
     {
         if (isRotating) return; // Prevent input during rotation
@@ -470,8 +470,9 @@ public class TimCubeInteraction : MonoBehaviour
         // Ensure exact final rotation and scale
         visualTransform.rotation = targetRotation;
         visualTransform.localScale = originalScale;
-        
-        isRotating = false; // Allow new rotation input
+
+        isRotating = false;
+        PowerManager.Instance.RequestPowerFlowCheck();
     }
     
     /// <summary>
