@@ -68,7 +68,7 @@ public class PowerSource : MonoBehaviour
                 return;
             }
 
-            PowerCube neighborCube = neighbor.cubeScript;
+            PowerCube neighborCube = neighbor.parentCubeScript;
             if (neighborCube == null) continue;
 
             if (neighborCube.IsPowered && neighborCube.poweredBySource != this)

@@ -1,10 +1,7 @@
 using System.Collections.Generic;
 using UnityEngine;
 
-/// Place one in the scene.
-/// Owns the list of all PowerSources and controls when power recalculation happens.
-/// Any cube that moves, rotates, or changes connection calls RequestPowerFlowCheck().
-/// Recalculation runs once per frame in LateUpdate to avoid mid-frame inconsistencies.
+
 [DefaultExecutionOrder(-40)]
 public class PowerManager : MonoBehaviour
 {
