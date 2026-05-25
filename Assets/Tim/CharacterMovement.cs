@@ -17,6 +17,10 @@ public class CharacterMovement : MonoBehaviour
     [Header("AIR CONTROL")]
     public float momentumDecay = 2f;
     
+    [Header("RAGDOLL")]
+    [Tooltip("Force applied to every bone on death. Higher = flies further.")]
+    public float impactForce = 12f;
+
     [Header("DEBUG - SPEED VISUALIZATION")]
     [SerializeField] private float currentSpeedVisual;
     
@@ -28,9 +32,13 @@ public class CharacterMovement : MonoBehaviour
     private PlayerAnimator playerAnimator;
     private TimCubeInteraction cubeInteraction;
     private CameraFollow cameraFollow;
+    private Animator animator;
     private InputAction moveAction;
     private InputAction jumpAction;
     private InputAction sprintAction;
+
+    private Rigidbody[] ragdollBodies;
+    private bool isDead = false;
     
     private Vector2 moveInput;
     private Vector3 velocity;
@@ -55,11 +63,13 @@ public class CharacterMovement : MonoBehaviour
     
     private void Awake()
     {
-        controller = GetComponent<CharacterController>();
-        playerInput = GetComponent<PlayerInput>();
-        playerAnimator = GetComponent<PlayerAnimator>();
-        cubeInteraction = GetComponent<TimCubeInteraction>();
-        cameraFollow = FindFirstObjectByType<CameraFollow>();
+        controller       = GetComponent<CharacterController>();
+        playerInput      = GetComponent<PlayerInput>();
+        playerAnimator   = GetComponent<PlayerAnimator>();
+        cubeInteraction  = GetComponent<TimCubeInteraction>();
+        cameraFollow     = FindFirstObjectByType<CameraFollow>();
+        animator         = GetComponent<Animator>();
+        ragdollBodies    = GetComponentsInChildren<Rigidbody>();
         
         // Fix PlayerInput notification behavior
         if (playerInput != null)
@@ -68,6 +78,13 @@ public class CharacterMovement : MonoBehaviour
         }
         
         SetupInputActions();
+    }
+
+    private void Start()
+    {
+        // Ragdoll bones must be kinematic during normal play —
+        // otherwise they fight the Animator every frame.
+        SetRagdollKinematic(true);
     }
     
     private void SetupInputActions()
@@ -93,6 +110,8 @@ public class CharacterMovement : MonoBehaviour
     
     private void Update()
     {
+        if (isDead) return;
+
         CheckGroundStatus();
         ReadInput();
         HandleMovement();
@@ -313,5 +332,33 @@ public class CharacterMovement : MonoBehaviour
             float animSpeed = currentSpeed > 0.1f ? (isSprinting ? 1.0f : 0.5f) : 0f;
             playerAnimator.UpdateMovementAnimation(animSpeed, isGrounded, velocity.y);
         }
+    }
+
+    // -------------------------------------------------------------------------
+    // Death / ragdoll
+    // -------------------------------------------------------------------------
+
+    /// Kills Tim. Disables controlled movement, enables ragdoll physics,
+    /// and launches the body in impactDirection.
+    public void Die(Vector3 impactDirection)
+    {
+        if (isDead) return;
+        isDead = true;
+
+        controller.enabled = false;
+
+        if (playerAnimator != null) playerAnimator.enabled = false;
+        if (animator != null)       animator.enabled       = false;
+
+        SetRagdollKinematic(false);
+
+        foreach (Rigidbody rb in ragdollBodies)
+            rb.AddForce(impactDirection.normalized * impactForce, ForceMode.Impulse);
+    }
+
+    private void SetRagdollKinematic(bool isKinematic)
+    {
+        foreach (Rigidbody rb in ragdollBodies)
+            rb.isKinematic = isKinematic;
     }
 }
