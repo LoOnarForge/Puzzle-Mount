@@ -6,7 +6,7 @@ using UnityEngine;
 /// Assign this to PowerReceiverBase to let the leaver know that it is powered and operatrional.
 /// Player clicks to toggle. Calls Toggle() on all targets only when powered with correct color and enough power.
 
-public class LeverReceiver : MonoBehaviour
+public class LeverController : MonoBehaviour
 {
     [Header("REQUIREMENTS")]
     public int requiredColorIndex;

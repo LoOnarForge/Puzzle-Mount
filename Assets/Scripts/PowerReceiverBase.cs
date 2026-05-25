@@ -10,7 +10,7 @@ public class PowerReceiverBase : MonoBehaviour
 {
     [Header("FINAL RECEIVERS - assign only one")]
     public EndGateController door;
-    public LeverReceiver lever;
+    public LeverController lever;
 
     [Header("DEBUG")]
     [SerializeField] private bool isPowered = false;

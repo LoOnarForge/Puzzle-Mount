@@ -2,7 +2,7 @@ using UnityEngine;
 
 
 /// Attach to a GameObject with a Light component.
-/// Controlled by a LeverReceiver. Toggles the light on and off.
+/// Controlled by a LeverController. Toggles the light on and off.
 /// Takes on the color of the connected power source.
 
 public class LightController : MonoBehaviour, ILeverTarget
