@@ -36,37 +36,44 @@ public enum PowerLineType
 
 public class RunodePower : MonoBehaviour
 {
-    [Header("TOP FACE")]
+    [Header("POWER STATE:")]
+    public bool IsPowered { get; private set; } = false;
+    public PowerSource currentPowerSource { get; private set; } = null;
+    public Color currentPowerColor { get; private set; } = Color.white;
+    public int distanceFromSource { get; private set; } = 0;
+    [Space(30)]
+
+    [Header("TOP FACE:")]
     public PowerLineType topFace = PowerLineType.Empty;
     public Color topFaceColor = Color.white;
     public PowerSource topFaceConnectedPS;
 
-    [Header("BOTTOM FACE")]
+    [Header("BOTTOM FACE:")]
     public PowerLineType bottomFace = PowerLineType.Empty;
     public Color bottomFaceColor = Color.white;
     public PowerSource bottomFaceConnectedPS;
 
-    [Header("NORTH FACE")]
+    [Header("NORTH FACE:")]
     public PowerLineType northFace = PowerLineType.Empty;
     public Color northFaceColor = Color.white;
     public PowerSource northFaceConnectedPS;
 
-    [Header("SOUTH FACE")]
+    [Header("SOUTH FACE:")]
     public PowerLineType southFace = PowerLineType.Empty;
     public Color southFaceColor = Color.white;
     public PowerSource southFaceConnectedPS;
 
-    [Header("EAST FACE")]
+    [Header("EAST FACE:")]
     public PowerLineType eastFace = PowerLineType.Empty;
     public Color eastFaceColor = Color.white;
     public PowerSource eastFaceConnectedPS;
 
-    [Header("WEST FACE")]
+    [Header("WEST FACE:")]
     public PowerLineType westFace = PowerLineType.Empty;
     public Color westFaceColor = Color.white;
     public PowerSource westFaceConnectedPS;
 
-    [Header("FACE TRANSFORM REFERENCES")]
+    [Header("FACE TRANSFORM REFERENCES:")]
     public Transform topFaceTransform;
     public Transform bottomFaceTransform;
     public Transform northFaceTransform;
@@ -74,54 +81,50 @@ public class RunodePower : MonoBehaviour
     public Transform eastFaceTransform;
     public Transform westFaceTransform;
 
-    [Header("SPRITE REFERENCES")]
+    [Header("SPRITE REFERENCES:")]
     public Sprite horizontalSprite;
     public Sprite verticalSprite;
     public Sprite cornerSprite;
     public Sprite tSectionSprite;
     public Sprite crossSprite;
 
-    [Header("TOP FACE TRIGGERS")]
+    [Header("TOP FACE TRIGGERS:")]
     public PowerConnectionTrigger topUpTrigger;
     public PowerConnectionTrigger topRightTrigger;
     public PowerConnectionTrigger topDownTrigger;
     public PowerConnectionTrigger topLeftTrigger;
 
-    [Header("BOTTOM FACE TRIGGERS")]
+    [Header("BOTTOM FACE TRIGGERS:")]
     public PowerConnectionTrigger bottomUpTrigger;
     public PowerConnectionTrigger bottomRightTrigger;
     public PowerConnectionTrigger bottomDownTrigger;
     public PowerConnectionTrigger bottomLeftTrigger;
 
-    [Header("NORTH FACE TRIGGERS")]
+    [Header("NORTH FACE TRIGGERS:")]
     public PowerConnectionTrigger northUpTrigger;
     public PowerConnectionTrigger northRightTrigger;
     public PowerConnectionTrigger northDownTrigger;
     public PowerConnectionTrigger northLeftTrigger;
 
-    [Header("SOUTH FACE TRIGGERS")]
+    [Header("SOUTH FACE TRIGGERS:")]
     public PowerConnectionTrigger southUpTrigger;
     public PowerConnectionTrigger southRightTrigger;
     public PowerConnectionTrigger southDownTrigger;
     public PowerConnectionTrigger southLeftTrigger;
 
-    [Header("EAST FACE TRIGGERS")]
+    [Header("EAST FACE TRIGGERS:")]
     public PowerConnectionTrigger eastUpTrigger;
     public PowerConnectionTrigger eastRightTrigger;
     public PowerConnectionTrigger eastDownTrigger;
     public PowerConnectionTrigger eastLeftTrigger;
 
-    [Header("WEST FACE TRIGGERS")]
+    [Header("WEST FACE TRIGGERS:")]
     public PowerConnectionTrigger westUpTrigger;
     public PowerConnectionTrigger westRightTrigger;
     public PowerConnectionTrigger westDownTrigger;
     public PowerConnectionTrigger westLeftTrigger;
 
-    [Header("POWER STATE")]
-    public bool IsPowered { get; private set; } = false;
-    public PowerSource poweredBySource { get; private set; } = null;
-    public Color currentPowerColor { get; private set; } = Color.white;
-    public int distanceFromSource { get; private set; } = 0;
+   
 
     public struct FaceData
     {
@@ -176,13 +179,13 @@ public class RunodePower : MonoBehaviour
         return data;
     }
 
-    /// Called by PowerManager before BFS. Resets this runode to unpowered.
+    // Called by PowerManager before BFS. Resets this runode to unpowered.
     public void ClearPowerState()
     {
         bool wasPowered = IsPowered;
 
         IsPowered = false;
-        poweredBySource = null;
+        currentPowerSource = null;
         currentPowerColor = Color.white;
         distanceFromSource = 0;
 
@@ -190,18 +193,18 @@ public class RunodePower : MonoBehaviour
             ApplyVisualColor(Color.white);
     }
 
-    /// Called by PowerSource BFS when this runode is reached and powered.
+    // Called by PowerSource BFS when this runode is reached and powered.
     public void SetPowered(PowerSource source, Color color, int distance)
     {
         IsPowered = true;
-        poweredBySource = source;
+        currentPowerSource = source;
         currentPowerColor = color;
         distanceFromSource = distance;
 
         ApplyVisualColor(color);
     }
 
-    /// Returns all active triggers across all 6 faces. Used by BFS to keep searching outward.
+    // Returns all active triggers across all 6 faces. Used by BFS to keep searching outward.
     public IEnumerable<PowerConnectionTrigger> GetAllTriggers()
     {
         foreach (PowerConnectionTrigger t in topFaceData.triggers)    yield return t;

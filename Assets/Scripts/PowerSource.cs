@@ -71,7 +71,7 @@ public class PowerSource : MonoBehaviour
             RunodePower neighborRunode = neighbor.parentRunodePower;
             if (neighborRunode == null) continue;
 
-            if (neighborRunode.IsPowered && neighborRunode.poweredBySource != this)
+            if (neighborRunode.IsPowered && neighborRunode.currentPowerSource != this)
             {
                 TriggerGameOver();
                 return;

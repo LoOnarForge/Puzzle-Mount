@@ -34,7 +34,7 @@ public class RunodePowerEditor : Editor
         DrawFaceSection("                    ═══ EAST FACE ═══",   "eastFace",   "eastFaceColor",   "eastFaceConnectedPS");
         DrawFaceSection("                    ═══ WEST FACE ═══",   "westFace",   "westFaceColor",   "westFaceConnectedPS");
 
-        // Quick set buttons
+        // Reset button
         EditorGUILayout.Space();
         EditorGUILayout.LabelField("Power Lines", EditorStyles.boldLabel);
 
@@ -49,94 +49,106 @@ public class RunodePowerEditor : Editor
             EditorUtility.SetDirty(cubePower);
         }
 
+        // Collapsible block: temp buttons + all references
         EditorGUILayout.Space();
-        EditorGUILayout.LabelField("TEMP TEST BUTTONS", EditorStyles.boldLabel);
+        bool refsOpen = EditorPrefs.GetBool("RunodePower_RefsOpen", false);
+        refsOpen = EditorGUILayout.Foldout(refsOpen, "── ADVANCED (Test Buttons / Transforms / Sprites / Triggers) ──", true, EditorStyles.foldoutHeader);
+        EditorPrefs.SetBool("RunodePower_RefsOpen", refsOpen);
 
-        EditorGUILayout.BeginHorizontal();
-        if (GUILayout.Button("All Horizontal")) SetAllFaces(PowerLineType.Horizontal);
-        if (GUILayout.Button("All Vertical"))   SetAllFaces(PowerLineType.Vertical);
-        if (GUILayout.Button("All Cross"))      SetAllFaces(PowerLineType.Cross);
-        EditorGUILayout.EndHorizontal();
+        if (refsOpen)
+        {
+            EditorGUI.indentLevel++;
 
-        EditorGUILayout.BeginHorizontal();
-        if (GUILayout.Button("All CornerLeftTop"))    SetAllFaces(PowerLineType.CornerLeftTop);
-        if (GUILayout.Button("All CornerTopRight"))   SetAllFaces(PowerLineType.CornerTopRight);
-        EditorGUILayout.EndHorizontal();
+            EditorGUILayout.Space();
+            EditorGUILayout.LabelField("TEMP TEST BUTTONS", EditorStyles.boldLabel);
 
-        EditorGUILayout.BeginHorizontal();
-        if (GUILayout.Button("All CornerRightBottom")) SetAllFaces(PowerLineType.CornerRightBottom);
-        if (GUILayout.Button("All CornerBottomLeft"))  SetAllFaces(PowerLineType.CornerBottomLeft);
-        EditorGUILayout.EndHorizontal();
+            EditorGUILayout.BeginHorizontal();
+            if (GUILayout.Button("All Horizontal")) SetAllFaces(PowerLineType.Horizontal);
+            if (GUILayout.Button("All Vertical"))   SetAllFaces(PowerLineType.Vertical);
+            if (GUILayout.Button("All Cross"))      SetAllFaces(PowerLineType.Cross);
+            EditorGUILayout.EndHorizontal();
 
-        EditorGUILayout.BeginHorizontal();
-        if (GUILayout.Button("All TSectionLeft"))  SetAllFaces(PowerLineType.TSectionLeft);
-        if (GUILayout.Button("All TSectionTop"))   SetAllFaces(PowerLineType.TSectionTop);
-        EditorGUILayout.EndHorizontal();
+            EditorGUILayout.BeginHorizontal();
+            if (GUILayout.Button("All CornerLeftTop"))    SetAllFaces(PowerLineType.CornerLeftTop);
+            if (GUILayout.Button("All CornerTopRight"))   SetAllFaces(PowerLineType.CornerTopRight);
+            EditorGUILayout.EndHorizontal();
 
-        EditorGUILayout.BeginHorizontal();
-        if (GUILayout.Button("All TSectionRight"))  SetAllFaces(PowerLineType.TSectionRight);
-        if (GUILayout.Button("All TSectionBottom")) SetAllFaces(PowerLineType.TSectionBottom);
-        EditorGUILayout.EndHorizontal();
+            EditorGUILayout.BeginHorizontal();
+            if (GUILayout.Button("All CornerRightBottom")) SetAllFaces(PowerLineType.CornerRightBottom);
+            if (GUILayout.Button("All CornerBottomLeft"))  SetAllFaces(PowerLineType.CornerBottomLeft);
+            EditorGUILayout.EndHorizontal();
 
-        // Reference fields
-        EditorGUILayout.Space();
-        EditorGUILayout.LabelField("FACE TRANSFORM REFERENCES", EditorStyles.boldLabel);
-        EditorGUILayout.PropertyField(serializedObject.FindProperty("topFaceTransform"));
-        EditorGUILayout.PropertyField(serializedObject.FindProperty("bottomFaceTransform"));
-        EditorGUILayout.PropertyField(serializedObject.FindProperty("northFaceTransform"));
-        EditorGUILayout.PropertyField(serializedObject.FindProperty("southFaceTransform"));
-        EditorGUILayout.PropertyField(serializedObject.FindProperty("eastFaceTransform"));
-        EditorGUILayout.PropertyField(serializedObject.FindProperty("westFaceTransform"));
+            EditorGUILayout.BeginHorizontal();
+            if (GUILayout.Button("All TSectionLeft"))  SetAllFaces(PowerLineType.TSectionLeft);
+            if (GUILayout.Button("All TSectionTop"))   SetAllFaces(PowerLineType.TSectionTop);
+            EditorGUILayout.EndHorizontal();
 
-        EditorGUILayout.Space();
-        EditorGUILayout.LabelField("SPRITE REFERENCES", EditorStyles.boldLabel);
-        EditorGUILayout.PropertyField(serializedObject.FindProperty("horizontalSprite"));
-        EditorGUILayout.PropertyField(serializedObject.FindProperty("verticalSprite"));
-        EditorGUILayout.PropertyField(serializedObject.FindProperty("cornerSprite"));
-        EditorGUILayout.PropertyField(serializedObject.FindProperty("tSectionSprite"));
-        EditorGUILayout.PropertyField(serializedObject.FindProperty("crossSprite"));
+            EditorGUILayout.BeginHorizontal();
+            if (GUILayout.Button("All TSectionRight"))  SetAllFaces(PowerLineType.TSectionRight);
+            if (GUILayout.Button("All TSectionBottom")) SetAllFaces(PowerLineType.TSectionBottom);
+            EditorGUILayout.EndHorizontal();
 
-        EditorGUILayout.Space();
-        EditorGUILayout.LabelField("TOP FACE TRIGGERS", EditorStyles.boldLabel);
-        EditorGUILayout.PropertyField(serializedObject.FindProperty("topUpTrigger"));
-        EditorGUILayout.PropertyField(serializedObject.FindProperty("topRightTrigger"));
-        EditorGUILayout.PropertyField(serializedObject.FindProperty("topDownTrigger"));
-        EditorGUILayout.PropertyField(serializedObject.FindProperty("topLeftTrigger"));
+            EditorGUILayout.Space();
+            EditorGUILayout.LabelField("FACE TRANSFORM REFERENCES", EditorStyles.boldLabel);
+            EditorGUILayout.PropertyField(serializedObject.FindProperty("topFaceTransform"));
+            EditorGUILayout.PropertyField(serializedObject.FindProperty("bottomFaceTransform"));
+            EditorGUILayout.PropertyField(serializedObject.FindProperty("northFaceTransform"));
+            EditorGUILayout.PropertyField(serializedObject.FindProperty("southFaceTransform"));
+            EditorGUILayout.PropertyField(serializedObject.FindProperty("eastFaceTransform"));
+            EditorGUILayout.PropertyField(serializedObject.FindProperty("westFaceTransform"));
 
-        EditorGUILayout.Space();
-        EditorGUILayout.LabelField("BOTTOM FACE TRIGGERS", EditorStyles.boldLabel);
-        EditorGUILayout.PropertyField(serializedObject.FindProperty("bottomUpTrigger"));
-        EditorGUILayout.PropertyField(serializedObject.FindProperty("bottomRightTrigger"));
-        EditorGUILayout.PropertyField(serializedObject.FindProperty("bottomDownTrigger"));
-        EditorGUILayout.PropertyField(serializedObject.FindProperty("bottomLeftTrigger"));
+            EditorGUILayout.Space();
+            EditorGUILayout.LabelField("SPRITE REFERENCES", EditorStyles.boldLabel);
+            EditorGUILayout.PropertyField(serializedObject.FindProperty("horizontalSprite"));
+            EditorGUILayout.PropertyField(serializedObject.FindProperty("verticalSprite"));
+            EditorGUILayout.PropertyField(serializedObject.FindProperty("cornerSprite"));
+            EditorGUILayout.PropertyField(serializedObject.FindProperty("tSectionSprite"));
+            EditorGUILayout.PropertyField(serializedObject.FindProperty("crossSprite"));
 
-        EditorGUILayout.Space();
-        EditorGUILayout.LabelField("NORTH FACE TRIGGERS", EditorStyles.boldLabel);
-        EditorGUILayout.PropertyField(serializedObject.FindProperty("northUpTrigger"));
-        EditorGUILayout.PropertyField(serializedObject.FindProperty("northRightTrigger"));
-        EditorGUILayout.PropertyField(serializedObject.FindProperty("northDownTrigger"));
-        EditorGUILayout.PropertyField(serializedObject.FindProperty("northLeftTrigger"));
+            EditorGUILayout.Space();
+            EditorGUILayout.LabelField("TOP FACE TRIGGERS", EditorStyles.boldLabel);
+            EditorGUILayout.PropertyField(serializedObject.FindProperty("topUpTrigger"));
+            EditorGUILayout.PropertyField(serializedObject.FindProperty("topRightTrigger"));
+            EditorGUILayout.PropertyField(serializedObject.FindProperty("topDownTrigger"));
+            EditorGUILayout.PropertyField(serializedObject.FindProperty("topLeftTrigger"));
 
-        EditorGUILayout.Space();
-        EditorGUILayout.LabelField("SOUTH FACE TRIGGERS", EditorStyles.boldLabel);
-        EditorGUILayout.PropertyField(serializedObject.FindProperty("southUpTrigger"));
-        EditorGUILayout.PropertyField(serializedObject.FindProperty("southRightTrigger"));
-        EditorGUILayout.PropertyField(serializedObject.FindProperty("southDownTrigger"));
-        EditorGUILayout.PropertyField(serializedObject.FindProperty("southLeftTrigger"));
+            EditorGUILayout.Space();
+            EditorGUILayout.LabelField("BOTTOM FACE TRIGGERS", EditorStyles.boldLabel);
+            EditorGUILayout.PropertyField(serializedObject.FindProperty("bottomUpTrigger"));
+            EditorGUILayout.PropertyField(serializedObject.FindProperty("bottomRightTrigger"));
+            EditorGUILayout.PropertyField(serializedObject.FindProperty("bottomDownTrigger"));
+            EditorGUILayout.PropertyField(serializedObject.FindProperty("bottomLeftTrigger"));
 
-        EditorGUILayout.Space();
-        EditorGUILayout.LabelField("EAST FACE TRIGGERS", EditorStyles.boldLabel);
-        EditorGUILayout.PropertyField(serializedObject.FindProperty("eastUpTrigger"));
-        EditorGUILayout.PropertyField(serializedObject.FindProperty("eastRightTrigger"));
-        EditorGUILayout.PropertyField(serializedObject.FindProperty("eastDownTrigger"));
-        EditorGUILayout.PropertyField(serializedObject.FindProperty("eastLeftTrigger"));
+            EditorGUILayout.Space();
+            EditorGUILayout.LabelField("NORTH FACE TRIGGERS", EditorStyles.boldLabel);
+            EditorGUILayout.PropertyField(serializedObject.FindProperty("northUpTrigger"));
+            EditorGUILayout.PropertyField(serializedObject.FindProperty("northRightTrigger"));
+            EditorGUILayout.PropertyField(serializedObject.FindProperty("northDownTrigger"));
+            EditorGUILayout.PropertyField(serializedObject.FindProperty("northLeftTrigger"));
 
-        EditorGUILayout.Space();
-        EditorGUILayout.LabelField("WEST FACE TRIGGERS", EditorStyles.boldLabel);
-        EditorGUILayout.PropertyField(serializedObject.FindProperty("westUpTrigger"));
-        EditorGUILayout.PropertyField(serializedObject.FindProperty("westRightTrigger"));
-        EditorGUILayout.PropertyField(serializedObject.FindProperty("westDownTrigger"));
-        EditorGUILayout.PropertyField(serializedObject.FindProperty("westLeftTrigger"));
+            EditorGUILayout.Space();
+            EditorGUILayout.LabelField("SOUTH FACE TRIGGERS", EditorStyles.boldLabel);
+            EditorGUILayout.PropertyField(serializedObject.FindProperty("southUpTrigger"));
+            EditorGUILayout.PropertyField(serializedObject.FindProperty("southRightTrigger"));
+            EditorGUILayout.PropertyField(serializedObject.FindProperty("southDownTrigger"));
+            EditorGUILayout.PropertyField(serializedObject.FindProperty("southLeftTrigger"));
+
+            EditorGUILayout.Space();
+            EditorGUILayout.LabelField("EAST FACE TRIGGERS", EditorStyles.boldLabel);
+            EditorGUILayout.PropertyField(serializedObject.FindProperty("eastUpTrigger"));
+            EditorGUILayout.PropertyField(serializedObject.FindProperty("eastRightTrigger"));
+            EditorGUILayout.PropertyField(serializedObject.FindProperty("eastDownTrigger"));
+            EditorGUILayout.PropertyField(serializedObject.FindProperty("eastLeftTrigger"));
+
+            EditorGUILayout.Space();
+            EditorGUILayout.LabelField("WEST FACE TRIGGERS", EditorStyles.boldLabel);
+            EditorGUILayout.PropertyField(serializedObject.FindProperty("westUpTrigger"));
+            EditorGUILayout.PropertyField(serializedObject.FindProperty("westRightTrigger"));
+            EditorGUILayout.PropertyField(serializedObject.FindProperty("westDownTrigger"));
+            EditorGUILayout.PropertyField(serializedObject.FindProperty("westLeftTrigger"));
+
+            EditorGUI.indentLevel--;
+        }
 
         serializedObject.ApplyModifiedProperties();
 

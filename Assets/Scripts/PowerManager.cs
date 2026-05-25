@@ -7,7 +7,7 @@ public class PowerManager : MonoBehaviour
 {
     public static PowerManager Instance { get; private set; }
 
-    private List<PowerSource> sources = new List<PowerSource>();
+    [SerializeField] private List<PowerSource> powerSources = new List<PowerSource>();
     private bool recalculationRequested = false;
 
     private void Awake()
@@ -15,14 +15,14 @@ public class PowerManager : MonoBehaviour
         Instance = this;
     }
 
-    /// Called by PowerSources on Start to register themselves.
+    // Called by PowerSources on Start to register themselves.
     public void RegisterSource(PowerSource source)
     {
-        if (!sources.Contains(source))
-            sources.Add(source);
+        if (!powerSources.Contains(source))
+            powerSources.Add(source);
     }
 
-    /// Called by PowerConnectionTrigger on enter/exit, or by cubes on move/rotate.
+    // Called by PowerConnectionTrigger on enter/exit, or by cubes on move/rotate.
     public void RequestPowerFlowCheck()
     {
         recalculationRequested = true;
@@ -42,7 +42,7 @@ public class PowerManager : MonoBehaviour
         ClearAllCubeStates();
 
         // Each source independently runs BFS on its own connected graph.
-        foreach (PowerSource source in sources)
+        foreach (PowerSource source in powerSources)
         {
             source.RunBFS();
         }
@@ -50,7 +50,7 @@ public class PowerManager : MonoBehaviour
 
     private void ClearAllCubeStates()
     {
-        RunodePower[] allRunodes = FindObjectsByType<RunodePower>(FindObjectsSortMode.None);
+        RunodePower[] allRunodes = FindObjectsByType<RunodePower>(FindObjectsInactive.Exclude);
         foreach (RunodePower runode in allRunodes)
         {
             runode.ClearPowerState();

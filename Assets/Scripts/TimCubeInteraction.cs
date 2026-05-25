@@ -483,7 +483,7 @@ public class TimCubeInteraction : MonoBehaviour
         float currentTime = Time.time;
         if (allCubesCache == null || currentTime - lastCubesCacheTime > CACHE_REFRESH_INTERVAL)
         {
-            allCubesCache = FindObjectsByType<RunodeMovement>(FindObjectsSortMode.None);
+            allCubesCache = FindObjectsByType<RunodeMovement>(FindObjectsInactive.Exclude);
             lastCubesCacheTime = currentTime;
         }
         return allCubesCache;
