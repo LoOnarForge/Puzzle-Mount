@@ -3776,9 +3776,12 @@ MonoBehaviour:
   - {x: -2, y: 1, z: 1}
   - {x: -9, y: 1, z: 1}
   - {x: 10, y: 1, z: 1}
-  metersPerSecond: 2
+  metersPerSecond: 5
+  cargoHeight: 1
+  obstacleReturnDelay: 0.3
   currentStopIndex: 0
   isMoving: 0
+  isBlocked: 0
 --- !u!65 &785015506
 BoxCollider:
   m_ObjectHideFlags: 0
