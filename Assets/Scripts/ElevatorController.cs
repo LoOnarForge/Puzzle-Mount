@@ -21,8 +21,11 @@ public class ElevatorController : MonoBehaviour, ILeverTarget
     [Tooltip("Height of one Runode cube on the platform. Shifts the upward obstacle probe above the carried cube.")]
     public float cargoHeight = 1f;
 
-    [Tooltip("Seconds to wait after detecting a persistent obstacle before returning to the previous stop.")]
+    [Tooltip("Seconds to wait after detecting a persistent Runode obstacle before returning to the previous stop.")]
     public float obstacleReturnDelay = 0.3f;
+
+    [Tooltip("Seconds to decelerate to a stop after hitting the player.")]
+    public float brakeDuration = 0.2f;
 
     [Header("DEBUG")]
     public int  currentStopIndex  = 0;
@@ -81,6 +84,8 @@ public class ElevatorController : MonoBehaviour, ILeverTarget
 
         while (elapsed < duration)
         {
+            KillPlayerInPath(direction);
+
             if (IsRunodeInPath(direction))
             {
                 isBlocked     = true;
@@ -135,6 +140,43 @@ public class ElevatorController : MonoBehaviour, ILeverTarget
     // -------------------------------------------------------------------------
     // Obstacle detection
     // -------------------------------------------------------------------------
+
+    /// Checks for the player in the elevator's path and kills them instantly.
+    /// The elevator does not stop — it just ends Tim.
+    private void KillPlayerInPath(Vector3 direction)
+    {
+        if (platformCollider == null) return;
+
+        Bounds  b      = platformCollider.bounds;
+        Vector3 absDir = new Vector3(Mathf.Abs(direction.x), Mathf.Abs(direction.y), Mathf.Abs(direction.z));
+
+        float   forwardExtent = Vector3.Dot(b.extents, absDir);
+        Vector3 castCenter    = transform.position + direction * (forwardExtent + LookAheadDistance * 0.5f);
+
+        Vector3 halfExtents = new Vector3(
+            absDir.x > 0.5f ? LookAheadDistance * 0.5f : b.extents.x,
+            absDir.y > 0.5f ? LookAheadDistance * 0.5f : b.extents.y,
+            absDir.z > 0.5f ? LookAheadDistance * 0.5f : b.extents.z
+        );
+
+        Collider[] hits = Physics.OverlapBox(castCenter, halfExtents, Quaternion.identity);
+
+        foreach (Collider col in hits)
+        {
+            if (!col.CompareTag("Player")) continue;
+
+            CharacterMovement player = col.GetComponentInParent<CharacterMovement>();
+            if (player == null) continue;
+
+            player.Die(direction);
+
+            // Kill the travel coroutine and coast to a stop.
+            StopAllCoroutines();
+            isBlocked = false;
+            StartCoroutine(Brake(direction));
+            return;
+        }
+    }
 
     /// Returns true if a Runode is directly in the elevator's path.
     /// Only layer 13 is queried — walls, floors and other geometry are invisible.
@@ -230,5 +272,34 @@ public class ElevatorController : MonoBehaviour, ILeverTarget
     // -------------------------------------------------------------------------
     // Utility
     // -------------------------------------------------------------------------
+
+    /// Decelerates the elevator to a full stop over brakeDuration seconds.
+    /// Uses an ease-out curve so it starts fast and bleeds off smoothly.
+    /// Cargo rides along. Called after the player is hit.
+    private IEnumerator Brake(Vector3 direction)
+    {
+        Vector3 startPos      = transform.position;
+        float   brakeDistance = metersPerSecond * brakeDuration * 0.5f;
+        Vector3 endPos        = startPos + direction * brakeDistance;
+        float   elapsed       = 0f;
+
+        while (elapsed < brakeDuration)
+        {
+            elapsed += Time.deltaTime;
+            float   t      = Mathf.Clamp01(elapsed / brakeDuration);
+            float   easeOut = 1f - (1f - t) * (1f - t);
+            Vector3 next   = Vector3.Lerp(startPos, endPos, easeOut);
+            Vector3 delta  = next - transform.position;
+
+            transform.position = next;
+            MoveRiders(delta);
+
+            yield return null;
+        }
+
+        transform.position = endPos;
+        isMoving           = false;
+        ReleaseCargo();
+    }
 
 }

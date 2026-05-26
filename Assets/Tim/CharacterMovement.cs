@@ -353,7 +353,7 @@ public class CharacterMovement : MonoBehaviour
         SetRagdollKinematic(false);
 
         foreach (Rigidbody rb in ragdollBodies)
-            rb.AddForce(impactDirection.normalized * impactForce, ForceMode.Impulse);
+            rb.AddForce(impactDirection.normalized * impactForce * 1.2f, ForceMode.Impulse);
     }
 
     private void SetRagdollKinematic(bool isKinematic)
