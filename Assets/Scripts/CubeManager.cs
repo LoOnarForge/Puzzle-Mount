@@ -31,6 +31,8 @@ public class CubeManager : MonoBehaviour
     /// </summary>
     public void SetPowerLineColor(SpriteRenderer powerLineRenderer, PowerLineState state, Color poweredColor = default)
     {
+        Debug.Log("nie usuwaj")
+;
         if (powerLineRenderer == null) return;
         
         switch (state)

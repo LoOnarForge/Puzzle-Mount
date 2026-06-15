@@ -1,26 +1,26 @@
 using System.Collections.Generic;
 using UnityEngine;
 
-/// Place in the scene as a fixed power origin.
-/// Registers itself with PowerManager on Start.
-/// Runs BFS outward through connected triggers when PowerManager requests recalculation.
+// Place in the scene as a fixed power origin.
+// Registers itself with PowerManager on Start.
+// Runs BFS outward through connected triggers when PowerManager requests recalculation.
 [DefaultExecutionOrder(-50)]
 public class PowerSource : MonoBehaviour
 {
-    [Header("POWER SOURCE")]
+    [Header("POWER SOURCE:")]
     public int colorIndex;
     [HideInInspector] public Color powerColor;
 
-    [Header("POWER OPTIONS")]
+    [Header("POWER OPTIONS:")]
     public int maxPower = 10;
 
-    [Header("TRIGGER REFERENCES")]
+    [Header("POWER TRIGGER REFERENCES:")]
     public PowerConnectionTrigger upTrigger;
     public PowerConnectionTrigger rightTrigger;
     public PowerConnectionTrigger downTrigger;
     public PowerConnectionTrigger leftTrigger;
 
-    [Header("SPRITE REFERENCE")]
+    [Header("POWER LINE SPRITE:")]
     public SpriteRenderer powerSprite;
 
     private void Start()
