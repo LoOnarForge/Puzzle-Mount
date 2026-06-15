@@ -59,6 +59,10 @@ public class PowerSource : MonoBehaviour
             if (visited.Contains(current)) continue;
             visited.Add(current);
 
+            // If this trigger's face is physically blocked by an obstacle, skip it.
+            if (current.parentRunodePower != null && current.parentRunodePower.IsFaceBlocked(current))
+                continue;
+
             PowerConnectionTrigger neighbor = current.currentNeighbor;
             if (neighbor == null) continue;
 

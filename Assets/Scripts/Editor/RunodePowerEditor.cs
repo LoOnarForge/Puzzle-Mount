@@ -206,6 +206,7 @@ public class RunodePowerEditor : Editor
 
         if (newType != PowerLineType.Empty)
         {
+            spriteTransform.gameObject.SetActive(true);
             Sprite sprite = GetSpriteForType(newType);
             if (sprite != null)
             {
@@ -223,6 +224,7 @@ public class RunodePowerEditor : Editor
         {
             spriteRenderer.sprite = null;
             spriteTransform.localRotation = Quaternion.identity;
+            spriteTransform.gameObject.SetActive(false);
         }
 
         UpdateTriggerStates(faceIndex, newType);

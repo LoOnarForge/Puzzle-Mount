@@ -131,6 +131,7 @@ public class RunodePower : MonoBehaviour
         public SpriteRenderer faceSprite;
         public PowerConnectionTrigger[] triggers;
         public PowerLineType lineType;
+        public PowerLineBlocker blocker;
     }
 
     private FaceData topFaceData;
@@ -164,9 +165,13 @@ public class RunodePower : MonoBehaviour
 
         if (faceTransform != null)
         {
+            // Transform.Find works even if the child is inactive.
             Transform spriteChild = faceTransform.Find("Power Line Sprite");
             if (spriteChild != null)
+            {
                 data.faceSprite = spriteChild.GetComponent<SpriteRenderer>();
+                data.blocker = spriteChild.GetComponent<PowerLineBlocker>();
+            }
         }
 
         List<PowerConnectionTrigger> activeTriggers = new List<PowerConnectionTrigger>();
@@ -207,12 +212,43 @@ public class RunodePower : MonoBehaviour
     // Returns all active triggers across all 6 faces. Used by BFS to keep searching outward.
     public IEnumerable<PowerConnectionTrigger> GetAllTriggers()
     {
-        foreach (PowerConnectionTrigger t in topFaceData.triggers)    yield return t;
-        foreach (PowerConnectionTrigger t in bottomFaceData.triggers) yield return t;
-        foreach (PowerConnectionTrigger t in northFaceData.triggers)  yield return t;
-        foreach (PowerConnectionTrigger t in southFaceData.triggers)  yield return t;
-        foreach (PowerConnectionTrigger t in eastFaceData.triggers)   yield return t;
-        foreach (PowerConnectionTrigger t in westFaceData.triggers)   yield return t;
+        if (topFace != PowerLineType.Empty) foreach (PowerConnectionTrigger t in topFaceData.triggers) yield return t;
+        if (bottomFace != PowerLineType.Empty) foreach (PowerConnectionTrigger t in bottomFaceData.triggers) yield return t;
+        if (northFace != PowerLineType.Empty) foreach (PowerConnectionTrigger t in northFaceData.triggers) yield return t;
+        if (southFace != PowerLineType.Empty) foreach (PowerConnectionTrigger t in southFaceData.triggers) yield return t;
+        if (eastFace != PowerLineType.Empty) foreach (PowerConnectionTrigger t in eastFaceData.triggers) yield return t;
+        if (westFace != PowerLineType.Empty) foreach (PowerConnectionTrigger t in westFaceData.triggers) yield return t;
+    }
+
+    /// Returns true if the face containing this trigger is physically blocked by an obstacle.
+    public bool IsFaceBlocked(PowerConnectionTrigger trigger)
+    {
+        if (TryGetFaceForTrigger(trigger, out FaceData face))
+        {
+            return face.blocker != null && face.blocker.IsBlocked;
+        }
+        return false;
+    }
+
+    private bool TryGetFaceForTrigger(PowerConnectionTrigger trigger, out FaceData result)
+    {
+        FaceData[] allFaces = { topFaceData, bottomFaceData, northFaceData, southFaceData, eastFaceData, westFaceData };
+
+        foreach (FaceData face in allFaces)
+        {
+            if (face.triggers == null) continue;
+            foreach (PowerConnectionTrigger t in face.triggers)
+            {
+                if (t == trigger)
+                {
+                    result = face;
+                    return true;
+                }
+            }
+        }
+
+        result = default;
+        return false;
     }
 
     private void ApplyVisualColor(Color color)

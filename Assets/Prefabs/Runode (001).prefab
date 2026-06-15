@@ -544,13 +544,15 @@ GameObject:
   m_Component:
   - component: {fileID: 688228844552543930}
   - component: {fileID: 8274063396397230005}
+  - component: {fileID: 2046015657004230787}
+  - component: {fileID: 5047189836984611600}
   m_Layer: 0
   m_Name: Power Line Sprite
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 1
+  m_IsActive: 0
 --- !u!4 &688228844552543930
 Transform:
   m_ObjectHideFlags: 0
@@ -625,6 +627,39 @@ SpriteRenderer:
   m_SpriteTileMode: 0
   m_WasSpriteAssigned: 0
   m_SpriteSortPoint: 0
+--- !u!135 &2046015657004230787
+SphereCollider:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1740145358810814003}
+  m_Material: {fileID: 0}
+  m_IncludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_ExcludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_LayerOverridePriority: 0
+  m_IsTrigger: 1
+  m_ProvidesContacts: 0
+  m_Enabled: 1
+  serializedVersion: 3
+  m_Radius: 0.2
+  m_Center: {x: 0, y: 0, z: 0}
+--- !u!114 &5047189836984611600
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1740145358810814003}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: fa3672b399504e748aaf2935a516da39, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::PowerLineBlocker
 --- !u!1 &2332424817440291543
 GameObject:
   m_ObjectHideFlags: 0
@@ -781,13 +816,15 @@ GameObject:
   m_Component:
   - component: {fileID: 2621277526680862491}
   - component: {fileID: 3810754022131605336}
+  - component: {fileID: 7396554466504859838}
+  - component: {fileID: 7255507829195876120}
   m_Layer: 0
   m_Name: Power Line Sprite
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 1
+  m_IsActive: 0
 --- !u!4 &2621277526680862491
 Transform:
   m_ObjectHideFlags: 0
@@ -862,6 +899,39 @@ SpriteRenderer:
   m_SpriteTileMode: 0
   m_WasSpriteAssigned: 0
   m_SpriteSortPoint: 0
+--- !u!135 &7396554466504859838
+SphereCollider:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2996265923161110340}
+  m_Material: {fileID: 0}
+  m_IncludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_ExcludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_LayerOverridePriority: 0
+  m_IsTrigger: 1
+  m_ProvidesContacts: 0
+  m_Enabled: 1
+  serializedVersion: 3
+  m_Radius: 0.2
+  m_Center: {x: 0, y: 0, z: 0}
+--- !u!114 &7255507829195876120
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2996265923161110340}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: fa3672b399504e748aaf2935a516da39, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::PowerLineBlocker
 --- !u!1 &3138186547017199693
 GameObject:
   m_ObjectHideFlags: 0
@@ -1502,13 +1572,15 @@ GameObject:
   m_Component:
   - component: {fileID: 6031639255017716368}
   - component: {fileID: 1114288393129275122}
+  - component: {fileID: 4424059249170650325}
+  - component: {fileID: 8819580863546284091}
   m_Layer: 0
   m_Name: Power Line Sprite
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 1
+  m_IsActive: 0
 --- !u!4 &6031639255017716368
 Transform:
   m_ObjectHideFlags: 0
@@ -1583,6 +1655,39 @@ SpriteRenderer:
   m_SpriteTileMode: 0
   m_WasSpriteAssigned: 0
   m_SpriteSortPoint: 0
+--- !u!135 &4424059249170650325
+SphereCollider:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 4267034148755210112}
+  m_Material: {fileID: 0}
+  m_IncludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_ExcludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_LayerOverridePriority: 0
+  m_IsTrigger: 1
+  m_ProvidesContacts: 0
+  m_Enabled: 1
+  serializedVersion: 3
+  m_Radius: 0.2
+  m_Center: {x: 0, y: 0, z: 0}
+--- !u!114 &8819580863546284091
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 4267034148755210112}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: fa3672b399504e748aaf2935a516da39, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::PowerLineBlocker
 --- !u!1 &4396683100612142563
 GameObject:
   m_ObjectHideFlags: 0
@@ -1758,13 +1863,15 @@ GameObject:
   m_Component:
   - component: {fileID: 159709315441877068}
   - component: {fileID: 1980581073412583256}
+  - component: {fileID: 6345247055350605222}
+  - component: {fileID: 6076578857437046116}
   m_Layer: 0
   m_Name: Power Line Sprite
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 1
+  m_IsActive: 0
 --- !u!4 &159709315441877068
 Transform:
   m_ObjectHideFlags: 0
@@ -1839,6 +1946,39 @@ SpriteRenderer:
   m_SpriteTileMode: 0
   m_WasSpriteAssigned: 0
   m_SpriteSortPoint: 0
+--- !u!135 &6345247055350605222
+SphereCollider:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 4607819062750235410}
+  m_Material: {fileID: 0}
+  m_IncludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_ExcludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_LayerOverridePriority: 0
+  m_IsTrigger: 1
+  m_ProvidesContacts: 0
+  m_Enabled: 1
+  serializedVersion: 3
+  m_Radius: 0.2
+  m_Center: {x: 0, y: 0, z: 0}
+--- !u!114 &6076578857437046116
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 4607819062750235410}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: fa3672b399504e748aaf2935a516da39, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::PowerLineBlocker
 --- !u!1 &5198598954251132569
 GameObject:
   m_ObjectHideFlags: 0
@@ -1995,13 +2135,15 @@ GameObject:
   m_Component:
   - component: {fileID: 4498426322162018975}
   - component: {fileID: 2440644356627797174}
+  - component: {fileID: 8573535912367567632}
+  - component: {fileID: 1552898906724434563}
   m_Layer: 0
   m_Name: Power Line Sprite
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 1
+  m_IsActive: 0
 --- !u!4 &4498426322162018975
 Transform:
   m_ObjectHideFlags: 0
@@ -2076,6 +2218,39 @@ SpriteRenderer:
   m_SpriteTileMode: 0
   m_WasSpriteAssigned: 0
   m_SpriteSortPoint: 0
+--- !u!135 &8573535912367567632
+SphereCollider:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 6205533501376278816}
+  m_Material: {fileID: 0}
+  m_IncludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_ExcludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_LayerOverridePriority: 0
+  m_IsTrigger: 1
+  m_ProvidesContacts: 0
+  m_Enabled: 1
+  serializedVersion: 3
+  m_Radius: 0.2
+  m_Center: {x: 0, y: 0, z: 0}
+--- !u!114 &1552898906724434563
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 6205533501376278816}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: fa3672b399504e748aaf2935a516da39, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::PowerLineBlocker
 --- !u!1 &6282399443541228034
 GameObject:
   m_ObjectHideFlags: 0
@@ -2474,13 +2649,15 @@ GameObject:
   m_Component:
   - component: {fileID: 5363482777528622177}
   - component: {fileID: 7314879586217974367}
+  - component: {fileID: 7891759313292670555}
+  - component: {fileID: 1563634020087193588}
   m_Layer: 0
   m_Name: Power Line Sprite
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 1
+  m_IsActive: 0
 --- !u!4 &5363482777528622177
 Transform:
   m_ObjectHideFlags: 0
@@ -2555,6 +2732,39 @@ SpriteRenderer:
   m_SpriteTileMode: 0
   m_WasSpriteAssigned: 0
   m_SpriteSortPoint: 0
+--- !u!135 &7891759313292670555
+SphereCollider:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 7420341340388990145}
+  m_Material: {fileID: 0}
+  m_IncludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_ExcludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_LayerOverridePriority: 0
+  m_IsTrigger: 1
+  m_ProvidesContacts: 0
+  m_Enabled: 1
+  serializedVersion: 3
+  m_Radius: 0.2
+  m_Center: {x: 0, y: 0, z: 0}
+--- !u!114 &1563634020087193588
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 7420341340388990145}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: fa3672b399504e748aaf2935a516da39, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::PowerLineBlocker
 --- !u!1 &7638829662066570746
 GameObject:
   m_ObjectHideFlags: 0
