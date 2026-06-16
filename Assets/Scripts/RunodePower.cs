@@ -117,26 +117,23 @@ public class RunodePower : MonoBehaviour
     public PowerConnectionTrigger westDownTrigger;
     public PowerConnectionTrigger westLeftTrigger;
 
-    [Header("POWER STATE")]
     public bool IsPowered { get; private set; } = false;
     public PowerSource poweredBySource { get; private set; } = null;
-    public Color currentPowerColor { get; private set; } = Color.white;
     public int distanceFromSource { get; private set; } = 0;
 
-    public struct FaceData
+    public class FaceData
     {
         public SpriteRenderer faceSprite;
         public FaceObstructionDetector obstructionDetector;
-        public PowerConnectionTrigger[] triggers;
+        public PowerConnectionTrigger[] triggers; // [0]=Up, [1]=Right, [2]=Down, [3]=Left
         public PowerLineType lineType;
+        public bool isFacePowered;
     }
 
-    private FaceData topFaceData;
-    private FaceData bottomFaceData;
-    private FaceData northFaceData;
-    private FaceData southFaceData;
-    private FaceData eastFaceData;
-    private FaceData westFaceData;
+    private Dictionary<PowerConnectionTrigger, FaceData> triggerToFaceMap = new Dictionary<PowerConnectionTrigger, FaceData>();
+    private List<FaceData> allFaces = new List<FaceData>();
+
+    public Color currentPowerColor { get; private set; } = Color.white;
 
     private void Awake()
     {
@@ -145,21 +142,23 @@ public class RunodePower : MonoBehaviour
 
     private void InitializeFaceData()
     {
-        topFaceData    = CreateFaceData(topFaceTransform,    topFace,    topUpTrigger,    topRightTrigger,    topDownTrigger,    topLeftTrigger);
-        bottomFaceData = CreateFaceData(bottomFaceTransform, bottomFace, bottomUpTrigger, bottomRightTrigger, bottomDownTrigger, bottomLeftTrigger);
-        northFaceData  = CreateFaceData(northFaceTransform,  northFace,  northUpTrigger,  northRightTrigger,  northDownTrigger,  northLeftTrigger);
-        southFaceData  = CreateFaceData(southFaceTransform,  southFace,  southUpTrigger,  southRightTrigger,  southDownTrigger,  southLeftTrigger);
-        eastFaceData   = CreateFaceData(eastFaceTransform,   eastFace,   eastUpTrigger,   eastRightTrigger,   eastDownTrigger,   eastLeftTrigger);
-        westFaceData   = CreateFaceData(westFaceTransform,   westFace,   westUpTrigger,   westRightTrigger,   westDownTrigger,   westLeftTrigger);
+        allFaces.Clear();
+        triggerToFaceMap.Clear();
+
+        allFaces.Add(CreateFaceData(topFaceTransform,    topFace,    topUpTrigger,    topRightTrigger,    topDownTrigger,    topLeftTrigger));
+        allFaces.Add(CreateFaceData(bottomFaceTransform, bottomFace, bottomUpTrigger, bottomRightTrigger, bottomDownTrigger, bottomLeftTrigger));
+        allFaces.Add(CreateFaceData(northFaceTransform,  northFace,  northUpTrigger,  northRightTrigger,  northDownTrigger,  northLeftTrigger));
+        allFaces.Add(CreateFaceData(southFaceTransform,  southFace,  southUpTrigger,  southRightTrigger,  southDownTrigger,  southLeftTrigger));
+        allFaces.Add(CreateFaceData(eastFaceTransform,   eastFace,   eastUpTrigger,   eastRightTrigger,   eastDownTrigger,   eastLeftTrigger));
+        allFaces.Add(CreateFaceData(westFaceTransform,   westFace,   westUpTrigger,   westRightTrigger,   westDownTrigger,   westLeftTrigger));
     }
 
     private FaceData CreateFaceData(Transform faceTransform, PowerLineType lineType,
         PowerConnectionTrigger up, PowerConnectionTrigger right,
         PowerConnectionTrigger down, PowerConnectionTrigger left)
     {
-        FaceData data = new FaceData();
-        data.lineType = lineType;
-
+        FaceData data = new FaceData { lineType = lineType, triggers = new[] { up, right, down, left } };
+        
         if (faceTransform != null)
         {
             Transform spriteChild = faceTransform.Find("Power Line Sprite");
@@ -168,79 +167,145 @@ public class RunodePower : MonoBehaviour
                 data.faceSprite = spriteChild.GetComponent<SpriteRenderer>();
                 data.obstructionDetector = spriteChild.GetComponent<FaceObstructionDetector>();
 
-                FaceObstructionDetector detector = data.obstructionDetector;
-                if (detector != null)
+                if (data.obstructionDetector != null)
                 {
-                    List<PowerConnectionTrigger> triggerList = new List<PowerConnectionTrigger>();
-                    if (up    != null) triggerList.Add(up);
-                    if (right != null) triggerList.Add(right);
-                    if (down  != null) triggerList.Add(down);
-                    if (left  != null) triggerList.Add(left);
-                    detector.Initialize(this, triggerList.ToArray());
+                    List<PowerConnectionTrigger> activeList = new List<PowerConnectionTrigger>();
+                    if (up != null) activeList.Add(up);
+                    if (right != null) activeList.Add(right);
+                    if (down != null) activeList.Add(down);
+                    if (left != null) activeList.Add(left);
+                    data.obstructionDetector.Initialize(this, activeList.ToArray());
                 }
             }
         }
 
-        List<PowerConnectionTrigger> activeTriggers = new List<PowerConnectionTrigger>();
-        if (up    != null && up.gameObject.activeInHierarchy)    activeTriggers.Add(up);
-        if (right != null && right.gameObject.activeInHierarchy) activeTriggers.Add(right);
-        if (down  != null && down.gameObject.activeInHierarchy)  activeTriggers.Add(down);
-        if (left  != null && left.gameObject.activeInHierarchy)  activeTriggers.Add(left);
-
-        data.triggers = activeTriggers.ToArray();
+        foreach (var t in data.triggers)
+        {
+            if (t != null) triggerToFaceMap[t] = data;
+        }
+        
         return data;
     }
 
-    /// Called by PowerManager before BFS. Resets this runode to unpowered.
+    /// Resets all face power states and triggers.
     public void ClearPowerState()
     {
-        bool wasPowered = IsPowered;
-
         IsPowered = false;
-        poweredBySource = null;
         currentPowerColor = Color.white;
         distanceFromSource = 0;
 
-        if (wasPowered)
-            ApplyVisualColor(Color.white);
+        foreach (var face in allFaces)
+        {
+            face.isFacePowered = false;
+            foreach (var t in face.triggers)
+            {
+                if (t != null) t.ClearPowerState();
+            }
+            ApplyFaceColor(face, Color.white);
+        }
     }
 
-    /// Called by PowerSource BFS when this runode is reached and powered.
-    public void SetPowered(PowerSource source, Color color, int distance)
+    /// Returns other triggers on the same face connected via PowerLineType.
+    public List<PowerConnectionTrigger> GetConnectedTriggersOnFace(PowerConnectionTrigger entry)
     {
-        IsPowered = true;
-        poweredBySource = source;
+        List<PowerConnectionTrigger> connected = new List<PowerConnectionTrigger>();
+        if (!triggerToFaceMap.TryGetValue(entry, out FaceData face) || face.obstructionDetector.IsObstructed)
+            return connected;
+
+        face.isFacePowered = true; 
+        IsPowered = true; // Mark cube as touched for 1MW rule
+
+        int entryIndex = System.Array.IndexOf(face.triggers, entry);
+        bool[] activeIndices = GetLineConnectivity(face.lineType);
+
+        for (int i = 0; i < face.triggers.Length; i++)
+        {
+            if (i != entryIndex && activeIndices[i] && face.triggers[i] != null)
+            {
+                connected.Add(face.triggers[i]);
+            }
+        }
+        return connected;
+    }
+
+    private bool[] GetLineConnectivity(PowerLineType type)
+    {
+        switch (type)
+        {
+            case PowerLineType.Horizontal:        return new[] { false, true,  false, true  };
+            case PowerLineType.Vertical:          return new[] { true,  false, true,  false };
+            case PowerLineType.CornerLeftTop:     return new[] { true,  false, false, true  };
+            case PowerLineType.CornerTopRight:    return new[] { true,  true,  false, false };
+            case PowerLineType.CornerRightBottom: return new[] { false, true,  true,  false };
+            case PowerLineType.CornerBottomLeft:  return new[] { false, false, true,  true  };
+            case PowerLineType.TSectionLeft:      return new[] { true,  true,  false, true  };
+            case PowerLineType.TSectionTop:       return new[] { true,  true,  true,  false };
+            case PowerLineType.TSectionRight:     return new[] { false, true,  true,  true  };
+            case PowerLineType.TSectionBottom:    return new[] { true,  false, true,  true  };
+            case PowerLineType.Cross:             return new[] { true,  true,  true,  true  };
+            default:                              return new[] { false, false, false, false };
+        }
+    }
+
+    /// Refreshes visuals for all faces based on their independent power state.
+    public void RefreshFaceVisuals(Color color)
+    {
         currentPowerColor = color;
-        distanceFromSource = distance;
-
-        ApplyVisualColor(color);
+        foreach (var face in allFaces)
+        {
+            ApplyFaceColor(face, face.isFacePowered ? color : Color.white);
+        }
     }
 
-    /// Returns all active, unobstructed triggers across all 6 faces. Used by BFS to keep searching outward.
-    public IEnumerable<PowerConnectionTrigger> GetAllTriggers()
+    /// Explicitly maps triggers that share an edge on the same cube.
+    /// Used because triggers on the same Rigidbody do not collide physically.
+    public PowerConnectionTrigger GetInternalNeighbor(PowerConnectionTrigger t)
     {
-        foreach (PowerConnectionTrigger t in topFaceData.triggers)    if (!t.isObstructed) yield return t;
-        foreach (PowerConnectionTrigger t in bottomFaceData.triggers) if (!t.isObstructed) yield return t;
-        foreach (PowerConnectionTrigger t in northFaceData.triggers)  if (!t.isObstructed) yield return t;
-        foreach (PowerConnectionTrigger t in southFaceData.triggers)  if (!t.isObstructed) yield return t;
-        foreach (PowerConnectionTrigger t in eastFaceData.triggers)   if (!t.isObstructed) yield return t;
-        foreach (PowerConnectionTrigger t in westFaceData.triggers)   if (!t.isObstructed) yield return t;
-    }
+        if (t == topUpTrigger)    return northUpTrigger;
+        if (t == topDownTrigger)  return southUpTrigger;
+        if (t == topLeftTrigger)  return westUpTrigger;
+        if (t == topRightTrigger) return eastUpTrigger;
 
-    private void ApplyVisualColor(Color color)
-    {
-        ApplyFaceColor(topFaceData,    color);
-        ApplyFaceColor(bottomFaceData, color);
-        ApplyFaceColor(northFaceData,  color);
-        ApplyFaceColor(southFaceData,  color);
-        ApplyFaceColor(eastFaceData,   color);
-        ApplyFaceColor(westFaceData,   color);
+        if (t == bottomUpTrigger)    return northDownTrigger;
+        if (t == bottomDownTrigger)  return southDownTrigger;
+        if (t == bottomLeftTrigger)  return westDownTrigger;
+        if (t == bottomRightTrigger) return eastDownTrigger;
+
+        if (t == northUpTrigger)    return topUpTrigger;
+        if (t == northDownTrigger)  return bottomUpTrigger;
+        if (t == northLeftTrigger)  return westRightTrigger;
+        if (t == northRightTrigger) return eastLeftTrigger;
+
+        if (t == eastUpTrigger)    return topRightTrigger;
+        if (t == eastDownTrigger)  return bottomRightTrigger;
+        if (t == eastLeftTrigger)  return northRightTrigger;
+        if (t == eastRightTrigger) return southLeftTrigger;
+
+        if (t == southUpTrigger)    return topDownTrigger;
+        if (t == southDownTrigger)  return bottomDownTrigger;
+        if (t == southLeftTrigger)  return eastRightTrigger;
+        if (t == southRightTrigger) return westLeftTrigger;
+
+        if (t == westUpTrigger)    return topLeftTrigger;
+        if (t == westDownTrigger)  return bottomLeftTrigger;
+        if (t == westLeftTrigger)  return southRightTrigger;
+        if (t == westRightTrigger) return northLeftTrigger;
+
+        return null;
     }
 
     private void ApplyFaceColor(FaceData face, Color color)
     {
         if (face.faceSprite == null) return;
-        if (face.obstructionDetector != null && face.obstructionDetector.IsObstructed) return;
+        if (face.obstructionDetector != null && face.obstructionDetector.IsObstructed)
+        {
+            face.faceSprite.color = new Color(0.08f, 0.08f, 0.08f);
+            return;
+        }
         face.faceSprite.color = color;
     }
+
+    /// Legacy support for BFS entry.
+    public IEnumerable<PowerConnectionTrigger> GetAllTriggers() { yield break; }
+    public void SetPowered(PowerSource source, Color color, int distance) { }
 }

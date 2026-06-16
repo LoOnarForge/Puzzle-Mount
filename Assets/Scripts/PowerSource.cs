@@ -45,77 +45,93 @@ public class PowerSource : MonoBehaviour
     public void RunBFS()
     {
         Queue<PowerConnectionTrigger> queue = new Queue<PowerConnectionTrigger>();
-        HashSet<PowerConnectionTrigger> visited = new HashSet<PowerConnectionTrigger>();
-        int totalCubesPowered = 0;
+        HashSet<PowerConnectionTrigger> visitedTriggers = new HashSet<PowerConnectionTrigger>();
+        HashSet<RunodePower> visitedCubes = new HashSet<RunodePower>();
+        
         currentCubesPowered = 0;
 
-        EnqueueSourceTrigger(upTrigger, queue, visited);
-        EnqueueSourceTrigger(rightTrigger, queue, visited);
-        EnqueueSourceTrigger(downTrigger, queue, visited);
-        EnqueueSourceTrigger(leftTrigger, queue, visited);
+        EnqueueSourceTrigger(upTrigger, queue, visitedTriggers);
+        EnqueueSourceTrigger(rightTrigger, queue, visitedTriggers);
+        EnqueueSourceTrigger(downTrigger, queue, visitedTriggers);
+        EnqueueSourceTrigger(leftTrigger, queue, visitedTriggers);
 
         while (queue.Count > 0)
         {
             PowerConnectionTrigger current = queue.Dequeue();
+            RunodePower currentCube = current.parentRunodePower;
 
-            if (visited.Contains(current)) continue;
-            visited.Add(current);
-
-            PowerConnectionTrigger neighbor = current.currentNeighbor;
-            if (neighbor == null || neighbor.isObstructed) continue;
-
-            if (visited.Contains(neighbor))
+            // 1 MW Rule: Increment only when entering a new physical cube
+            if (currentCube != null && !visitedCubes.Contains(currentCube))
             {
-                TriggerGameOver();
-                return;
-            }
-
-            RunodePower neighborRunode = neighbor.parentRunodePower;
-            if (neighborRunode == null) continue;
-
-            if (neighborRunode.IsPowered && neighborRunode.poweredBySource != this)
-            {
-                TriggerGameOver();
-                return;
-            }
-
-            if (totalCubesPowered >= maxPower) continue;
-
-            int distance = current.distanceFromSource + 1;
-
-            neighbor.isPowered = true;
-            neighbor.currentPowerColor = powerColor;
-            neighbor.distanceFromSource = distance;
-
-            if (!neighborRunode.IsPowered)
-            {
-                totalCubesPowered++;
+                if (currentCubesPowered >= maxPower) continue; 
+                visitedCubes.Add(currentCube);
                 currentCubesPowered++;
-                neighborRunode.SetPowered(this, powerColor, distance);
             }
 
-            foreach (PowerConnectionTrigger outgoing in neighborRunode.GetAllTriggers())
+            // 1. External Hop: To a neighbor on a DIFFERENT cube (Physical connection)
+            PowerConnectionTrigger neighbor = current.currentNeighbor;
+            if (neighbor != null && !neighbor.isObstructed && !visitedTriggers.Contains(neighbor))
             {
-                if (outgoing == neighbor) continue;
-                if (visited.Contains(outgoing)) continue;
+                if (neighbor.isPowered && neighbor.currentPowerColor != powerColor)
+                {
+                    TriggerGameOver();
+                    return;
+                }
 
-                outgoing.isPowered = true;
-                outgoing.currentPowerColor = powerColor;
-                outgoing.distanceFromSource = distance;
-
-                queue.Enqueue(outgoing);
+                SetTriggerPowered(neighbor, current.distanceFromSource + 1, queue, visitedTriggers);
             }
+
+            // 2. Internal Bridge Hop: Between faces on the SAME cube (Manual mapping)
+            if (currentCube != null)
+            {
+                PowerConnectionTrigger internalBridge = currentCube.GetInternalNeighbor(current);
+                if (internalBridge != null && !internalBridge.isObstructed && !visitedTriggers.Contains(internalBridge))
+                {
+                    // No distance increment for same-cube face jumping
+                    SetTriggerPowered(internalBridge, current.distanceFromSource, queue, visitedTriggers);
+                }
+            }
+
+            // 3. Internal Face Traverse: Across the current face line path
+            if (currentCube != null)
+            {
+                var faceNeighbors = currentCube.GetConnectedTriggersOnFace(current);
+                foreach (var fn in faceNeighbors)
+                {
+                    if (!visitedTriggers.Contains(fn))
+                    {
+                        SetTriggerPowered(fn, current.distanceFromSource, queue, visitedTriggers);
+                    }
+                }
+            }
+        }
+
+        // Finalize: Refresh visuals for all cubes touched by this power flow
+        foreach (var cube in visitedCubes)
+        {
+            cube.RefreshFaceVisuals(powerColor);
         }
     }
 
     private void EnqueueSourceTrigger(PowerConnectionTrigger trigger, Queue<PowerConnectionTrigger> queue, HashSet<PowerConnectionTrigger> visited)
     {
         if (trigger == null) return;
-
+        
         trigger.isPowered = true;
         trigger.currentPowerColor = powerColor;
         trigger.distanceFromSource = 0;
+        
+        visited.Add(trigger);
+        queue.Enqueue(trigger);
+    }
 
+    private void SetTriggerPowered(PowerConnectionTrigger trigger, int distance, Queue<PowerConnectionTrigger> queue, HashSet<PowerConnectionTrigger> visited)
+    {
+        trigger.isPowered = true;
+        trigger.currentPowerColor = powerColor;
+        trigger.distanceFromSource = distance;
+        
+        visited.Add(trigger);
         queue.Enqueue(trigger);
     }
 
