@@ -10,6 +10,18 @@ public class FaceObstructionDetector : MonoBehaviour
     private int obstructorCount = 0;
     public bool IsObstructed => obstructorCount > 0;
 
+    private void Awake()
+    {
+        gameObject.layer = LayerMask.NameToLayer("Ignore Raycast");
+
+        SphereCollider col = GetComponent<SphereCollider>();
+        if (col != null)
+        {
+            int mask = (1 << LayerMask.NameToLayer("Runodes")) | (1 << LayerMask.NameToLayer("Ground"));
+            col.includeLayers = mask;
+        }
+    }
+
     // Called by RunodePower after face setup to inject dependencies.
     public void Initialize(RunodePower runode, PowerConnectionTrigger[] triggers)
     {

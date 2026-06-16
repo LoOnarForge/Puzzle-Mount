@@ -13,6 +13,7 @@ public class PowerSource : MonoBehaviour
 
     [Header("POWER OPTIONS")]
     public int maxPower = 10;
+    public int currentCubesPowered = 0;
 
     [Header("TRIGGER REFERENCES")]
     public PowerConnectionTrigger upTrigger;
@@ -46,6 +47,7 @@ public class PowerSource : MonoBehaviour
         Queue<PowerConnectionTrigger> queue = new Queue<PowerConnectionTrigger>();
         HashSet<PowerConnectionTrigger> visited = new HashSet<PowerConnectionTrigger>();
         int totalCubesPowered = 0;
+        currentCubesPowered = 0;
 
         EnqueueSourceTrigger(upTrigger, queue, visited);
         EnqueueSourceTrigger(rightTrigger, queue, visited);
@@ -88,6 +90,7 @@ public class PowerSource : MonoBehaviour
             if (!neighborRunode.IsPowered)
             {
                 totalCubesPowered++;
+                currentCubesPowered++;
                 neighborRunode.SetPowered(this, powerColor, distance);
             }
 
