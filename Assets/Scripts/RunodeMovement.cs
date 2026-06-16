@@ -4,42 +4,36 @@ using UnityEngine;
 [RequireComponent(typeof(BoxCollider))]
 public class RunodeMovement : MonoBehaviour
 {
-    [Header("MOVEMENT")]
+    [Header("MOVEMENT:")]
     public float moveSpeed = 5f;
 
-    [Header("VISUAL")]
-    public Transform visualParent;
-
-    [Header("RANDOM ROTATION")]
+    [Header("RANDOM ROTATION:")]
     public bool randomRotateOnStart = true;
 
-    [Header("DEBUG")]
+    [Header("DEBUG:")]
     public bool isMoving = false;
 
     private Rigidbody rb;
+    [HideInInspector]
+    public Transform visualParent;
 
     private void Awake()
     {
+        visualParent = transform.GetChild(0);
+
         rb = GetComponent<Rigidbody>();
         rb.isKinematic = false;
         rb.useGravity = true;
         rb.constraints = RigidbodyConstraints.FreezePositionX | RigidbodyConstraints.FreezePositionZ | RigidbodyConstraints.FreezeRotation;
     }
-
     private void Start()
     {
         if (randomRotateOnStart)
+        {
             ApplyRandomRotation();
+        }
 
         SnapToGrid();
-    }
-
-    private void ApplyRandomRotation()
-    {
-        float xRot = Random.Range(0, 4) * 90f;
-        float yRot = Random.Range(0, 4) * 90f;
-        float zRot = Random.Range(0, 4) * 90f;
-        transform.rotation = Quaternion.Euler(xRot, yRot, zRot);
     }
 
     private void SnapToGrid()
@@ -48,24 +42,31 @@ public class RunodeMovement : MonoBehaviour
         transform.position = new Vector3(Mathf.Round(p.x), p.y, Mathf.Round(p.z));
     }
 
-    /// Rotates the visual mesh only — colliders and triggers stay in place.
+    // Rotates the visual mesh only — colliders and triggers stay in place.
     public void RotateVisual(float rotationY)
     {
         if (visualParent != null)
+        {
             visualParent.Rotate(0, rotationY, 0);
+        }
     }
 
-    /// Returns which direction to push based on where Tim is standing relative to this cube.
+    // Returns which direction to push based on where Tim is standing relative to this Runode.
     public Vector3 GetRelativePushDirection(Transform pusherTransform)
     {
         Vector3 offset = transform.position - pusherTransform.position;
+
         if (Mathf.Abs(offset.x) > Mathf.Abs(offset.z))
+        {
             return new Vector3(Mathf.Sign(offset.x), 0, 0);
+        }
         else
+        {
             return new Vector3(0, 0, Mathf.Sign(offset.z));
+        }
     }
 
-    /// Returns true if this cube is allowed to move one step in the given direction.
+    // Returns true if this cube is allowed to move one step in the given direction.
     public bool CanPushSingle(Vector3 direction)
     {
         if (isMoving) return false;
@@ -74,14 +75,16 @@ public class RunodeMovement : MonoBehaviour
         Vector3 pushDir = GetGridDirection(direction);
         if (pushDir == Vector3.zero) return false;
 
-        return IsPositionClear(transform.position + pushDir);
+        Vector3 snappedStart = new Vector3(Mathf.Round(transform.position.x), transform.position.y, Mathf.Round(transform.position.z));
+        return IsPositionClear(snappedStart + pushDir);
     }
 
-    /// Starts moving this cube one grid step in the given direction.
+    // Starts moving this cube one grid step in the given direction.
     public void PushSingle(Vector3 direction)
     {
         Vector3 pushDir = GetGridDirection(direction);
-        StartCoroutine(MoveTo(transform.position + pushDir, pushDir));
+        Vector3 snappedStart = new Vector3(Mathf.Round(transform.position.x), transform.position.y, Mathf.Round(transform.position.z));
+        StartCoroutine(MoveTo(snappedStart + pushDir, pushDir));
     }
 
     private bool IsGrounded()
@@ -95,9 +98,13 @@ public class RunodeMovement : MonoBehaviour
         direction.Normalize();
 
         if (Mathf.Abs(direction.x) > Mathf.Abs(direction.z))
+        {
             return direction.x > 0 ? Vector3.right : Vector3.left;
+        }
         else if (Mathf.Abs(direction.z) > 0.1f)
+        {
             return direction.z > 0 ? Vector3.forward : Vector3.back;
+        }
 
         return Vector3.zero;
     }
@@ -114,9 +121,12 @@ public class RunodeMovement : MonoBehaviour
             if (otherRunode != null)
             {
                 Vector3 otherPos = otherRunode.transform.position;
-                bool isSameColumn = Mathf.Abs(otherPos.x - transform.position.x) < 0.1f &&
-                                    Mathf.Abs(otherPos.z - transform.position.z) < 0.1f;
-                if (isSameColumn) continue;
+
+                if (Mathf.Abs(otherPos.x - transform.position.x) < 0.1f &&
+                    Mathf.Abs(otherPos.z - transform.position.z) < 0.1f)
+                {
+                    continue;
+                }
             }
 
             return false;
@@ -130,10 +140,15 @@ public class RunodeMovement : MonoBehaviour
         isMoving = true;
         Vector3 startPos = transform.position;
 
+        // Restore exact logic from old script: use constraints, NOT kinematic
         if (direction == Vector3.right || direction == Vector3.left)
+        {
             rb.constraints = RigidbodyConstraints.FreezePositionZ | RigidbodyConstraints.FreezeRotation;
+        }
         else if (direction == Vector3.forward || direction == Vector3.back)
+        {
             rb.constraints = RigidbodyConstraints.FreezePositionX | RigidbodyConstraints.FreezeRotation;
+        }
 
         targetPosition.y = startPos.y;
 
@@ -144,19 +159,30 @@ public class RunodeMovement : MonoBehaviour
         {
             elapsed += Time.deltaTime;
             float progress = Mathf.SmoothStep(0f, 1f, elapsed / moveTime);
+
             Vector3 currentPos = Vector3.Lerp(startPos, targetPosition, progress);
-            currentPos.y = transform.position.y;
+            currentPos.y = startPos.y; // Strict vertical lock
+
             transform.position = currentPos;
+
             yield return null;
         }
 
-        Vector3 finalPos = targetPosition;
-        finalPos.y = transform.position.y;
-        transform.position = finalPos;
+        transform.position = new Vector3(targetPosition.x, startPos.y, targetPosition.z);
 
+        // Restore default state
         rb.constraints = RigidbodyConstraints.FreezePositionX | RigidbodyConstraints.FreezePositionZ | RigidbodyConstraints.FreezeRotation;
 
         isMoving = false;
         PowerManager.Instance.RequestPowerFlowCheck();
+    }
+
+    private void ApplyRandomRotation()
+    {
+        float xRot = Random.Range(0, 4) * 90f;
+        float yRot = Random.Range(0, 4) * 90f;
+        float zRot = Random.Range(0, 4) * 90f;
+
+        transform.rotation = Quaternion.Euler(xRot, yRot, zRot);
     }
 }

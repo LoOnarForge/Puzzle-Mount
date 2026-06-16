@@ -1,9 +1,9 @@
 using System.Collections.Generic;
 using UnityEngine;
 
-/// Place in the scene as a fixed power origin.
-/// Registers itself with PowerManager on Start.
-/// Runs BFS outward through connected triggers when PowerManager requests recalculation.
+// Place in the scene as a fixed power origin.
+// Registers itself with PowerManager on Start.
+// Runs BFS outward through connected triggers when PowerManager requests recalculation.
 [DefaultExecutionOrder(-50)]
 public class PowerSource : MonoBehaviour
 {
@@ -37,10 +37,10 @@ public class PowerSource : MonoBehaviour
             powerSprite.color = powerColor;
     }
 
-    /// BFS from this source outward through all reachable connected triggers.
-    /// Each cube reached is marked powered with this source's color and distance.
-    /// Total cubes powered across all branches cannot exceed maxPower.
-    /// If a cube is already powered by a different source, or a loop is detected: game over.
+    // BFS from this source outward through all reachable connected triggers.
+    // Each cube reached is marked powered with this source's color and distance.
+    // Total cubes powered across all branches cannot exceed maxPower.
+    // If a cube is already powered by a different source, or a loop is detected: game over.
     public void RunBFS()
     {
         Queue<PowerConnectionTrigger> queue = new Queue<PowerConnectionTrigger>();
