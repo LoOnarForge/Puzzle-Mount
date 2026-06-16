@@ -60,7 +60,7 @@ public class PowerSource : MonoBehaviour
             visited.Add(current);
 
             PowerConnectionTrigger neighbor = current.currentNeighbor;
-            if (neighbor == null) continue;
+            if (neighbor == null || neighbor.isObstructed) continue;
 
             if (visited.Contains(neighbor))
             {
