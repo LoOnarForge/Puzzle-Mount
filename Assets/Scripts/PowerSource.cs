@@ -50,45 +50,52 @@ public class PowerSource : MonoBehaviour
         
         currentCubesPowered = 0;
 
-        EnqueueSourceTrigger(upTrigger, queue, visitedTriggers);
-        EnqueueSourceTrigger(rightTrigger, queue, visitedTriggers);
-        EnqueueSourceTrigger(downTrigger, queue, visitedTriggers);
-        EnqueueSourceTrigger(leftTrigger, queue, visitedTriggers);
+        EnqueueSourceTrigger(upTrigger, queue, visitedTriggers, visitedCubes);
+        EnqueueSourceTrigger(rightTrigger, queue, visitedTriggers, visitedCubes);
+        EnqueueSourceTrigger(downTrigger, queue, visitedTriggers, visitedCubes);
+        EnqueueSourceTrigger(leftTrigger, queue, visitedTriggers, visitedCubes);
 
         while (queue.Count > 0)
         {
             PowerConnectionTrigger current = queue.Dequeue();
             RunodePower currentCube = current.parentRunodePower;
 
-            // 1 MW Rule: Increment only when entering a new physical cube
-            if (currentCube != null && !visitedCubes.Contains(currentCube))
-            {
-                if (currentCubesPowered >= maxPower) continue; 
-                visitedCubes.Add(currentCube);
-                currentCubesPowered++;
-            }
-
             // 1. External Hop: To a neighbor on a DIFFERENT cube (Physical connection)
             PowerConnectionTrigger neighbor = current.currentNeighbor;
-            if (neighbor != null && !neighbor.isObstructed && !visitedTriggers.Contains(neighbor))
+            if (neighbor != null && neighbor.gameObject.activeInHierarchy && !neighbor.isObstructed && !visitedTriggers.Contains(neighbor))
             {
+                RunodePower neighborCube = neighbor.parentRunodePower;
+                bool isNewCube = neighborCube != null && !visitedCubes.Contains(neighborCube);
+
+                if (isNewCube && currentCubesPowered >= maxPower)
+                {
+                    continue; 
+                }
+
                 if (neighbor.isPowered && neighbor.currentPowerColor != powerColor)
                 {
                     TriggerGameOver();
                     return;
                 }
 
+                if (isNewCube)
+                {
+                    visitedCubes.Add(neighborCube);
+                    currentCubesPowered++;
+                }
+
                 SetTriggerPowered(neighbor, current.distanceFromSource + 1, queue, visitedTriggers);
+                if (neighborCube != null) neighborCube.MarkFacePowered(neighbor);
             }
 
             // 2. Internal Bridge Hop: Between faces on the SAME cube (Manual mapping)
             if (currentCube != null)
             {
                 PowerConnectionTrigger internalBridge = currentCube.GetInternalNeighbor(current);
-                if (internalBridge != null && !internalBridge.isObstructed && !visitedTriggers.Contains(internalBridge))
+                if (internalBridge != null && internalBridge.gameObject.activeInHierarchy && !internalBridge.isObstructed && !visitedTriggers.Contains(internalBridge))
                 {
-                    // No distance increment for same-cube face jumping
                     SetTriggerPowered(internalBridge, current.distanceFromSource, queue, visitedTriggers);
+                    currentCube.MarkFacePowered(internalBridge);
                 }
             }
 
@@ -98,7 +105,7 @@ public class PowerSource : MonoBehaviour
                 var faceNeighbors = currentCube.GetConnectedTriggersOnFace(current);
                 foreach (var fn in faceNeighbors)
                 {
-                    if (!visitedTriggers.Contains(fn))
+                    if (fn.gameObject.activeInHierarchy && !visitedTriggers.Contains(fn))
                     {
                         SetTriggerPowered(fn, current.distanceFromSource, queue, visitedTriggers);
                     }
@@ -113,16 +120,23 @@ public class PowerSource : MonoBehaviour
         }
     }
 
-    private void EnqueueSourceTrigger(PowerConnectionTrigger trigger, Queue<PowerConnectionTrigger> queue, HashSet<PowerConnectionTrigger> visited)
+    private void EnqueueSourceTrigger(PowerConnectionTrigger trigger, Queue<PowerConnectionTrigger> queue, HashSet<PowerConnectionTrigger> visitedTriggers, HashSet<RunodePower> visitedCubes)
     {
-        if (trigger == null) return;
+        if (trigger == null || !trigger.gameObject.activeInHierarchy) return;
         
         trigger.isPowered = true;
         trigger.currentPowerColor = powerColor;
         trigger.distanceFromSource = 0;
         
-        visited.Add(trigger);
+        visitedTriggers.Add(trigger);
         queue.Enqueue(trigger);
+
+        // If the source trigger is on a cube, count it
+        if (trigger.parentRunodePower != null && !visitedCubes.Contains(trigger.parentRunodePower))
+        {
+            visitedCubes.Add(trigger.parentRunodePower);
+            currentCubesPowered++;
+        }
     }
 
     private void SetTriggerPowered(PowerConnectionTrigger trigger, int distance, Queue<PowerConnectionTrigger> queue, HashSet<PowerConnectionTrigger> visited)

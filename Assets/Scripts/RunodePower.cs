@@ -220,7 +220,7 @@ public class RunodePower : MonoBehaviour
 
         for (int i = 0; i < face.triggers.Length; i++)
         {
-            if (i != entryIndex && activeIndices[i] && face.triggers[i] != null)
+            if (i != entryIndex && activeIndices[i] && face.triggers[i] != null && face.triggers[i].gameObject.activeInHierarchy)
             {
                 connected.Add(face.triggers[i]);
             }
@@ -254,6 +254,15 @@ public class RunodePower : MonoBehaviour
         foreach (var face in allFaces)
         {
             ApplyFaceColor(face, face.isFacePowered ? color : Color.white);
+        }
+    }
+
+    /// Mark a face as powered when a trigger is hit by the BFS.
+    public void MarkFacePowered(PowerConnectionTrigger t)
+    {
+        if (triggerToFaceMap.TryGetValue(t, out FaceData face))
+        {
+            face.isFacePowered = true;
         }
     }
 
