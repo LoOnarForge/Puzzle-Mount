@@ -60,11 +60,13 @@ public class PowerSource : MonoBehaviour
             PowerConnectionTrigger current = queue.Dequeue();
             RunodePower currentCube = current.parentRunodePower;
 
-            // 1. External Hop: To a neighbor on a DIFFERENT cube (Physical connection)
-            PowerConnectionTrigger neighbor = current.currentNeighbor;
+            PowerConnectionTrigger neighbor = FindExternalNeighbor(current);
             if (neighbor != null && neighbor.gameObject.activeInHierarchy && !neighbor.isObstructed && !visitedTriggers.Contains(neighbor))
             {
+                // Ensure we have a valid parent reference, even if Awake() hasn't run on a disabled trigger
                 RunodePower neighborCube = neighbor.parentRunodePower;
+                if (neighborCube == null) neighborCube = neighbor.GetComponentInParent<RunodePower>();
+                
                 bool isNewCube = neighborCube != null && !visitedCubes.Contains(neighborCube);
 
                 if (isNewCube && currentCubesPowered >= maxPower)
@@ -147,6 +149,40 @@ public class PowerSource : MonoBehaviour
         
         visited.Add(trigger);
         queue.Enqueue(trigger);
+    }
+
+    private PowerConnectionTrigger FindExternalNeighbor(PowerConnectionTrigger source)
+    {
+        // Get the actual world-space center of the trigger collider
+        SphereCollider sphere = source.GetComponent<SphereCollider>();
+        Vector3 searchPos = sphere != null ? source.transform.TransformPoint(sphere.center) : source.transform.position;
+
+        // 0.1m radius is enough when looking at the exact connection point
+        float queryRadius = 0.1f;
+        Collider[] hits = Physics.OverlapSphere(searchPos, queryRadius, -1, QueryTriggerInteraction.Collide);
+
+        foreach (var hit in hits)
+        {
+            PowerConnectionTrigger neighbor = hit.GetComponent<PowerConnectionTrigger>();
+            if (neighbor != null && neighbor != source)
+            {
+                // IRONCLAD: Only connect to active, unobstructed triggers on different objects
+                if (neighbor.gameObject.activeInHierarchy && !neighbor.isObstructed)
+                {
+                    RunodePower sParent = source.parentRunodePower;
+                    if (sParent == null) sParent = source.GetComponentInParent<RunodePower>();
+                    
+                    RunodePower nParent = neighbor.parentRunodePower;
+                    if (nParent == null) nParent = neighbor.GetComponentInParent<RunodePower>();
+
+                    if (sParent != nParent || (sParent == null && nParent == null))
+                    {
+                        return neighbor;
+                    }
+                }
+            }
+        }
+        return null;
     }
 
     private void TriggerGameOver()

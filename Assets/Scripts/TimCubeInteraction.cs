@@ -28,6 +28,7 @@ public class TimCubeInteraction : MonoBehaviour
 
     private Transform timTransform;
     private CharacterMovement characterMovement;
+    private CharacterController controller;
     
     // Push delay tracking
     private RunodeMovement currentTargetCube;
@@ -61,6 +62,7 @@ public class TimCubeInteraction : MonoBehaviour
     {
         timTransform = transform;
         characterMovement = GetComponent<CharacterMovement>();
+        controller = GetComponent<CharacterController>();
     }
     
     private void Update()
@@ -106,7 +108,8 @@ public class TimCubeInteraction : MonoBehaviour
         
         if (Physics.Raycast(rayStart, rayDirection, out hit, pushRange))
         {
-            RunodeMovement hitCube = hit.collider.GetComponent<RunodeMovement>();
+            // Use GetComponentInParent to handle hits on child detectors/sprites
+            RunodeMovement hitCube = hit.collider.GetComponentInParent<RunodeMovement>();
             if (hitCube != null)
             {
                 // Update debug info
@@ -370,8 +373,15 @@ public class TimCubeInteraction : MonoBehaviour
         isRotating = true; // Block further rotation input
         cube.isMoving = true; // Mark as moving so neighbors ignore obstruction
         
-        // Lock physics to prevent collisions or falling during rotation
+        // Lock physics to prevent falling (stay solid) but prevent pushing Tim
         cube.SetKinematic(true);
+        
+        // Ignore collision with Tim during rotation
+        Collider cubeCollider = cube.GetComponent<Collider>();
+        if (cubeCollider != null && controller != null)
+        {
+            Physics.IgnoreCollision(controller, cubeCollider, true);
+        }
         
         // Target the ROOT transform so triggers rotate with the mesh
         Transform targetTransform = cube.transform;
@@ -431,6 +441,11 @@ public class TimCubeInteraction : MonoBehaviour
         if (cube.visualParent != null) cube.visualParent.localScale = originalScale;
 
         // Restore physics and sync world
+        if (cubeCollider != null && controller != null)
+        {
+            Physics.IgnoreCollision(controller, cubeCollider, false);
+        }
+
         cube.SetKinematic(false);
         Physics.SyncTransforms();
 

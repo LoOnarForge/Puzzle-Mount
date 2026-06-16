@@ -41,9 +41,8 @@ public class RunodeMovement : MonoBehaviour
         if (rb == null) rb = GetComponent<Rigidbody>();
         rb.isKinematic = kinematic;
 
-        // Toggle main collider to trigger to prevent pushing Tim during rotation
-        BoxCollider col = GetComponent<BoxCollider>();
-        if (col != null) col.isTrigger = kinematic;
+        // COLLISION: We keep it solid so cubes above don't fall.
+        // To prevent pushing Tim, we'll use Physics.IgnoreCollision in TimCubeInteraction.
 
         if (!kinematic)
         {
