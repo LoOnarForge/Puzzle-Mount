@@ -19,6 +19,11 @@ public class RunodePowerEditor : Editor
         lastFaceTypes[3] = cubePower.southFace;
         lastFaceTypes[4] = cubePower.eastFace;
         lastFaceTypes[5] = cubePower.westFace;
+
+        string[] faceNames = { "Top Face", "Bottom Face", "North Face", "South Face", "East Face", "West Face" };
+        for (int i = 0; i < 6; i++)
+            UpdateFacePrefab(i, lastFaceTypes[i], faceNames[i]);
+
         initialized = true;
     }
 
@@ -194,6 +199,7 @@ public class RunodePowerEditor : Editor
 
         if (newType != PowerLineType.Empty)
         {
+            spriteTransform.gameObject.SetActive(true);
             Sprite sprite = GetSpriteForType(newType);
             if (sprite != null)
             {
@@ -209,11 +215,12 @@ public class RunodePowerEditor : Editor
         }
         else
         {
-            spriteRenderer.sprite = null;
+            spriteTransform.gameObject.SetActive(false);
             spriteTransform.localRotation = Quaternion.identity;
         }
 
         UpdateTriggerStates(faceIndex, newType);
+        EditorUtility.SetDirty(spriteTransform.gameObject);
     }
 
     private void UpdateTriggerStates(int faceIndex, PowerLineType lineType)

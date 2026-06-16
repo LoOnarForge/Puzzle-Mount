@@ -126,6 +126,7 @@ public class RunodePower : MonoBehaviour
     public struct FaceData
     {
         public SpriteRenderer faceSprite;
+        public FaceObstructionDetector obstructionDetector;
         public PowerConnectionTrigger[] triggers;
         public PowerLineType lineType;
     }
@@ -163,7 +164,21 @@ public class RunodePower : MonoBehaviour
         {
             Transform spriteChild = faceTransform.Find("Power Line Sprite");
             if (spriteChild != null)
+            {
                 data.faceSprite = spriteChild.GetComponent<SpriteRenderer>();
+                data.obstructionDetector = spriteChild.GetComponent<FaceObstructionDetector>();
+
+                FaceObstructionDetector detector = data.obstructionDetector;
+                if (detector != null)
+                {
+                    List<PowerConnectionTrigger> triggerList = new List<PowerConnectionTrigger>();
+                    if (up    != null) triggerList.Add(up);
+                    if (right != null) triggerList.Add(right);
+                    if (down  != null) triggerList.Add(down);
+                    if (left  != null) triggerList.Add(left);
+                    detector.Initialize(this, triggerList.ToArray());
+                }
+            }
         }
 
         List<PowerConnectionTrigger> activeTriggers = new List<PowerConnectionTrigger>();
@@ -201,15 +216,15 @@ public class RunodePower : MonoBehaviour
         ApplyVisualColor(color);
     }
 
-    /// Returns all active triggers across all 6 faces. Used by BFS to keep searching outward.
+    /// Returns all active, unobstructed triggers across all 6 faces. Used by BFS to keep searching outward.
     public IEnumerable<PowerConnectionTrigger> GetAllTriggers()
     {
-        foreach (PowerConnectionTrigger t in topFaceData.triggers)    yield return t;
-        foreach (PowerConnectionTrigger t in bottomFaceData.triggers) yield return t;
-        foreach (PowerConnectionTrigger t in northFaceData.triggers)  yield return t;
-        foreach (PowerConnectionTrigger t in southFaceData.triggers)  yield return t;
-        foreach (PowerConnectionTrigger t in eastFaceData.triggers)   yield return t;
-        foreach (PowerConnectionTrigger t in westFaceData.triggers)   yield return t;
+        foreach (PowerConnectionTrigger t in topFaceData.triggers)    if (!t.isObstructed) yield return t;
+        foreach (PowerConnectionTrigger t in bottomFaceData.triggers) if (!t.isObstructed) yield return t;
+        foreach (PowerConnectionTrigger t in northFaceData.triggers)  if (!t.isObstructed) yield return t;
+        foreach (PowerConnectionTrigger t in southFaceData.triggers)  if (!t.isObstructed) yield return t;
+        foreach (PowerConnectionTrigger t in eastFaceData.triggers)   if (!t.isObstructed) yield return t;
+        foreach (PowerConnectionTrigger t in westFaceData.triggers)   if (!t.isObstructed) yield return t;
     }
 
     private void ApplyVisualColor(Color color)
@@ -224,7 +239,8 @@ public class RunodePower : MonoBehaviour
 
     private void ApplyFaceColor(FaceData face, Color color)
     {
-        if (face.faceSprite != null)
-            face.faceSprite.color = color;
+        if (face.faceSprite == null) return;
+        if (face.obstructionDetector != null && face.obstructionDetector.IsObstructed) return;
+        face.faceSprite.color = color;
     }
 }

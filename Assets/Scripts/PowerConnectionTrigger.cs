@@ -4,6 +4,7 @@ public class PowerConnectionTrigger : MonoBehaviour
 {
     [Header("PRIMARY DETAILS:")]
     public bool isPowered = false;
+    public bool isObstructed = false;
     public Color currentPowerColor = Color.white;
     public PowerSource parentPowerSource;
 
@@ -46,5 +47,11 @@ public class PowerConnectionTrigger : MonoBehaviour
         isPowered = false;
         currentPowerColor = Color.white;
         distanceFromSource = 0;
+    }
+
+    // Sets obstructed state. BFS filters via isObstructed; neighbor reference is preserved for restoration.
+    public void SetObstructed(bool obstructed)
+    {
+        isObstructed = obstructed;
     }
 }

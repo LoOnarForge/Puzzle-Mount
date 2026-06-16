@@ -67,6 +67,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::PowerConnectionTrigger
   isPowered: 0
+  isObstructed: 0
   currentPowerColor: {r: 1, g: 1, b: 1, a: 1}
   parentPowerSource: {fileID: 0}
   parentRunodePower: {fileID: 0}
@@ -140,6 +141,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::PowerConnectionTrigger
   isPowered: 0
+  isObstructed: 0
   currentPowerColor: {r: 1, g: 1, b: 1, a: 1}
   parentPowerSource: {fileID: 0}
   parentRunodePower: {fileID: 0}
@@ -213,6 +215,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::PowerConnectionTrigger
   isPowered: 0
+  isObstructed: 0
   currentPowerColor: {r: 1, g: 1, b: 1, a: 1}
   parentPowerSource: {fileID: 0}
   parentRunodePower: {fileID: 0}
@@ -382,6 +385,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::PowerConnectionTrigger
   isPowered: 0
+  isObstructed: 0
   currentPowerColor: {r: 1, g: 1, b: 1, a: 1}
   parentPowerSource: {fileID: 0}
   parentRunodePower: {fileID: 0}
@@ -455,6 +459,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::PowerConnectionTrigger
   isPowered: 0
+  isObstructed: 0
   currentPowerColor: {r: 1, g: 1, b: 1, a: 1}
   parentPowerSource: {fileID: 0}
   parentRunodePower: {fileID: 0}
@@ -528,6 +533,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::PowerConnectionTrigger
   isPowered: 0
+  isObstructed: 0
   currentPowerColor: {r: 1, g: 1, b: 1, a: 1}
   parentPowerSource: {fileID: 0}
   parentRunodePower: {fileID: 0}
@@ -544,13 +550,15 @@ GameObject:
   m_Component:
   - component: {fileID: 688228844552543930}
   - component: {fileID: 8274063396397230005}
+  - component: {fileID: 8917289187372393703}
+  - component: {fileID: 7965119802533981730}
   m_Layer: 0
   m_Name: Power Line Sprite
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 1
+  m_IsActive: 0
 --- !u!4 &688228844552543930
 Transform:
   m_ObjectHideFlags: 0
@@ -625,6 +633,39 @@ SpriteRenderer:
   m_SpriteTileMode: 0
   m_WasSpriteAssigned: 0
   m_SpriteSortPoint: 0
+--- !u!114 &8917289187372393703
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1740145358810814003}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 203f7bea6f4da2047bb7e925c636a7d4, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::FaceObstructionDetector
+--- !u!135 &7965119802533981730
+SphereCollider:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1740145358810814003}
+  m_Material: {fileID: 0}
+  m_IncludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_ExcludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_LayerOverridePriority: 0
+  m_IsTrigger: 1
+  m_ProvidesContacts: 0
+  m_Enabled: 1
+  serializedVersion: 3
+  m_Radius: 0.4
+  m_Center: {x: 0, y: 0, z: 0}
 --- !u!1 &2332424817440291543
 GameObject:
   m_ObjectHideFlags: 0
@@ -692,6 +733,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::PowerConnectionTrigger
   isPowered: 0
+  isObstructed: 0
   currentPowerColor: {r: 1, g: 1, b: 1, a: 1}
   parentPowerSource: {fileID: 0}
   parentRunodePower: {fileID: 0}
@@ -765,6 +807,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::PowerConnectionTrigger
   isPowered: 0
+  isObstructed: 0
   currentPowerColor: {r: 1, g: 1, b: 1, a: 1}
   parentPowerSource: {fileID: 0}
   parentRunodePower: {fileID: 0}
@@ -781,13 +824,15 @@ GameObject:
   m_Component:
   - component: {fileID: 2621277526680862491}
   - component: {fileID: 3810754022131605336}
+  - component: {fileID: 8110994354837634253}
+  - component: {fileID: 775495881811014817}
   m_Layer: 0
   m_Name: Power Line Sprite
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 1
+  m_IsActive: 0
 --- !u!4 &2621277526680862491
 Transform:
   m_ObjectHideFlags: 0
@@ -862,6 +907,39 @@ SpriteRenderer:
   m_SpriteTileMode: 0
   m_WasSpriteAssigned: 0
   m_SpriteSortPoint: 0
+--- !u!114 &8110994354837634253
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2996265923161110340}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 203f7bea6f4da2047bb7e925c636a7d4, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::FaceObstructionDetector
+--- !u!135 &775495881811014817
+SphereCollider:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2996265923161110340}
+  m_Material: {fileID: 0}
+  m_IncludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_ExcludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_LayerOverridePriority: 0
+  m_IsTrigger: 1
+  m_ProvidesContacts: 0
+  m_Enabled: 1
+  serializedVersion: 3
+  m_Radius: 0.4
+  m_Center: {x: 0, y: 0, z: 0}
 --- !u!1 &3138186547017199693
 GameObject:
   m_ObjectHideFlags: 0
@@ -929,6 +1007,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::PowerConnectionTrigger
   isPowered: 0
+  isObstructed: 0
   currentPowerColor: {r: 1, g: 1, b: 1, a: 1}
   parentPowerSource: {fileID: 0}
   parentRunodePower: {fileID: 0}
@@ -1098,6 +1177,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::PowerConnectionTrigger
   isPowered: 0
+  isObstructed: 0
   currentPowerColor: {r: 1, g: 1, b: 1, a: 1}
   parentPowerSource: {fileID: 0}
   parentRunodePower: {fileID: 0}
@@ -1171,6 +1251,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::PowerConnectionTrigger
   isPowered: 0
+  isObstructed: 0
   currentPowerColor: {r: 1, g: 1, b: 1, a: 1}
   parentPowerSource: {fileID: 0}
   parentRunodePower: {fileID: 0}
@@ -1340,6 +1421,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::PowerConnectionTrigger
   isPowered: 0
+  isObstructed: 0
   currentPowerColor: {r: 1, g: 1, b: 1, a: 1}
   parentPowerSource: {fileID: 0}
   parentRunodePower: {fileID: 0}
@@ -1413,6 +1495,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::PowerConnectionTrigger
   isPowered: 0
+  isObstructed: 0
   currentPowerColor: {r: 1, g: 1, b: 1, a: 1}
   parentPowerSource: {fileID: 0}
   parentRunodePower: {fileID: 0}
@@ -1486,6 +1569,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::PowerConnectionTrigger
   isPowered: 0
+  isObstructed: 0
   currentPowerColor: {r: 1, g: 1, b: 1, a: 1}
   parentPowerSource: {fileID: 0}
   parentRunodePower: {fileID: 0}
@@ -1502,13 +1586,15 @@ GameObject:
   m_Component:
   - component: {fileID: 6031639255017716368}
   - component: {fileID: 1114288393129275122}
+  - component: {fileID: 2753564232728401022}
+  - component: {fileID: 1495652883809629887}
   m_Layer: 0
   m_Name: Power Line Sprite
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 1
+  m_IsActive: 0
 --- !u!4 &6031639255017716368
 Transform:
   m_ObjectHideFlags: 0
@@ -1583,6 +1669,39 @@ SpriteRenderer:
   m_SpriteTileMode: 0
   m_WasSpriteAssigned: 0
   m_SpriteSortPoint: 0
+--- !u!114 &2753564232728401022
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 4267034148755210112}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 203f7bea6f4da2047bb7e925c636a7d4, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::FaceObstructionDetector
+--- !u!135 &1495652883809629887
+SphereCollider:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 4267034148755210112}
+  m_Material: {fileID: 0}
+  m_IncludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_ExcludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_LayerOverridePriority: 0
+  m_IsTrigger: 1
+  m_ProvidesContacts: 0
+  m_Enabled: 1
+  serializedVersion: 3
+  m_Radius: 0.4
+  m_Center: {x: 0, y: 0, z: 0}
 --- !u!1 &4396683100612142563
 GameObject:
   m_ObjectHideFlags: 0
@@ -1596,7 +1715,7 @@ GameObject:
   - component: {fileID: 7390467724354592081}
   - component: {fileID: 5839054870106546969}
   - component: {fileID: 2488290630945031056}
-  m_Layer: 0
+  m_Layer: 11
   m_Name: Runode (001)
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -1680,9 +1799,9 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::RunodeMovement
   moveSpeed: 5
-  visualParent: {fileID: 1319260775747140642}
   randomRotateOnStart: 0
   isMoving: 0
+  visualParent: {fileID: 1319260775747140642}
 --- !u!114 &2488290630945031056
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -1758,13 +1877,15 @@ GameObject:
   m_Component:
   - component: {fileID: 159709315441877068}
   - component: {fileID: 1980581073412583256}
+  - component: {fileID: 904184256444868685}
+  - component: {fileID: 4709707580838207423}
   m_Layer: 0
   m_Name: Power Line Sprite
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 1
+  m_IsActive: 0
 --- !u!4 &159709315441877068
 Transform:
   m_ObjectHideFlags: 0
@@ -1839,6 +1960,39 @@ SpriteRenderer:
   m_SpriteTileMode: 0
   m_WasSpriteAssigned: 0
   m_SpriteSortPoint: 0
+--- !u!114 &904184256444868685
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 4607819062750235410}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 203f7bea6f4da2047bb7e925c636a7d4, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::FaceObstructionDetector
+--- !u!135 &4709707580838207423
+SphereCollider:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 4607819062750235410}
+  m_Material: {fileID: 0}
+  m_IncludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_ExcludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_LayerOverridePriority: 0
+  m_IsTrigger: 1
+  m_ProvidesContacts: 0
+  m_Enabled: 1
+  serializedVersion: 3
+  m_Radius: 0.4
+  m_Center: {x: 0, y: 0, z: 0}
 --- !u!1 &5198598954251132569
 GameObject:
   m_ObjectHideFlags: 0
@@ -1906,6 +2060,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::PowerConnectionTrigger
   isPowered: 0
+  isObstructed: 0
   currentPowerColor: {r: 1, g: 1, b: 1, a: 1}
   parentPowerSource: {fileID: 0}
   parentRunodePower: {fileID: 0}
@@ -1979,6 +2134,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::PowerConnectionTrigger
   isPowered: 0
+  isObstructed: 0
   currentPowerColor: {r: 1, g: 1, b: 1, a: 1}
   parentPowerSource: {fileID: 0}
   parentRunodePower: {fileID: 0}
@@ -1995,13 +2151,15 @@ GameObject:
   m_Component:
   - component: {fileID: 4498426322162018975}
   - component: {fileID: 2440644356627797174}
+  - component: {fileID: 5356896152018348652}
+  - component: {fileID: 5150860532558338474}
   m_Layer: 0
   m_Name: Power Line Sprite
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 1
+  m_IsActive: 0
 --- !u!4 &4498426322162018975
 Transform:
   m_ObjectHideFlags: 0
@@ -2076,6 +2234,39 @@ SpriteRenderer:
   m_SpriteTileMode: 0
   m_WasSpriteAssigned: 0
   m_SpriteSortPoint: 0
+--- !u!114 &5356896152018348652
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 6205533501376278816}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 203f7bea6f4da2047bb7e925c636a7d4, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::FaceObstructionDetector
+--- !u!135 &5150860532558338474
+SphereCollider:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 6205533501376278816}
+  m_Material: {fileID: 0}
+  m_IncludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_ExcludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_LayerOverridePriority: 0
+  m_IsTrigger: 1
+  m_ProvidesContacts: 0
+  m_Enabled: 1
+  serializedVersion: 3
+  m_Radius: 0.4
+  m_Center: {x: 0, y: 0, z: 0}
 --- !u!1 &6282399443541228034
 GameObject:
   m_ObjectHideFlags: 0
@@ -2143,6 +2334,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::PowerConnectionTrigger
   isPowered: 0
+  isObstructed: 0
   currentPowerColor: {r: 1, g: 1, b: 1, a: 1}
   parentPowerSource: {fileID: 0}
   parentRunodePower: {fileID: 0}
@@ -2312,6 +2504,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::PowerConnectionTrigger
   isPowered: 0
+  isObstructed: 0
   currentPowerColor: {r: 1, g: 1, b: 1, a: 1}
   parentPowerSource: {fileID: 0}
   parentRunodePower: {fileID: 0}
@@ -2385,6 +2578,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::PowerConnectionTrigger
   isPowered: 0
+  isObstructed: 0
   currentPowerColor: {r: 1, g: 1, b: 1, a: 1}
   parentPowerSource: {fileID: 0}
   parentRunodePower: {fileID: 0}
@@ -2458,6 +2652,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::PowerConnectionTrigger
   isPowered: 0
+  isObstructed: 0
   currentPowerColor: {r: 1, g: 1, b: 1, a: 1}
   parentPowerSource: {fileID: 0}
   parentRunodePower: {fileID: 0}
@@ -2474,13 +2669,15 @@ GameObject:
   m_Component:
   - component: {fileID: 5363482777528622177}
   - component: {fileID: 7314879586217974367}
+  - component: {fileID: 4165578224065667212}
+  - component: {fileID: 5421744199221563931}
   m_Layer: 0
   m_Name: Power Line Sprite
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 1
+  m_IsActive: 0
 --- !u!4 &5363482777528622177
 Transform:
   m_ObjectHideFlags: 0
@@ -2555,6 +2752,39 @@ SpriteRenderer:
   m_SpriteTileMode: 0
   m_WasSpriteAssigned: 0
   m_SpriteSortPoint: 0
+--- !u!114 &4165578224065667212
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 7420341340388990145}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 203f7bea6f4da2047bb7e925c636a7d4, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::FaceObstructionDetector
+--- !u!135 &5421744199221563931
+SphereCollider:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 7420341340388990145}
+  m_Material: {fileID: 0}
+  m_IncludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_ExcludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_LayerOverridePriority: 0
+  m_IsTrigger: 1
+  m_ProvidesContacts: 0
+  m_Enabled: 1
+  serializedVersion: 3
+  m_Radius: 0.4
+  m_Center: {x: 0, y: 0, z: 0}
 --- !u!1 &7638829662066570746
 GameObject:
   m_ObjectHideFlags: 0
@@ -2718,6 +2948,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::PowerConnectionTrigger
   isPowered: 0
+  isObstructed: 0
   currentPowerColor: {r: 1, g: 1, b: 1, a: 1}
   parentPowerSource: {fileID: 0}
   parentRunodePower: {fileID: 0}
@@ -2791,6 +3022,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::PowerConnectionTrigger
   isPowered: 0
+  isObstructed: 0
   currentPowerColor: {r: 1, g: 1, b: 1, a: 1}
   parentPowerSource: {fileID: 0}
   parentRunodePower: {fileID: 0}
@@ -2864,6 +3096,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::PowerConnectionTrigger
   isPowered: 0
+  isObstructed: 0
   currentPowerColor: {r: 1, g: 1, b: 1, a: 1}
   parentPowerSource: {fileID: 0}
   parentRunodePower: {fileID: 0}
@@ -3033,6 +3266,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::PowerConnectionTrigger
   isPowered: 0
+  isObstructed: 0
   currentPowerColor: {r: 1, g: 1, b: 1, a: 1}
   parentPowerSource: {fileID: 0}
   parentRunodePower: {fileID: 0}
