@@ -50,6 +50,10 @@ public class FaceObstructionDetector : MonoBehaviour
 
     private bool IsObstructor(Collider other)
     {
+        // Ignore other runodes if they are currently moving or rotating
+        RunodeMovement move = other.GetComponentInParent<RunodeMovement>();
+        if (move != null && move.isMoving) return false;
+
         int layer = other.gameObject.layer;
         return layer == LayerMask.NameToLayer("Runodes") || layer == LayerMask.NameToLayer("Ground");
     }

@@ -368,29 +368,26 @@ public class TimCubeInteraction : MonoBehaviour
         if (cube == null) yield break;
         
         isRotating = true; // Block further rotation input
-      //  cube.CubeUnpowered(); // Disconnect power at start of rotation
+        cube.isMoving = true; // Mark as moving so neighbors ignore obstruction
         
-        // Use visual parent for rotation instead of main transform
-        Transform visualTransform = cube.visualParent;
-        if (visualTransform == null)
-        {
-            Debug.LogWarning($"[TimCubeInteraction] Cube {cube.name} has no visual parent for rotation");
-            isRotating = false;
-            yield break;
-        }
+        // Lock physics to prevent collisions or falling during rotation
+        cube.SetKinematic(true);
         
-        Quaternion startRotation = visualTransform.rotation;
+        // Target the ROOT transform so triggers rotate with the mesh
+        Transform targetTransform = cube.transform;
+        
+        Quaternion startRotation = targetTransform.rotation;
         
         // Calculate target rotation using WORLD axes (not local)
         Quaternion deltaRotation;
         if (axis == RotationAxis.Horizontal)
         {
-            // Always rotate around world Y-axis (up), regardless of cube's current orientation
+            // Always rotate around world Y-axis (up)
             deltaRotation = Quaternion.AngleAxis(degrees, Vector3.up);
         }
         else // Vertical
         {
-            // Always rotate around world X-axis (right), regardless of cube's current orientation
+            // Always rotate around world X-axis (right)
             deltaRotation = Quaternion.AngleAxis(degrees, Vector3.right);
         }
         
@@ -406,34 +403,38 @@ public class TimCubeInteraction : MonoBehaviour
         float rotationDuration = 0.3f; // Fast but visible rotation
         float elapsedTime = 0f;
         
-        // Add visual feedback - scale pulse to show rotation direction and axis
-        Vector3 originalScale = visualTransform.localScale;
-        float pulseAmount = 1.1f; // Consistent pulse for all rotations
+        // Add visual feedback - pulse mesh size slightly
+        Vector3 originalScale = cube.visualParent != null ? cube.visualParent.localScale : Vector3.one;
+        float pulseAmount = 1.1f;
         
         while (elapsedTime < rotationDuration)
         {
             elapsedTime += Time.deltaTime;
             float progress = elapsedTime / rotationDuration;
-            
-            // Smooth rotation using ease-in-out curve
             float easedProgress = Mathf.SmoothStep(0f, 1f, progress);
-            visualTransform.rotation = Quaternion.Slerp(startRotation, targetRotation, easedProgress);
             
-            // Pulse scale for visual feedback (only at start)
-            if (progress < 0.3f)
+            targetTransform.rotation = Quaternion.Slerp(startRotation, targetRotation, easedProgress);
+            
+            // Pulse visual parent scale
+            if (cube.visualParent != null && progress < 0.3f)
             {
                 float scaleProgress = progress / 0.3f;
                 float currentPulse = Mathf.Lerp(pulseAmount, 1f, scaleProgress);
-                visualTransform.localScale = originalScale * currentPulse;
+                cube.visualParent.localScale = originalScale * currentPulse;
             }
             
             yield return null;
         }
         
-        // Ensure exact final rotation and scale
-        visualTransform.rotation = targetRotation;
-        visualTransform.localScale = originalScale;
+        // Final snap
+        targetTransform.rotation = targetRotation;
+        if (cube.visualParent != null) cube.visualParent.localScale = originalScale;
 
+        // Restore physics and sync world
+        cube.SetKinematic(false);
+        Physics.SyncTransforms();
+
+        cube.isMoving = false; // Finished moving
         isRotating = false;
         PowerManager.Instance.RequestPowerFlowCheck();
     }

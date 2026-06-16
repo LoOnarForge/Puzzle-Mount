@@ -36,6 +36,21 @@ public class RunodeMovement : MonoBehaviour
         SnapToGrid();
     }
 
+    public void SetKinematic(bool kinematic)
+    {
+        if (rb == null) rb = GetComponent<Rigidbody>();
+        rb.isKinematic = kinematic;
+
+        // Toggle main collider to trigger to prevent pushing Tim during rotation
+        BoxCollider col = GetComponent<BoxCollider>();
+        if (col != null) col.isTrigger = kinematic;
+
+        if (!kinematic)
+        {
+            rb.constraints = RigidbodyConstraints.FreezePositionX | RigidbodyConstraints.FreezePositionZ | RigidbodyConstraints.FreezeRotation;
+        }
+    }
+
     private void SnapToGrid()
     {
         Vector3 p = transform.position;
@@ -169,6 +184,9 @@ public class RunodeMovement : MonoBehaviour
         }
 
         transform.position = new Vector3(targetPosition.x, startPos.y, targetPosition.z);
+
+        // Ensure triggers are updated in the physics world before recalculation
+        Physics.SyncTransforms();
 
         // Restore default state
         rb.constraints = RigidbodyConstraints.FreezePositionX | RigidbodyConstraints.FreezePositionZ | RigidbodyConstraints.FreezeRotation;
