@@ -22,6 +22,12 @@ public class TimCubeInteraction : MonoBehaviour
     [HideInInspector] public float detectionTolerance = 0.6f;
     public float pushRange = 1.5f; 
 
+    [Header("JUICE SETTINGS:")]
+    public AnimationCurve rotationCurve = AnimationCurve.EaseInOut(0, 0, 1, 1);
+    public float rotationDuration = 0.35f;
+    public float squashAmount = 0.15f;
+    public float overshootAmount = 0.05f;
+
     [Header("PUSH DELAY SETTINGS:")]
     public float initialPushDelay = 0.35f;
     public float continuousPushDelay = 0.1f;
@@ -370,86 +376,91 @@ public class TimCubeInteraction : MonoBehaviour
     {
         if (cube == null) yield break;
         
-        isRotating = true; // Block further rotation input
-        cube.isMoving = true; // Mark as moving so neighbors ignore obstruction
-        
-        // Lock physics to prevent falling (stay solid) but prevent pushing Tim
+        isRotating = true;
+        cube.isMoving = true;
         cube.SetKinematic(true);
         
-        // Ignore collision with Tim during rotation
         Collider cubeCollider = cube.GetComponent<Collider>();
         if (cubeCollider != null && controller != null)
-        {
             Physics.IgnoreCollision(controller, cubeCollider, true);
-        }
         
-        // Target the ROOT transform so triggers rotate with the mesh
         Transform targetTransform = cube.transform;
-        
         Quaternion startRotation = targetTransform.rotation;
         
-        // Calculate target rotation using WORLD axes (not local)
-        Quaternion deltaRotation;
-        if (axis == RotationAxis.Horizontal)
-        {
-            // Always rotate around world Y-axis (up)
-            deltaRotation = Quaternion.AngleAxis(degrees, Vector3.up);
-        }
-        else // Vertical
-        {
-            // Always rotate around world X-axis (right)
-            deltaRotation = Quaternion.AngleAxis(degrees, Vector3.right);
-        }
+        Vector3 rotAxis = (axis == RotationAxis.Horizontal) ? Vector3.up : Vector3.right;
+        Quaternion targetRotation = Quaternion.AngleAxis(degrees, rotAxis) * startRotation;
         
-        Quaternion targetRotation = deltaRotation * startRotation;
-        
-        // Ensure target rotation has exact 90° increments
+        // Snap target to 90 degrees
         Vector3 targetEuler = targetRotation.eulerAngles;
         targetEuler.x = Mathf.Round(targetEuler.x / 90f) * 90f;
         targetEuler.y = Mathf.Round(targetEuler.y / 90f) * 90f;
         targetEuler.z = Mathf.Round(targetEuler.z / 90f) * 90f;
         targetRotation = Quaternion.Euler(targetEuler);
         
-        float rotationDuration = 0.3f; // Fast but visible rotation
+        // Define an overshoot rotation (5 degrees past target)
+        Quaternion overshootRot = Quaternion.AngleAxis(degrees + (degrees > 0 ? 5f : -5f), rotAxis) * startRotation;
+        
         float elapsedTime = 0f;
-        
-        // Add visual feedback - pulse mesh size slightly
         Vector3 originalScale = cube.visualParent != null ? cube.visualParent.localScale : Vector3.one;
-        float pulseAmount = 1.1f;
-        
+
         while (elapsedTime < rotationDuration)
         {
             elapsedTime += Time.deltaTime;
-            float progress = elapsedTime / rotationDuration;
-            float easedProgress = Mathf.SmoothStep(0f, 1f, progress);
+            float t = elapsedTime / rotationDuration;
             
-            targetTransform.rotation = Quaternion.Slerp(startRotation, targetRotation, easedProgress);
-            
-            // Pulse visual parent scale
-            if (cube.visualParent != null && progress < 0.3f)
+            // Use logic to overshoot and settle
+            if (t < 0.8f)
             {
-                float scaleProgress = progress / 0.3f;
-                float currentPulse = Mathf.Lerp(pulseAmount, 1f, scaleProgress);
-                cube.visualParent.localScale = originalScale * currentPulse;
+                targetTransform.rotation = Quaternion.Slerp(startRotation, overshootRot, t / 0.8f);
+            }
+            else
+            {
+                targetTransform.rotation = Quaternion.Slerp(overshootRot, targetRotation, (t - 0.8f) / 0.2f);
+            }
+
+            // Squash & Stretch during rotation
+            if (cube.visualParent != null)
+            {
+                float squash = Mathf.Sin(t * Mathf.PI) * squashAmount;
+                cube.visualParent.localScale = new Vector3(
+                    originalScale.x * (1 + squash), 
+                    originalScale.y * (1 - squash), 
+                    originalScale.z * (1 + squash)
+                );
             }
             
             yield return null;
         }
         
-        // Final snap
+        // Final Snap and Impact Squash
         targetTransform.rotation = targetRotation;
-        if (cube.visualParent != null) cube.visualParent.localScale = originalScale;
-
-        // Restore physics and sync world
-        if (cubeCollider != null && controller != null)
+        
+        if (cube.visualParent != null)
         {
-            Physics.IgnoreCollision(controller, cubeCollider, false);
+            // Impact Bounce
+            float bounceTime = 0.15f;
+            float bElapsed = 0;
+            while (bElapsed < bounceTime)
+            {
+                bElapsed += Time.deltaTime;
+                float bt = bElapsed / bounceTime;
+                float bounceSquash = Mathf.Sin(bt * Mathf.PI) * (squashAmount * 0.5f);
+                cube.visualParent.localScale = new Vector3(
+                    originalScale.x * (1 - bounceSquash), 
+                    originalScale.y * (1 + bounceSquash), 
+                    originalScale.z * (1 - bounceSquash)
+                );
+                yield return null;
+            }
+            cube.visualParent.localScale = originalScale;
         }
+
+        if (cubeCollider != null && controller != null)
+            Physics.IgnoreCollision(controller, cubeCollider, false);
 
         cube.SetKinematic(false);
         Physics.SyncTransforms();
-
-        cube.isMoving = false; // Finished moving
+        cube.isMoving = false;
         isRotating = false;
         PowerManager.Instance.RequestPowerFlowCheck();
     }
