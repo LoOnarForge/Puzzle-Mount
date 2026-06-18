@@ -270,35 +270,41 @@ public class RunodePower : MonoBehaviour
     /// Used because triggers on the same Rigidbody do not collide physically.
     public PowerConnectionTrigger GetInternalNeighbor(PowerConnectionTrigger t)
     {
+        // Top Face shared edges
         if (t == topUpTrigger)    return northUpTrigger;
         if (t == topDownTrigger)  return southUpTrigger;
         if (t == topLeftTrigger)  return westUpTrigger;
         if (t == topRightTrigger) return eastUpTrigger;
 
+        // Bottom Face shared edges
         if (t == bottomUpTrigger)    return northDownTrigger;
         if (t == bottomDownTrigger)  return southDownTrigger;
         if (t == bottomLeftTrigger)  return westDownTrigger;
         if (t == bottomRightTrigger) return eastDownTrigger;
 
+        // North Face shared edges
         if (t == northUpTrigger)    return topUpTrigger;
         if (t == northDownTrigger)  return bottomUpTrigger;
-        if (t == northLeftTrigger)  return westRightTrigger;
-        if (t == northRightTrigger) return eastLeftTrigger;
+        if (t == northLeftTrigger)  return westLeftTrigger;
+        if (t == northRightTrigger) return eastRightTrigger;
 
-        if (t == eastUpTrigger)    return topRightTrigger;
-        if (t == eastDownTrigger)  return bottomRightTrigger;
-        if (t == eastLeftTrigger)  return northRightTrigger;
-        if (t == eastRightTrigger) return southLeftTrigger;
-
+        // South Face shared edges
         if (t == southUpTrigger)    return topDownTrigger;
         if (t == southDownTrigger)  return bottomDownTrigger;
-        if (t == southLeftTrigger)  return eastRightTrigger;
-        if (t == southRightTrigger) return westLeftTrigger;
+        if (t == southLeftTrigger)  return eastLeftTrigger;
+        if (t == southRightTrigger) return westRightTrigger;
 
+        // East Face shared edges
+        if (t == eastUpTrigger)    return topRightTrigger;
+        if (t == eastDownTrigger)  return bottomRightTrigger;
+        if (t == eastLeftTrigger)  return southLeftTrigger;
+        if (t == eastRightTrigger) return northRightTrigger;
+
+        // West Face shared edges
         if (t == westUpTrigger)    return topLeftTrigger;
         if (t == westDownTrigger)  return bottomLeftTrigger;
-        if (t == westLeftTrigger)  return southRightTrigger;
-        if (t == westRightTrigger) return northLeftTrigger;
+        if (t == westLeftTrigger)  return northLeftTrigger;
+        if (t == westRightTrigger) return southRightTrigger;
 
         return null;
     }
