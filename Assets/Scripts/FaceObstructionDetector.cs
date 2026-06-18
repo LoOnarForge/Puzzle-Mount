@@ -23,8 +23,6 @@ public class FaceObstructionDetector : MonoBehaviour
         if (col != null)
         {
             col.isTrigger = true;
-            // Radius 0.45 is a good balance for 1m cubes
-            col.radius = 0.45f;
             
             int mask = (1 << LayerMask.NameToLayer("Runodes")) | (1 << LayerMask.NameToLayer("Ground"));
             col.includeLayers = mask;

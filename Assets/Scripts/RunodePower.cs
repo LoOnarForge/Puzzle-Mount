@@ -160,6 +160,16 @@ public class RunodePower : MonoBehaviour
         InitializeInternalNeighborMap();
     }
 
+    private void OnEnable()
+    {
+        if (PowerManager.Instance != null) PowerManager.Instance.RegisterRunode(this);
+    }
+
+    private void OnDisable()
+    {
+        if (PowerManager.Instance != null) PowerManager.Instance.UnregisterRunode(this);
+    }
+
     private void InitializeInternalNeighborMap()
     {
         internalNeighborMap.Clear();

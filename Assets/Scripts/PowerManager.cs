@@ -8,11 +8,25 @@ public class PowerManager : MonoBehaviour
     public static PowerManager Instance { get; private set; }
 
     private List<PowerSource> sources = new List<PowerSource>();
+    private List<RunodePower> registeredRunodes = new List<RunodePower>();
     private bool recalculationRequested = false;
 
     private void Awake()
     {
         Instance = this;
+    }
+
+    /// Registers a runode to the tracking list for efficient power clearing.
+    public void RegisterRunode(RunodePower runode)
+    {
+        if (!registeredRunodes.Contains(runode))
+            registeredRunodes.Add(runode);
+    }
+
+    /// Removes a runode from tracking.
+    public void UnregisterRunode(RunodePower runode)
+    {
+        registeredRunodes.Remove(runode);
     }
 
     /// Called by PowerSources on Start to register themselves.
@@ -50,8 +64,8 @@ public class PowerManager : MonoBehaviour
 
     private void ClearAllCubeStates()
     {
-        RunodePower[] allRunodes = FindObjectsByType<RunodePower>(FindObjectsSortMode.None);
-        foreach (RunodePower runode in allRunodes)
+        // Faster lookup: only iterate over registered active runodes.
+        foreach (RunodePower runode in registeredRunodes)
         {
             runode.ClearPowerState();
         }
