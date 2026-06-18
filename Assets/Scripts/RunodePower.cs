@@ -130,7 +130,26 @@ public class RunodePower : MonoBehaviour
         public bool isFacePowered;
     }
 
+    private static readonly Dictionary<PowerLineType, bool[]> ConnectivityMap = new Dictionary<PowerLineType, bool[]>
+    {
+        { PowerLineType.Horizontal,        new[] { false, true,  false, true  } },
+        { PowerLineType.Vertical,          new[] { true,  false, true,  false } },
+        { PowerLineType.CornerLeftTop,     new[] { true,  false, false, true  } },
+        { PowerLineType.CornerTopRight,    new[] { true,  true,  false, false } },
+        { PowerLineType.CornerRightBottom, new[] { false, true,  true,  false } },
+        { PowerLineType.CornerBottomLeft,  new[] { false, false, true,  true  } },
+        { PowerLineType.TSectionLeft,      new[] { true,  true,  false, true  } },
+        { PowerLineType.TSectionTop,       new[] { true,  true,  true,  false } },
+        { PowerLineType.TSectionRight,     new[] { false, true,  true,  true  } },
+        { PowerLineType.TSectionBottom,    new[] { true,  false, true,  true  } },
+        { PowerLineType.Cross,             new[] { true,  true,  true,  true  } },
+        { PowerLineType.Empty,             new[] { false, false, false, false } }
+    };
+
+    private const string POWER_LINE_SPRITE_NAME = "Power Line Sprite";
+
     private Dictionary<PowerConnectionTrigger, FaceData> triggerToFaceMap = new Dictionary<PowerConnectionTrigger, FaceData>();
+    private Dictionary<PowerConnectionTrigger, PowerConnectionTrigger> internalNeighborMap = new Dictionary<PowerConnectionTrigger, PowerConnectionTrigger>();
     private List<FaceData> allFaces = new List<FaceData>();
 
     public Color currentPowerColor { get; private set; } = Color.white;
@@ -138,6 +157,53 @@ public class RunodePower : MonoBehaviour
     private void Awake()
     {
         InitializeFaceData();
+        InitializeInternalNeighborMap();
+    }
+
+    private void InitializeInternalNeighborMap()
+    {
+        internalNeighborMap.Clear();
+
+        // Top Face shared edges
+        MapInternal(topUpTrigger,    northUpTrigger);
+        MapInternal(topDownTrigger,  southUpTrigger);
+        MapInternal(topLeftTrigger,  westUpTrigger);
+        MapInternal(topRightTrigger, eastUpTrigger);
+
+        // Bottom Face shared edges
+        MapInternal(bottomUpTrigger,    northDownTrigger);
+        MapInternal(bottomDownTrigger,  southDownTrigger);
+        MapInternal(bottomLeftTrigger,  westDownTrigger);
+        MapInternal(bottomRightTrigger, eastDownTrigger);
+
+        // North Face shared edges
+        MapInternal(northUpTrigger,    topUpTrigger);
+        MapInternal(northDownTrigger,  bottomUpTrigger);
+        MapInternal(northLeftTrigger,  westLeftTrigger);
+        MapInternal(northRightTrigger, eastRightTrigger);
+
+        // South Face shared edges
+        MapInternal(southUpTrigger,    topDownTrigger);
+        MapInternal(southDownTrigger,  bottomDownTrigger);
+        MapInternal(southLeftTrigger,  eastLeftTrigger);
+        MapInternal(southRightTrigger, westRightTrigger);
+
+        // East Face shared edges
+        MapInternal(eastUpTrigger,    topRightTrigger);
+        MapInternal(eastDownTrigger,  bottomRightTrigger);
+        MapInternal(eastLeftTrigger,  southLeftTrigger);
+        MapInternal(eastRightTrigger, northRightTrigger);
+
+        // West Face shared edges
+        MapInternal(westUpTrigger,    topLeftTrigger);
+        MapInternal(westDownTrigger,  bottomLeftTrigger);
+        MapInternal(westLeftTrigger,  northLeftTrigger);
+        MapInternal(westRightTrigger, southRightTrigger);
+    }
+
+    private void MapInternal(PowerConnectionTrigger a, PowerConnectionTrigger b)
+    {
+        if (a != null && b != null) internalNeighborMap[a] = b;
     }
 
     private void InitializeFaceData()
@@ -161,7 +227,7 @@ public class RunodePower : MonoBehaviour
         
         if (faceTransform != null)
         {
-            Transform spriteChild = faceTransform.Find("Power Line Sprite");
+            Transform spriteChild = faceTransform.Find(POWER_LINE_SPRITE_NAME);
             if (spriteChild != null)
             {
                 data.faceSprite = spriteChild.GetComponent<SpriteRenderer>();
@@ -230,21 +296,11 @@ public class RunodePower : MonoBehaviour
 
     private bool[] GetLineConnectivity(PowerLineType type)
     {
-        switch (type)
+        if (ConnectivityMap.TryGetValue(type, out bool[] connectivity))
         {
-            case PowerLineType.Horizontal:        return new[] { false, true,  false, true  };
-            case PowerLineType.Vertical:          return new[] { true,  false, true,  false };
-            case PowerLineType.CornerLeftTop:     return new[] { true,  false, false, true  };
-            case PowerLineType.CornerTopRight:    return new[] { true,  true,  false, false };
-            case PowerLineType.CornerRightBottom: return new[] { false, true,  true,  false };
-            case PowerLineType.CornerBottomLeft:  return new[] { false, false, true,  true  };
-            case PowerLineType.TSectionLeft:      return new[] { true,  true,  false, true  };
-            case PowerLineType.TSectionTop:       return new[] { true,  true,  true,  false };
-            case PowerLineType.TSectionRight:     return new[] { false, true,  true,  true  };
-            case PowerLineType.TSectionBottom:    return new[] { true,  false, true,  true  };
-            case PowerLineType.Cross:             return new[] { true,  true,  true,  true  };
-            default:                              return new[] { false, false, false, false };
+            return connectivity;
         }
+        return ConnectivityMap[PowerLineType.Empty];
     }
 
     /// Refreshes visuals for all faces based on their independent power state.
@@ -270,42 +326,10 @@ public class RunodePower : MonoBehaviour
     /// Used because triggers on the same Rigidbody do not collide physically.
     public PowerConnectionTrigger GetInternalNeighbor(PowerConnectionTrigger t)
     {
-        // Top Face shared edges
-        if (t == topUpTrigger)    return northUpTrigger;
-        if (t == topDownTrigger)  return southUpTrigger;
-        if (t == topLeftTrigger)  return westUpTrigger;
-        if (t == topRightTrigger) return eastUpTrigger;
-
-        // Bottom Face shared edges
-        if (t == bottomUpTrigger)    return northDownTrigger;
-        if (t == bottomDownTrigger)  return southDownTrigger;
-        if (t == bottomLeftTrigger)  return westDownTrigger;
-        if (t == bottomRightTrigger) return eastDownTrigger;
-
-        // North Face shared edges
-        if (t == northUpTrigger)    return topUpTrigger;
-        if (t == northDownTrigger)  return bottomUpTrigger;
-        if (t == northLeftTrigger)  return westLeftTrigger;
-        if (t == northRightTrigger) return eastRightTrigger;
-
-        // South Face shared edges
-        if (t == southUpTrigger)    return topDownTrigger;
-        if (t == southDownTrigger)  return bottomDownTrigger;
-        if (t == southLeftTrigger)  return eastLeftTrigger;
-        if (t == southRightTrigger) return westRightTrigger;
-
-        // East Face shared edges
-        if (t == eastUpTrigger)    return topRightTrigger;
-        if (t == eastDownTrigger)  return bottomRightTrigger;
-        if (t == eastLeftTrigger)  return southLeftTrigger;
-        if (t == eastRightTrigger) return northRightTrigger;
-
-        // West Face shared edges
-        if (t == westUpTrigger)    return topLeftTrigger;
-        if (t == westDownTrigger)  return bottomLeftTrigger;
-        if (t == westLeftTrigger)  return northLeftTrigger;
-        if (t == westRightTrigger) return southRightTrigger;
-
+        if (internalNeighborMap.TryGetValue(t, out PowerConnectionTrigger neighbor))
+        {
+            return neighbor;
+        }
         return null;
     }
 
