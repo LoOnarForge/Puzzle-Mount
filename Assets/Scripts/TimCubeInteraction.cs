@@ -374,91 +374,80 @@ public class TimCubeInteraction : MonoBehaviour
     /// </summary>
     private System.Collections.IEnumerator SmoothRotateCube(RunodeMovement cube, float degrees, RotationAxis axis)
     {
-        if (cube == null) yield break;
+        if (cube == null || cube.visualParent == null) yield break;
         
         isRotating = true;
         cube.isMoving = true;
-        cube.SetKinematic(true);
         
-        Collider cubeCollider = cube.GetComponent<Collider>();
-        if (cubeCollider != null && controller != null)
-            Physics.IgnoreCollision(controller, cubeCollider, true);
-        
-        Transform targetTransform = cube.transform;
-        Quaternion startRotation = targetTransform.rotation;
+        // TARGET THE VISUAL PARENT ONLY
+        Transform targetTransform = cube.visualParent;
+        Quaternion startRotation = targetTransform.localRotation;
         
         Vector3 rotAxis = (axis == RotationAxis.Horizontal) ? Vector3.up : Vector3.right;
+        
+        // Calculate local target rotation
         Quaternion targetRotation = Quaternion.AngleAxis(degrees, rotAxis) * startRotation;
         
-        // Snap target to 90 degrees
+        // Ensure target rotation has exact 90° increments locally
         Vector3 targetEuler = targetRotation.eulerAngles;
         targetEuler.x = Mathf.Round(targetEuler.x / 90f) * 90f;
         targetEuler.y = Mathf.Round(targetEuler.y / 90f) * 90f;
         targetEuler.z = Mathf.Round(targetEuler.z / 90f) * 90f;
         targetRotation = Quaternion.Euler(targetEuler);
         
-        // Define an overshoot rotation (5 degrees past target)
+        // Calculate local overshoot
         Quaternion overshootRot = Quaternion.AngleAxis(degrees + (degrees > 0 ? 5f : -5f), rotAxis) * startRotation;
         
         float elapsedTime = 0f;
-        Vector3 originalScale = cube.visualParent != null ? cube.visualParent.localScale : Vector3.one;
+        Vector3 originalScale = targetTransform.localScale;
 
         while (elapsedTime < rotationDuration)
         {
             elapsedTime += Time.deltaTime;
             float t = elapsedTime / rotationDuration;
             
-            // Use logic to overshoot and settle
+            // Use logic to overshoot and settle locally
             if (t < 0.8f)
             {
-                targetTransform.rotation = Quaternion.Slerp(startRotation, overshootRot, t / 0.8f);
+                targetTransform.localRotation = Quaternion.Slerp(startRotation, overshootRot, t / 0.8f);
             }
             else
             {
-                targetTransform.rotation = Quaternion.Slerp(overshootRot, targetRotation, (t - 0.8f) / 0.2f);
+                targetTransform.localRotation = Quaternion.Slerp(overshootRot, targetRotation, (t - 0.8f) / 0.2f);
             }
 
             // Squash & Stretch during rotation
-            if (cube.visualParent != null)
-            {
-                float squash = Mathf.Sin(t * Mathf.PI) * squashAmount;
-                cube.visualParent.localScale = new Vector3(
-                    originalScale.x * (1 + squash), 
-                    originalScale.y * (1 - squash), 
-                    originalScale.z * (1 + squash)
-                );
-            }
+            float squash = Mathf.Sin(t * Mathf.PI) * squashAmount;
+            targetTransform.localScale = new Vector3(
+                originalScale.x * (1 + squash), 
+                originalScale.y * (1 - squash), 
+                originalScale.z * (1 + squash)
+            );
             
             yield return null;
         }
         
         // Final Snap and Impact Squash
-        targetTransform.rotation = targetRotation;
+        targetTransform.localRotation = targetRotation;
         
-        if (cube.visualParent != null)
+        // Impact Bounce
+        float bounceTime = 0.15f;
+        float bElapsed = 0;
+        while (bElapsed < bounceTime)
         {
-            // Impact Bounce
-            float bounceTime = 0.15f;
-            float bElapsed = 0;
-            while (bElapsed < bounceTime)
-            {
-                bElapsed += Time.deltaTime;
-                float bt = bElapsed / bounceTime;
-                float bounceSquash = Mathf.Sin(bt * Mathf.PI) * (squashAmount * 0.5f);
-                cube.visualParent.localScale = new Vector3(
-                    originalScale.x * (1 - bounceSquash), 
-                    originalScale.y * (1 + bounceSquash), 
-                    originalScale.z * (1 - bounceSquash)
-                );
-                yield return null;
-            }
-            cube.visualParent.localScale = originalScale;
+            bElapsed += Time.deltaTime;
+            float bt = bElapsed / bounceTime;
+            float bounceSquash = Mathf.Sin(bt * Mathf.PI) * (squashAmount * 0.5f);
+            targetTransform.localScale = new Vector3(
+                originalScale.x * (1 - bounceSquash), 
+                originalScale.y * (1 + bounceSquash), 
+                originalScale.z * (1 - bounceSquash)
+            );
+            yield return null;
         }
+        targetTransform.localScale = originalScale;
 
-        if (cubeCollider != null && controller != null)
-            Physics.IgnoreCollision(controller, cubeCollider, false);
-
-        cube.SetKinematic(false);
+        // Ensure triggers are updated in the physics world
         Physics.SyncTransforms();
         cube.isMoving = false;
         isRotating = false;

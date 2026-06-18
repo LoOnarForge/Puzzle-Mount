@@ -200,6 +200,9 @@ public class RunodeMovement : MonoBehaviour
         float yRot = Random.Range(0, 4) * 90f;
         float zRot = Random.Range(0, 4) * 90f;
 
-        transform.rotation = Quaternion.Euler(xRot, yRot, zRot);
+        if (visualParent != null)
+        {
+            visualParent.localRotation = Quaternion.Euler(xRot, yRot, zRot);
+        }
     }
 }
