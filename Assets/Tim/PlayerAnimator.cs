@@ -18,10 +18,22 @@ public class PlayerAnimator : MonoBehaviour
     [SerializeField] private float fallTimerVisual;
     [SerializeField] private bool isCurrentlyFalling;
     
+    [Header("Look At Settings")]
+    [SerializeField] private float lookWeightSpeed = 2.0f;
+    [SerializeField] private float headWeight = 0.5f;
+    [SerializeField] private float bodyWeight = 0.01f;
+    [SerializeField] private float clampWeight = 0.5f;
+    
     private Animator animator;
     private float currentAnimatedSpeed;
     private float fallTimer;
     private bool wasGroundedLastFrame;
+
+    // Look At IK
+    private Vector3 targetLookAtPos;
+    private Vector3 smoothedLookPos;
+    private float currentLookWeight;
+    private bool hasLookTarget;
     
     private void Awake()
     {
@@ -82,6 +94,37 @@ public class PlayerAnimator : MonoBehaviour
     {
         UpdateSpeedAnimation(targetSpeed);
         UpdateGroundedAnimation(isGrounded, verticalVelocity);
+    }
+
+    public void SetLookTarget(Vector3? position)
+    {
+        if (position.HasValue)
+        {
+            targetLookAtPos = position.Value;
+            hasLookTarget = true;
+        }
+        else
+        {
+            hasLookTarget = false;
+        }
+    }
+
+    private void OnAnimatorIK(int layerIndex)
+    {
+        if (animator == null) return;
+
+        float targetWeight = hasLookTarget ? 1f : 0f;
+        currentLookWeight = Mathf.Lerp(currentLookWeight, targetWeight, Time.deltaTime * lookWeightSpeed);
+
+        if (currentLookWeight > 0.01f)
+        {
+            animator.SetLookAtWeight(currentLookWeight, bodyWeight, headWeight, 0f, clampWeight);
+            
+            // Smoothly interpolate the target position itself to prevent snapping between cubes
+            smoothedLookPos = Vector3.Lerp(smoothedLookPos, targetLookAtPos, Time.deltaTime * lookWeightSpeed);
+            
+            animator.SetLookAtPosition(smoothedLookPos);
+        }
     }
     
     private void UpdateSpeedAnimation(float targetSpeed)

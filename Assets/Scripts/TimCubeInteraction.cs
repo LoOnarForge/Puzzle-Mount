@@ -22,7 +22,7 @@ public class TimCubeInteraction : MonoBehaviour
     [HideInInspector] public float detectionTolerance = 0.6f;
     public float pushRange = 1.5f; 
 
-    [Header("JUICE SETTINGS:")]
+    [Header("CUBE JUICE SETTINGS:")]
     public AnimationCurve rotationCurve = AnimationCurve.EaseInOut(0, 0, 1, 1);
     public float rotationDuration = 0.35f;
     public float squashAmount = 0.15f;
@@ -35,6 +35,7 @@ public class TimCubeInteraction : MonoBehaviour
     private Transform timTransform;
     private CharacterMovement characterMovement;
     private CharacterController controller;
+    private PlayerAnimator playerAnimator;
     
     // Push delay tracking
     private RunodeMovement currentTargetCube;
@@ -69,6 +70,7 @@ public class TimCubeInteraction : MonoBehaviour
         timTransform = transform;
         characterMovement = GetComponent<CharacterMovement>();
         controller = GetComponent<CharacterController>();
+        playerAnimator = GetComponent<PlayerAnimator>();
     }
     
     private void Update()
@@ -85,6 +87,7 @@ public class TimCubeInteraction : MonoBehaviour
         HandleCubeSelection();
         HandleCubeRotation();
         UpdatePushDelay();
+        UpdateGaze();
         
         // Only reset push engagement when Tim stops providing movement input
         Vector3 moveDirection = characterMovement.GetMovementDirectionExternal();
@@ -588,6 +591,32 @@ public class TimCubeInteraction : MonoBehaviour
             float requiredDelay = isFirstPush ? initialPushDelay : continuousPushDelay;
             if (pushDelayTimer >= requiredDelay)
                 isDelayActive = false;
+        }
+    }
+
+    private void UpdateGaze()
+    {
+        if (playerAnimator == null) return;
+
+        if (selectedCube != null)
+        {
+            Vector3 targetPos = selectedCube.transform.position;
+            
+            // Add offset to look at top half of cube
+            targetPos += Vector3.up * 0.4f;
+
+            // Prevent looking too low (chest level)
+            float minHeight = transform.position.y + 1.2f;
+            if (targetPos.y < minHeight)
+            {
+                targetPos.y = minHeight;
+            }
+
+            playerAnimator.SetLookTarget(targetPos);
+        }
+        else
+        {
+            playerAnimator.SetLookTarget(null);
         }
     }
     
