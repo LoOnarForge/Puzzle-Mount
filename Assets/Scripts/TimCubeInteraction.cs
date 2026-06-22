@@ -680,7 +680,9 @@ public class TimCubeInteraction : MonoBehaviour
     {
         if (playerAnimator == null) return;
 
-        if (selectedCube != null)
+        bool isMoving = !characterMovement.IsStationary;
+
+        if (selectedCube != null && !isMoving && !isPushingThisFrame)
         {
             Vector3 targetPos = selectedCube.transform.position;
             
