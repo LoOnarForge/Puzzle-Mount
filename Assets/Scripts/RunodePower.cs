@@ -36,37 +36,13 @@ public enum PowerLineType
 
 public class RunodePower : MonoBehaviour
 {
-    [Header("TOP FACE")]
     public PowerLineType topFace = PowerLineType.Empty;
-    public Color topFaceColor = Color.white;
-    public PowerSource topFaceConnectedPS;
-
-    [Header("BOTTOM FACE")]
     public PowerLineType bottomFace = PowerLineType.Empty;
-    public Color bottomFaceColor = Color.white;
-    public PowerSource bottomFaceConnectedPS;
-
-    [Header("NORTH FACE")]
     public PowerLineType northFace = PowerLineType.Empty;
-    public Color northFaceColor = Color.white;
-    public PowerSource northFaceConnectedPS;
-
-    [Header("SOUTH FACE")]
     public PowerLineType southFace = PowerLineType.Empty;
-    public Color southFaceColor = Color.white;
-    public PowerSource southFaceConnectedPS;
-
-    [Header("EAST FACE")]
     public PowerLineType eastFace = PowerLineType.Empty;
-    public Color eastFaceColor = Color.white;
-    public PowerSource eastFaceConnectedPS;
-
-    [Header("WEST FACE")]
     public PowerLineType westFace = PowerLineType.Empty;
-    public Color westFaceColor = Color.white;
-    public PowerSource westFaceConnectedPS;
 
-    [Header("FACE TRANSFORM REFERENCES")]
     public Transform topFaceTransform;
     public Transform bottomFaceTransform;
     public Transform northFaceTransform;
@@ -74,44 +50,37 @@ public class RunodePower : MonoBehaviour
     public Transform eastFaceTransform;
     public Transform westFaceTransform;
 
-    [Header("SPRITE REFERENCES")]
     public Sprite horizontalSprite;
     public Sprite verticalSprite;
     public Sprite cornerSprite;
     public Sprite tSectionSprite;
     public Sprite crossSprite;
 
-    [Header("TOP FACE TRIGGERS")]
     public PowerConnectionTrigger topUpTrigger;
     public PowerConnectionTrigger topRightTrigger;
     public PowerConnectionTrigger topDownTrigger;
     public PowerConnectionTrigger topLeftTrigger;
 
-    [Header("BOTTOM FACE TRIGGERS")]
     public PowerConnectionTrigger bottomUpTrigger;
     public PowerConnectionTrigger bottomRightTrigger;
     public PowerConnectionTrigger bottomDownTrigger;
     public PowerConnectionTrigger bottomLeftTrigger;
 
-    [Header("NORTH FACE TRIGGERS")]
     public PowerConnectionTrigger northUpTrigger;
     public PowerConnectionTrigger northRightTrigger;
     public PowerConnectionTrigger northDownTrigger;
     public PowerConnectionTrigger northLeftTrigger;
 
-    [Header("SOUTH FACE TRIGGERS")]
     public PowerConnectionTrigger southUpTrigger;
     public PowerConnectionTrigger southRightTrigger;
     public PowerConnectionTrigger southDownTrigger;
     public PowerConnectionTrigger southLeftTrigger;
 
-    [Header("EAST FACE TRIGGERS")]
     public PowerConnectionTrigger eastUpTrigger;
     public PowerConnectionTrigger eastRightTrigger;
     public PowerConnectionTrigger eastDownTrigger;
     public PowerConnectionTrigger eastLeftTrigger;
 
-    [Header("WEST FACE TRIGGERS")]
     public PowerConnectionTrigger westUpTrigger;
     public PowerConnectionTrigger westRightTrigger;
     public PowerConnectionTrigger westDownTrigger;
@@ -263,7 +232,6 @@ public class RunodePower : MonoBehaviour
         return data;
     }
 
-    /// Resets all face power states and triggers.
     public void ClearPowerState()
     {
         IsPowered = false;
@@ -281,7 +249,6 @@ public class RunodePower : MonoBehaviour
         }
     }
 
-    /// Returns other triggers on the same face connected via PowerLineType.
     public List<PowerConnectionTrigger> GetConnectedTriggersOnFace(PowerConnectionTrigger entry)
     {
         List<PowerConnectionTrigger> connected = new List<PowerConnectionTrigger>();
@@ -289,7 +256,7 @@ public class RunodePower : MonoBehaviour
             return connected;
 
         face.isFacePowered = true; 
-        IsPowered = true; // Mark cube as touched for 1MW rule
+        IsPowered = true; 
 
         int entryIndex = System.Array.IndexOf(face.triggers, entry);
         bool[] activeIndices = GetLineConnectivity(face.lineType);
@@ -313,7 +280,6 @@ public class RunodePower : MonoBehaviour
         return ConnectivityMap[PowerLineType.Empty];
     }
 
-    /// Refreshes visuals for all faces based on their independent power state.
     public void RefreshFaceVisuals(Color color)
     {
         currentPowerColor = color;
@@ -323,7 +289,6 @@ public class RunodePower : MonoBehaviour
         }
     }
 
-    /// Mark a face as powered when a trigger is hit by the BFS.
     public void MarkFacePowered(PowerConnectionTrigger t)
     {
         if (triggerToFaceMap.TryGetValue(t, out FaceData face))
@@ -332,8 +297,6 @@ public class RunodePower : MonoBehaviour
         }
     }
 
-    /// Explicitly maps triggers that share an edge on the same cube.
-    /// Used because triggers on the same Rigidbody do not collide physically.
     public PowerConnectionTrigger GetInternalNeighbor(PowerConnectionTrigger t)
     {
         if (internalNeighborMap.TryGetValue(t, out PowerConnectionTrigger neighbor))
@@ -354,7 +317,6 @@ public class RunodePower : MonoBehaviour
         face.faceSprite.color = color;
     }
 
-    /// Legacy support for BFS entry.
     public IEnumerable<PowerConnectionTrigger> GetAllTriggers() { yield break; }
     public void SetPowered(PowerSource source, Color color, int distance) { }
 }

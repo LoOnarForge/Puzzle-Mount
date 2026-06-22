@@ -113,12 +113,10 @@ public class FaceObstructionDetector : MonoBehaviour
     {
         if (other == null) return false;
 
-        // Ignore the runode that owns this detector
-        if (parentRunode != null)
-        {
-            if (other.transform == parentRunode.transform || other.transform.IsChildOf(parentRunode.transform))
-                return false;
-        }
+        // Ignore the runode/source that owns this detector
+        Transform root = parentRunode != null ? parentRunode.transform : (transform.parent != null ? transform.GetComponentInParent<PowerSource>()?.transform : null);
+        if (root != null && (other.transform == root || other.transform.IsChildOf(root)))
+            return false;
 
         int layer = other.gameObject.layer;
         return layer == LayerMask.NameToLayer("Runodes") || layer == LayerMask.NameToLayer("Ground");
@@ -126,6 +124,8 @@ public class FaceObstructionDetector : MonoBehaviour
 
     private void SetObstructed(bool obstructed)
     {
+        if (faceTriggers == null) return;
+
         foreach (PowerConnectionTrigger trigger in faceTriggers)
         {
             if (trigger != null)
@@ -134,11 +134,21 @@ public class FaceObstructionDetector : MonoBehaviour
 
         if (spriteRenderer != null)
         {
-            spriteRenderer.color = obstructed
-                ? ObstructedColor
-                : parentRunode.IsPowered ? parentRunode.currentPowerColor : Color.white;
+            Color normalColor = Color.white;
+            if (parentRunode != null)
+            {
+                normalColor = parentRunode.IsPowered ? parentRunode.currentPowerColor : Color.white;
+            }
+            else
+            {
+                PowerSource ps = GetComponentInParent<PowerSource>();
+                if (ps != null) normalColor = ps.powerColor;
+            }
+
+            spriteRenderer.color = obstructed ? ObstructedColor : normalColor;
         }
 
-        PowerManager.Instance.RequestPowerFlowCheck();
+        if (PowerManager.Instance != null)
+            PowerManager.Instance.RequestPowerFlowCheck();
     }
 }

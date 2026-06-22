@@ -5,7 +5,6 @@ using UnityEditor;
 public class RunodePowerEditor : Editor
 {
     private RunodePower cubePower;
-
     private PowerLineType[] lastFaceTypes = new PowerLineType[6];
     private bool initialized = false;
 
@@ -31,15 +30,13 @@ public class RunodePowerEditor : Editor
     {
         serializedObject.Update();
 
-        // Face sections
-        DrawFaceSection("                    ═══ TOP FACE ═══",    "topFace",    "topFaceColor",    "topFaceConnectedPS");
-        DrawFaceSection("                  ═══ BOTTOM FACE ═══",   "bottomFace", "bottomFaceColor", "bottomFaceConnectedPS");
-        DrawFaceSection("                   ═══ NORTH FACE ═══",   "northFace",  "northFaceColor",  "northFaceConnectedPS");
-        DrawFaceSection("                   ═══ SOUTH FACE ═══",   "southFace",  "southFaceColor",  "southFaceConnectedPS");
-        DrawFaceSection("                    ═══ EAST FACE ═══",   "eastFace",   "eastFaceColor",   "eastFaceConnectedPS");
-        DrawFaceSection("                    ═══ WEST FACE ═══",   "westFace",   "westFaceColor",   "westFaceConnectedPS");
+        DrawFaceSection("═══ TOP FACE ═══",    "topFace");
+        DrawFaceSection("═══ BOTTOM FACE ═══",   "bottomFace");
+        DrawFaceSection("═══ NORTH FACE ═══",   "northFace");
+        DrawFaceSection("═══ SOUTH FACE ═══",   "southFace");
+        DrawFaceSection("═══ EAST FACE ═══",   "eastFace");
+        DrawFaceSection("═══ WEST FACE ═══",   "westFace");
 
-        // Quick set buttons
         EditorGUILayout.Space();
         EditorGUILayout.LabelField("Power Lines", EditorStyles.boldLabel);
 
@@ -64,90 +61,86 @@ public class RunodePowerEditor : Editor
         EditorGUILayout.EndHorizontal();
 
         EditorGUILayout.BeginHorizontal();
-        if (GUILayout.Button("All CornerLeftTop"))    SetAllFaces(PowerLineType.CornerLeftTop);
-        if (GUILayout.Button("All CornerTopRight"))   SetAllFaces(PowerLineType.CornerTopRight);
+        if (GUILayout.Button("All CornerLT"))    SetAllFaces(PowerLineType.CornerLeftTop);
+        if (GUILayout.Button("All CornerTR"))   SetAllFaces(PowerLineType.CornerTopRight);
         EditorGUILayout.EndHorizontal();
 
         EditorGUILayout.BeginHorizontal();
-        if (GUILayout.Button("All CornerRightBottom")) SetAllFaces(PowerLineType.CornerRightBottom);
-        if (GUILayout.Button("All CornerBottomLeft"))  SetAllFaces(PowerLineType.CornerBottomLeft);
+        if (GUILayout.Button("All CornerRB")) SetAllFaces(PowerLineType.CornerRightBottom);
+        if (GUILayout.Button("All CornerBL"))  SetAllFaces(PowerLineType.CornerBottomLeft);
         EditorGUILayout.EndHorizontal();
 
         EditorGUILayout.BeginHorizontal();
-        if (GUILayout.Button("All TSectionLeft"))  SetAllFaces(PowerLineType.TSectionLeft);
-        if (GUILayout.Button("All TSectionTop"))   SetAllFaces(PowerLineType.TSectionTop);
+        if (GUILayout.Button("All T-Left"))  SetAllFaces(PowerLineType.TSectionLeft);
+        if (GUILayout.Button("All T-Top"))   SetAllFaces(PowerLineType.TSectionTop);
         EditorGUILayout.EndHorizontal();
 
         EditorGUILayout.BeginHorizontal();
-        if (GUILayout.Button("All TSectionRight"))  SetAllFaces(PowerLineType.TSectionRight);
-        if (GUILayout.Button("All TSectionBottom")) SetAllFaces(PowerLineType.TSectionBottom);
+        if (GUILayout.Button("All T-Right"))  SetAllFaces(PowerLineType.TSectionRight);
+        if (GUILayout.Button("All T-Bottom")) SetAllFaces(PowerLineType.TSectionBottom);
         EditorGUILayout.EndHorizontal();
 
-        // Reference fields
         EditorGUILayout.Space();
-        EditorGUILayout.LabelField("FACE TRANSFORM REFERENCES", EditorStyles.boldLabel);
-        EditorGUILayout.PropertyField(serializedObject.FindProperty("topFaceTransform"));
-        EditorGUILayout.PropertyField(serializedObject.FindProperty("bottomFaceTransform"));
-        EditorGUILayout.PropertyField(serializedObject.FindProperty("northFaceTransform"));
-        EditorGUILayout.PropertyField(serializedObject.FindProperty("southFaceTransform"));
-        EditorGUILayout.PropertyField(serializedObject.FindProperty("eastFaceTransform"));
-        EditorGUILayout.PropertyField(serializedObject.FindProperty("westFaceTransform"));
+        EditorGUILayout.LabelField("DEBUG / REFERENCES", EditorStyles.boldLabel);
+        
+        bool showRefs = SessionState.GetBool("ShowRunodeRefs", false);
+        if (GUILayout.Button(showRefs ? "Hide References" : "Show References"))
+        {
+            SessionState.SetBool("ShowRunodeRefs", !showRefs);
+        }
 
-        EditorGUILayout.Space();
-        EditorGUILayout.LabelField("SPRITE REFERENCES", EditorStyles.boldLabel);
-        EditorGUILayout.PropertyField(serializedObject.FindProperty("horizontalSprite"));
-        EditorGUILayout.PropertyField(serializedObject.FindProperty("verticalSprite"));
-        EditorGUILayout.PropertyField(serializedObject.FindProperty("cornerSprite"));
-        EditorGUILayout.PropertyField(serializedObject.FindProperty("tSectionSprite"));
-        EditorGUILayout.PropertyField(serializedObject.FindProperty("crossSprite"));
+        if (showRefs)
+        {
+            EditorGUILayout.PropertyField(serializedObject.FindProperty("topFaceTransform"));
+            EditorGUILayout.PropertyField(serializedObject.FindProperty("bottomFaceTransform"));
+            EditorGUILayout.PropertyField(serializedObject.FindProperty("northFaceTransform"));
+            EditorGUILayout.PropertyField(serializedObject.FindProperty("southFaceTransform"));
+            EditorGUILayout.PropertyField(serializedObject.FindProperty("eastFaceTransform"));
+            EditorGUILayout.PropertyField(serializedObject.FindProperty("westFaceTransform"));
 
-        EditorGUILayout.Space();
-        EditorGUILayout.LabelField("TOP FACE TRIGGERS", EditorStyles.boldLabel);
-        EditorGUILayout.PropertyField(serializedObject.FindProperty("topUpTrigger"));
-        EditorGUILayout.PropertyField(serializedObject.FindProperty("topRightTrigger"));
-        EditorGUILayout.PropertyField(serializedObject.FindProperty("topDownTrigger"));
-        EditorGUILayout.PropertyField(serializedObject.FindProperty("topLeftTrigger"));
+            EditorGUILayout.Space();
+            EditorGUILayout.PropertyField(serializedObject.FindProperty("horizontalSprite"));
+            EditorGUILayout.PropertyField(serializedObject.FindProperty("verticalSprite"));
+            EditorGUILayout.PropertyField(serializedObject.FindProperty("cornerSprite"));
+            EditorGUILayout.PropertyField(serializedObject.FindProperty("tSectionSprite"));
+            EditorGUILayout.PropertyField(serializedObject.FindProperty("crossSprite"));
 
-        EditorGUILayout.Space();
-        EditorGUILayout.LabelField("BOTTOM FACE TRIGGERS", EditorStyles.boldLabel);
-        EditorGUILayout.PropertyField(serializedObject.FindProperty("bottomUpTrigger"));
-        EditorGUILayout.PropertyField(serializedObject.FindProperty("bottomRightTrigger"));
-        EditorGUILayout.PropertyField(serializedObject.FindProperty("bottomDownTrigger"));
-        EditorGUILayout.PropertyField(serializedObject.FindProperty("bottomLeftTrigger"));
+            EditorGUILayout.Space();
+            EditorGUILayout.PropertyField(serializedObject.FindProperty("topUpTrigger"));
+            EditorGUILayout.PropertyField(serializedObject.FindProperty("topRightTrigger"));
+            EditorGUILayout.PropertyField(serializedObject.FindProperty("topDownTrigger"));
+            EditorGUILayout.PropertyField(serializedObject.FindProperty("topLeftTrigger"));
 
-        EditorGUILayout.Space();
-        EditorGUILayout.LabelField("NORTH FACE TRIGGERS", EditorStyles.boldLabel);
-        EditorGUILayout.PropertyField(serializedObject.FindProperty("northUpTrigger"));
-        EditorGUILayout.PropertyField(serializedObject.FindProperty("northRightTrigger"));
-        EditorGUILayout.PropertyField(serializedObject.FindProperty("northDownTrigger"));
-        EditorGUILayout.PropertyField(serializedObject.FindProperty("northLeftTrigger"));
+            EditorGUILayout.PropertyField(serializedObject.FindProperty("bottomUpTrigger"));
+            EditorGUILayout.PropertyField(serializedObject.FindProperty("bottomRightTrigger"));
+            EditorGUILayout.PropertyField(serializedObject.FindProperty("bottomDownTrigger"));
+            EditorGUILayout.PropertyField(serializedObject.FindProperty("bottomLeftTrigger"));
 
-        EditorGUILayout.Space();
-        EditorGUILayout.LabelField("SOUTH FACE TRIGGERS", EditorStyles.boldLabel);
-        EditorGUILayout.PropertyField(serializedObject.FindProperty("southUpTrigger"));
-        EditorGUILayout.PropertyField(serializedObject.FindProperty("southRightTrigger"));
-        EditorGUILayout.PropertyField(serializedObject.FindProperty("southDownTrigger"));
-        EditorGUILayout.PropertyField(serializedObject.FindProperty("southLeftTrigger"));
+            EditorGUILayout.PropertyField(serializedObject.FindProperty("northUpTrigger"));
+            EditorGUILayout.PropertyField(serializedObject.FindProperty("northRightTrigger"));
+            EditorGUILayout.PropertyField(serializedObject.FindProperty("northDownTrigger"));
+            EditorGUILayout.PropertyField(serializedObject.FindProperty("northLeftTrigger"));
 
-        EditorGUILayout.Space();
-        EditorGUILayout.LabelField("EAST FACE TRIGGERS", EditorStyles.boldLabel);
-        EditorGUILayout.PropertyField(serializedObject.FindProperty("eastUpTrigger"));
-        EditorGUILayout.PropertyField(serializedObject.FindProperty("eastRightTrigger"));
-        EditorGUILayout.PropertyField(serializedObject.FindProperty("eastDownTrigger"));
-        EditorGUILayout.PropertyField(serializedObject.FindProperty("eastLeftTrigger"));
+            EditorGUILayout.PropertyField(serializedObject.FindProperty("southUpTrigger"));
+            EditorGUILayout.PropertyField(serializedObject.FindProperty("southRightTrigger"));
+            EditorGUILayout.PropertyField(serializedObject.FindProperty("southDownTrigger"));
+            EditorGUILayout.PropertyField(serializedObject.FindProperty("southLeftTrigger"));
 
-        EditorGUILayout.Space();
-        EditorGUILayout.LabelField("WEST FACE TRIGGERS", EditorStyles.boldLabel);
-        EditorGUILayout.PropertyField(serializedObject.FindProperty("westUpTrigger"));
-        EditorGUILayout.PropertyField(serializedObject.FindProperty("westRightTrigger"));
-        EditorGUILayout.PropertyField(serializedObject.FindProperty("westDownTrigger"));
-        EditorGUILayout.PropertyField(serializedObject.FindProperty("westLeftTrigger"));
+            EditorGUILayout.PropertyField(serializedObject.FindProperty("eastUpTrigger"));
+            EditorGUILayout.PropertyField(serializedObject.FindProperty("eastRightTrigger"));
+            EditorGUILayout.PropertyField(serializedObject.FindProperty("eastDownTrigger"));
+            EditorGUILayout.PropertyField(serializedObject.FindProperty("eastLeftTrigger"));
+
+            EditorGUILayout.PropertyField(serializedObject.FindProperty("westUpTrigger"));
+            EditorGUILayout.PropertyField(serializedObject.FindProperty("westRightTrigger"));
+            EditorGUILayout.PropertyField(serializedObject.FindProperty("westDownTrigger"));
+            EditorGUILayout.PropertyField(serializedObject.FindProperty("westLeftTrigger"));
+        }
 
         serializedObject.ApplyModifiedProperties();
 
         if (!initialized) return;
 
-        // Detect face type changes and update sprites + triggers
         PowerLineType[] currentFaceTypes = {
             cubePower.topFace, cubePower.bottomFace, cubePower.northFace,
             cubePower.southFace, cubePower.eastFace, cubePower.westFace
@@ -165,58 +158,38 @@ public class RunodePowerEditor : Editor
         }
     }
 
-    private void DrawFaceSection(string header, string faceProperty, string colorProperty, string connectedPSProperty)
+    private void DrawFaceSection(string header, string faceProperty)
     {
         EditorGUILayout.Space();
         EditorGUILayout.LabelField(header, EditorStyles.boldLabel);
-        EditorGUILayout.PropertyField(serializedObject.FindProperty(faceProperty),        new GUIContent("Sprite Type"));
-        EditorGUILayout.PropertyField(serializedObject.FindProperty(colorProperty),       new GUIContent("Line Color"));
-        EditorGUILayout.PropertyField(serializedObject.FindProperty(connectedPSProperty), new GUIContent("Connected PS"));
+        EditorGUILayout.PropertyField(serializedObject.FindProperty(faceProperty), GUIContent.none);
     }
 
     private void UpdateFacePrefab(int faceIndex, PowerLineType newType, string faceName)
     {
         Transform faceTransform = GetFaceTransform(faceIndex);
-        if (faceTransform == null)
-        {
-            Debug.LogWarning($"[RunodePowerEditor] Face transform not assigned for {faceName}");
-            return;
-        }
+        if (faceTransform == null) return;
 
         Transform spriteTransform = faceTransform.Find("Power Line Sprite");
-        if (spriteTransform == null)
-        {
-            Debug.LogWarning($"[RunodePowerEditor] No 'Power Line Sprite' child found on {faceName}");
-            return;
-        }
+        if (spriteTransform == null) return;
 
-        SpriteRenderer spriteRenderer = spriteTransform.GetComponent<SpriteRenderer>();
-        if (spriteRenderer == null)
-        {
-            Debug.LogWarning($"[RunodePowerEditor] No SpriteRenderer on {faceName}/Power Line Sprite");
-            return;
-        }
+        SpriteRenderer sr = spriteTransform.GetComponent<SpriteRenderer>();
+        if (sr == null) return;
 
         if (newType != PowerLineType.Empty)
         {
             spriteTransform.gameObject.SetActive(true);
-            Sprite sprite = GetSpriteForType(newType);
-            if (sprite != null)
+            Sprite s = GetSpriteForType(newType);
+            if (s != null)
             {
-                spriteRenderer.sprite = sprite;
-                spriteRenderer.size = sprite.bounds.size * 1.98f;
+                sr.sprite = s;
+                sr.size = s.bounds.size * 1.98f;
                 spriteTransform.localRotation = Quaternion.Euler(0, 0, GetTypeRotation(newType));
-            }
-            else
-            {
-                Debug.LogWarning($"[RunodePowerEditor] No sprite assigned for {newType}");
-                spriteRenderer.sprite = null;
             }
         }
         else
         {
             spriteTransform.gameObject.SetActive(false);
-            spriteTransform.localRotation = Quaternion.identity;
         }
 
         UpdateTriggerStates(faceIndex, newType);

@@ -1,28 +1,46 @@
 using System.Collections.Generic;
 using UnityEngine;
 
-// Place in the scene as a fixed power origin.
-// Registers itself with PowerManager on Start.
-// Runs BFS outward through connected triggers when PowerManager requests recalculation.
 [DefaultExecutionOrder(-50)]
 public class PowerSource : MonoBehaviour
 {
-    [Header("POWER SOURCE")]
     public int colorIndex;
     [HideInInspector] public Color powerColor;
 
-    [Header("POWER OPTIONS")]
     public int maxPower = 10;
     public int currentCubesPowered = 0;
 
-    [Header("TRIGGER REFERENCES")]
+    public PowerLineType topFace = PowerLineType.Empty;
+    public Transform topFaceTransform;
+
+    public Sprite horizontalSprite;
+    public Sprite verticalSprite;
+    public Sprite cornerSprite;
+    public Sprite tSectionSprite;
+    public Sprite crossSprite;
+
     public PowerConnectionTrigger upTrigger;
     public PowerConnectionTrigger rightTrigger;
     public PowerConnectionTrigger downTrigger;
     public PowerConnectionTrigger leftTrigger;
 
-    [Header("SPRITE REFERENCE")]
     public SpriteRenderer powerSprite;
+
+    private void Awake()
+    {
+        if (topFaceTransform != null)
+        {
+            Transform spriteChild = topFaceTransform.Find("Power Line Sprite");
+            if (spriteChild != null)
+            {
+                var detector = spriteChild.GetComponent<FaceObstructionDetector>();
+                if (detector != null)
+                {
+                    detector.Initialize(null, new[] { upTrigger, rightTrigger, downTrigger, leftTrigger });
+                }
+            }
+        }
+    }
 
     private void Start()
     {
@@ -36,12 +54,18 @@ public class PowerSource : MonoBehaviour
     {
         if (powerSprite != null)
             powerSprite.color = powerColor;
+
+        if (topFaceTransform != null)
+        {
+            Transform spriteChild = topFaceTransform.Find("Power Line Sprite");
+            if (spriteChild != null)
+            {
+                SpriteRenderer sr = spriteChild.GetComponent<SpriteRenderer>();
+                if (sr != null) sr.color = powerColor;
+            }
+        }
     }
 
-    // BFS from this source outward through all reachable connected triggers.
-    // Each cube reached is marked powered with this source's color and distance.
-    // Total cubes powered across all branches cannot exceed maxPower.
-    // If a cube is already powered by a different source, or a loop is detected: game over.
     public void RunBFS()
     {
         Queue<PowerConnectionTrigger> queue = new Queue<PowerConnectionTrigger>();
@@ -63,7 +87,6 @@ public class PowerSource : MonoBehaviour
             PowerConnectionTrigger neighbor = FindExternalNeighbor(current);
             if (neighbor != null && neighbor.gameObject.activeInHierarchy && !neighbor.isObstructed && !visitedTriggers.Contains(neighbor))
             {
-                // Ensure we have a valid parent reference, even if Awake() hasn't run on a disabled trigger
                 RunodePower neighborCube = neighbor.parentRunodePower;
                 if (neighborCube == null) neighborCube = neighbor.GetComponentInParent<RunodePower>();
                 
@@ -90,7 +113,6 @@ public class PowerSource : MonoBehaviour
                 if (neighborCube != null) neighborCube.MarkFacePowered(neighbor);
             }
 
-            // 2. Internal Bridge Hop: Between faces on the SAME cube (Manual mapping)
             if (currentCube != null)
             {
                 PowerConnectionTrigger internalBridge = currentCube.GetInternalNeighbor(current);
@@ -99,11 +121,7 @@ public class PowerSource : MonoBehaviour
                     SetTriggerPowered(internalBridge, current.distanceFromSource, queue, visitedTriggers);
                     currentCube.MarkFacePowered(internalBridge);
                 }
-            }
 
-            // 3. Internal Face Traverse: Across the current face line path
-            if (currentCube != null)
-            {
                 var faceNeighbors = currentCube.GetConnectedTriggersOnFace(current);
                 foreach (var fn in faceNeighbors)
                 {
@@ -115,7 +133,6 @@ public class PowerSource : MonoBehaviour
             }
         }
 
-        // Finalize: Refresh visuals for all cubes touched by this power flow
         foreach (var cube in visitedCubes)
         {
             cube.RefreshFaceVisuals(powerColor);
@@ -133,7 +150,6 @@ public class PowerSource : MonoBehaviour
         visitedTriggers.Add(trigger);
         queue.Enqueue(trigger);
 
-        // If the source trigger is on a cube, count it
         if (trigger.parentRunodePower != null && !visitedCubes.Contains(trigger.parentRunodePower))
         {
             visitedCubes.Add(trigger.parentRunodePower);
@@ -153,11 +169,9 @@ public class PowerSource : MonoBehaviour
 
     private PowerConnectionTrigger FindExternalNeighbor(PowerConnectionTrigger source)
     {
-        // Get the actual world-space center of the trigger collider
         SphereCollider sphere = source.GetComponent<SphereCollider>();
         Vector3 searchPos = sphere != null ? source.transform.TransformPoint(sphere.center) : source.transform.position;
 
-        // 0.1m radius is enough when looking at the exact connection point
         float queryRadius = 0.1f;
         Collider[] hits = Physics.OverlapSphere(searchPos, queryRadius, -1, QueryTriggerInteraction.Collide);
 
@@ -166,7 +180,6 @@ public class PowerSource : MonoBehaviour
             PowerConnectionTrigger neighbor = hit.GetComponent<PowerConnectionTrigger>();
             if (neighbor != null && neighbor != source)
             {
-                // IRONCLAD: Only connect to active, unobstructed triggers on different objects
                 if (neighbor.gameObject.activeInHierarchy && !neighbor.isObstructed)
                 {
                     RunodePower sParent = source.parentRunodePower;
@@ -188,6 +201,5 @@ public class PowerSource : MonoBehaviour
     private void TriggerGameOver()
     {
         Debug.Log("[PowerSource] Game Over - illegal connection detected (loop or color mixing).");
-        // TODO: hook into your game state manager here.
     }
 }
