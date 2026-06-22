@@ -310,20 +310,81 @@ public class TimCubeInteraction : MonoBehaviour
     }
     
   
-    /// Handle cube rotation with Q/E keys
+    /// Handle cube rotation with Q/E/R keys
  
     private void HandleCubeRotation()
     {
-        if (isRotating) return;
+        if (isRotating || selectedCube == null) return;
         
-        if (UnityEngine.InputSystem.Keyboard.current?.qKey.wasPressedThisFrame == true)
+        bool isShiftHeld = Keyboard.current != null && Keyboard.current.shiftKey.isPressed;
+        float rotationStep = isShiftHeld ? -90f : 90f;
+
+        if (Keyboard.current?.qKey.wasPressedThisFrame == true)
         {
-            RotateSelectedCube(90f, RotationAxis.Horizontal);
+            RotateSelectedCube(rotationStep, RotationAxis.Horizontal);
         }
-        else if (UnityEngine.InputSystem.Keyboard.current?.eKey.wasPressedThisFrame == true)
+        else if (Keyboard.current?.eKey.wasPressedThisFrame == true)
         {
-            RotateSelectedCube(90f, RotationAxis.Vertical);
+            RotateSelectedCube(rotationStep, RotationAxis.Vertical);
         }
+        else if (Keyboard.current?.rKey.wasPressedThisFrame == true)
+        {
+            ResetSelectedCube();
+        }
+    }
+
+    /// <summary>
+    /// Reset the selected cube to its base rotation (captured on Awake)
+    /// </summary>
+    public void ResetSelectedCube()
+    {
+        if (isRotating || selectedCube == null) return;
+        StartCoroutine(SmoothResetRotation(selectedCube));
+    }
+
+    /// <summary>
+    /// Smoothly reset a cube to its captured base rotation
+    /// </summary>
+    private System.Collections.IEnumerator SmoothResetRotation(RunodeMovement cube)
+    {
+        if (cube == null || cube.visualParent == null) yield break;
+
+        isRotating = true;
+        cube.isMoving = true;
+
+        Transform targetTransform = cube.visualParent;
+        Quaternion startRotation = targetTransform.localRotation;
+        Quaternion targetRotation = cube.BaseRotation;
+
+        float elapsedTime = 0f;
+        Vector3 originalScale = targetTransform.localScale;
+
+        while (elapsedTime < rotationDuration)
+        {
+            elapsedTime += Time.deltaTime;
+            float t = elapsedTime / rotationDuration;
+            
+            // Smoothly Slerp back to the original base rotation
+            targetTransform.localRotation = Quaternion.Slerp(startRotation, targetRotation, t);
+
+            // Subtle juice during reset
+            float squash = Mathf.Sin(t * Mathf.PI) * (squashAmount * 0.5f);
+            targetTransform.localScale = new Vector3(
+                originalScale.x * (1 + squash), 
+                originalScale.y * (1 - squash), 
+                originalScale.z * (1 + squash)
+            );
+            
+            yield return null;
+        }
+
+        targetTransform.localRotation = targetRotation;
+        targetTransform.localScale = originalScale;
+
+        Physics.SyncTransforms();
+        cube.isMoving = false;
+        isRotating = false;
+        PowerManager.Instance.RequestPowerFlowCheck();
     }
     
     

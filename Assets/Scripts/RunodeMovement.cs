@@ -17,9 +17,19 @@ public class RunodeMovement : MonoBehaviour
     [HideInInspector]
     public Transform visualParent;
 
+    // Stores the rotation as it was set in the Editor
+    private Quaternion baseRotation;
+    public Quaternion BaseRotation => baseRotation;
+
     private void Awake()
     {
         visualParent = transform.GetChild(0);
+
+        // Capture the base rotation before any randomization happens
+        if (visualParent != null)
+        {
+            baseRotation = visualParent.localRotation;
+        }
 
         rb = GetComponent<Rigidbody>();
         rb.isKinematic = false;
