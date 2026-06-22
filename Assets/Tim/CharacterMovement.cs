@@ -110,11 +110,23 @@ public class CharacterMovement : MonoBehaviour
         // Capture momentum when walking off edge (grounded → airborne)
         if (!isGrounded && wasGroundedLastFrame)
         {
-            Vector3 currentMovement = GetMovementDirectionInternal();
-            if (currentMovement.magnitude > 0.1f)
+            // If jump was NOT triggered (velocity.y <= 0), it's a walk-off
+            if (velocity.y <= 0.1f)
             {
-                // Use current built-up speed for edge momentum
-                jumpMomentum = currentMovement.normalized * currentSpeedBuildup;
+                Vector3 groundDir = Vector3.zero;
+                if (cameraFollow != null)
+                {
+                    groundDir = GetMovementDirectionForCameraAngle(cameraFollow.CurrentAngleIndex);
+                }
+                else
+                {
+                    groundDir = new Vector3(moveInput.x, 0, moveInput.y);
+                }
+
+                if (groundDir.magnitude > 0.1f)
+                {
+                    jumpMomentum = groundDir.normalized * currentSpeedBuildup;
+                }
             }
         }
         
@@ -123,14 +135,34 @@ public class CharacterMovement : MonoBehaviour
         {
             jumpMomentum = Vector3.zero;
             
-            // Reset jumping animation state when landing
             if (playerAnimator != null)
             {
                 playerAnimator.SetJumpingState(false);
             }
         }
+
+        // Apply momentum decay while airborne
+        if (!isGrounded && jumpMomentum.magnitude > 0.01f)
+        {
+            jumpMomentum = Vector3.Lerp(jumpMomentum, Vector3.zero, momentumDecay * Time.deltaTime);
+        }
     }
-    
+
+    private Vector3 GetMovementDirectionInternal()
+    {
+        if (isGrounded)
+        {
+            if (cameraFollow != null)
+            {
+                return GetMovementDirectionForCameraAngle(cameraFollow.CurrentAngleIndex);
+            }
+            return new Vector3(moveInput.x, 0, moveInput.y);
+        }
+        else
+        {
+            return jumpMomentum;
+        }
+    }
     private void ReadInput()
     {
         if (moveAction != null)
@@ -145,25 +177,16 @@ public class CharacterMovement : MonoBehaviour
         Vector3 moveDirection = GetMovementDirectionInternal();
         bool shouldRun = isSprinting;
         
-        // When airborne, use the momentum vector directly (already has correct magnitude)
         if (!isGrounded && jumpMomentum.magnitude > 0.1f)
         {
-            Vector3 movement = moveDirection; // moveDirection already contains the speed
+            Vector3 movement = moveDirection; 
             controller.Move(movement * Time.deltaTime);
-            currentSpeed = moveDirection.magnitude; // For animation purposes
+            currentSpeed = moveDirection.magnitude;
         }
         else
         {
-            // Ground movement - calculate speed normally
             currentSpeed = CalculateMovementSpeed(shouldRun);
             Vector3 movement = moveDirection * currentSpeed;
-            
-            // Check for cube pushing when grounded and moving
-            if (movement.magnitude > 0.1f)
-            {
-                // CheckCubePushing is now called every frame from Update()
-            }
-            
             controller.Move(movement * Time.deltaTime);
         }
         
@@ -172,31 +195,7 @@ public class CharacterMovement : MonoBehaviour
             RotatePlayer(moveDirection);
         }
     }
-    
-    private Vector3 GetMovementDirectionInternal()
-    {
-        Vector3 inputDirection = new Vector3(moveInput.x, 0, moveInput.y);
-        
-        if (isGrounded)
-        {
-            // Get camera angle and calculate movement directions based on preset angles
-            if (cameraFollow != null)
-            {
-                return GetMovementDirectionForCameraAngle(cameraFollow.CurrentAngleIndex);
-            }
-            else
-            {
-                // Fallback to world directions if no camera found
-                return inputDirection;
-            }
-        }
-        else
-        {
-            // Use stored jump momentum when airborne
-            jumpMomentum = Vector3.Lerp(jumpMomentum, Vector3.zero, momentumDecay * Time.deltaTime);
-            return jumpMomentum;
-        }
-    }
+
     
     private Vector3 GetMovementDirectionForCameraAngle(int angleIndex)
     {
