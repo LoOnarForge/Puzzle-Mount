@@ -30,7 +30,10 @@ public class TimCubeInteraction : MonoBehaviour
 
     [Header("PUSH DELAY SETTINGS:")]
     public float initialPushDelay = 0.35f;
-    public float continuousPushDelay = 0.1f;
+    public float fastPushInterval = 0.1f;
+    public float precisePushInterval = 0.5f;
+
+    private bool isPreciseMode = false;
 
     private Transform timTransform;
     private CharacterMovement characterMovement;
@@ -86,6 +89,7 @@ public class TimCubeInteraction : MonoBehaviour
         
         HandleCubeSelection();
         HandleCubeRotation();
+        HandlePushModeToggle();
         UpdatePushDelay();
         UpdateGaze();
         
@@ -330,6 +334,14 @@ public class TimCubeInteraction : MonoBehaviour
         else if (Keyboard.current?.rKey.wasPressedThisFrame == true)
         {
             ResetSelectedCube();
+        }
+    }
+
+    private void HandlePushModeToggle()
+    {
+        if (Keyboard.current != null && Keyboard.current.ctrlKey.wasPressedThisFrame)
+        {
+            isPreciseMode = !isPreciseMode;
         }
     }
 
@@ -649,7 +661,8 @@ public class TimCubeInteraction : MonoBehaviour
         if (isDelayActive)
         {
             pushDelayTimer += Time.deltaTime;
-            float requiredDelay = isFirstPush ? initialPushDelay : continuousPushDelay;
+            float continuousDelay = isPreciseMode ? precisePushInterval : fastPushInterval;
+            float requiredDelay = isFirstPush ? initialPushDelay : continuousDelay;
             if (pushDelayTimer >= requiredDelay)
                 isDelayActive = false;
         }
