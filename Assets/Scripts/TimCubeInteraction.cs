@@ -39,6 +39,7 @@ public class TimCubeInteraction : MonoBehaviour
     private CharacterMovement characterMovement;
     private CharacterController controller;
     private PlayerAnimator playerAnimator;
+    private MenuManager _menuManager;
     
     // Push delay tracking
     private RunodeMovement currentTargetCube;
@@ -74,6 +75,7 @@ public class TimCubeInteraction : MonoBehaviour
         characterMovement = GetComponent<CharacterMovement>();
         controller = GetComponent<CharacterController>();
         playerAnimator = GetComponent<PlayerAnimator>();
+        _menuManager = Object.FindFirstObjectByType<MenuManager>();
     }
     
     private void Update()
@@ -342,6 +344,12 @@ public class TimCubeInteraction : MonoBehaviour
         if (Keyboard.current != null && Keyboard.current.ctrlKey.wasPressedThisFrame)
         {
             isPreciseMode = !isPreciseMode;
+            
+            // Update HUD via cached MenuManager
+            if (_menuManager != null)
+            {
+                _menuManager.SetPreciseMode(isPreciseMode);
+            }
         }
     }
 

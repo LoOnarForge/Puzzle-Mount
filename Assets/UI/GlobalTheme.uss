@@ -1,0 +1,42 @@
+/* Shared Button Style */
+.menu-button {
+    font-size: 24px;
+    padding: 10px 20px;
+    margin: 10px;
+    background-color: rgb(45, 45, 45);
+    color: white;
+    border-radius: 5px;
+    border-width: 1px;
+    border-color: white;
+}
+
+.menu-button:hover {
+    background-color: rgb(80, 80, 80);
+}
+
+/* Screen Layers */
+.overlay-background {
+    flex-grow: 1;
+    background-color: rgba(0, 0, 0, 0.7);
+    justify-content: center;
+    align-items: center;
+}
+
+/* HUD Element */
+.movement-icon {
+    width: 64px;
+    height: 64px;
+    position: absolute;
+    top: 20px;
+    right: 20px;
+}
+
+.movement-icon.mode-fast {
+    background-image: url("project:/Assets/UI/FastPushIcon.png");
+    -unity-background-scale-mode: scale-to-fit;
+}
+
+.movement-icon.mode-precise {
+    background-image: url("project:/Assets/UI/PrecisePushIcon.png");
+    -unity-background-scale-mode: scale-to-fit;
+}

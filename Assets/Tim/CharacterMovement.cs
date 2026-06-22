@@ -93,6 +93,8 @@ public class CharacterMovement : MonoBehaviour
     
     private void Update()
     {
+        if (Time.timeScale == 0) return;
+
         CheckGroundStatus();
         ReadInput();
         HandleMovement();
