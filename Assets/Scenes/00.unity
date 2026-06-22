@@ -226,34 +226,10 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 0f76e2748cc402e4591f6f9e2ac579f8, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::DoorReceiver
-  slot1:
-    active: 0
-    colorIndex: 0
-    requiredMW: 0
-    affectedElements: []
-    currentMW: 0
-    isSatisfied: 0
-  slot2:
-    active: 0
-    colorIndex: 0
-    requiredMW: 0
-    affectedElements: []
-    currentMW: 0
-    isSatisfied: 0
-  slot3:
-    active: 0
-    colorIndex: 0
-    requiredMW: 0
-    affectedElements: []
-    currentMW: 0
-    isSatisfied: 0
-  slot4:
-    active: 0
-    colorIndex: 0
-    requiredMW: 0
-    affectedElements: []
-    currentMW: 0
-    isSatisfied: 0
+  requiredColorIndex: 0
+  minimumPower: 1
+  connectionDelay: 1
+  doorRenderer: {fileID: 0}
 --- !u!33 &17216849
 MeshFilter:
   m_ObjectHideFlags: 0
@@ -8256,7 +8232,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 4382139065683007888, guid: 06a0f59d8cc113345893a152fa66c870, type: 3}
       propertyPath: m_LocalPosition.x
-      value: 8
+      value: 7
       objectReference: {fileID: 0}
     - target: {fileID: 4382139065683007888, guid: 06a0f59d8cc113345893a152fa66c870, type: 3}
       propertyPath: m_LocalPosition.y
@@ -10248,36 +10224,10 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 0f76e2748cc402e4591f6f9e2ac579f8, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::ForgottenGate
-  slot1:
-    active: 1
-    colorIndex: 0
-    requiredMW: 2
-    affectedElements:
-    - {fileID: 659731798}
-    currentMW: 0
-    isSatisfied: 0
-  slot2:
-    active: 1
-    colorIndex: 1
-    requiredMW: 7
-    affectedElements:
-    - {fileID: 2133896487}
-    currentMW: 0
-    isSatisfied: 0
-  slot3:
-    active: 0
-    colorIndex: 0
-    requiredMW: 0
-    affectedElements: []
-    currentMW: 0
-    isSatisfied: 0
-  slot4:
-    active: 0
-    colorIndex: 0
-    requiredMW: 0
-    affectedElements: []
-    currentMW: 0
-    isSatisfied: 0
+  requiredColorIndex: 0
+  minimumPower: 1
+  connectionDelay: 1
+  doorRenderer: {fileID: 0}
 --- !u!4 &1464528064
 Transform:
   m_ObjectHideFlags: 0
@@ -11512,7 +11462,6 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::PowerReceiverBase
   door: {fileID: 1464528063}
-  slotIndex: 1
   lever: {fileID: 0}
   isPowered: 0
   currentColor: {r: 0, g: 0, b: 0, a: 0}
@@ -19475,7 +19424,6 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::PowerReceiverBase
   door: {fileID: 1464528063}
-  slotIndex: 2
   lever: {fileID: 0}
   isPowered: 0
   currentColor: {r: 0, g: 0, b: 0, a: 0}
