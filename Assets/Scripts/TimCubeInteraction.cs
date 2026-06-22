@@ -24,7 +24,8 @@ public class TimCubeInteraction : MonoBehaviour
 
     [Header("CUBE JUICE SETTINGS:")]
     public AnimationCurve rotationCurve = AnimationCurve.EaseInOut(0, 0, 1, 1);
-    public float rotationDuration = 0.35f;
+    public float rotationDuration = 0.2f;
+    public float mouseRotationDuration = 0.12f;
     public float squashAmount = 0.15f;
     public float overshootAmount = 0.05f;
 
@@ -69,6 +70,13 @@ public class TimCubeInteraction : MonoBehaviour
     
   
     
+    [Header("MOUSE ROTATION:")]
+    public float mouseRotationSensitivity = 0.5f;
+    private bool isMouseRotating = false;
+    private RunodeMovement mouseRotTarget = null;
+    private Vector2 lastMousePosition;
+    private Vector2 rotationAccumulator;
+
     private void Awake()
     {
         timTransform = transform;
@@ -83,14 +91,16 @@ public class TimCubeInteraction : MonoBehaviour
         // Reset push state at start of frame
         isPushingThisFrame = false;
         
-        // Only check for cubes when grounded
-        if (characterMovement.IsGrounded) 
+        HandleMouseRotation();
+
+        // Only check for cubes/rotation when grounded and NOT mouse rotating
+        if (characterMovement.IsGrounded && !isMouseRotating) 
         {
             CheckCubeInteraction(); // Unified cube detection and interaction
+            HandleCubeRotation();
         }
         
         HandleCubeSelection();
-        HandleCubeRotation();
         HandlePushModeToggle();
         UpdatePushDelay();
         UpdateGaze();
@@ -100,6 +110,76 @@ public class TimCubeInteraction : MonoBehaviour
         if (moveDirection.magnitude < 0.1f)
         {
             ResetPushEngagement();
+        }
+    }
+
+    private void HandleMouseRotation()
+    {
+        if (Mouse.current == null) return;
+
+        if (Mouse.current.leftButton.wasPressedThisFrame)
+        {
+            Ray ray = Camera.main.ScreenPointToRay(Mouse.current.position.ReadValue());
+            // Increase range for testing and ignore triggers if necessary
+            if (Physics.Raycast(ray, out RaycastHit hit, 100f))
+            {
+                RunodeMovement cube = hit.collider.GetComponentInParent<RunodeMovement>();
+                if (cube != null)
+                {
+                    float dist = Vector3.Distance(timTransform.position, cube.transform.position);
+                    // Temporarily relax distance check to confirm raycast works
+                    if (dist <= pushRange + 3f)
+                    {
+                        isMouseRotating = true;
+                        mouseRotTarget = cube;
+                        lastMousePosition = Mouse.current.position.ReadValue();
+                        rotationAccumulator = Vector2.zero;
+                        
+                        if (characterMovement != null) characterMovement.SetMovementEnabled(false);
+                    }
+                }
+            }
+        }
+
+        if (isMouseRotating)
+        {
+            if (Mouse.current.leftButton.isPressed)
+            {
+                Vector2 currentMousePos = Mouse.current.position.ReadValue();
+                Vector2 delta = currentMousePos - lastMousePosition;
+                lastMousePosition = currentMousePos;
+
+                rotationAccumulator += delta * mouseRotationSensitivity;
+
+                float snapThreshold = 40f; 
+
+                // Dominant axis logic: only rotate on the axis with the most movement
+                if (Mathf.Abs(rotationAccumulator.x) >= snapThreshold || Mathf.Abs(rotationAccumulator.y) >= snapThreshold)
+                {
+                    if (Mathf.Abs(rotationAccumulator.x) >= Mathf.Abs(rotationAccumulator.y))
+                    {
+                        // Horizontal movement dominant -> Rotate around Y
+                        float dir = Mathf.Sign(rotationAccumulator.x);
+                        RotateSelectedCube(90f * dir, RotationAxis.Horizontal, mouseRotTarget, mouseRotationDuration);
+                    }
+                    else
+                    {
+                        // Vertical movement dominant -> Rotate around X
+                        // Drag Up (positive delta) = Clockwise X
+                        float dir = Mathf.Sign(rotationAccumulator.y);
+                        RotateSelectedCube(90f * dir, RotationAxis.Vertical, mouseRotTarget, mouseRotationDuration);
+                    }
+                    
+                    // Reset both to prevent diagonal jitter
+                    rotationAccumulator = Vector2.zero;
+                }
+            }
+            else
+            {
+                isMouseRotating = false;
+                mouseRotTarget = null;
+                if (characterMovement != null) characterMovement.SetMovementEnabled(true);
+            }
         }
     }
 
@@ -442,34 +522,55 @@ public class TimCubeInteraction : MonoBehaviour
     /// <summary>
     /// Rotate the currently selected cube around specified axis with smooth animation
     /// </summary>
-    private void RotateSelectedCube(float degrees, RotationAxis axis)
+    private void RotateSelectedCube(float degrees, RotationAxis axis, RunodeMovement targetOverride = null, float? customDuration = null)
     {
         if (isRotating) return; // Prevent overlapping rotations
         
-        if (selectedCube != null)
+        RunodeMovement cubeToRotate = targetOverride != null ? targetOverride : selectedCube;
+        
+        if (cubeToRotate != null)
         {
-            // Allow rotation even while cube is moving since only visuals rotate
-            StartCoroutine(SmoothRotateCube(selectedCube, degrees, axis));
+            float duration = customDuration ?? rotationDuration;
+            StartCoroutine(SmoothRotateCube(cubeToRotate, degrees, axis, duration));
         }
     }
     
-    /// <summary>
-    /// Smoothly rotate a cube by the specified degrees around specified axis
-    /// </summary>
-    private System.Collections.IEnumerator SmoothRotateCube(RunodeMovement cube, float degrees, RotationAxis axis)
+    private System.Collections.IEnumerator SmoothRotateCube(RunodeMovement cube, float degrees, RotationAxis axis, float duration)
     {
         if (cube == null || cube.visualParent == null) yield break;
         
         isRotating = true;
         cube.isRotating = true;
         
-        // TARGET THE VISUAL PARENT ONLY
         Transform targetTransform = cube.visualParent;
         Quaternion startRotation = targetTransform.localRotation;
         
-        Vector3 rotAxis = (axis == RotationAxis.Horizontal) ? Vector3.up : Vector3.right;
+        // Determine the world-space axis that matches the player's view
+        Vector3 worldAxis;
+        if (axis == RotationAxis.Horizontal)
+        {
+            // Dragging left/right always spins around the vertical world axis
+            worldAxis = Vector3.up;
+        }
+        else
+        {
+            // Dragging up/down spins around the world axis most aligned with the camera's "Right"
+            Vector3 camRight = Camera.main != null ? Camera.main.transform.right : Vector3.right;
+            if (Mathf.Abs(camRight.x) > Mathf.Abs(camRight.z))
+            {
+                worldAxis = Vector3.right * Mathf.Sign(camRight.x);
+            }
+            else
+            {
+                worldAxis = Vector3.forward * Mathf.Sign(camRight.z);
+            }
+        }
         
-        // Calculate local target rotation
+        // Convert the world-space axis into the coordinate space of the cube's parent
+        // (This ensures it works even if the whole level/cube-root is rotated)
+        Vector3 rotAxis = cube.transform.InverseTransformDirection(worldAxis);
+        
+        // Apply the 90-degree rotation relative to the current orientation
         Quaternion targetRotation = Quaternion.AngleAxis(degrees, rotAxis) * startRotation;
         
         // Ensure target rotation has exact 90° increments locally
@@ -479,18 +580,17 @@ public class TimCubeInteraction : MonoBehaviour
         targetEuler.z = Mathf.Round(targetEuler.z / 90f) * 90f;
         targetRotation = Quaternion.Euler(targetEuler);
         
-        // Calculate local overshoot
+        // Calculate local overshoot for juice
         Quaternion overshootRot = Quaternion.AngleAxis(degrees + (degrees > 0 ? 5f : -5f), rotAxis) * startRotation;
         
         float elapsedTime = 0f;
         Vector3 originalScale = targetTransform.localScale;
 
-        while (elapsedTime < rotationDuration)
+        while (elapsedTime < duration)
         {
             elapsedTime += Time.deltaTime;
-            float t = elapsedTime / rotationDuration;
+            float t = elapsedTime / duration;
             
-            // Use logic to overshoot and settle locally
             if (t < 0.8f)
             {
                 targetTransform.localRotation = Quaternion.Slerp(startRotation, overshootRot, t / 0.8f);
@@ -500,7 +600,6 @@ public class TimCubeInteraction : MonoBehaviour
                 targetTransform.localRotation = Quaternion.Slerp(overshootRot, targetRotation, (t - 0.8f) / 0.2f);
             }
 
-            // Squash & Stretch during rotation
             float squash = Mathf.Sin(t * Mathf.PI) * squashAmount;
             targetTransform.localScale = new Vector3(
                 originalScale.x * (1 + squash), 

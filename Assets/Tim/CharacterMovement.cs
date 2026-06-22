@@ -27,6 +27,9 @@ public class CharacterMovement : MonoBehaviour
     private PlayerInput playerInput;
     private PlayerAnimator playerAnimator;
     private TimCubeInteraction cubeInteraction;
+    private bool isMovementEnabled = true;
+    public void SetMovementEnabled(bool enabled) { isMovementEnabled = enabled; }
+
     private CameraFollow cameraFollow;
     private InputAction moveAction;
     private InputAction jumpAction;
@@ -97,7 +100,21 @@ public class CharacterMovement : MonoBehaviour
 
         CheckGroundStatus();
         ReadInput();
-        HandleMovement();
+
+        if (isMovementEnabled)
+        {
+            HandleMovement();
+        }
+        else
+        {
+            // Apply neutral movement to keep physics stable
+            if (isGrounded)
+            {
+                velocity.x = 0;
+                velocity.z = 0;
+            }
+        }
+
         ApplyGravity();
         UpdateAnimations();
     }
