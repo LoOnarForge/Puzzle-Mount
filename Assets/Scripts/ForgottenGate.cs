@@ -8,7 +8,7 @@ using UnityEngine;
 /// Changes material color based on power state and logs received power info.
 /// Waits for connectionDelay seconds before acting on power to avoid false triggers.
 
-public class EndGateController : MonoBehaviour
+public class ForgottenGate : MonoBehaviour
 {
     [Header("REQUIREMENTS")]
     public int requiredColorIndex;

@@ -9,7 +9,7 @@ using UnityEngine;
 public class PowerReceiverBase : MonoBehaviour
 {
     [Header("FINAL RECEIVERS - assign only one")]
-    public EndGateController door;
+    public ForgottenGate door;
     public LeverReceiver lever;
 
     [Header("DEBUG")]
