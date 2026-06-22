@@ -11,7 +11,10 @@ public class RunodeMovement : MonoBehaviour
     public bool randomRotateOnStart = true;
 
     [Header("DEBUG:")]
-    public bool isMoving = false;
+    public bool isMovingPos = false;
+    public bool isRotating = false;
+
+    public bool IsBusy => isMovingPos || isRotating;
 
     private Rigidbody rb;
     [HideInInspector]
@@ -93,7 +96,7 @@ public class RunodeMovement : MonoBehaviour
     // Returns true if this cube is allowed to move one step in the given direction.
     public bool CanPushSingle(Vector3 direction)
     {
-        if (isMoving) return false;
+        if (isMovingPos) return false;
         if (!IsGrounded()) return false;
 
         Vector3 pushDir = GetGridDirection(direction);
@@ -161,7 +164,7 @@ public class RunodeMovement : MonoBehaviour
 
     private System.Collections.IEnumerator MoveTo(Vector3 targetPosition, Vector3 direction)
     {
-        isMoving = true;
+        isMovingPos = true;
         Vector3 startPos = transform.position;
 
         // Restore exact logic from old script: use constraints, NOT kinematic
@@ -200,7 +203,7 @@ public class RunodeMovement : MonoBehaviour
         // Restore default state
         rb.constraints = RigidbodyConstraints.FreezePositionX | RigidbodyConstraints.FreezePositionZ | RigidbodyConstraints.FreezeRotation;
 
-        isMoving = false;
+        isMovingPos = false;
         PowerManager.Instance.RequestPowerFlowCheck();
     }
 

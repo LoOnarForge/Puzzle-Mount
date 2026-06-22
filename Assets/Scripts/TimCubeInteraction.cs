@@ -318,7 +318,7 @@ public class TimCubeInteraction : MonoBehaviour
  
     private void HandleCubeRotation()
     {
-        if (isRotating || selectedCube == null) return;
+        if (isRotating || selectedCube == null || selectedCube.isRotating) return;
         
         bool isShiftHeld = Keyboard.current != null && Keyboard.current.shiftKey.isPressed;
         float rotationStep = isShiftHeld ? -90f : 90f;
@@ -362,7 +362,7 @@ public class TimCubeInteraction : MonoBehaviour
         if (cube == null || cube.visualParent == null) yield break;
 
         isRotating = true;
-        cube.isMoving = true;
+        cube.isRotating = true;
 
         Transform targetTransform = cube.visualParent;
         Quaternion startRotation = targetTransform.localRotation;
@@ -394,7 +394,7 @@ public class TimCubeInteraction : MonoBehaviour
         targetTransform.localScale = originalScale;
 
         Physics.SyncTransforms();
-        cube.isMoving = false;
+        cube.isRotating = false;
         isRotating = false;
         PowerManager.Instance.RequestPowerFlowCheck();
     }
@@ -453,7 +453,7 @@ public class TimCubeInteraction : MonoBehaviour
         if (cube == null || cube.visualParent == null) yield break;
         
         isRotating = true;
-        cube.isMoving = true;
+        cube.isRotating = true;
         
         // TARGET THE VISUAL PARENT ONLY
         Transform targetTransform = cube.visualParent;
@@ -525,7 +525,7 @@ public class TimCubeInteraction : MonoBehaviour
 
         // Ensure triggers are updated in the physics world
         Physics.SyncTransforms();
-        cube.isMoving = false;
+        cube.isRotating = false;
         isRotating = false;
         PowerManager.Instance.RequestPowerFlowCheck();
     }
