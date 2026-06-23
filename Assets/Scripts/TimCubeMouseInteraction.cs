@@ -44,6 +44,20 @@ public class TimCubeMouseInteraction : MonoBehaviour
     {
         if (Mouse.current == null) return;
 
+        // Ground check: Tim cannot rotate cubes while jumping or falling
+        if (characterMovement != null && !characterMovement.IsGrounded)
+        {
+            // If he was in the middle of a selection process and becomes airborne, reset state
+            if (isMouseRotating)
+            {
+                isMouseRotating = false;
+                hasTriggeredMouseRotation = false;
+                mouseRotTarget = null;
+                characterMovement.SetMovementEnabled(true);
+            }
+            return;
+        }
+
         if (Mouse.current.leftButton.wasPressedThisFrame)
         {
             Ray ray = Camera.main.ScreenPointToRay(Mouse.current.position.ReadValue());
@@ -64,27 +78,12 @@ public class TimCubeMouseInteraction : MonoBehaviour
                         }
                         if (!isSelectable) return;
 
-                        // LoS check: Find the root cube
-                        RunodeMovement rootCube = stack[0];
-                        Vector3 rayStartTim = timTransform.position + Vector3.up * 0.8f;
-                        Vector3 targetCenter = rootCube.transform.position;
-                        Vector3 dirToTarget = (targetCenter - rayStartTim).normalized;
-                        float distToTarget = Vector3.Distance(rayStartTim, targetCenter);
+                        // 1. Height Check: Reachable range is 3 cube layers above Tim and 1 layer below
+                        float verticalDist = cube.transform.position.y - timTransform.position.y;
+                        if (verticalDist < -1.5f || verticalDist > 2.5f) return;
 
-                        RaycastHit[] hits = Physics.RaycastAll(rayStartTim, dirToTarget, distToTarget - 0.1f, Physics.DefaultRaycastLayers, QueryTriggerInteraction.Ignore);
-                        foreach (var loSHit in hits)
-                        {
-                            if (loSHit.collider.transform.IsChildOf(transform) || loSHit.collider.gameObject == gameObject) continue;
-                            RunodeMovement hitCube = loSHit.collider.GetComponentInParent<RunodeMovement>();
-                            if (hitCube != null)
-                            {
-                                bool inSameStack = false;
-                                foreach(var s in stack) if(s == hitCube) inSameStack = true;
-                                if (inSameStack) continue;
-                            }
-                            if (Vector3.Distance(loSHit.collider.bounds.ClosestPoint(timTransform.position), timTransform.position) < 0.2f) continue;
-                            return; // Blocked
-                        }
+                        // 2. Body-to-Cube Line-of-Sight Check: Use the 4-ray system
+                        if (!IsVisibleFromBody(cube, hit.point)) return;
 
                         isMouseRotating = true;
                         hasTriggeredMouseRotation = false; // Reset trigger state
@@ -241,5 +240,36 @@ public class TimCubeMouseInteraction : MonoBehaviour
         
         stack.Sort((a, b) => a.transform.position.y.CompareTo(b.transform.position.y));
         return stack.ToArray();
+    }
+
+    private bool IsVisibleFromBody(RunodeMovement targetCube, Vector3 targetPoint)
+    {
+        // Define the 4 origin points on Tim
+        Vector3[] origins = new Vector3[]
+        {
+            timTransform.position + Vector3.up * 1.7f,                             // Head
+            timTransform.position + Vector3.up * 1.0f,                             // Waist
+            timTransform.position + Vector3.up * 1.0f + timTransform.right * 0.25f, // Waist Right
+            timTransform.position + Vector3.up * 1.0f - timTransform.right * 0.25f  // Waist Left
+        };
+
+        foreach (Vector3 origin in origins)
+        {
+            Vector3 dir = (targetPoint - origin);
+            float maxDist = dir.magnitude;
+            
+            // Raycast from Tim towards the mouse hit point on the cube
+            // We add a tiny 0.1f buffer to ensure we actually reach the hit point surface
+            if (Physics.Raycast(origin, dir.normalized, out RaycastHit hit, maxDist + 0.1f))
+            {
+                // If the ray hits Tim himself (capsule/layers), ignore and try the next origin
+                if (hit.collider.transform.IsChildOf(timTransform)) continue;
+
+                // If the first thing hit is our target cube, we have Line of Sight
+                RunodeMovement hitCube = hit.collider.GetComponentInParent<RunodeMovement>();
+                if (hitCube == targetCube) return true;
+            }
+        }
+        return false;
     }
 }
