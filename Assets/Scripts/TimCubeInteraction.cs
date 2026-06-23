@@ -14,26 +14,29 @@ public enum RotationAxis
 
 public class TimCubeInteraction : MonoBehaviour
 {
-    [Header("CUBE SELECTION:")]
-    [SerializeField] private RunodeMovement detectedCube = null;
-    [SerializeField] private RunodeMovement highlightedCube = null;
-
-    [Header("DETECTION SETTINGS:")]
-    [HideInInspector] public float detectionTolerance = 0.6f;
+    [Header("PUSH SETTINGS:")]
     public float pushRange = 1.5f; 
-
-    [Header("CUBE JUICE SETTINGS:")]
-    public AnimationCurve rotationCurve = AnimationCurve.EaseInOut(0, 0, 1, 1);
-    public float mouseRotationSensitivity = 1.5f;
-    public float rotationDuration = 0.2f;
-    public float mouseRotationDuration = 0.04f;
-    public float squashAmount = 0.15f;
-    public float overshootAmount = 0.05f;
-
-    [Header("PUSH DELAY SETTINGS:")]
     public float initialPushDelay = 0.35f;
     public float fastPushInterval = 0.1f;
     public float precisePushInterval = 0.5f;
+
+    [Header("KEYBOARD ROTATION SETTINGS:")]
+    public float rotationDuration = 0.2f;
+
+    [Header("MOUSE ROTATION SETTINGS:")]
+    public float mouseRotationSensitivity = 1.0f;
+    public float mouseRotationDuration = 0.08f;
+    public float maxRotationDistance = 5.0f;
+
+    [Header("CUBE SELECTION:")]
+    [SerializeField] private RunodeMovement detectedCube = null;
+    [SerializeField] private RunodeMovement highlightedCube = null;
+    [HideInInspector] public float detectionTolerance = 0.6f;
+
+    [Header("JUICE SETTINGS:")]
+    public AnimationCurve rotationCurve = AnimationCurve.EaseInOut(0, 0, 1, 1);
+    public float squashAmount = 0.15f;
+    public float overshootAmount = 0.05f;
 
     private bool isPreciseMode = false;
 
@@ -120,15 +123,13 @@ public class TimCubeInteraction : MonoBehaviour
         if (Mouse.current.leftButton.wasPressedThisFrame)
         {
             Ray ray = Camera.main.ScreenPointToRay(Mouse.current.position.ReadValue());
-            // Increase range for testing and ignore triggers if necessary
             if (Physics.Raycast(ray, out RaycastHit hit, 100f))
             {
                 RunodeMovement cube = hit.collider.GetComponentInParent<RunodeMovement>();
                 if (cube != null)
                 {
-                    float dist = Vector3.Distance(timTransform.position, cube.transform.position);
-                    // Temporarily relax distance check to confirm raycast works
-                    if (dist <= pushRange + 3f)
+                    float dist = Vector3.ProjectOnPlane(cube.transform.position - timTransform.position, Vector3.up).magnitude;
+                    if (dist <= maxRotationDistance)
                     {
                         isMouseRotating = true;
                         mouseRotTarget = cube;
@@ -149,28 +150,26 @@ public class TimCubeInteraction : MonoBehaviour
                 Vector2 delta = currentMousePos - lastMousePosition;
                 lastMousePosition = currentMousePos;
 
-                rotationAccumulator += delta * mouseRotationSensitivity;
+                // RESOLUTION INDEPENDENT: Convert pixel delta to percentage of screen height
+                Vector2 screenPercentDelta = delta / Screen.height;
+                rotationAccumulator += screenPercentDelta;
 
-                float snapThreshold = 40f; 
+                // 0.1f baseline means 10% of screen height. Sensitivity scales how much drag is needed.
+                float threshold = 0.1f / Mathf.Max(0.01f, mouseRotationSensitivity);
 
-                // Dominant axis logic: only rotate on the axis with the most movement
-                if (Mathf.Abs(rotationAccumulator.x) >= snapThreshold || Mathf.Abs(rotationAccumulator.y) >= snapThreshold)
+                if (Mathf.Abs(rotationAccumulator.x) >= threshold || Mathf.Abs(rotationAccumulator.y) >= threshold)
                 {
                     if (Mathf.Abs(rotationAccumulator.x) >= Mathf.Abs(rotationAccumulator.y))
                     {
-                        // Horizontal movement dominant -> Rotate around Y
                         float dir = Mathf.Sign(rotationAccumulator.x);
                         RotateSelectedCube(90f * dir, RotationAxis.Horizontal, mouseRotTarget, mouseRotationDuration);
                     }
                     else
                     {
-                        // Vertical movement dominant -> Rotate around X
-                        // Drag Up (positive delta) = Clockwise X
                         float dir = Mathf.Sign(rotationAccumulator.y);
                         RotateSelectedCube(90f * dir, RotationAxis.Vertical, mouseRotTarget, mouseRotationDuration);
                     }
                     
-                    // Reset both to prevent diagonal jitter
                     rotationAccumulator = Vector2.zero;
                 }
             }
@@ -613,8 +612,8 @@ public class TimCubeInteraction : MonoBehaviour
         // Final Snap and Impact Squash
         targetTransform.localRotation = targetRotation;
         
-        // Impact Bounce
-        float bounceTime = 0.15f;
+        // Impact Bounce (Relative to duration to maintain "feel")
+        float bounceTime = duration * 0.5f;
         float bElapsed = 0;
         while (bElapsed < bounceTime)
         {
