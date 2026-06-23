@@ -76,9 +76,11 @@ public class TimCubeInteraction : MonoBehaviour
     
     [Header("MOUSE ROTATION:")]
     private bool isMouseRotating = false;
+    private bool hasTriggeredMouseRotation = false;
     private RunodeMovement mouseRotTarget = null;
     private Vector2 lastMousePosition;
     private Vector2 rotationAccumulator;
+    private Vector3 mouseHitNormal; // Store the face normal on click
 
     private void Awake()
     {
@@ -115,7 +117,6 @@ public class TimCubeInteraction : MonoBehaviour
             ResetPushEngagement();
         }
     }
-
     private void HandleMouseRotation()
     {
         if (Mouse.current == null) return;
@@ -131,7 +132,7 @@ public class TimCubeInteraction : MonoBehaviour
                     float dist = Vector3.ProjectOnPlane(cube.transform.position - timTransform.position, Vector3.up).magnitude;
                     if (dist <= maxRotationDistance)
                     {
-                        // Limit interaction to bottom 3 cubes (same as keyboard selection)
+                        // Limit interaction to bottom 3 cubes
                         RunodeMovement[] stack = GetStackFromHighlightedCube(cube);
                         bool isSelectable = false;
                         for (int i = 0; i < Mathf.Min(3, stack.Length); i++)
@@ -140,25 +141,17 @@ public class TimCubeInteraction : MonoBehaviour
                         }
                         if (!isSelectable) return;
 
-                        // LoS check: Find the "root" cube of the stack (the lowest one)
-                        RunodeMovement rootCube = stack[0]; // stack[0] is always the lowest
-
-                        // Raycast from Tim's "eyes" to the center of the lowest cube in that stack
+                        // LoS check: Find the root cube
+                        RunodeMovement rootCube = stack[0];
                         Vector3 rayStartTim = timTransform.position + Vector3.up * 0.8f;
                         Vector3 targetCenter = rootCube.transform.position;
                         Vector3 dirToTarget = (targetCenter - rayStartTim).normalized;
                         float distToTarget = Vector3.Distance(rayStartTim, targetCenter);
 
-                        // If the base of the stack is visible, the whole stack is interactive
                         RaycastHit[] hits = Physics.RaycastAll(rayStartTim, dirToTarget, distToTarget - 0.1f, Physics.DefaultRaycastLayers, QueryTriggerInteraction.Ignore);
-                        
-                        bool isBlocked = false;
                         foreach (var loSHit in hits)
                         {
-                            if (loSHit.collider.transform.IsChildOf(transform) || loSHit.collider.gameObject == gameObject)
-                                continue;
-
-                            // Ignore any cube that belongs to the same vertical stack
+                            if (loSHit.collider.transform.IsChildOf(transform) || loSHit.collider.gameObject == gameObject) continue;
                             RunodeMovement hitCube = loSHit.collider.GetComponentInParent<RunodeMovement>();
                             if (hitCube != null)
                             {
@@ -166,18 +159,14 @@ public class TimCubeInteraction : MonoBehaviour
                                 foreach(var s in stack) if(s == hitCube) inSameStack = true;
                                 if (inSameStack) continue;
                             }
-
-                            if (Vector3.Distance(loSHit.collider.bounds.ClosestPoint(timTransform.position), timTransform.position) < 0.2f)
-                                continue;
-
-                            isBlocked = true;
-                            break;
+                            if (Vector3.Distance(loSHit.collider.bounds.ClosestPoint(timTransform.position), timTransform.position) < 0.2f) continue;
+                            return; // Blocked
                         }
 
-                        if (isBlocked) return;
-
                         isMouseRotating = true;
+                        hasTriggeredMouseRotation = false; // Reset trigger state
                         mouseRotTarget = cube;
+                        mouseHitNormal = hit.normal; 
                         lastMousePosition = Mouse.current.position.ReadValue();
                         rotationAccumulator = Vector2.zero;
                         
@@ -191,41 +180,59 @@ public class TimCubeInteraction : MonoBehaviour
         {
             if (Mouse.current.leftButton.isPressed)
             {
+                if (hasTriggeredMouseRotation) return; // Wait for release before allowing another turn
+
                 Vector2 currentMousePos = Mouse.current.position.ReadValue();
-                Vector2 delta = currentMousePos - lastMousePosition;
-                lastMousePosition = currentMousePos;
-
-                // RESOLUTION INDEPENDENT: Convert pixel delta to percentage of screen height
-                Vector2 screenPercentDelta = delta / Screen.height;
-                rotationAccumulator += screenPercentDelta;
-
-                // 0.1f baseline means 10% of screen height. Sensitivity scales how much drag is needed.
+                
+                // Threshold check (using your resolution-independent screen % logic)
+                Vector2 totalDelta = (currentMousePos - lastMousePosition) / Screen.height;
                 float threshold = 0.1f / Mathf.Max(0.01f, mouseRotationSensitivity);
 
-                if (Mathf.Abs(rotationAccumulator.x) >= threshold || Mathf.Abs(rotationAccumulator.y) >= threshold)
+                if (totalDelta.magnitude >= threshold)
                 {
-                    if (Mathf.Abs(rotationAccumulator.x) >= Mathf.Abs(rotationAccumulator.y))
-                    {
-                        float dir = Mathf.Sign(rotationAccumulator.x);
-                        RotateSelectedCube(90f * dir, RotationAxis.Horizontal, mouseRotTarget, mouseRotationDuration);
-                    }
-                    else
-                    {
-                        float dir = Mathf.Sign(rotationAccumulator.y);
-                        RotateSelectedCube(90f * dir, RotationAxis.Vertical, mouseRotTarget, mouseRotationDuration);
-                    }
-                    
-                    rotationAccumulator = Vector2.zero;
+                    // 1. Determine Swipe Direction in World Space
+                    Camera cam = Camera.main;
+                    Vector3 worldSwipeDir = (cam.transform.right * totalDelta.x + cam.transform.up * totalDelta.y).normalized;
+
+                    // 2. Calculate Rotation Axis using Cross Product (Normal x Swipe)
+                    // This creates an axis perpendicular to both the face and the pull direction
+                    Vector3 rawRotAxis = Vector3.Cross(mouseHitNormal, worldSwipeDir);
+
+                    // 3. Snap to nearest World Axis (X, Y, or Z)
+                    Vector3 finalAxis = Vector3.zero;
+                    float absX = Mathf.Abs(rawRotAxis.x);
+                    float absY = Mathf.Abs(rawRotAxis.y);
+                    float absZ = Mathf.Abs(rawRotAxis.z);
+
+                    if (absX > absY && absX > absZ) finalAxis = Vector3.right * Mathf.Sign(rawRotAxis.x);
+                    else if (absY > absX && absY > absZ) finalAxis = Vector3.up * Mathf.Sign(rawRotAxis.y);
+                    else finalAxis = Vector3.forward * Mathf.Sign(rawRotAxis.z);
+
+                    // 4. Trigger one 90-degree rotation
+                    // We pass a custom world axis instead of the enum
+                    StartCoroutine(SmoothRotateCubePhysical(mouseRotTarget, 90f, finalAxis, mouseRotationDuration));
+
+                    // 5. One turn per click - lock until release
+                    hasTriggeredMouseRotation = true; 
                 }
             }
             else
             {
+                // RELEASE: Reset everything and re-enable movement
                 isMouseRotating = false;
+                hasTriggeredMouseRotation = false;
                 mouseRotTarget = null;
                 if (characterMovement != null) characterMovement.SetMovementEnabled(true);
             }
         }
     }
+
+    /* OLD ACCUMULATOR LOGIC COMMENTED OUT FOR TESTING
+    private void HandleMouseRotation_Old()
+    {
+        // ... (omitted for brevity)
+    }
+    */
 
 
     /// Unified cube interaction - single raycast handles both detection and pushing
@@ -579,6 +586,68 @@ public class TimCubeInteraction : MonoBehaviour
         }
     }
     
+    
+    private System.Collections.IEnumerator SmoothRotateCubePhysical(RunodeMovement cube, float degrees, Vector3 worldAxis, float duration)
+    {
+        if (cube == null || cube.visualParent == null) yield break;
+        
+        isRotating = true;
+        cube.isRotating = true;
+        
+        Transform targetTransform = cube.visualParent;
+        Quaternion startRotation = targetTransform.localRotation;
+        
+        // Convert the world-space axis into the coordinate space of the cube's parent
+        Vector3 rotAxis = cube.transform.InverseTransformDirection(worldAxis);
+        
+        // Apply rotation relative to current orientation
+        Quaternion targetRotation = Quaternion.AngleAxis(degrees, rotAxis) * startRotation;
+        
+        // Snap to exact 90s
+        Vector3 targetEuler = targetRotation.eulerAngles;
+        targetEuler.x = Mathf.Round(targetEuler.x / 90f) * 90f;
+        targetEuler.y = Mathf.Round(targetEuler.y / 90f) * 90f;
+        targetEuler.z = Mathf.Round(targetEuler.z / 90f) * 90f;
+        targetRotation = Quaternion.Euler(targetEuler);
+        
+        Quaternion overshootRot = Quaternion.AngleAxis(degrees + (degrees > 0 ? 5f : -5f), rotAxis) * startRotation;
+        
+        float elapsedTime = 0f;
+        Vector3 originalScale = targetTransform.localScale;
+
+        while (elapsedTime < duration)
+        {
+            elapsedTime += Time.deltaTime;
+            float t = elapsedTime / duration;
+            
+            if (t < 0.8f) targetTransform.localRotation = Quaternion.Slerp(startRotation, overshootRot, t / 0.8f);
+            else targetTransform.localRotation = Quaternion.Slerp(overshootRot, targetRotation, (t - 0.8f) / 0.2f);
+
+            float squash = Mathf.Sin(t * Mathf.PI) * squashAmount;
+            targetTransform.localScale = new Vector3(originalScale.x * (1 + squash), originalScale.y * (1 - squash), originalScale.z * (1 + squash));
+            yield return null;
+        }
+        
+        targetTransform.localRotation = targetRotation;
+        
+        float bounceTime = duration * 0.5f;
+        float bElapsed = 0;
+        while (bElapsed < bounceTime)
+        {
+            bElapsed += Time.deltaTime;
+            float bt = bElapsed / bounceTime;
+            float bounceSquash = Mathf.Sin(bt * Mathf.PI) * (squashAmount * 0.5f);
+            targetTransform.localScale = new Vector3(originalScale.x * (1 - bounceSquash), originalScale.y * (1 + bounceSquash), originalScale.z * (1 - bounceSquash));
+            yield return null;
+        }
+        targetTransform.localScale = originalScale;
+
+        Physics.SyncTransforms();
+        cube.isRotating = false;
+        isRotating = false;
+        PowerManager.Instance.RequestPowerFlowCheck();
+    }
+
     private System.Collections.IEnumerator SmoothRotateCube(RunodeMovement cube, float degrees, RotationAxis axis, float duration)
     {
         if (cube == null || cube.visualParent == null) yield break;
