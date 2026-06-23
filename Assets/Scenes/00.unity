@@ -11799,8 +11799,35 @@ PrefabInstance:
     m_RemovedComponents: []
     m_RemovedGameObjects: []
     m_AddedGameObjects: []
-    m_AddedComponents: []
+    m_AddedComponents:
+    - targetCorrespondingSourceObject: {fileID: 478215984424799453, guid: 8327116535cf1624d9db336499d66ebe, type: 3}
+      insertIndex: 3
+      addedObject: {fileID: 1097024148}
   m_SourcePrefab: {fileID: 100100000, guid: 8327116535cf1624d9db336499d66ebe, type: 3}
+--- !u!1 &1097024147 stripped
+GameObject:
+  m_CorrespondingSourceObject: {fileID: 478215984424799453, guid: 8327116535cf1624d9db336499d66ebe, type: 3}
+  m_PrefabInstance: {fileID: 1097024146}
+  m_PrefabAsset: {fileID: 0}
+--- !u!114 &1097024148
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1097024147}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 8a9d6b56b26696d4d9ffb664ac8831be, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::TimCubeMouseInteraction
+  mouseRotationSensitivity: 1
+  mouseRotationDuration: 0.08
+  maxRotationDistance: 5
+  mouseRotationClarity: 1.5
+  mouseTwitchDeadzone: 0.01
+  squashAmount: 0.15
+  isRotating: 0
 --- !u!1001 &1123689491
 PrefabInstance:
   m_ObjectHideFlags: 0
