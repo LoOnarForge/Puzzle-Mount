@@ -131,6 +131,51 @@ public class TimCubeInteraction : MonoBehaviour
                     float dist = Vector3.ProjectOnPlane(cube.transform.position - timTransform.position, Vector3.up).magnitude;
                     if (dist <= maxRotationDistance)
                     {
+                        // Limit interaction to bottom 3 cubes (same as keyboard selection)
+                        RunodeMovement[] stack = GetStackFromHighlightedCube(cube);
+                        bool isSelectable = false;
+                        for (int i = 0; i < Mathf.Min(3, stack.Length); i++)
+                        {
+                            if (stack[i] == cube) { isSelectable = true; break; }
+                        }
+                        if (!isSelectable) return;
+
+                        // LoS check: Find the "root" cube of the stack (the lowest one)
+                        RunodeMovement rootCube = stack[0]; // stack[0] is always the lowest
+
+                        // Raycast from Tim's "eyes" to the center of the lowest cube in that stack
+                        Vector3 rayStartTim = timTransform.position + Vector3.up * 0.8f;
+                        Vector3 targetCenter = rootCube.transform.position;
+                        Vector3 dirToTarget = (targetCenter - rayStartTim).normalized;
+                        float distToTarget = Vector3.Distance(rayStartTim, targetCenter);
+
+                        // If the base of the stack is visible, the whole stack is interactive
+                        RaycastHit[] hits = Physics.RaycastAll(rayStartTim, dirToTarget, distToTarget - 0.1f, Physics.DefaultRaycastLayers, QueryTriggerInteraction.Ignore);
+                        
+                        bool isBlocked = false;
+                        foreach (var loSHit in hits)
+                        {
+                            if (loSHit.collider.transform.IsChildOf(transform) || loSHit.collider.gameObject == gameObject)
+                                continue;
+
+                            // Ignore any cube that belongs to the same vertical stack
+                            RunodeMovement hitCube = loSHit.collider.GetComponentInParent<RunodeMovement>();
+                            if (hitCube != null)
+                            {
+                                bool inSameStack = false;
+                                foreach(var s in stack) if(s == hitCube) inSameStack = true;
+                                if (inSameStack) continue;
+                            }
+
+                            if (Vector3.Distance(loSHit.collider.bounds.ClosestPoint(timTransform.position), timTransform.position) < 0.2f)
+                                continue;
+
+                            isBlocked = true;
+                            break;
+                        }
+
+                        if (isBlocked) return;
+
                         isMouseRotating = true;
                         mouseRotTarget = cube;
                         lastMousePosition = Mouse.current.position.ReadValue();
