@@ -27,6 +27,8 @@ public class TimCubeInteraction : MonoBehaviour
     public float mouseRotationSensitivity = 1.0f;
     public float mouseRotationDuration = 0.08f;
     public float maxRotationDistance = 5.0f;
+    public float mouseRotationClarity = 1.5f;   // One axis must be this many times larger than the other
+    public float mouseTwitchDeadzone = 0.01f;   // Initial % of screen to ignore click-twitch
 
     [Header("CUBE SELECTION:")]
     [SerializeField] private RunodeMovement detectedCube = null;
@@ -180,45 +182,54 @@ public class TimCubeInteraction : MonoBehaviour
         {
             if (Mouse.current.leftButton.isPressed)
             {
-                if (hasTriggeredMouseRotation) return; // Wait for release before allowing another turn
+                if (hasTriggeredMouseRotation) return; 
 
                 Vector2 currentMousePos = Mouse.current.position.ReadValue();
-                
-                // Threshold check (using your resolution-independent screen % logic)
                 Vector2 totalDelta = (currentMousePos - lastMousePosition) / Screen.height;
-                float threshold = 0.1f / Mathf.Max(0.01f, mouseRotationSensitivity);
+                
+                // 1. Twitch Deadzone: Ignore the physical jerk of the click
+                if (totalDelta.magnitude < mouseTwitchDeadzone) return;
 
-                if (totalDelta.magnitude >= threshold)
+                float absX = Mathf.Abs(totalDelta.x);
+                float absY = Mathf.Abs(totalDelta.y);
+                float maxAxis = Mathf.Max(absX, absY);
+                float minAxis = Mathf.Min(absX, absY);
+
+                // 2. Clarity Check: One axis must clearly win (Safe Wedge logic)
+                // This prevents narrow-cone accidents at the start of the movement
+                bool isDirectionClear = maxAxis > minAxis * mouseRotationClarity;
+                
+                float threshold = 0.1f / Mathf.Max(0.01f, mouseRotationSensitivity);
+                
+                // 3. Force Trigger: If they drag really far (2x threshold), we commit regardless
+                bool isForceTrigger = maxAxis > threshold * 2f; 
+
+                if (maxAxis >= threshold && (isDirectionClear || isForceTrigger))
                 {
-                    // 1. Determine Swipe Direction in World Space
+                    if (isRotating || mouseRotTarget.isRotating) return;
+
                     Camera cam = Camera.main;
                     Vector3 worldSwipeDir = (cam.transform.right * totalDelta.x + cam.transform.up * totalDelta.y).normalized;
 
-                    // 2. Calculate Rotation Axis using Cross Product (Normal x Swipe)
-                    // This creates an axis perpendicular to both the face and the pull direction
+                    // Calculate Rotation Axis (Normal x Swipe)
                     Vector3 rawRotAxis = Vector3.Cross(mouseHitNormal, worldSwipeDir);
 
-                    // 3. Snap to nearest World Axis (X, Y, or Z)
+                    // Snap to cardinal world axis
                     Vector3 finalAxis = Vector3.zero;
-                    float absX = Mathf.Abs(rawRotAxis.x);
-                    float absY = Mathf.Abs(rawRotAxis.y);
-                    float absZ = Mathf.Abs(rawRotAxis.z);
+                    float rotX = Mathf.Abs(rawRotAxis.x);
+                    float rotY = Mathf.Abs(rawRotAxis.y);
+                    float rotZ = Mathf.Abs(rawRotAxis.z);
 
-                    if (absX > absY && absX > absZ) finalAxis = Vector3.right * Mathf.Sign(rawRotAxis.x);
-                    else if (absY > absX && absY > absZ) finalAxis = Vector3.up * Mathf.Sign(rawRotAxis.y);
+                    if (rotX > rotY && rotX > rotZ) finalAxis = Vector3.right * Mathf.Sign(rawRotAxis.x);
+                    else if (rotY > rotX && rotY > rotZ) finalAxis = Vector3.up * Mathf.Sign(rawRotAxis.y);
                     else finalAxis = Vector3.forward * Mathf.Sign(rawRotAxis.z);
 
-                    // 4. Trigger one 90-degree rotation
-                    // We pass a custom world axis instead of the enum
                     StartCoroutine(SmoothRotateCubePhysical(mouseRotTarget, 90f, finalAxis, mouseRotationDuration));
-
-                    // 5. One turn per click - lock until release
                     hasTriggeredMouseRotation = true; 
                 }
             }
             else
             {
-                // RELEASE: Reset everything and re-enable movement
                 isMouseRotating = false;
                 hasTriggeredMouseRotation = false;
                 mouseRotTarget = null;
