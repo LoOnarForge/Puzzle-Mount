@@ -158,26 +158,26 @@ public class RunodePower : MonoBehaviour
         // North Face shared edges
         MapInternal(northUpTrigger,    topUpTrigger);
         MapInternal(northDownTrigger,  bottomUpTrigger);
-        MapInternal(northLeftTrigger,  westLeftTrigger);
-        MapInternal(northRightTrigger, eastRightTrigger);
+        MapInternal(northLeftTrigger,  eastRightTrigger);
+        MapInternal(northRightTrigger, westRightTrigger);
 
         // South Face shared edges
         MapInternal(southUpTrigger,    topDownTrigger);
         MapInternal(southDownTrigger,  bottomDownTrigger);
-        MapInternal(southLeftTrigger,  eastLeftTrigger);
-        MapInternal(southRightTrigger, westRightTrigger);
+        MapInternal(southLeftTrigger,  westLeftTrigger);
+        MapInternal(southRightTrigger, eastLeftTrigger);
 
         // East Face shared edges
         MapInternal(eastUpTrigger,    topRightTrigger);
         MapInternal(eastDownTrigger,  bottomRightTrigger);
-        MapInternal(eastLeftTrigger,  southLeftTrigger);
-        MapInternal(eastRightTrigger, northRightTrigger);
+        MapInternal(eastLeftTrigger,  southRightTrigger);
+        MapInternal(eastRightTrigger, northLeftTrigger);
 
         // West Face shared edges
         MapInternal(westUpTrigger,    topLeftTrigger);
         MapInternal(westDownTrigger,  bottomLeftTrigger);
-        MapInternal(westLeftTrigger,  northLeftTrigger);
-        MapInternal(westRightTrigger, southRightTrigger);
+        MapInternal(westLeftTrigger,  southLeftTrigger);
+        MapInternal(westRightTrigger, northRightTrigger);
     }
 
     private void MapInternal(PowerConnectionTrigger a, PowerConnectionTrigger b)

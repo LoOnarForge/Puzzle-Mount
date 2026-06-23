@@ -24,8 +24,9 @@ public class TimCubeInteraction : MonoBehaviour
 
     [Header("CUBE JUICE SETTINGS:")]
     public AnimationCurve rotationCurve = AnimationCurve.EaseInOut(0, 0, 1, 1);
+    public float mouseRotationSensitivity = 1.5f;
     public float rotationDuration = 0.2f;
-    public float mouseRotationDuration = 0.12f;
+    public float mouseRotationDuration = 0.04f;
     public float squashAmount = 0.15f;
     public float overshootAmount = 0.05f;
 
@@ -71,7 +72,6 @@ public class TimCubeInteraction : MonoBehaviour
   
     
     [Header("MOUSE ROTATION:")]
-    public float mouseRotationSensitivity = 0.5f;
     private bool isMouseRotating = false;
     private RunodeMovement mouseRotTarget = null;
     private Vector2 lastMousePosition;
