@@ -12,11 +12,13 @@ public class RunodeHighlighter : MonoBehaviour
     
     [Header("REFERENCES")]
     public MeshRenderer cubeRenderer;
+    public GameObject selectionFrame; // Assign a wireframe cage object
 
     private MaterialPropertyBlock cubePropBlock;
     private Color currentColor = Color.white;
     private bool isHovered = false;
     private bool isInRange = false;
+    private bool isSelected = false;
 
     private static readonly int BaseColorId = Shader.PropertyToID("_BaseColor");
 
@@ -24,16 +26,16 @@ public class RunodeHighlighter : MonoBehaviour
     {
         cubePropBlock = new MaterialPropertyBlock();
         if (cubeRenderer == null) cubeRenderer = GetComponentInChildren<MeshRenderer>();
+        if (selectionFrame != null) selectionFrame.SetActive(false);
     }
 
     private void Update()
     {
-        // Determine target color based on state
+        // 1. Cube Highlight Transition
         Color target;
         if (!isHovered) target = Color.white;
         else target = isInRange ? inRangeColor : outOfRangeColor;
 
-        // Smooth Transition
         currentColor = Color.Lerp(currentColor, target, Time.deltaTime * transitionSpeed);
         
         if (cubeRenderer != null)
@@ -41,6 +43,14 @@ public class RunodeHighlighter : MonoBehaviour
             cubeRenderer.GetPropertyBlock(cubePropBlock);
             cubePropBlock.SetColor(BaseColorId, currentColor);
             cubeRenderer.SetPropertyBlock(cubePropBlock);
+        }
+
+        // 2. Selection Frame Logic (Occluded gizmo)
+        if (selectionFrame != null)
+        {
+            bool shouldBeActive = isHovered && isInRange;
+            if (selectionFrame.activeSelf != shouldBeActive)
+                selectionFrame.SetActive(shouldBeActive);
         }
     }
 
