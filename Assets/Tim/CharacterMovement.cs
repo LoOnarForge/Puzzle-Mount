@@ -7,12 +7,12 @@ public class CharacterMovement : MonoBehaviour
     [Header("MOVEMENT SETTINGS")]
     public float walkSpeed = 3f;
     public float runSpeed = 6f;
-    [HideInInspector] public float jumpHeight = 2f;
-    [HideInInspector] public float rotationSpeed = 10f;
+    public float jumpHeight = 2f;
+    public float rotationSpeed = 10f;
     
     [Header("SPEED BUILDUP")]
-    [HideInInspector] public float startSpeedPercent = 40f;
-    [HideInInspector] public float accelerationTime = 0.3f;
+    public float startSpeedPercent = 40f;
+    public float accelerationTime = 0.3f;
     
     [Header("AIR CONTROL")]
     public float momentumDecay = 2f;
@@ -20,8 +20,8 @@ public class CharacterMovement : MonoBehaviour
     [Header("DEBUG - SPEED VISUALIZATION")]
     [SerializeField] private float currentSpeedVisual;
     
-    // Hidden physics settings
-    private float gravity = -20f;
+    // Physics settings
+    public float gravity = -20f;
     
     private CharacterController controller;
     private PlayerInput playerInput;
