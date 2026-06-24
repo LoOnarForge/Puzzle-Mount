@@ -1595,6 +1595,7 @@ GameObject:
   - component: {fileID: 5839054870106546969}
   - component: {fileID: 7390467724354592081}
   - component: {fileID: 4993241424715736830}
+  - component: {fileID: 2090770526265990760}
   m_Layer: 11
   m_Name: Runode (001)
   m_TagString: Untagged
@@ -1736,6 +1737,21 @@ BoxCollider:
   serializedVersion: 3
   m_Size: {x: 0.999, y: 0.999, z: 0.999}
   m_Center: {x: 0, y: 0, z: 0}
+--- !u!114 &2090770526265990760
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 4396683100612142563}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 4d892bdf8f7f62444841d20b75c52dc1, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::RunodeHighlighter
+  cubeHighlightColor: {r: 2.0026178, g: 0.9649803, b: 0.08366709, a: 1}
+  transitionSpeed: 15
+  cubeRenderer: {fileID: 2988975281438798479}
 --- !u!1 &4607819062750235410
 GameObject:
   m_ObjectHideFlags: 0

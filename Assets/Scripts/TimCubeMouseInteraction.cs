@@ -35,10 +35,47 @@ public class TimCubeMouseInteraction : MonoBehaviour
         playerAnimator = GetComponent<PlayerAnimator>();
     }
 
+    private RunodeHighlighter lastHighlighter;
+
     private void Update()
     {
         HandleMouseRotation();
         UpdateGaze();
+        UpdateHighlight();
+    }
+
+    private void UpdateHighlight()
+    {
+        if (Mouse.current == null) return;
+
+        Ray ray = Camera.main.ScreenPointToRay(Mouse.current.position.ReadValue());
+        if (Physics.Raycast(ray, out RaycastHit hit, 100f))
+        {
+            RunodeMovement cube = hit.collider.GetComponentInParent<RunodeMovement>();
+            if (cube != null)
+            {
+                RunodeHighlighter highlighter = cube.GetComponent<RunodeHighlighter>();
+                if (highlighter != null)
+                {
+                    float dist = Vector3.ProjectOnPlane(cube.transform.position - transform.position, Vector3.up).magnitude;
+                    bool isRotatable = dist <= maxRotationDistance;
+
+                    highlighter.SetHighlight(isRotatable);
+
+                    if (lastHighlighter != null && lastHighlighter != highlighter)
+                        lastHighlighter.ClearHighlight();
+
+                    lastHighlighter = highlighter;
+                    return;
+                }
+            }
+        }
+
+        if (lastHighlighter != null)
+        {
+            lastHighlighter.ClearHighlight();
+            lastHighlighter = null;
+        }
     }
 
     // Directs Tim's head to look at the cube surface under the mouse cursor

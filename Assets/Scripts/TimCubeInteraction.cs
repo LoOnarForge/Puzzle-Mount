@@ -238,6 +238,7 @@ public class TimCubeInteraction : MonoBehaviour
         return stack.ToArray();
     }
     
+    /*
     private void OnDrawGizmos()
     {
         if (selectedCube != null)
@@ -247,6 +248,7 @@ public class TimCubeInteraction : MonoBehaviour
             Gizmos.DrawWireCube(selectedCube.transform.position, selectedCube.transform.localScale * 1.1f);
         }
     }
+    */
     
     public void StartNewPushEngagement(RunodeMovement cube, Vector3 pushDirection)
     {
