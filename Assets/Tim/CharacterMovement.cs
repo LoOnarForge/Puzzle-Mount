@@ -11,7 +11,6 @@ public class CharacterMovement : MonoBehaviour
     public float rotationSpeed = 10f;
     
     [Header("SPEED BUILDUP")]
-    public float startSpeedPercent = 40f;
     public float accelerationTime = 0.3f;
     
     [Header("AIR CONTROL")]
@@ -256,14 +255,10 @@ public class CharacterMovement : MonoBehaviour
             return 0f;
         }
         
-        float targetSpeed = shouldRun ? runSpeed : walkSpeed;
-        float startSpeed = targetSpeed * (startSpeedPercent / 100f);
+        // Use moveInput magnitude for better analog control and precision
+        float targetSpeed = (shouldRun ? runSpeed : walkSpeed) * moveInput.magnitude;
         
-        // Start acceleration only if player was NOT moving last frame
-        if (!wasMovingLastFrame)
-        {
-            currentSpeedBuildup = startSpeed; // Start at 40% immediately
-        }
+        // Start acceleration from zero (removed startSpeed snap)
         
         // Exponential buildup to max speed
         float exponentialRate = 5f;
@@ -304,8 +299,8 @@ public class CharacterMovement : MonoBehaviour
             }
             else
             {
-                // Moving jump - use at least walk speed as minimum, or current buildup if higher 
-                float jumpSpeed = Mathf.Max(walkSpeed, currentSpeedBuildup);
+                // Moving jump - use current buildup speed for the jump arc
+                float jumpSpeed = currentSpeedBuildup;
                 jumpMomentum = currentMovement.normalized * jumpSpeed;
             }
             
