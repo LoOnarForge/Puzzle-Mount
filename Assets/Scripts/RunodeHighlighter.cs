@@ -1,19 +1,22 @@
 using UnityEngine;
 
-/// Manages visual feedback for Runode cubes with smooth transitions.
+/// Manages visual feedback for Runode cubes with smooth transitions for both in-range and out-of-range states.
 public class RunodeHighlighter : MonoBehaviour
 {
     [Header("HIGHLIGHT SETTINGS")]
     [ColorUsage(true, true)]
-    public Color cubeHighlightColor = new Color(1.5f, 1.5f, 1.5f, 1.0f);
+    public Color inRangeColor = new Color(1.5f, 1.5f, 1.5f, 1.0f);
+    [ColorUsage(true, true)]
+    public Color outOfRangeColor = new Color(1.2f, 1.2f, 1.2f, 1.0f);
     public float transitionSpeed = 15f;
     
     [Header("REFERENCES")]
     public MeshRenderer cubeRenderer;
 
     private MaterialPropertyBlock cubePropBlock;
-    private Color currentCubeColor = Color.white;
-    private bool isHighlighted = false;
+    private Color currentColor = Color.white;
+    private bool isHovered = false;
+    private bool isInRange = false;
 
     private static readonly int BaseColorId = Shader.PropertyToID("_BaseColor");
 
@@ -25,25 +28,30 @@ public class RunodeHighlighter : MonoBehaviour
 
     private void Update()
     {
-        // Smooth Cube Transition
-        Color targetCube = isHighlighted ? cubeHighlightColor : Color.white;
-        currentCubeColor = Color.Lerp(currentCubeColor, targetCube, Time.deltaTime * transitionSpeed);
+        // Determine target color based on state
+        Color target;
+        if (!isHovered) target = Color.white;
+        else target = isInRange ? inRangeColor : outOfRangeColor;
+
+        // Smooth Transition
+        currentColor = Color.Lerp(currentColor, target, Time.deltaTime * transitionSpeed);
         
         if (cubeRenderer != null)
         {
             cubeRenderer.GetPropertyBlock(cubePropBlock);
-            cubePropBlock.SetColor(BaseColorId, currentCubeColor);
+            cubePropBlock.SetColor(BaseColorId, currentColor);
             cubeRenderer.SetPropertyBlock(cubePropBlock);
         }
     }
 
     public void SetHighlight(bool rotatable)
     {
-        isHighlighted = rotatable;
+        isHovered = true;
+        isInRange = rotatable;
     }
 
     public void ClearHighlight()
     {
-        isHighlighted = false;
+        isHovered = false;
     }
 }

@@ -57,10 +57,8 @@ public class TimCubeMouseInteraction : MonoBehaviour
                 RunodeHighlighter highlighter = cube.GetComponent<RunodeHighlighter>();
                 if (highlighter != null)
                 {
-                    float dist = Vector3.ProjectOnPlane(cube.transform.position - transform.position, Vector3.up).magnitude;
-                    bool isRotatable = dist <= maxRotationDistance;
-
-                    highlighter.SetHighlight(isRotatable);
+                    bool isActuallyRotatable = IsActuallyRotatable(cube, hit.point);
+                    highlighter.SetHighlight(isActuallyRotatable);
 
                     if (lastHighlighter != null && lastHighlighter != highlighter)
                         lastHighlighter.ClearHighlight();
@@ -76,6 +74,30 @@ public class TimCubeMouseInteraction : MonoBehaviour
             lastHighlighter.ClearHighlight();
             lastHighlighter = null;
         }
+    }
+
+    private bool IsActuallyRotatable(RunodeMovement cube, Vector3 hitPoint)
+    {
+        if (cube == null) return false;
+        if (characterMovement != null && !characterMovement.IsGrounded) return false;
+
+        float dist = Vector3.ProjectOnPlane(cube.transform.position - timTransform.position, Vector3.up).magnitude;
+        if (dist > maxRotationDistance) return false;
+
+        RunodeMovement[] stack = GetStackFromCube(cube);
+        bool isSelectable = false;
+        for (int i = 0; i < Mathf.Min(3, stack.Length); i++)
+        {
+            if (stack[i] == cube) { isSelectable = true; break; }
+        }
+        if (!isSelectable) return false;
+
+        float verticalDist = cube.transform.position.y - timTransform.position.y;
+        if (verticalDist < -1.5f || verticalDist > 2.5f) return false;
+
+        if (!IsVisibleFromBody(cube, hitPoint)) return false;
+
+        return true;
     }
 
     // Directs Tim's head to look at the cube surface under the mouse cursor
@@ -131,41 +153,24 @@ public class TimCubeMouseInteraction : MonoBehaviour
             if (Physics.Raycast(ray, out RaycastHit hit, 100f))
             {
                 RunodeMovement cube = hit.collider.GetComponentInParent<RunodeMovement>();
-                if (cube != null)
+                if (IsActuallyRotatable(cube, hit.point))
                 {
-                    float dist = Vector3.ProjectOnPlane(cube.transform.position - timTransform.position, Vector3.up).magnitude;
-                    if (dist <= maxRotationDistance)
+                    if (isLeftClick)
                     {
-                        RunodeMovement[] stack = GetStackFromCube(cube);
-                        bool isSelectable = false;
-                        for (int i = 0; i < Mathf.Min(3, stack.Length); i++)
-                        {
-                            if (stack[i] == cube) { isSelectable = true; break; }
-                        }
-                        if (!isSelectable) return;
-
-                        float verticalDist = cube.transform.position.y - timTransform.position.y;
-                        if (verticalDist < -1.5f || verticalDist > 2.5f) return;
-
-                        if (!IsVisibleFromBody(cube, hit.point)) return;
-
-                        if (isLeftClick)
-                        {
-                            isMouseRotating = true;
-                            hasTriggeredMouseRotation = false;
-                            mouseRotTarget = cube;
-                            mouseHitNormal = hit.normal; 
-                            lastMousePosition = Mouse.current.position.ReadValue();
-                            
-                            if (characterMovement != null) characterMovement.SetMovementEnabled(false);
-                        }
-                        else 
-                        {
-                            if (isRotating || cube.isRotating) return;
-                            
-                            Vector3 finalAxis = GetCardinalAxis(hit.normal);
-                            StartCoroutine(SmoothRotateCubePhysical(cube, -90f, finalAxis, mouseRotationDuration));
-                        }
+                        isMouseRotating = true;
+                        hasTriggeredMouseRotation = false;
+                        mouseRotTarget = cube;
+                        mouseHitNormal = hit.normal; 
+                        lastMousePosition = Mouse.current.position.ReadValue();
+                        
+                        if (characterMovement != null) characterMovement.SetMovementEnabled(false);
+                    }
+                    else 
+                    {
+                        if (isRotating || cube.isRotating) return;
+                        
+                        Vector3 finalAxis = GetCardinalAxis(hit.normal);
+                        StartCoroutine(SmoothRotateCubePhysical(cube, -90f, finalAxis, mouseRotationDuration));
                     }
                 }
             }
