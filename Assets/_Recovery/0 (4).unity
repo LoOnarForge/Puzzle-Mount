@@ -4966,7 +4966,7 @@ Light:
   serializedVersion: 13
   m_Type: 1
   m_Color: {r: 1, g: 1, b: 1, a: 1}
-  m_Intensity: 3
+  m_Intensity: 1
   m_Range: 10
   m_SpotAngle: 30
   m_InnerSpotAngle: 21.80208
@@ -14935,7 +14935,8 @@ Transform:
   m_LocalPosition: {x: 7.48468, y: 0.17138, z: 0.50444}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
-  m_Children: []
+  m_Children:
+  - {fileID: 1906308584}
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1001 &1434582324
@@ -15272,7 +15273,7 @@ MonoBehaviour:
   requiredColorIndex: 0
   minimumPower: 1
   connectionDelay: 1
-  doorRenderer: {fileID: 0}
+  doorRenderer: {fileID: 1998665498}
 --- !u!4 &1464528064
 Transform:
   m_ObjectHideFlags: 0
@@ -19653,6 +19654,60 @@ SphereCollider:
   serializedVersion: 3
   m_Radius: 0.05
   m_Center: {x: 0, y: 0, z: 0}
+--- !u!1 &1906308583
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 1906308584}
+  - component: {fileID: 1906308585}
+  m_Layer: 0
+  m_Name: music manager
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &1906308584
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1906308583}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 1429237337}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &1906308585
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1906308583}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: ad35c29c23b32024bba1101615bae550, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::MusicManager
+  songs:
+  - {fileID: 8300000, guid: e95950a50cd9d0b469d86f43979f2402, type: 3}
+  - {fileID: 8300000, guid: 03106d2e38c5f3143adbbb2ccf201f0b, type: 3}
+  - {fileID: 8300000, guid: 0498747270127c8448172cd82c4acbd0, type: 3}
+  - {fileID: 8300000, guid: f1e8233ab0c5f6e4daefbea48c347b20, type: 3}
+  - {fileID: 8300000, guid: 4c4b4f63fc014094ebc278cbb809f394, type: 3}
+  - {fileID: 8300000, guid: 71313b96974585545bb2f44918edda53, type: 3}
+  - {fileID: 8300000, guid: 60ceab71dbf96ad449f7a29a69b02734, type: 3}
+  playOnAwake: 1
+  loopPlaylist: 1
 --- !u!1001 &1914794039
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -20011,7 +20066,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 4382139065683007888, guid: 06a0f59d8cc113345893a152fa66c870, type: 3}
       propertyPath: m_LocalPosition.x
-      value: -3
+      value: -1.4965839
       objectReference: {fileID: 0}
     - target: {fileID: 4382139065683007888, guid: 06a0f59d8cc113345893a152fa66c870, type: 3}
       propertyPath: m_LocalPosition.y
@@ -20019,7 +20074,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 4382139065683007888, guid: 06a0f59d8cc113345893a152fa66c870, type: 3}
       propertyPath: m_LocalPosition.z
-      value: 0
+      value: -0.5008182
       objectReference: {fileID: 0}
     - target: {fileID: 4382139065683007888, guid: 06a0f59d8cc113345893a152fa66c870, type: 3}
       propertyPath: m_LocalRotation.w
