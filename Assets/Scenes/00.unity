@@ -4436,18 +4436,16 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::CameraFollow
   target: {fileID: 863632499}
   findPlayerAutomatically: 0
+  cameraResponsiveness: 0.5
   offset: {x: 0, y: 5, z: -8}
-  followSpeed: 5
-  rotationSpeed: 2
   constrainY: 1
   fixedYPosition: 10
-  smoothDamping: 1
-  dampingTime: 0.3
   lookAtTarget: 1
   lookAtOffset: {x: 0, y: 1, z: 0}
   clockwiseKey: 19
   counterClockwiseKey: 31
   resetKey: 114
+  swipeThreshold: 700
 --- !u!1001 &341138396
 PrefabInstance:
   m_ObjectHideFlags: 0

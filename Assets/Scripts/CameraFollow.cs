@@ -6,26 +6,27 @@ public class CameraFollow : MonoBehaviour
     [Header("Target Settings")]
     public Transform target;
     public bool findPlayerAutomatically = true;
+
+    [Header("UNIFIED CAMERA SETTINGS")]
+    [Tooltip("Adjusts speed, damping, and mouse sensitivity together (0 = Lazy, 1 = Snappy)")]
+    [Range(0.01f, 1f)] public float cameraResponsiveness = 0.5f;
     
     [Header("Follow Settings")]
     public Vector3 offset = new Vector3(0, 5, -8);
-    public float followSpeed = 5f;
-    public float rotationSpeed = 2f;
-    
-    [Header("Camera Constraints")]
     public bool constrainY = true;
     public float fixedYPosition = 10f;
-    public bool smoothDamping = true;
-    public float dampingTime = 0.3f;
     
     [Header("Look At Settings")]
     public bool lookAtTarget = true;
     public Vector3 lookAtOffset = Vector3.up;
     
     [Header("Manual Control")]
-    public Key clockwiseKey = Key.X;
-    public Key counterClockwiseKey = Key.Z;
+    public Key clockwiseKey = Key.E;
+    public Key counterClockwiseKey = Key.Q;
     public Key resetKey = Key.R;
+
+    [Header("Mouse Interaction")]
+    public float swipeThreshold = 30f;
     
     private Vector3 velocity = Vector3.zero;
     private Camera cameraComponent;
@@ -41,39 +42,40 @@ public class CameraFollow : MonoBehaviour
     };
     
     private int currentAngleIndex = 0;
+    private bool isInViewMode = false;
     
-    // Public property to expose current camera angle for movement calculations
+    private Vector2 mouseStartPos;
+    private bool mouseActive = false;
+    private float targetOrbitYaw = 0f;
+    private float currentOrbitYaw = 0f;
+    private float orbitVelocity = 0f;
+    private float lastRotationTime = 0f;
+    private const float ROTATION_COOLDOWN = 0.1f;
+
+    // Unified helper properties based on cameraResponsiveness
+    private float DampingTime => Mathf.Lerp(0.35f, 0.02f, cameraResponsiveness);
+    private float OrbitSensitivity => Mathf.Lerp(0.05f, 0.6f, cameraResponsiveness);
+    private float FollowSpeed => Mathf.Lerp(5f, 25f, cameraResponsiveness);
+    private float RotationLerpSpeed => Mathf.Lerp(2f, 20f, cameraResponsiveness);
+
+    public bool IsInViewMode => isInViewMode;
     public int CurrentAngleIndex => currentAngleIndex;
     
     private void Awake()
     {
         cameraComponent = GetComponent<Camera>();
-        // Set initial offset to first preset (North view)
         offset = presetOffsets[0];
     }
     
     private void Start()
     {
         tim = FindFirstObjectByType<CharacterMovement>();
-        
-        if (findPlayerAutomatically && target == null)
-        {
-            FindPlayerTarget();
-        }
-        
-        if (target == null)
-        {
-            Debug.LogWarning("CameraFollow: No target found! Please assign a target or ensure a CharacterMovement exists in the scene.");
-            enabled = false;
-        }
+        if (findPlayerAutomatically && target == null) FindPlayerTarget();
     }
     
     private void FindPlayerTarget()
     {
-        if (tim != null)
-        {
-            target = tim.transform;
-        }
+        if (tim != null) target = tim.transform;
     }
     
     private void LateUpdate()
@@ -81,7 +83,15 @@ public class CameraFollow : MonoBehaviour
         if (target == null) return;
         
         HandleInput();
-        UpdateCameraPosition();
+        
+        if (isInViewMode)
+        {
+            UpdateViewMode();
+        }
+        else
+        {
+            UpdateCameraPosition();
+        }
         
         if (lookAtTarget)
         {
@@ -89,144 +99,142 @@ public class CameraFollow : MonoBehaviour
         }
     }
     
-    private void UpdateCameraPosition()
-    {
-        Vector3 targetPosition = CalculateTargetPosition();
-        
-        if (smoothDamping)
-        {
-            transform.position = Vector3.SmoothDamp(
-                transform.position, 
-                targetPosition, 
-                ref velocity, 
-                dampingTime
-            );
-        }
-        else
-        {
-            transform.position = Vector3.Lerp(
-                transform.position, 
-                targetPosition, 
-                followSpeed * Time.deltaTime
-            );
-        }
-    }
-    
     private void HandleInput()
     {
-        // Only allow camera rotation when Tim is stationary
-        bool isTimStationary = IsTimStationary();
-        
-        // Check for reset key (always works)
         if (Keyboard.current != null && Keyboard.current[resetKey].wasPressedThisFrame)
         {
             ResetToDefault();
         }
-        
-        // Check for clockwise rotation (X key) - only when stationary
-        if (isTimStationary && Keyboard.current != null && Keyboard.current[clockwiseKey].wasPressedThisFrame)
+
+        if (Mouse.current != null)
         {
-            CycleClockwise();
+            if (Mouse.current.middleButton.wasPressedThisFrame)
+            {
+                mouseStartPos = Mouse.current.position.ReadValue();
+                mouseActive = true;
+            }
+
+            if (mouseActive && Mouse.current.middleButton.isPressed)
+            {
+                Vector2 currentMousePos = Mouse.current.position.ReadValue();
+                float deltaX = currentMousePos.x - mouseStartPos.x;
+
+                if (!isInViewMode && Time.time - lastRotationTime > ROTATION_COOLDOWN)
+                {
+                    if (Mathf.Abs(deltaX) > swipeThreshold)
+                    {
+                        if (deltaX > 0) CycleClockwise();
+                        else CycleCounterClockwise();
+                        mouseStartPos = currentMousePos;
+                    }
+                }
+            }
+
+            if (Keyboard.current != null && Keyboard.current.altKey.isPressed && Mouse.current.middleButton.isPressed)
+            {
+                if (!isInViewMode) EnterViewMode();
+            }
+            else if (isInViewMode)
+            {
+                ExitViewMode();
+            }
+
+            if (Mouse.current.middleButton.wasReleasedThisFrame)
+            {
+                mouseActive = false;
+            }
         }
-        
-        // Check for counterclockwise rotation (Z key) - only when stationary
-        if (isTimStationary && Keyboard.current != null && Keyboard.current[counterClockwiseKey].wasPressedThisFrame)
+
+        if (!isInViewMode && Time.time - lastRotationTime > ROTATION_COOLDOWN)
         {
-            CycleCounterClockwise();
+            if (Keyboard.current != null && Keyboard.current[clockwiseKey].wasPressedThisFrame)
+            {
+                CycleClockwise();
+            }
+            else if (Keyboard.current != null && Keyboard.current[counterClockwiseKey].wasPressedThisFrame)
+            {
+                CycleCounterClockwise();
+            }
         }
     }
-    
-    private bool IsTimStationary()
+
+    private void EnterViewMode()
     {
-        if (tim == null) return true;
-        return tim.IsStationary;
+        isInViewMode = true;
+        targetOrbitYaw = currentAngleIndex * 90f;
+        currentOrbitYaw = targetOrbitYaw;
+        if (tim != null) tim.SetMovementEnabled(false);
     }
-    
+
+    private void ExitViewMode()
+    {
+        isInViewMode = false;
+        float normalizedYaw = (currentOrbitYaw % 360 + 360) % 360;
+        currentAngleIndex = Mathf.RoundToInt(normalizedYaw / 90f) % 4;
+        offset = presetOffsets[currentAngleIndex];
+        lastRotationTime = Time.time;
+        if (tim != null) tim.SetMovementEnabled(true);
+    }
+
+    private void UpdateViewMode()
+    {
+        if (Mouse.current != null)
+        {
+            float deltaX = Mouse.current.delta.x.ReadValue();
+            targetOrbitYaw += deltaX * OrbitSensitivity;
+        }
+
+        currentOrbitYaw = Mathf.SmoothDampAngle(currentOrbitYaw, targetOrbitYaw, ref orbitVelocity, 0.08f);
+        float rad = currentOrbitYaw * Mathf.Deg2Rad;
+        
+        float dist = new Vector2(presetOffsets[0].x, presetOffsets[0].z).magnitude;
+        Vector3 orbitOffset = new Vector3(Mathf.Sin(rad) * dist, presetOffsets[0].y, Mathf.Cos(rad) * dist);
+        
+        transform.position = Vector3.Lerp(transform.position, target.position + orbitOffset, FollowSpeed * Time.deltaTime);
+    }
+
+    private void UpdateCameraPosition()
+    {
+        Vector3 targetPosition = CalculateTargetPosition();
+        transform.position = Vector3.SmoothDamp(transform.position, targetPosition, ref velocity, DampingTime);
+    }
+
     private void CycleClockwise()
     {
         currentAngleIndex = (currentAngleIndex + 1) % presetOffsets.Length;
         offset = presetOffsets[currentAngleIndex];
+        lastRotationTime = Time.time;
     }
     
     private void CycleCounterClockwise()
     {
         currentAngleIndex = (currentAngleIndex - 1 + presetOffsets.Length) % presetOffsets.Length;
         offset = presetOffsets[currentAngleIndex];
+        lastRotationTime = Time.time;
     }
     
     private void ResetToDefault()
     {
         currentAngleIndex = 0;
-        offset = presetOffsets[0]; // North view
+        offset = presetOffsets[0];
+        lastRotationTime = Time.time;
     }
     
     private Vector3 CalculateTargetPosition()
     {
-        Vector3 targetPosition = target.position + offset;
-        
-        if (constrainY)
-        {
-            targetPosition.y = fixedYPosition;
-        }
-        
-        return targetPosition;
+        Vector3 targetPos = target.position + offset;
+        if (constrainY) targetPos.y = fixedYPosition;
+        return targetPos;
     }
     
     private void UpdateCameraRotation()
     {
-        Vector3 lookAtPosition = target.position + lookAtOffset;
-        Vector3 direction = (lookAtPosition - transform.position).normalized;
-        
+        Vector3 lookAtPos = target.position + lookAtOffset;
+        Vector3 direction = (lookAtPos - transform.position).normalized;
         if (direction != Vector3.zero)
         {
-            Quaternion targetRotation = Quaternion.LookRotation(direction);
-            transform.rotation = Quaternion.Slerp(
-                transform.rotation, 
-                targetRotation, 
-                rotationSpeed * Time.deltaTime
-            );
-        }
-    }
-    
-    public void SetTarget(Transform newTarget)
-    {
-        target = newTarget;
-    }
-    
-    public void SetOffset(Vector3 newOffset)
-    {
-        offset = newOffset;
-    }
-    
-    public void SetFollowSpeed(float newSpeed)
-    {
-        followSpeed = Mathf.Max(0f, newSpeed);
-    }
-    
-    private void OnDrawGizmosSelected()
-    {
-        if (target == null) return;
-        
-        // Draw connection to target
-        Gizmos.color = Color.green;
-        Gizmos.DrawLine(transform.position, target.position);
-        
-        // Draw target position
-        Gizmos.color = Color.red;
-        Gizmos.DrawWireSphere(target.position, 0.5f);
-        
-        // Draw offset visualization
-        Vector3 targetPos = CalculateTargetPosition();
-        Gizmos.color = Color.blue;
-        Gizmos.DrawWireSphere(targetPos, 0.3f);
-        
-        // Draw look at position
-        if (lookAtTarget)
-        {
-            Vector3 lookPos = target.position + lookAtOffset;
-            Gizmos.color = Color.yellow;
-            Gizmos.DrawWireSphere(lookPos, 0.2f);
-            Gizmos.DrawLine(transform.position, lookPos);
+            Quaternion targetRot = Quaternion.LookRotation(direction);
+            transform.rotation = Quaternion.Slerp(transform.rotation, targetRot, RotationLerpSpeed * Time.deltaTime);
         }
     }
 }
