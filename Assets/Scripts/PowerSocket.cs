@@ -65,6 +65,9 @@ public class PowerSocket : MonoBehaviour
     private void ProcessIncomingPower(Color color, int sourceMW, int distance)
     {
         bool wasSatisfied = isSatisfied;
+        Color lastColor = incomingColor;
+        int lastMW = availableMW;
+
         incomingColor = color;
         availableMW = sourceMW - distance;
 
@@ -74,66 +77,20 @@ public class PowerSocket : MonoBehaviour
 
         isSatisfied = colorMatches && powerSufficient;
 
-        if (isSatisfied && !wasSatisfied)
+        if (isSatisfied != wasSatisfied || incomingColor != lastColor || availableMW != lastMW)
         {
-            LogPowerState(true);
-        }
-        else if (!isSatisfied && incomingColor != Color.clear)
-        {
-            LogPowerState(false);
-        }
-    }
-
-    private void LogPowerState(bool satisfied)
-    {
-        string colorName = "Unknown";
-        if (ColorManager.Instance != null)
-        {
-            string[] names = ColorManager.Instance.GetColorNames();
-            if (requiredColorIndex >= 0 && requiredColorIndex < names.Length)
-                colorName = names[requiredColorIndex];
-        }
-
-        ForgottenGate parentGate = GetComponentInParent<ForgottenGate>();
-        int totalActive = 0;
-        int currentSatisfied = 0;
-        if (parentGate != null)
-        {
-            PowerSocket[] all = parentGate.GetComponentsInChildren<PowerSocket>(true);
-            foreach (var s in all)
-            {
-                if (s.isActive)
-                {
-                    totalActive++;
-                    if (s.isSatisfied) currentSatisfied++;
-                }
-            }
-        }
-
-        if (satisfied)
-        {
-            Debug.Log($"{gameObject.name} powered with the required {colorName} color. {availableMW}/{requiredMW}MW supplied. {currentSatisfied} out of {totalActive} power conditions met.");
-        }
-        else
-        {
-            Debug.Log($"{gameObject.name} not powered with the required color. {availableMW}/{requiredMW}MW supplied. {currentSatisfied} out of {totalActive} power conditions met.");
+            GetComponentInParent<ForgottenGate>()?.LogGateStatus();
         }
     }
 
     private void ClearPower()
     {
-        if (isSatisfied || incomingColor != Color.clear)
+        if (incomingColor != Color.clear)
         {
             isSatisfied = false;
             incomingColor = Color.clear;
             availableMW = 0;
-            LogPowerState(false);
-        }
-        else
-        {
-            isSatisfied = false;
-            incomingColor = Color.clear;
-            availableMW = 0;
+            GetComponentInParent<ForgottenGate>()?.LogGateStatus();
         }
     }
 

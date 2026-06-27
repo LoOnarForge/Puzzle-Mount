@@ -27,6 +27,7 @@ public class PowerSourceEditor : Editor
         EditorGUILayout.LabelField("POWER SOURCE SETTINGS", EditorStyles.boldLabel);
         EditorGUILayout.PropertyField(serializedObject.FindProperty("colorIndex"));
         EditorGUILayout.PropertyField(serializedObject.FindProperty("maxPower"));
+        EditorGUILayout.PropertyField(serializedObject.FindProperty("sourceCrystals"));
 
         EditorGUILayout.Space();
         if (GUILayout.Button("RESET TOP FACE"))

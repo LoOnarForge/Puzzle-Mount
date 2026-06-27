@@ -26,8 +26,15 @@ public class PowerSource : MonoBehaviour
 
     public SpriteRenderer powerSprite;
 
+    [Header("VISUAL CRYSTALS")]
+    public List<Renderer> sourceCrystals = new List<Renderer>();
+    private static readonly int BaseColorProperty = Shader.PropertyToID("_BaseColor");
+    private static readonly int EmissionColorProperty = Shader.PropertyToID("_EmissionColor");
+    private MaterialPropertyBlock propBlock;
+
     private void Awake()
     {
+        propBlock = new MaterialPropertyBlock();
         if (topFaceTransform != null)
         {
             Transform spriteChild = topFaceTransform.Find("Power Line Sprite");
@@ -64,6 +71,39 @@ public class PowerSource : MonoBehaviour
                 if (sr != null) sr.color = powerColor;
             }
         }
+
+        UpdateCrystalVisuals();
+    }
+
+    private void UpdateCrystalVisuals()
+    {
+        if (propBlock == null) propBlock = new MaterialPropertyBlock();
+        
+        Color targetColor = powerColor;
+        // If not playing, we need to fetch color manually for the preview
+        if (!Application.isPlaying)
+        {
+            ColorManager colorPalette = Object.FindAnyObjectByType<ColorManager>();
+            if (colorPalette != null) targetColor = colorPalette.GetColor(colorIndex);
+        }
+
+        foreach (var r in sourceCrystals)
+        {
+            if (r == null) continue;
+
+            Material targetMat = Application.isPlaying ? r.material : r.sharedMaterial;
+            if (targetMat != null) targetMat.EnableKeyword("_EMISSION");
+
+            r.GetPropertyBlock(propBlock);
+            propBlock.SetColor(BaseColorProperty, targetColor);
+            propBlock.SetColor(EmissionColorProperty, targetColor * 2f);
+            r.SetPropertyBlock(propBlock);
+        }
+    }
+
+    private void OnValidate()
+    {
+        UpdateCrystalVisuals();
     }
 
     public void RunBFS()
