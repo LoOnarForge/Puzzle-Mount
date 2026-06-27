@@ -9,7 +9,6 @@ using UnityEngine;
 public class PowerReceiverBase : MonoBehaviour
 {
     [Header("FINAL RECEIVERS - assign only one")]
-    public ForgottenGate door;
     public LeverReceiver lever;
 
     [Header("DEBUG")]
@@ -24,7 +23,6 @@ public class PowerReceiverBase : MonoBehaviour
         currentColor = incomingColor;
         currentPower = incomingPower;
 
-        door?.PassColorAndPower(incomingColor, incomingPower);
         lever?.PassColorAndPower(incomingColor, incomingPower);
     }
 
@@ -37,7 +35,6 @@ public class PowerReceiverBase : MonoBehaviour
         currentColor = Color.clear;
         currentPower = 0;
 
-        door?.OnPowerLost();
         lever?.OnPowerLost();
     }
 }

@@ -146,6 +146,7 @@ public class PowerSource : MonoBehaviour
         trigger.isPowered = true;
         trigger.currentPowerColor = powerColor;
         trigger.distanceFromSource = 0;
+        trigger.sourceMW = maxPower;
         
         visitedTriggers.Add(trigger);
         queue.Enqueue(trigger);
@@ -162,6 +163,7 @@ public class PowerSource : MonoBehaviour
         trigger.isPowered = true;
         trigger.currentPowerColor = powerColor;
         trigger.distanceFromSource = distance;
+        trigger.sourceMW = maxPower;
         
         visited.Add(trigger);
         queue.Enqueue(trigger);

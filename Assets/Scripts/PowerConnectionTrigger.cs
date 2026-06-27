@@ -13,6 +13,7 @@ public class PowerConnectionTrigger : MonoBehaviour
     public RunodePower neighboursRunodePower;
     public PowerConnectionTrigger currentNeighbor; // Keeping for inspector debugging, but logic will ignore it
     public int distanceFromSource = 0;
+    public int sourceMW = 0;
 
     private void Awake()
     {
@@ -42,6 +43,7 @@ public class PowerConnectionTrigger : MonoBehaviour
         isPowered = false;
         currentPowerColor = Color.white;
         distanceFromSource = 0;
+        sourceMW = 0;
     }
 
     // Sets obstructed state. BFS filters via isObstructed; neighbor reference is preserved for restoration.
