@@ -1,10 +1,8 @@
 using UnityEngine;
 using UnityEngine.InputSystem;
 
-/// Handles Leya's 6DOF flight with directional speed balancing and physical collision.
-/// Uses Rigidbody linearVelocity to ensure the Sphere Collider stops at obstacles.
-[RequireComponent(typeof(Rigidbody))]
-[RequireComponent(typeof(SphereCollider))]
+/// Handles Leya's flight using CharacterController for non-intrusive collision.
+[RequireComponent(typeof(CharacterController))]
 public class LeyasCamera : MonoBehaviour
 {
     [Header("TARGET")]
@@ -14,17 +12,11 @@ public class LeyasCamera : MonoBehaviour
     public float baseMoveSpeed = 8f;
     public float lookSensitivity = 0.15f;
     public float maxRadius = 15f;
-    public LayerMask collisionLayers;
-    
-    [Header("BIRD FEEL (BOBBING)")]
-    public float bobFrequency = 2f;
-    public float bobAmplitude = 1f; // 1 in inspector = 0.001 in code
-    public float rotationNoiseStrength = 0.5f;
 
     [Header("UI")]
     public Sprite inspectionVignette;
 
-    private Rigidbody rb;
+    private CharacterController controller;
     private float yaw;
     private float pitch;
     private bool isActive = false;
@@ -32,23 +24,12 @@ public class LeyasCamera : MonoBehaviour
 
     private void Awake()
     {
-        rb = GetComponent<Rigidbody>();
-        
-        // PHYSICAL SETUP
-        rb.isKinematic = false;
-        rb.useGravity = false;
-        rb.linearDamping = 10f; 
-        rb.constraints = RigidbodyConstraints.FreezeRotation;
-        rb.interpolation = RigidbodyInterpolation.Interpolate;
-
-        SphereCollider sphere = GetComponent<SphereCollider>();
-        sphere.radius = 0.35f; // 0.7m total width
-
+        controller = GetComponent<CharacterController>();
         menuManager = FindFirstObjectByType<MenuManager>(FindObjectsInactive.Include);
-        
         gameObject.SetActive(false);
     }
 
+    // Activates Leya at the specified position and rotation.
     public void Activate(Vector3 startPosition, Quaternion startRotation)
     {
         isActive = true;
@@ -61,14 +42,13 @@ public class LeyasCamera : MonoBehaviour
         yaw = euler.y;
         pitch = euler.x;
 
-        rb.linearVelocity = Vector3.zero;
-
         Cursor.lockState = CursorLockMode.Locked;
         Cursor.visible = false;
         
         if (menuManager != null) menuManager.SetInspectionModeUI(true);
     }
 
+    // Deactivates Leya and restores cursor state.
     public void Deactivate()
     {
         isActive = false;
@@ -80,7 +60,7 @@ public class LeyasCamera : MonoBehaviour
         if (menuManager != null) menuManager.SetInspectionModeUI(false);
     }
 
-    private void LateUpdate()
+    private void Update()
     {
         if (!isActive || Keyboard.current == null || Mouse.current == null) return;
 
@@ -95,46 +75,40 @@ public class LeyasCamera : MonoBehaviour
         pitch -= mouseDelta.y * lookSensitivity;
         pitch = Mathf.Clamp(pitch, -89f, 89f);
         
-        Quaternion targetRotation = Quaternion.Euler(pitch, yaw, 0f);
-        
-        float noiseX = (Mathf.PerlinNoise(Time.time, 0) - 0.5f) * rotationNoiseStrength;
-        float noiseY = (Mathf.PerlinNoise(0, Time.time) - 0.5f) * rotationNoiseStrength;
-        
-        transform.rotation = targetRotation * Quaternion.Euler(noiseX, noiseY, 0);
+        transform.rotation = Quaternion.Euler(pitch, yaw, 0f);
     }
 
     private void HandleMovement()
     {
-        Vector3 movement = Vector3.zero;
+        Vector3 direction = Vector3.zero;
 
-        // 1. Directional Input & Speeds
-        if (Keyboard.current[Key.W].isPressed) movement += transform.forward * (baseMoveSpeed * 1.2f);
-        if (Keyboard.current[Key.S].isPressed) movement -= transform.forward * (baseMoveSpeed * 0.4f);
-        if (Keyboard.current[Key.A].isPressed) movement -= transform.right * (baseMoveSpeed * 0.8f);
-        if (Keyboard.current[Key.D].isPressed) movement += transform.right * (baseMoveSpeed * 0.8f);
+        if (Keyboard.current[Key.W].isPressed) direction += transform.forward;
+        if (Keyboard.current[Key.S].isPressed) direction -= transform.forward;
+        if (Keyboard.current[Key.A].isPressed) direction -= transform.right;
+        if (Keyboard.current[Key.D].isPressed) direction += transform.right;
 
-        if (Keyboard.current[Key.Q].isPressed) movement += Vector3.down * (baseMoveSpeed * 0.5f);
-        if (Keyboard.current[Key.E].isPressed || Keyboard.current[Key.Space].isPressed) movement += Vector3.up * (baseMoveSpeed * 0.5f);
+        // Vertical movement with Q and E
+        if (Keyboard.current[Key.Q].isPressed) direction += Vector3.down;
+        if (Keyboard.current[Key.E].isPressed) direction += Vector3.up;
 
-        // 2. Bobbing (Derivative)
-        float scaledAmp = bobAmplitude * 0.001f;
-        float bobVelocityY = Mathf.Cos(Time.time * bobFrequency) * bobFrequency * scaledAmp;
-        movement.y += bobVelocityY;
-
-        // 3. Range Clamping
-        if (timTransform != null)
+        if (direction.sqrMagnitude > 0.001f)
         {
-            Vector3 offset = transform.position - timTransform.position;
-            if (offset.magnitude > maxRadius)
+            Vector3 movement = direction.normalized * baseMoveSpeed * Time.deltaTime;
+
+            if (timTransform != null)
             {
-                if (Vector3.Dot(movement, offset.normalized) > 0)
+                Vector3 currentOffset = transform.position - timTransform.position;
+                if (currentOffset.magnitude >= maxRadius)
                 {
-                    movement = Vector3.ProjectOnPlane(movement, offset.normalized);
+                    Vector3 normal = currentOffset.normalized;
+                    if (Vector3.Dot(movement, normal) > 0)
+                    {
+                        movement = Vector3.ProjectOnPlane(movement, normal);
+                    }
                 }
             }
-        }
 
-        // 4. Set Physical Velocity
-        rb.linearVelocity = movement;
+            controller.Move(movement);
+        }
     }
 }
