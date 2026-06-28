@@ -288,6 +288,8 @@ public class CharacterMovement : MonoBehaviour
     
     private void OnJump(InputAction.CallbackContext context)
     {
+        if (!isMovementEnabled) return;
+
         if (isGrounded)
         {
             Vector3 currentMovement = GetMovementDirectionInternal();

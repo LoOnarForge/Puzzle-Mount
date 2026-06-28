@@ -12,6 +12,7 @@ public class MenuManager : MonoBehaviour
     private VisualElement _menuButtons;
     private VisualElement _confirmDialog;
     private VisualElement _movementIcon;
+    private VisualElement _inspectionVignette;
 
     private bool _isPaused = false;
     private bool _isMenuOpen = false;
@@ -29,6 +30,7 @@ public class MenuManager : MonoBehaviour
         _menuButtons = root.Q<VisualElement>("MenuButtonsContainer");
         _confirmDialog = root.Q<VisualElement>("ConfirmDialog");
         _movementIcon = root.Q<VisualElement>("MovementIcon");
+        _inspectionVignette = root.Q<VisualElement>("InspectionVignette");
 
         root.Q<Button>("RestartButton").clicked += RestartLevel;
         root.Q<Button>("SettingsButton").clicked += OpenSettings;
@@ -37,6 +39,13 @@ public class MenuManager : MonoBehaviour
         
         root.Q<Button>("ConfirmYes").clicked += ExecuteConfirmedAction;
         root.Q<Button>("ConfirmNo").clicked += () => _confirmDialog.style.display = DisplayStyle.None;
+
+        // Initialize Vignette sprite if available
+        var leya = Object.FindFirstObjectByType<LeyasCamera>(FindObjectsInactive.Include);
+        if (leya != null && leya.inspectionVignette != null)
+        {
+            _inspectionVignette.style.backgroundImage = new StyleBackground(leya.inspectionVignette);
+        }
 
         // Initialize HUD icon state
         var interaction = Object.FindFirstObjectByType<TimCubeInteraction>();
@@ -165,5 +174,11 @@ public class MenuManager : MonoBehaviour
             _movementIcon.AddToClassList("mode-fast");
             _movementIcon.RemoveFromClassList("mode-precise");
         }
+    }
+
+    public void SetInspectionModeUI(bool active)
+    {
+        if (_inspectionVignette == null) return;
+        _inspectionVignette.style.display = active ? DisplayStyle.Flex : DisplayStyle.None;
     }
 }
