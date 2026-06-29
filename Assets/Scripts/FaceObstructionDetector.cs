@@ -74,10 +74,13 @@ public class FaceObstructionDetector : MonoBehaviour
 
             foreach (var col in obstructors)
             {
-                // IRONCLAD: Only count as obstruction if the object is NOT currently moving/rotating.
-                // This prevents "black line flicker" during animations.
                 RunodeMovement move = col.GetComponentInParent<RunodeMovement>();
-                if (move != null && move.IsBusy) continue;
+                if (move != null && move.IsBusy)
+                {
+                    // Treat moving cube as still obstructing — avoids mid-move flicker
+                    isCurrentlyObstructed = true;
+                    break;
+                }
 
                 isCurrentlyObstructed = true;
                 break;
