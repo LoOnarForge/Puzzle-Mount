@@ -138,19 +138,19 @@ public class CameraFollow : MonoBehaviour
         }
     }
 
-    private void CycleClockwise()
+    public void CycleClockwise()
     {
         currentAngleIndex = (currentAngleIndex + 1) % presetOffsets.Length;
         offset = presetOffsets[currentAngleIndex];
     }
     
-    private void CycleCounterClockwise()
+    public void CycleCounterClockwise()
     {
         currentAngleIndex = (currentAngleIndex - 1 + presetOffsets.Length) % presetOffsets.Length;
         offset = presetOffsets[currentAngleIndex];
     }
     
-    private void ResetToDefault()
+    public void ResetToDefault()
     {
         currentAngleIndex = 0;
         offset = presetOffsets[0];

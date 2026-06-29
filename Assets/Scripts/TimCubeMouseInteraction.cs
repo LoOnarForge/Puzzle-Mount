@@ -16,11 +16,16 @@ public class TimCubeMouseInteraction : MonoBehaviour
     [Header("JUICE SETTINGS:")]
     public float squashAmount = 0.15f;
 
+    [Header("CAMERA ROTATION SETTINGS:")]
+    public float cameraRotationThreshold = 50.0f;
+    public float cameraRotationCooldown = 0.25f;
+
     [HideInInspector] public bool isRotating = false;
 
     private Transform timTransform;
     private CharacterMovement characterMovement;
     private PlayerAnimator playerAnimator;
+    private CameraFollow cameraFollow;
 
     private bool isMouseRotating = false;
     private bool hasTriggeredMouseRotation = false;
@@ -28,11 +33,16 @@ public class TimCubeMouseInteraction : MonoBehaviour
     private Vector2 lastMousePosition;
     private Vector3 mouseHitNormal;
 
+    private bool isCameraDragging = false;
+    private Vector2 cameraDragStartPos;
+    private float lastCameraRotationTime;
+
     private void Awake()
     {
         timTransform = transform;
         characterMovement = GetComponent<CharacterMovement>();
         playerAnimator = GetComponent<PlayerAnimator>();
+        cameraFollow = FindFirstObjectByType<CameraFollow>();
     }
 
     private RunodeHighlighter lastHighlighter;
@@ -40,8 +50,42 @@ public class TimCubeMouseInteraction : MonoBehaviour
     private void Update()
     {
         HandleMouseRotation();
+        HandleCameraRotation();
         UpdateGaze();
         UpdateHighlight();
+    }
+
+    private void HandleCameraRotation()
+    {
+        if (Mouse.current == null || cameraFollow == null || cameraFollow.IsInspectionMode) return;
+
+        if (Mouse.current.middleButton.wasPressedThisFrame)
+        {
+            cameraDragStartPos = Mouse.current.position.ReadValue();
+            isCameraDragging = true;
+        }
+
+        if (isCameraDragging && Mouse.current.middleButton.isPressed)
+        {
+            if (Time.time < lastCameraRotationTime + cameraRotationCooldown) return;
+
+            Vector2 currentPos = Mouse.current.position.ReadValue();
+            float deltaX = currentPos.x - cameraDragStartPos.x;
+
+            if (Mathf.Abs(deltaX) > cameraRotationThreshold)
+            {
+                if (deltaX > 0) cameraFollow.CycleClockwise();
+                else cameraFollow.CycleCounterClockwise();
+
+                cameraDragStartPos = currentPos;
+                lastCameraRotationTime = Time.time;
+            }
+        }
+
+        if (Mouse.current.middleButton.wasReleasedThisFrame)
+        {
+            isCameraDragging = false;
+        }
     }
 
     private void UpdateHighlight()
