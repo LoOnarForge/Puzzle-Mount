@@ -79,12 +79,17 @@ public class RunodeHighlighter : MonoBehaviour
         // 3. Power Line Darkening Logic
         if (darkenLinesOnHighlight && powerSystem != null)
         {
-            // Darken ONLY if hovered AND actually in range (rotatable)
             bool shouldDarken = isHovered && isInRange;
-            Color targetLine = shouldDarken ? lineDarkenedColor : powerSystem.currentPowerColor;
-            currentLineColor = Color.Lerp(currentLineColor, targetLine, Time.deltaTime * transitionSpeed);
-
-            ApplyColorToAllLines(currentLineColor);
+            if (shouldDarken)
+            {
+                currentLineColor = Color.Lerp(currentLineColor, lineDarkenedColor, Time.deltaTime * transitionSpeed);
+                ApplyColorToAllLines(currentLineColor);
+            }
+            else if (currentLineColor != Color.white)
+            {
+                currentLineColor = Color.white;
+                powerSystem.RefreshFaceVisuals(powerSystem.currentPowerColor);
+            }
         }
     }
 
