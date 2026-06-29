@@ -18,7 +18,6 @@ public class TimCubeMouseInteraction : MonoBehaviour
 
     [Header("CAMERA ROTATION SETTINGS:")]
     public float cameraRotationThreshold = 50.0f;
-    public float cameraRotationCooldown = 0.25f;
 
     [HideInInspector] public bool isRotating = false;
 
@@ -35,7 +34,6 @@ public class TimCubeMouseInteraction : MonoBehaviour
 
     private bool isCameraDragging = false;
     private Vector2 cameraDragStartPos;
-    private float lastCameraRotationTime;
 
     private void Awake()
     {
@@ -67,8 +65,6 @@ public class TimCubeMouseInteraction : MonoBehaviour
 
         if (isCameraDragging && Mouse.current.middleButton.isPressed)
         {
-            if (Time.time < lastCameraRotationTime + cameraRotationCooldown) return;
-
             Vector2 currentPos = Mouse.current.position.ReadValue();
             float deltaX = currentPos.x - cameraDragStartPos.x;
 
@@ -78,7 +74,6 @@ public class TimCubeMouseInteraction : MonoBehaviour
                 else cameraFollow.CycleCounterClockwise();
 
                 cameraDragStartPos = currentPos;
-                lastCameraRotationTime = Time.time;
             }
         }
 

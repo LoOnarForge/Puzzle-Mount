@@ -27,6 +27,7 @@ public class CameraFollow : MonoBehaviour
     public Key counterClockwiseKey = Key.Q;
     public Key resetKey = Key.R;
     public Key inspectionToggleKey = Key.Tab;
+    public float rotationCooldown = 0.25f;
 
     [Header("INSPECTION MODE (LEYA)")]
     public LeyasCamera leyaController;
@@ -37,6 +38,7 @@ public class CameraFollow : MonoBehaviour
     private Vector3 velocity = Vector3.zero;
     private CharacterMovement tim;
     private Camera actionCamera;
+    private float lastRotationTime;
     
     private Vector3[] presetOffsets = new Vector3[]
     {
@@ -140,19 +142,28 @@ public class CameraFollow : MonoBehaviour
 
     public void CycleClockwise()
     {
+        if (Time.unscaledTime < lastRotationTime + rotationCooldown) return;
+
         currentAngleIndex = (currentAngleIndex + 1) % presetOffsets.Length;
         offset = presetOffsets[currentAngleIndex];
+        lastRotationTime = Time.unscaledTime;
     }
     
     public void CycleCounterClockwise()
     {
+        if (Time.unscaledTime < lastRotationTime + rotationCooldown) return;
+
         currentAngleIndex = (currentAngleIndex - 1 + presetOffsets.Length) % presetOffsets.Length;
         offset = presetOffsets[currentAngleIndex];
+        lastRotationTime = Time.unscaledTime;
     }
     
     public void ResetToDefault()
     {
+        if (Time.unscaledTime < lastRotationTime + rotationCooldown) return;
+
         currentAngleIndex = 0;
         offset = presetOffsets[0];
+        lastRotationTime = Time.unscaledTime;
     }
 }
