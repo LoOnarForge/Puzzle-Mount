@@ -18,8 +18,7 @@ public class TimCubeInteraction : MonoBehaviour
     public float precisePushInterval = 0.5f;
 
     [Header("CUBE SELECTION:")]
-    [SerializeField] private RunodeMovement detectedCube = null;
-    [SerializeField] private RunodeMovement highlightedCube = null;
+    [SerializeField] private RunodeMovement pushableRunode = null;
     [HideInInspector] public float detectionTolerance = 0.6f;
 
     private Transform timTransform;
@@ -37,21 +36,11 @@ public class TimCubeInteraction : MonoBehaviour
     private bool isFirstPush = true;
     private bool isPushingThisFrame;
     
-    // Highlighted cube tracking
-    private RunodeMovement currentlyHighlightedCube = null;
-    
     // Tim's own cube selection system
-    private RunodeMovement[] currentStack = null;
-    private int selectedIndex = 0;
-    private RunodeMovement selectedCube = null;
-    
-    // Cache for performance optimization
     private RunodeMovement[] allCubesCache = null;
     private float lastCubesCacheTime = 0f;
     private const float CACHE_REFRESH_INTERVAL = 1.0f;
     
-    public RunodeMovement GetHighlightedCube() { return currentlyHighlightedCube; }
-
     private void Awake()
     {
         timTransform = transform;
@@ -92,46 +81,17 @@ public class TimCubeInteraction : MonoBehaviour
             RunodeMovement hitCube = hit.collider.GetComponentInParent<RunodeMovement>();
             if (hitCube != null)
             {
-                detectedCube = hitCube;
-                HandleCubeHighlighting(hitCube);
+                pushableRunode = hitCube;
                 HandleCubePushing(hitCube);
             }
             else
             {
-                detectedCube = null;
-                HandleCubeHighlighting(null);
+                pushableRunode = null;
             }
         }
         else
         {
-            detectedCube = null;
-            HandleCubeHighlighting(null);
-        }
-    }
-
-    private void HandleCubeHighlighting(RunodeMovement hitCube)
-    {
-        if (hitCube != null && IsReasonablyAlignedForDetection(hitCube.transform))
-        {
-            if (currentlyHighlightedCube != hitCube)
-            {
-                currentlyHighlightedCube = hitCube;
-                currentStack = GetStackFromHighlightedCube(hitCube);
-                selectedIndex = 0;
-                selectedCube = (currentStack != null && currentStack.Length > 0) ? currentStack[0] : null;
-                highlightedCube = selectedCube;
-            }
-        }
-        else
-        {
-            if (currentlyHighlightedCube != null)
-            {
-                currentlyHighlightedCube = null;
-                currentStack = null;
-                selectedCube = null;
-                selectedIndex = 0;
-                highlightedCube = null;
-            }
+            pushableRunode = null;
         }
     }
 
@@ -142,7 +102,7 @@ public class TimCubeInteraction : MonoBehaviour
         
         if (hitCube != null && IsProperlyAlignedToPush(hitCube.transform, timTransform.forward))
         {
-            RunodeMovement[] stackFromTimLevel = GetStackFromHighlightedCube();
+            RunodeMovement[] stackFromTimLevel = GetStackFromCube(hitCube);
             if (stackFromTimLevel.Length > 3) return;
             
             isPushingThisFrame = true;
@@ -161,24 +121,13 @@ public class TimCubeInteraction : MonoBehaviour
             
             if (!isDelayActive)
             {
-                RunodeMovement[] currentStack = GetStackFromHighlightedCube(hitCube);
+                RunodeMovement[] currentStack = GetStackFromCube(hitCube);
                 bool pushSuccess = TryPushStack(currentStack, pushDirection);
                 if (pushSuccess) StartContinuousPushDelay();
             }      
         }
     }
 
-    public bool IsReasonablyAlignedForDetection(Transform cubeTransform)
-    {
-        Vector3 cubeCenter = cubeTransform.position;
-        Vector3 timPos = timTransform.position;
-        Vector3 localOffset = timPos - cubeCenter;
-        float absX = Mathf.Abs(localOffset.x);
-        float absZ = Mathf.Abs(localOffset.z);
-        if (absX > absZ) return Mathf.Abs(localOffset.z) < detectionTolerance;
-        else return Mathf.Abs(localOffset.x) < detectionTolerance;
-    }
-    
     public bool IsProperlyAlignedToPush(Transform cubeTransform, Vector3 pushDirection)
     {
         Vector3 cubeCenter = cubeTransform.position;
@@ -219,16 +168,15 @@ public class TimCubeInteraction : MonoBehaviour
         return allCubesCache;
     }
     
-    private RunodeMovement[] GetStackFromHighlightedCube(RunodeMovement targetCube = null)
+    private RunodeMovement[] GetStackFromCube(RunodeMovement targetCube)
     {
-        RunodeMovement baseCube = targetCube ?? currentlyHighlightedCube;
-        if (baseCube == null) return new RunodeMovement[0];
-        List<RunodeMovement> stack = new List<RunodeMovement> { baseCube };
+        if (targetCube == null) return new RunodeMovement[0];
+        List<RunodeMovement> stack = new List<RunodeMovement> { targetCube };
         RunodeMovement[] allCubes = GetAllCubesOptimized();
-        Vector3 basePos = baseCube.transform.position;
+        Vector3 basePos = targetCube.transform.position;
         foreach (RunodeMovement cube in allCubes)
         {
-            if (cube == baseCube) continue;
+            if (cube == targetCube) continue;
             Vector3 cubePos = cube.transform.position;
             bool isAligned = Mathf.Abs(cubePos.x - basePos.x) < 0.1f && Mathf.Abs(cubePos.z - basePos.z) < 0.1f;
             bool isAbove = cubePos.y > basePos.y;
@@ -237,18 +185,6 @@ public class TimCubeInteraction : MonoBehaviour
         stack.Sort((a, b) => a.transform.position.y.CompareTo(b.transform.position.y));
         return stack.ToArray();
     }
-    
-    /*
-    private void OnDrawGizmos()
-    {
-        if (selectedCube != null)
-        {
-            bool canPushSelected = IsProperlyAlignedToPush(selectedCube.transform, timTransform.forward);
-            Gizmos.color = canPushSelected ? Color.green : Color.yellow;
-            Gizmos.DrawWireCube(selectedCube.transform.position, selectedCube.transform.localScale * 1.1f);
-        }
-    }
-    */
     
     public void StartNewPushEngagement(RunodeMovement cube, Vector3 pushDirection)
     {
