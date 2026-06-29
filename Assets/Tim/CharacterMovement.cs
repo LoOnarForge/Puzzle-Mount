@@ -106,10 +106,6 @@ public class CharacterMovement : MonoBehaviour
         }
         else
         {
-            // Reset speed variables to ensure natural transition to idle
-            currentSpeed = 0f;
-            currentSpeedBuildup = 0f;
-
             // Apply neutral movement to keep physics stable
             if (isGrounded)
             {
