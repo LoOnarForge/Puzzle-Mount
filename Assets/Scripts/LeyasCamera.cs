@@ -102,10 +102,18 @@ public class LeyasCamera : MonoBehaviour
         Vector3 targetDir = Vector3.zero;
         bool hasInput = false;
 
-        if (Keyboard.current[Key.W].isPressed) { targetDir += transform.forward; hasInput = true; }
-        if (Keyboard.current[Key.S].isPressed) { targetDir -= transform.forward; hasInput = true; }
-        if (Keyboard.current[Key.A].isPressed) { targetDir -= transform.right; hasInput = true; }
-        if (Keyboard.current[Key.D].isPressed) { targetDir += transform.right; hasInput = true; }
+        Vector3 forward = transform.forward;
+        forward.y = 0;
+        if (forward.sqrMagnitude > 0.001f) forward.Normalize();
+
+        Vector3 right = transform.right;
+        right.y = 0;
+        if (right.sqrMagnitude > 0.001f) right.Normalize();
+
+        if (Keyboard.current[Key.W].isPressed) { targetDir += forward; hasInput = true; }
+        if (Keyboard.current[Key.S].isPressed) { targetDir -= forward; hasInput = true; }
+        if (Keyboard.current[Key.A].isPressed) { targetDir -= right; hasInput = true; }
+        if (Keyboard.current[Key.D].isPressed) { targetDir += right; hasInput = true; }
         if (Keyboard.current[Key.Q].isPressed) { targetDir += Vector3.down; hasInput = true; }
         if (Keyboard.current[Key.E].isPressed) { targetDir += Vector3.up; hasInput = true; }
 
