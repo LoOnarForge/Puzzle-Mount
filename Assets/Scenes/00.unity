@@ -4446,6 +4446,7 @@ MonoBehaviour:
   counterClockwiseKey: 31
   resetKey: 114
   inspectionToggleKey: 3
+  rotationCooldown: 0.25
   leyaController: {fileID: 2018208394}
 --- !u!1001 &341138396
 PrefabInstance:
@@ -11248,8 +11249,7 @@ MonoBehaviour:
   mouseRotationClarity: 1.5
   mouseTwitchDeadzone: 0.01
   squashAmount: 0.15
-  cameraRotationThreshold: 100
-  cameraRotationCooldown: 0.25
+  cameraRotationThreshold: 300
   isRotating: 0
 --- !u!1001 &1128487147
 PrefabInstance:
