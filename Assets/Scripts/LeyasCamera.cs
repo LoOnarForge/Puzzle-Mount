@@ -100,6 +100,7 @@ public class LeyasCamera : MonoBehaviour
 
     private IEnumerator TransitionRoutine(Vector3 refPos, Quaternion refRot, bool entering, Action onComplete = null)
     {
+        bool wasMoving = isTransitioning;
         isActive = false;
         isTransitioning = true;
         transform.SetParent(null);
@@ -110,6 +111,8 @@ public class LeyasCamera : MonoBehaviour
         Vector3 startP = transform.position;
         Quaternion startR = transform.rotation;
         float startFov = cam != null ? cam.fieldOfView : baseFov;
+        float startWeight = volume != null ? volume.weight : (entering ? 0f : 1f);
+        float startHum = humSource != null ? humSource.volume : (entering ? actionModeVolume : inspectionMinVolume);
 
         if (entering)
         {
@@ -117,13 +120,17 @@ public class LeyasCamera : MonoBehaviour
             if (leyaListener != null) leyaListener.enabled = true;
             if (humSource != null && !humSource.isPlaying) humSource.Play();
 
-            transform.position = refPos;
-            transform.rotation = refRot;
-            startP = refPos;
-            startR = refRot;
-            if (mainCam != null) startFov = mainCam.fieldOfView;
-            if (cam != null) cam.fieldOfView = startFov;
-            if (volume != null) volume.weight = 0f;
+            if (!wasMoving)
+            {
+                transform.position = refPos;
+                transform.rotation = refRot;
+                startP = refPos;
+                startR = refRot;
+                if (mainCam != null) startFov = mainCam.fieldOfView;
+                if (cam != null) cam.fieldOfView = startFov;
+                startWeight = 0f;
+                startHum = actionModeVolume;
+            }
         }
 
         float elapsed = 0f;
@@ -140,8 +147,8 @@ public class LeyasCamera : MonoBehaviour
             transform.rotation = Quaternion.Slerp(startR, endR, t);
             
             if (cam != null) cam.fieldOfView = Mathf.Lerp(startFov, endFov, t);
-            if (volume != null) volume.weight = entering ? t : (1f - t);
-            if (humSource != null) humSource.volume = Mathf.Lerp(entering ? actionModeVolume : inspectionMinVolume, entering ? inspectionMinVolume : actionModeVolume, t);
+            if (volume != null) volume.weight = Mathf.Lerp(startWeight, entering ? 1f : 0f, t);
+            if (humSource != null) humSource.volume = Mathf.Lerp(startHum, entering ? inspectionMinVolume : actionModeVolume, t);
 
             yield return null;
         }
