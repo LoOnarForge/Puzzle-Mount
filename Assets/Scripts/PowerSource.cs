@@ -230,6 +230,19 @@ public class PowerSource : MonoBehaviour
                     RunodePower nParent = neighbor.parentRunodePower;
                     if (nParent == null) nParent = neighbor.GetComponentInParent<RunodePower>();
 
+                    Transform sCube = sParent != null ? sParent.transform : source.transform.root;
+                    Transform nCube = nParent != null ? nParent.transform : neighbor.transform.root;
+                    float dist = Vector3.Distance(sCube.position, nCube.position);
+
+                    if (dist > 1.1f)
+                    {
+                        Vector3 sNormal = source.transform.parent.forward;
+                        Vector3 nNormal = neighbor.transform.parent.forward;
+                        float dot = Mathf.Abs(Vector3.Dot(sNormal, nNormal));
+
+                        if (dot > 0.9f) continue;
+                    }
+
                     if (sParent != nParent || (sParent == null && nParent == null))
                     {
                         return neighbor;
