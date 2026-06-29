@@ -99,10 +99,9 @@ public class CameraFollow : MonoBehaviour
     {
         if (leyaController == null) return;
 
-        isInspectionMode = !isInspectionMode;
-
-        if (isInspectionMode)
+        if (!isInspectionMode)
         {
+            isInspectionMode = true;
             originalAngleIndex = currentAngleIndex;
             actionCamera.enabled = false;
             
@@ -112,13 +111,12 @@ public class CameraFollow : MonoBehaviour
         }
         else
         {
-            leyaController.Deactivate();
+            isInspectionMode = false;
             
-            actionCamera.enabled = true;
-            currentAngleIndex = originalAngleIndex;
-            offset = presetOffsets[currentAngleIndex];
-
-            if (tim != null) tim.SetMovementEnabled(true);
+            leyaController.DeactivateWithTransition(transform.position, transform.rotation, () => {
+                actionCamera.enabled = true;
+                if (tim != null) tim.SetMovementEnabled(true);
+            });
         }
     }
 

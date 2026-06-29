@@ -1,13 +1,17 @@
 using UnityEngine;
 using UnityEngine.InputSystem;
+using UnityEngine.Rendering;
+using System.Collections;
+using System;
 
 /// Handles Leya's flight using CharacterController for aerial inspection.
-/// Features smoothed acceleration and deceleration and organic Lens Breathing for a living feel.
+/// Features smoothed acceleration and deceleration, organic Lens Breathing, and visual transitions.
 [RequireComponent(typeof(CharacterController))]
 public class LeyasCamera : MonoBehaviour
 {
     [Header("TARGET")]
     public Transform timTransform;
+    public Transform leyasAnchor;
 
     [Header("FLIGHT SETTINGS")]
     public float baseMoveSpeed = 12f;
@@ -18,6 +22,9 @@ public class LeyasCamera : MonoBehaviour
     public float maxHeightOffset = 10f;
     public float baseFov = 80f;
 
+    [Header("TRANSITION")]
+    public float transitionDuration = 0.4f;
+
     [Header("BIRD FEEL - BREATHING")]
     [Range(0f, 2f)] public float idleDelay = 0.5f;
     [Range(0f, 5f)] public float rampUpTime = 2.0f;
@@ -26,44 +33,118 @@ public class LeyasCamera : MonoBehaviour
 
     private CharacterController controller;
     private Camera cam;
+    private Volume volume;
     private float yaw;
     private float pitch;
     private bool isActive = false;
+    private bool isTransitioning = false;
     private MenuManager menuManager;
     private Vector3 currentVelocity;
 
     private float idleTimer;
     private float internalTime;
     private float currentRamp;
+    private Camera mainCam;
 
     private void Awake()
     {
         controller = GetComponent<CharacterController>();
         cam = GetComponent<Camera>();
+        volume = GetComponent<Volume>();
         menuManager = FindFirstObjectByType<MenuManager>(FindObjectsInactive.Include);
+        mainCam = Camera.main;
         
         if (cam != null) cam.fieldOfView = baseFov;
+        if (volume != null) volume.weight = 0f;
+
+        if (leyasAnchor == null && timTransform != null)
+        {
+            leyasAnchor = timTransform.Find("Leyas Anchor");
+        }
 
         gameObject.SetActive(false);
     }
 
-    // Activates Leya at the specified position and rotation.
+    // Activates Leya at the specified position and rotation with a smooth transition.
     public void Activate(Vector3 startPosition, Quaternion startRotation)
     {
-        isActive = true;
         gameObject.SetActive(true);
-        
-        transform.position = startPosition;
-        transform.rotation = startRotation;
-        
-        Vector3 euler = transform.eulerAngles;
-        yaw = euler.y;
-        pitch = euler.x;
-        currentVelocity = Vector3.zero;
-        
-        ResetIdleState();
+        StopAllCoroutines();
+        StartCoroutine(TransitionRoutine(startPosition, startRotation, true));
+    }
 
-        if (menuManager != null) menuManager.SetInspectionModeUI(true);
+    // Deactivates Leya with a smooth transition back to a target.
+    public void DeactivateWithTransition(Vector3 targetPosition, Quaternion targetRotation, Action onComplete)
+    {
+        StopAllCoroutines();
+        StartCoroutine(TransitionRoutine(targetPosition, targetRotation, false, onComplete));
+    }
+
+    private IEnumerator TransitionRoutine(Vector3 refPos, Quaternion refRot, bool entering, Action onComplete = null)
+    {
+        isActive = false;
+        isTransitioning = true;
+
+        Vector3 startP = transform.position;
+        Quaternion startR = transform.rotation;
+        float startFov = cam != null ? cam.fieldOfView : baseFov;
+
+        if (entering)
+        {
+            transform.position = refPos;
+            transform.rotation = refRot;
+            startP = refPos;
+            startR = refRot;
+            if (mainCam != null) startFov = mainCam.fieldOfView;
+            if (cam != null) cam.fieldOfView = startFov;
+            if (volume != null) volume.weight = 0f;
+        }
+
+        float elapsed = 0f;
+        while (elapsed < transitionDuration)
+        {
+            elapsed += Time.deltaTime;
+            float t = elapsed / transitionDuration;
+            t = Mathf.SmoothStep(0, 1, t);
+
+            Vector3 endP = entering ? (leyasAnchor != null ? leyasAnchor.position : refPos) : refPos;
+            Quaternion endR = entering ? (leyasAnchor != null ? leyasAnchor.rotation : refRot) : refRot;
+            float endFov = entering ? baseFov : (mainCam != null ? mainCam.fieldOfView : baseFov);
+
+            transform.position = Vector3.Lerp(startP, endP, t);
+            transform.rotation = Quaternion.Slerp(startR, endR, t);
+            
+            if (cam != null) cam.fieldOfView = Mathf.Lerp(startFov, endFov, t);
+            if (volume != null) volume.weight = entering ? t : (1f - t);
+
+            yield return null;
+        }
+
+        if (entering)
+        {
+            if (leyasAnchor != null)
+            {
+                transform.position = leyasAnchor.position;
+                transform.rotation = leyasAnchor.rotation;
+            }
+            Vector3 euler = transform.eulerAngles;
+            yaw = euler.y;
+            pitch = euler.x;
+            currentVelocity = Vector3.zero;
+            ResetIdleState();
+            idleTimer = idleDelay + 0.1f; // Force immediate breathing
+            if (cam != null) cam.fieldOfView = baseFov;
+            if (volume != null) volume.weight = 1f;
+            isActive = true;
+            if (menuManager != null) menuManager.SetInspectionModeUI(true);
+        }
+        else
+        {
+            onComplete?.Invoke();
+            Deactivate();
+        }
+
+        isTransitioning = false;
     }
 
     // Deactivates Leya and restores cursor state.
@@ -155,7 +236,7 @@ public class LeyasCamera : MonoBehaviour
         else
         {
             currentRamp = 0f;
-            if (cam != null) cam.fieldOfView = baseFov;
+            if (cam != null && !isTransitioning) cam.fieldOfView = baseFov;
         }
 
         if (movement.sqrMagnitude > 0.000001f)
@@ -210,6 +291,6 @@ public class LeyasCamera : MonoBehaviour
         idleTimer = 0f;
         internalTime = 0f;
         currentRamp = 0f;
-        if (cam != null) cam.fieldOfView = baseFov;
+        if (cam != null && !isTransitioning) cam.fieldOfView = baseFov;
     }
 }
