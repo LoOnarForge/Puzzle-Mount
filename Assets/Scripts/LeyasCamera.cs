@@ -2,7 +2,7 @@ using UnityEngine;
 using UnityEngine.InputSystem;
 
 /// Handles Leya's flight using CharacterController for aerial inspection.
-/// Features smoothed acceleration and deceleration for bird-like flight.
+/// Features smoothed acceleration and deceleration and organic Lens Breathing for a living feel.
 [RequireComponent(typeof(CharacterController))]
 public class LeyasCamera : MonoBehaviour
 {
@@ -11,30 +11,38 @@ public class LeyasCamera : MonoBehaviour
 
     [Header("FLIGHT SETTINGS")]
     public float baseMoveSpeed = 12f;
-    public float acceleration = 5f;
-    public float deceleration = 3f;
+    public float accelerationTime = 0.5f;
+    public float decelerationTime = 0.5f;
     public float lookSensitivity = 0.15f;
     public float maxRadius = 15f;
     public float maxHeightOffset = 10f;
-    public float fov = 80f;
+    public float baseFov = 80f;
 
-    [Header("UI")]
-    public Sprite inspectionVignette;
+    [Header("BIRD FEEL - BREATHING")]
+    [Range(0f, 2f)] public float idleDelay = 0.5f;
+    [Range(0f, 5f)] public float rampUpTime = 2.0f;
+    [Range(0f, 5f)] public float fovPulseAmplitude = 1.5f;
+    [Range(0f, 10f)] public float fovPulseFrequency = 1.2f;
 
     private CharacterController controller;
+    private Camera cam;
     private float yaw;
     private float pitch;
     private bool isActive = false;
     private MenuManager menuManager;
     private Vector3 currentVelocity;
 
+    private float idleTimer;
+    private float internalTime;
+    private float currentRamp;
+
     private void Awake()
     {
         controller = GetComponent<CharacterController>();
+        cam = GetComponent<Camera>();
         menuManager = FindFirstObjectByType<MenuManager>(FindObjectsInactive.Include);
         
-        Camera cam = GetComponent<Camera>();
-        if (cam != null) cam.fieldOfView = fov;
+        if (cam != null) cam.fieldOfView = baseFov;
 
         gameObject.SetActive(false);
     }
@@ -52,11 +60,9 @@ public class LeyasCamera : MonoBehaviour
         yaw = euler.y;
         pitch = euler.x;
         currentVelocity = Vector3.zero;
-
-        // Cursor control commented out for testing as requested
-        // Cursor.lockState = CursorLockMode.Locked;
-        // Cursor.visible = false;
         
+        ResetIdleState();
+
         if (menuManager != null) menuManager.SetInspectionModeUI(true);
     }
 
@@ -65,12 +71,6 @@ public class LeyasCamera : MonoBehaviour
     {
         isActive = false;
         gameObject.SetActive(false);
-        
-        // Cursor control commented out for testing as requested
-        // Cursor.lockState = CursorLockMode.None;
-        // Cursor.visible = true;
-        
-        if (menuManager != null) menuManager.SetInspectionModeUI(false);
     }
 
     private void Update()
@@ -84,6 +84,12 @@ public class LeyasCamera : MonoBehaviour
     private void HandleRotation()
     {
         Vector2 mouseDelta = Mouse.current.delta.ReadValue();
+
+        if (mouseDelta.sqrMagnitude > 0.001f)
+        {
+            idleTimer = 0f;
+        }
+
         yaw += mouseDelta.x * lookSensitivity;
         pitch -= mouseDelta.y * lookSensitivity;
         pitch = Mathf.Clamp(pitch, -89f, 89f);
@@ -94,63 +100,108 @@ public class LeyasCamera : MonoBehaviour
     private void HandleMovement()
     {
         Vector3 targetDir = Vector3.zero;
+        bool hasInput = false;
 
-        if (Keyboard.current[Key.W].isPressed) targetDir += transform.forward;
-        if (Keyboard.current[Key.S].isPressed) targetDir -= transform.forward;
-        if (Keyboard.current[Key.A].isPressed) targetDir -= transform.right;
-        if (Keyboard.current[Key.D].isPressed) targetDir += transform.right;
-        if (Keyboard.current[Key.Q].isPressed) targetDir += Vector3.down;
-        if (Keyboard.current[Key.E].isPressed) targetDir += Vector3.up;
+        if (Keyboard.current[Key.W].isPressed) { targetDir += transform.forward; hasInput = true; }
+        if (Keyboard.current[Key.S].isPressed) { targetDir -= transform.forward; hasInput = true; }
+        if (Keyboard.current[Key.A].isPressed) { targetDir -= transform.right; hasInput = true; }
+        if (Keyboard.current[Key.D].isPressed) { targetDir += transform.right; hasInput = true; }
+        if (Keyboard.current[Key.Q].isPressed) { targetDir += Vector3.down; hasInput = true; }
+        if (Keyboard.current[Key.E].isPressed) { targetDir += Vector3.up; hasInput = true; }
+
+        if (hasInput)
+        {
+            idleTimer = 0f;
+        }
+        else
+        {
+            idleTimer += Time.deltaTime;
+        }
 
         Vector3 targetVelocity = targetDir.normalized * baseMoveSpeed;
 
-        // Apply bird-like acceleration/deceleration
-        float accelRate = (targetDir.sqrMagnitude > 0.001f) ? acceleration : deceleration;
-        currentVelocity = Vector3.Lerp(currentVelocity, targetVelocity, accelRate * Time.deltaTime);
-
-        if (currentVelocity.sqrMagnitude > 0.001f)
+        if (targetDir.sqrMagnitude > 0.001f)
         {
-            Vector3 movement = currentVelocity * Time.deltaTime;
+            currentVelocity = Vector3.MoveTowards(currentVelocity, targetVelocity, (baseMoveSpeed / accelerationTime) * Time.deltaTime);
+        }
+        else
+        {
+            currentVelocity = Vector3.MoveTowards(currentVelocity, Vector3.zero, (baseMoveSpeed / decelerationTime) * Time.deltaTime);
+        }
 
+        Vector3 movement = currentVelocity * Time.deltaTime;
+
+        // Apply Organic Idle Effects
+        if (idleTimer > idleDelay)
+        {
+            internalTime += Time.deltaTime;
+            currentRamp = Mathf.MoveTowards(currentRamp, 1.0f, Time.deltaTime / rampUpTime);
+
+            // Lens Breathing (FOV Pulse)
+            if (cam != null)
+            {
+                float fovOffset = Mathf.Sin(internalTime * fovPulseFrequency) * fovPulseAmplitude * currentRamp;
+                cam.fieldOfView = baseFov + fovOffset;
+            }
+        }
+        else
+        {
+            currentRamp = 0f;
+            if (cam != null) cam.fieldOfView = baseFov;
+        }
+
+        if (movement.sqrMagnitude > 0.000001f)
+        {
             if (timTransform != null)
             {
-                // Horizontal clamping logic
-                Vector3 currentHorizontalOffset = transform.position - timTransform.position;
-                currentHorizontalOffset.y = 0;
-                
-                if (currentHorizontalOffset.magnitude >= maxRadius)
-                {
-                    Vector3 normal = currentHorizontalOffset.normalized;
-                    Vector3 horizontalMove = new Vector3(movement.x, 0, movement.z);
-                    if (Vector3.Dot(horizontalMove, normal) > 0)
-                    {
-                        Vector3 projected = Vector3.ProjectOnPlane(horizontalMove, normal);
-                        movement.x = projected.x;
-                        movement.z = projected.z;
-                        
-                        // Kill velocity component pointing out of bounds
-                        Vector3 horizontalVel = new Vector3(currentVelocity.x, 0, currentVelocity.z);
-                        Vector3 projectedVel = Vector3.ProjectOnPlane(horizontalVel, normal);
-                        currentVelocity.x = projectedVel.x;
-                        currentVelocity.z = projectedVel.z;
-                    }
-                }
-
-                // Vertical clamping logic
-                float nextY = transform.position.y + movement.y;
-                if (nextY > timTransform.position.y + maxHeightOffset && movement.y > 0)
-                {
-                    movement.y = 0;
-                    currentVelocity.y = 0;
-                }
-                else if (nextY < timTransform.position.y && movement.y < 0)
-                {
-                    movement.y = 0;
-                    currentVelocity.y = 0;
-                }
+                ApplyClamping(ref movement);
             }
-
             controller.Move(movement);
         }
+    }
+
+    private void ApplyClamping(ref Vector3 movement)
+    {
+        // Horizontal clamping
+        Vector3 currentHorizontalOffset = transform.position - timTransform.position;
+        currentHorizontalOffset.y = 0;
+        
+        if (currentHorizontalOffset.magnitude >= maxRadius)
+        {
+            Vector3 normal = currentHorizontalOffset.normalized;
+            Vector3 horizontalMove = new Vector3(movement.x, 0, movement.z);
+            if (Vector3.Dot(horizontalMove, normal) > 0)
+            {
+                Vector3 projected = Vector3.ProjectOnPlane(horizontalMove, normal);
+                movement.x = projected.x;
+                movement.z = projected.z;
+                
+                Vector3 horizontalVel = new Vector3(currentVelocity.x, 0, currentVelocity.z);
+                Vector3 projectedVel = Vector3.ProjectOnPlane(horizontalVel, normal);
+                currentVelocity.x = projectedVel.x;
+                currentVelocity.z = projectedVel.z;
+            }
+        }
+
+        // Vertical clamping
+        float nextY = transform.position.y + movement.y;
+        if (nextY > timTransform.position.y + maxHeightOffset && movement.y > 0)
+        {
+            movement.y = 0;
+            currentVelocity.y = 0;
+        }
+        else if (nextY < timTransform.position.y && movement.y < 0)
+        {
+            movement.y = 0;
+            currentVelocity.y = 0;
+        }
+    }
+
+    private void ResetIdleState()
+    {
+        idleTimer = 0f;
+        internalTime = 0f;
+        currentRamp = 0f;
+        if (cam != null) cam.fieldOfView = baseFov;
     }
 }

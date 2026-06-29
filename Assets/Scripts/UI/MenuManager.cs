@@ -42,10 +42,8 @@ public class MenuManager : MonoBehaviour
 
         // Initialize Vignette sprite if available
         var leya = Object.FindFirstObjectByType<LeyasCamera>(FindObjectsInactive.Include);
-        if (leya != null && leya.inspectionVignette != null)
-        {
-            _inspectionVignette.style.backgroundImage = new StyleBackground(leya.inspectionVignette);
-        }
+        // Vignette is now handled by Post Processing, dependency removed.
+
 
         // Initialize HUD icon state
         var interaction = Object.FindFirstObjectByType<TimCubeInteraction>();
