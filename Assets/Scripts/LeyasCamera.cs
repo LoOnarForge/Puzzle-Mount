@@ -5,7 +5,7 @@ using System.Collections;
 using System;
 
 /// Handles Leya's flight using CharacterController for aerial inspection.
-/// Features smoothed acceleration and deceleration, organic Lens Breathing, and visual transitions.
+/// Features smoothed acceleration and deceleration, organic Lens Breathing, and adaptive audio.
 [RequireComponent(typeof(CharacterController))]
 public class LeyasCamera : MonoBehaviour
 {
@@ -25,6 +25,15 @@ public class LeyasCamera : MonoBehaviour
     [Header("TRANSITION")]
     public float transitionDuration = 0.4f;
 
+    [Header("AUDIO SETTINGS")]
+    public float actionModeVolume = 0.2f;
+    public float inspectionMinVolume = 0.4f;
+    public float maxVolume = 1.0f;
+    public float minPitch = 0.9f;
+    public float maxPitch = 1.3f;
+    [Range(0f, 2f)] public float forwardEffortMultiplier = 1.2f;
+    [Range(0f, 2f)] public float sidewaysEffortMultiplier = 0.5f;
+
     [Header("BIRD FEEL - BREATHING")]
     [Range(0f, 2f)] public float idleDelay = 0.5f;
     [Range(0f, 5f)] public float rampUpTime = 2.0f;
@@ -34,6 +43,10 @@ public class LeyasCamera : MonoBehaviour
     private CharacterController controller;
     private Camera cam;
     private Volume volume;
+    private AudioSource humSource;
+    private AudioListener leyaListener;
+    private AudioListener mainListener;
+    
     private float yaw;
     private float pitch;
     private bool isActive = false;
@@ -51,24 +64,29 @@ public class LeyasCamera : MonoBehaviour
         controller = GetComponent<CharacterController>();
         cam = GetComponent<Camera>();
         volume = GetComponent<Volume>();
+        humSource = GetComponent<AudioSource>();
+        leyaListener = GetComponent<AudioListener>();
         menuManager = FindFirstObjectByType<MenuManager>(FindObjectsInactive.Include);
         mainCam = Camera.main;
+
+        if (mainCam != null) mainListener = mainCam.GetComponent<AudioListener>();
         
         if (cam != null) cam.fieldOfView = baseFov;
         if (volume != null) volume.weight = 0f;
+        if (leyaListener != null) leyaListener.enabled = false;
 
         if (leyasAnchor == null && timTransform != null)
         {
             leyasAnchor = timTransform.Find("Leyas Anchor");
         }
 
-        gameObject.SetActive(false);
+        Deactivate();
     }
 
     // Activates Leya at the specified position and rotation with a smooth transition.
     public void Activate(Vector3 startPosition, Quaternion startRotation)
     {
-        gameObject.SetActive(true);
+        this.enabled = true;
         StopAllCoroutines();
         StartCoroutine(TransitionRoutine(startPosition, startRotation, true));
     }
@@ -84,6 +102,10 @@ public class LeyasCamera : MonoBehaviour
     {
         isActive = false;
         isTransitioning = true;
+        transform.SetParent(null);
+
+        if (controller != null) controller.enabled = entering;
+        if (cam != null) cam.enabled = true;
 
         Vector3 startP = transform.position;
         Quaternion startR = transform.rotation;
@@ -91,6 +113,10 @@ public class LeyasCamera : MonoBehaviour
 
         if (entering)
         {
+            if (mainListener != null) mainListener.enabled = false;
+            if (leyaListener != null) leyaListener.enabled = true;
+            if (humSource != null && !humSource.isPlaying) humSource.Play();
+
             transform.position = refPos;
             transform.rotation = refRot;
             startP = refPos;
@@ -104,8 +130,7 @@ public class LeyasCamera : MonoBehaviour
         while (elapsed < transitionDuration)
         {
             elapsed += Time.deltaTime;
-            float t = elapsed / transitionDuration;
-            t = Mathf.SmoothStep(0, 1, t);
+            float t = Mathf.SmoothStep(0, 1, elapsed / transitionDuration);
 
             Vector3 endP = entering ? (leyasAnchor != null ? leyasAnchor.position : refPos) : refPos;
             Quaternion endR = entering ? (leyasAnchor != null ? leyasAnchor.rotation : refRot) : refRot;
@@ -116,6 +141,7 @@ public class LeyasCamera : MonoBehaviour
             
             if (cam != null) cam.fieldOfView = Mathf.Lerp(startFov, endFov, t);
             if (volume != null) volume.weight = entering ? t : (1f - t);
+            if (humSource != null) humSource.volume = Mathf.Lerp(entering ? actionModeVolume : inspectionMinVolume, entering ? inspectionMinVolume : actionModeVolume, t);
 
             yield return null;
         }
@@ -132,7 +158,7 @@ public class LeyasCamera : MonoBehaviour
             pitch = euler.x;
             currentVelocity = Vector3.zero;
             ResetIdleState();
-            idleTimer = idleDelay + 0.1f; // Force immediate breathing
+            idleTimer = idleDelay + 0.1f;
             if (cam != null) cam.fieldOfView = baseFov;
             if (volume != null) volume.weight = 1f;
             isActive = true;
@@ -140,6 +166,9 @@ public class LeyasCamera : MonoBehaviour
         }
         else
         {
+            if (leyaListener != null) leyaListener.enabled = false;
+            if (mainListener != null) mainListener.enabled = true;
+            
             onComplete?.Invoke();
             Deactivate();
         }
@@ -147,11 +176,28 @@ public class LeyasCamera : MonoBehaviour
         isTransitioning = false;
     }
 
-    // Deactivates Leya and restores cursor state.
+    // Deactivates components instead of GameObject to keep AudioSource audible.
     public void Deactivate()
     {
         isActive = false;
-        gameObject.SetActive(false);
+        if (controller != null) controller.enabled = false;
+        if (cam != null) cam.enabled = false;
+        
+        if (leyasAnchor != null)
+        {
+            transform.SetParent(leyasAnchor);
+            transform.localPosition = Vector3.zero;
+            transform.localRotation = Quaternion.identity;
+        }
+
+        if (humSource != null)
+        {
+            humSource.volume = actionModeVolume;
+            humSource.pitch = minPitch;
+            if (!humSource.isPlaying) humSource.Play();
+        }
+
+        this.enabled = false;
     }
 
     private void Update()
@@ -160,16 +206,29 @@ public class LeyasCamera : MonoBehaviour
 
         HandleRotation();
         HandleMovement();
+        UpdateAudio();
+    }
+
+    private void UpdateAudio()
+    {
+        if (humSource == null) return;
+
+        Vector3 localVel = transform.InverseTransformDirection(currentVelocity);
+        
+        float forwardEffort = Mathf.Abs(localVel.z) * forwardEffortMultiplier;
+        float sideEffort = Mathf.Abs(localVel.x) * sidewaysEffortMultiplier;
+        float verticalEffort = Mathf.Abs(localVel.y);
+
+        float totalEffort = Mathf.Clamp01((forwardEffort + sideEffort + verticalEffort) / baseMoveSpeed);
+
+        humSource.volume = Mathf.Lerp(inspectionMinVolume, maxVolume, totalEffort);
+        humSource.pitch = Mathf.Lerp(minPitch, maxPitch, totalEffort);
     }
 
     private void HandleRotation()
     {
         Vector2 mouseDelta = Mouse.current.delta.ReadValue();
-
-        if (mouseDelta.sqrMagnitude > 0.001f)
-        {
-            idleTimer = 0f;
-        }
+        if (mouseDelta.sqrMagnitude > 0.001f) idleTimer = 0f;
 
         yaw += mouseDelta.x * lookSensitivity;
         pitch -= mouseDelta.y * lookSensitivity;
@@ -183,13 +242,8 @@ public class LeyasCamera : MonoBehaviour
         Vector3 targetDir = Vector3.zero;
         bool hasInput = false;
 
-        Vector3 forward = transform.forward;
-        forward.y = 0;
-        if (forward.sqrMagnitude > 0.001f) forward.Normalize();
-
-        Vector3 right = transform.right;
-        right.y = 0;
-        if (right.sqrMagnitude > 0.001f) right.Normalize();
+        Vector3 forward = Vector3.ProjectOnPlane(transform.forward, Vector3.up).normalized;
+        Vector3 right = Vector3.ProjectOnPlane(transform.right, Vector3.up).normalized;
 
         if (Keyboard.current[Key.W].isPressed) { targetDir += forward; hasInput = true; }
         if (Keyboard.current[Key.S].isPressed) { targetDir -= forward; hasInput = true; }
@@ -198,35 +252,19 @@ public class LeyasCamera : MonoBehaviour
         if (Keyboard.current[Key.Q].isPressed) { targetDir += Vector3.down; hasInput = true; }
         if (Keyboard.current[Key.E].isPressed) { targetDir += Vector3.up; hasInput = true; }
 
-        if (hasInput)
-        {
-            idleTimer = 0f;
-        }
-        else
-        {
-            idleTimer += Time.deltaTime;
-        }
+        if (hasInput) idleTimer = 0f;
+        else idleTimer += Time.deltaTime;
 
         Vector3 targetVelocity = targetDir.normalized * baseMoveSpeed;
-
-        if (targetDir.sqrMagnitude > 0.001f)
-        {
-            currentVelocity = Vector3.MoveTowards(currentVelocity, targetVelocity, (baseMoveSpeed / accelerationTime) * Time.deltaTime);
-        }
-        else
-        {
-            currentVelocity = Vector3.MoveTowards(currentVelocity, Vector3.zero, (baseMoveSpeed / decelerationTime) * Time.deltaTime);
-        }
+        float step = (baseMoveSpeed / (targetDir.sqrMagnitude > 0.001f ? accelerationTime : decelerationTime)) * Time.deltaTime;
+        currentVelocity = Vector3.MoveTowards(currentVelocity, targetVelocity, step);
 
         Vector3 movement = currentVelocity * Time.deltaTime;
 
-        // Apply Organic Idle Effects
         if (idleTimer > idleDelay)
         {
             internalTime += Time.deltaTime;
             currentRamp = Mathf.MoveTowards(currentRamp, 1.0f, Time.deltaTime / rampUpTime);
-
-            // Lens Breathing (FOV Pulse)
             if (cam != null)
             {
                 float fovOffset = Mathf.Sin(internalTime * fovPulseFrequency) * fovPulseAmplitude * currentRamp;
@@ -241,45 +279,32 @@ public class LeyasCamera : MonoBehaviour
 
         if (movement.sqrMagnitude > 0.000001f)
         {
-            if (timTransform != null)
-            {
-                ApplyClamping(ref movement);
-            }
+            if (timTransform != null) ApplyClamping(ref movement);
             controller.Move(movement);
         }
     }
 
     private void ApplyClamping(ref Vector3 movement)
     {
-        // Horizontal clamping
-        Vector3 currentHorizontalOffset = transform.position - timTransform.position;
-        currentHorizontalOffset.y = 0;
-        
-        if (currentHorizontalOffset.magnitude >= maxRadius)
+        Vector3 horizontalOffset = Vector3.ProjectOnPlane(transform.position - timTransform.position, Vector3.up);
+        if (horizontalOffset.magnitude >= maxRadius)
         {
-            Vector3 normal = currentHorizontalOffset.normalized;
-            Vector3 horizontalMove = new Vector3(movement.x, 0, movement.z);
+            Vector3 normal = horizontalOffset.normalized;
+            Vector3 horizontalMove = Vector3.ProjectOnPlane(movement, Vector3.up);
             if (Vector3.Dot(horizontalMove, normal) > 0)
             {
                 Vector3 projected = Vector3.ProjectOnPlane(horizontalMove, normal);
                 movement.x = projected.x;
                 movement.z = projected.z;
                 
-                Vector3 horizontalVel = new Vector3(currentVelocity.x, 0, currentVelocity.z);
-                Vector3 projectedVel = Vector3.ProjectOnPlane(horizontalVel, normal);
+                Vector3 projectedVel = Vector3.ProjectOnPlane(currentVelocity, normal);
                 currentVelocity.x = projectedVel.x;
                 currentVelocity.z = projectedVel.z;
             }
         }
 
-        // Vertical clamping
         float nextY = transform.position.y + movement.y;
-        if (nextY > timTransform.position.y + maxHeightOffset && movement.y > 0)
-        {
-            movement.y = 0;
-            currentVelocity.y = 0;
-        }
-        else if (nextY < timTransform.position.y && movement.y < 0)
+        if ((nextY > timTransform.position.y + maxHeightOffset && movement.y > 0) || (nextY < timTransform.position.y && movement.y < 0))
         {
             movement.y = 0;
             currentVelocity.y = 0;
