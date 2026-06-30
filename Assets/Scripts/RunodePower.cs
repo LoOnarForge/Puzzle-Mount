@@ -147,41 +147,32 @@ public class RunodePower : MonoBehaviour
     {
         internalNeighborMap.Clear();
 
-        // Top Face shared edges
-        MapInternal(topUpTrigger,    northUpTrigger);
-        MapInternal(topDownTrigger,  southUpTrigger);
-        MapInternal(topLeftTrigger,  westUpTrigger);
-        MapInternal(topRightTrigger, eastUpTrigger);
+        // PHYSICAL MAPPING CALCULATED FROM LOCAL ROTATIONS (001)
+        // 1. VERTICAL CORNERS
+        MapInternal(northLeftTrigger,  eastRightTrigger); // NE (+X, +Z)
+        MapInternal(northRightTrigger, westLeftTrigger);  // NW (-X, +Z)
+        MapInternal(southRightTrigger, eastLeftTrigger);  // SE (+X, -Z)
+        MapInternal(southLeftTrigger,  westRightTrigger); // SW (-X, -Z)
 
-        // Bottom Face shared edges
-        MapInternal(bottomUpTrigger,    northDownTrigger);
-        MapInternal(bottomDownTrigger,  southDownTrigger);
-        MapInternal(bottomLeftTrigger,  westDownTrigger);
-        MapInternal(bottomRightTrigger, eastDownTrigger);
+        // 2. TOP EDGES (Y+)
+        MapInternal(topUpTrigger,    northUpTrigger); // North edge of Top face
+        MapInternal(topDownTrigger,  southUpTrigger); // South edge of Top face
+        MapInternal(topRightTrigger, eastUpTrigger);  // East edge of Top face
+        MapInternal(topLeftTrigger,  westUpTrigger);  // West edge of Top face
 
-        // North Face shared edges
-        MapInternal(northUpTrigger,    topUpTrigger);
-        MapInternal(northDownTrigger,  bottomUpTrigger);
-        MapInternal(northLeftTrigger,  eastRightTrigger);
-        MapInternal(northRightTrigger, westLeftTrigger);
+        // 3. BOTTOM EDGES (Y-)
+        MapInternal(bottomDownTrigger, northDownTrigger); // North edge of Bottom face
+        MapInternal(bottomUpTrigger,   southDownTrigger); // South edge of Bottom face
+        MapInternal(bottomRightTrigger,eastDownTrigger);  // East edge of Bottom face
+        MapInternal(bottomLeftTrigger, westDownTrigger);  // West edge of Bottom face
 
-        // South Face shared edges
-        MapInternal(southUpTrigger,    topDownTrigger);
-        MapInternal(southDownTrigger,  bottomDownTrigger);
-        MapInternal(southLeftTrigger,  westRightTrigger);
-        MapInternal(southRightTrigger, eastLeftTrigger);
-
-        // East Face shared edges
-        MapInternal(eastUpTrigger,    topRightTrigger);
-        MapInternal(eastDownTrigger,  bottomRightTrigger);
-        MapInternal(eastLeftTrigger,  southRightTrigger);
-        MapInternal(eastRightTrigger, northLeftTrigger);
-
-        // West Face shared edges
-        MapInternal(westUpTrigger,    topLeftTrigger);
-        MapInternal(westDownTrigger,  bottomLeftTrigger);
-        MapInternal(westLeftTrigger,  northRightTrigger);
-        MapInternal(westRightTrigger, southLeftTrigger);
+        // Ensure Bi-directional mapping for all entries
+        var keys = new List<PowerConnectionTrigger>(internalNeighborMap.Keys);
+        foreach (var key in keys)
+        {
+            var neighbor = internalNeighborMap[key];
+            if (neighbor != null) internalNeighborMap[neighbor] = key;
+        }
     }
 
     private void MapInternal(PowerConnectionTrigger a, PowerConnectionTrigger b)
@@ -264,7 +255,10 @@ public class RunodePower : MonoBehaviour
             return connected;
 
         if (obstructionController != null && obstructionController.IsFaceObstructed(face.faceZone))
+        {
+            Debug.Log($"[BFS] {name}: Face {face.faceZone?.name ?? "Unknown"} is obstructed. Connection denied.");
             return connected;
+        }
 
         face.isFacePowered = true; 
         IsPowered = true; 
@@ -278,7 +272,10 @@ public class RunodePower : MonoBehaviour
             {
                 // Internal pinch check
                 if (obstructionController != null && obstructionController.IsInternalPathPinch(entry, face.triggers[i]))
+                {
+                    Debug.Log($"[BFS] {name}: Internal path on face between {entry.name} and {face.triggers[i].name} is PINCHED.");
                     continue;
+                }
 
                 connected.Add(face.triggers[i]);
             }
@@ -320,8 +317,12 @@ public class RunodePower : MonoBehaviour
         {
             // Internal bridge check for corner wraps
             if (obstructionController != null && obstructionController.IsInternalPathPinch(t, neighbor))
+            {
+                Debug.Log($"[BFS] {name}: Corner wrap bridge between {t.name} and {neighbor.name} is PINCHED.");
                 return null;
+            }
 
+            Debug.Log($"[BFS] {name}: Corner wrap bridge successful: {t.name} -> {neighbor.name}");
             return neighbor;
         }
         return null;

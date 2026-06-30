@@ -80,6 +80,7 @@ public class ObstructionController : MonoBehaviour
             if (IsActualObstruction(hit))
             {
                 obstructedZones.Add(zone);
+                Debug.Log($"[Obstruction] {parentRunode.name}: Zone {zone.name} BLOCKED by {hit.name}");
                 break;
             }
         }
@@ -128,23 +129,24 @@ public class ObstructionController : MonoBehaviour
     {
         if (a == null || b == null) return false;
 
-        // 4 Vertical Edges
-        if (IsBetween(a, b, parentRunode.northRightTrigger, parentRunode.westLeftTrigger)) return obstructedZones.Contains(edgeNW);
-        if (IsBetween(a, b, parentRunode.northLeftTrigger, parentRunode.eastRightTrigger)) return obstructedZones.Contains(edgeNE);
-        if (IsBetween(a, b, parentRunode.southLeftTrigger, parentRunode.westRightTrigger)) return obstructedZones.Contains(edgeSW);
-        if (IsBetween(a, b, parentRunode.southRightTrigger, parentRunode.eastLeftTrigger)) return obstructedZones.Contains(edgeSE);
+        // SYNCED WITH CALCULATED PHYSICAL MAPPING
+        // 4 Vertical Edges (Corners)
+        if (IsBetween(a, b, parentRunode.northLeftTrigger,  parentRunode.eastRightTrigger)) return obstructedZones.Contains(edgeNE);
+        if (IsBetween(a, b, parentRunode.northRightTrigger, parentRunode.westLeftTrigger))  return obstructedZones.Contains(edgeNW);
+        if (IsBetween(a, b, parentRunode.southRightTrigger, parentRunode.eastLeftTrigger))  return obstructedZones.Contains(edgeSE);
+        if (IsBetween(a, b, parentRunode.southLeftTrigger,  parentRunode.westRightTrigger)) return obstructedZones.Contains(edgeSW);
 
         // 4 Top Edges
-        if (IsBetween(a, b, parentRunode.topUpTrigger, parentRunode.northUpTrigger)) return obstructedZones.Contains(edgeTN);
-        if (IsBetween(a, b, parentRunode.topDownTrigger, parentRunode.southUpTrigger)) return obstructedZones.Contains(edgeTS);
-        if (IsBetween(a, b, parentRunode.topRightTrigger, parentRunode.eastUpTrigger)) return obstructedZones.Contains(edgeTE);
-        if (IsBetween(a, b, parentRunode.topLeftTrigger, parentRunode.westUpTrigger)) return obstructedZones.Contains(edgeTW);
+        if (IsBetween(a, b, parentRunode.topUpTrigger,    parentRunode.northUpTrigger)) return obstructedZones.Contains(edgeTN);
+        if (IsBetween(a, b, parentRunode.topDownTrigger,  parentRunode.southUpTrigger)) return obstructedZones.Contains(edgeTS);
+        if (IsBetween(a, b, parentRunode.topRightTrigger, parentRunode.eastUpTrigger))  return obstructedZones.Contains(edgeTE);
+        if (IsBetween(a, b, parentRunode.topLeftTrigger,  parentRunode.westUpTrigger))  return obstructedZones.Contains(edgeTW);
 
         // 4 Bottom Edges
-        if (IsBetween(a, b, parentRunode.bottomUpTrigger, parentRunode.northDownTrigger)) return obstructedZones.Contains(edgeBN);
-        if (IsBetween(a, b, parentRunode.bottomDownTrigger, parentRunode.southDownTrigger)) return obstructedZones.Contains(edgeBS);
-        if (IsBetween(a, b, parentRunode.bottomRightTrigger, parentRunode.eastDownTrigger)) return obstructedZones.Contains(edgeBE);
-        if (IsBetween(a, b, parentRunode.bottomLeftTrigger, parentRunode.westDownTrigger)) return obstructedZones.Contains(edgeBW);
+        if (IsBetween(a, b, parentRunode.bottomDownTrigger,  parentRunode.northDownTrigger)) return obstructedZones.Contains(edgeBN);
+        if (IsBetween(a, b, parentRunode.bottomUpTrigger,    parentRunode.southDownTrigger)) return obstructedZones.Contains(edgeBS);
+        if (IsBetween(a, b, parentRunode.bottomRightTrigger, parentRunode.eastDownTrigger))  return obstructedZones.Contains(edgeBE);
+        if (IsBetween(a, b, parentRunode.bottomLeftTrigger,  parentRunode.westDownTrigger))  return obstructedZones.Contains(edgeBW);
 
         return false;
     }
