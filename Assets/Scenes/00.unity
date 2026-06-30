@@ -23314,6 +23314,7 @@ GameObject:
   - component: {fileID: 6411980946914461682}
   - component: {fileID: 5090120726290390514}
   - component: {fileID: 3829167468974849403}
+  - component: {fileID: 6426554263018552194}
   - component: {fileID: 196933308123710259}
   - component: {fileID: 2404953464569297052}
   - component: {fileID: 5167793004876280114}
@@ -23324,6 +23325,39 @@ GameObject:
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
   m_IsActive: 1
+--- !u!114 &6426554263018552194
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 6426554263018552193}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 59648dfb46efc6e43a2f0d1ede994197, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::ObstructionController
+  faceTop: {fileID: 7736389839993614481}
+  faceBottom: {fileID: 9176081010558988603}
+  faceNorth: {fileID: 8938992194320828498}
+  faceSouth: {fileID: 6504900016748295422}
+  faceEast: {fileID: 5821208620939247931}
+  faceWest: {fileID: 3334205078906716676}
+  edgeTN: {fileID: 100031117}
+  edgeTE: {fileID: 1323567567}
+  edgeTS: {fileID: 1126089766}
+  edgeTW: {fileID: 459763091}
+  edgeBN: {fileID: 1157749515}
+  edgeBE: {fileID: 1055289914}
+  edgeBS: {fileID: 553585604}
+  edgeBW: {fileID: 822994608}
+  edgeNW: {fileID: 692738769}
+  edgeNE: {fileID: 647430689}
+  edgeSW: {fileID: 417407047}
+  edgeSE: {fileID: 1290442416}
+  obstructionMask:
+    serializedVersion: 2
+    m_Bits: 3584
 --- !u!4 &6504900016748295421
 Transform:
   m_ObjectHideFlags: 0
