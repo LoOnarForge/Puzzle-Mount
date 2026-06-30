@@ -86,6 +86,8 @@ public class RunodePower : MonoBehaviour
     public PowerConnectionTrigger westDownTrigger;
     public PowerConnectionTrigger westLeftTrigger;
 
+    public ObstructionController obstructionController;
+
     public bool IsPowered { get; private set; } = false;
     public PowerSource poweredBySource { get; private set; } = null;
     public int distanceFromSource { get; private set; } = 0;
@@ -93,7 +95,7 @@ public class RunodePower : MonoBehaviour
     public class FaceData
     {
         public SpriteRenderer faceSprite;
-        public FaceObstructionDetector obstructionDetector;
+        public BoxCollider faceZone;
         public PowerConnectionTrigger[] triggers; // [0]=Up, [1]=Right, [2]=Down, [3]=Left
         public PowerLineType lineType;
         public bool isFacePowered;
@@ -125,6 +127,7 @@ public class RunodePower : MonoBehaviour
 
     private void Awake()
     {
+        if (obstructionController == null) obstructionController = GetComponent<ObstructionController>();
         InitializeFaceData();
         InitializeInternalNeighborMap();
     }
@@ -159,12 +162,12 @@ public class RunodePower : MonoBehaviour
         MapInternal(northUpTrigger,    topUpTrigger);
         MapInternal(northDownTrigger,  bottomUpTrigger);
         MapInternal(northLeftTrigger,  eastRightTrigger);
-        MapInternal(northRightTrigger, westRightTrigger);
+        MapInternal(northRightTrigger, westLeftTrigger);
 
         // South Face shared edges
         MapInternal(southUpTrigger,    topDownTrigger);
         MapInternal(southDownTrigger,  bottomDownTrigger);
-        MapInternal(southLeftTrigger,  westLeftTrigger);
+        MapInternal(southLeftTrigger,  westRightTrigger);
         MapInternal(southRightTrigger, eastLeftTrigger);
 
         // East Face shared edges
@@ -176,8 +179,8 @@ public class RunodePower : MonoBehaviour
         // West Face shared edges
         MapInternal(westUpTrigger,    topLeftTrigger);
         MapInternal(westDownTrigger,  bottomLeftTrigger);
-        MapInternal(westLeftTrigger,  southLeftTrigger);
-        MapInternal(westRightTrigger, northRightTrigger);
+        MapInternal(westLeftTrigger,  northRightTrigger);
+        MapInternal(westRightTrigger, southLeftTrigger);
     }
 
     private void MapInternal(PowerConnectionTrigger a, PowerConnectionTrigger b)
@@ -196,6 +199,16 @@ public class RunodePower : MonoBehaviour
         allFaces.Add(CreateFaceData(southFaceTransform,  southFace,  southUpTrigger,  southRightTrigger,  southDownTrigger,  southLeftTrigger));
         allFaces.Add(CreateFaceData(eastFaceTransform,   eastFace,   eastUpTrigger,   eastRightTrigger,   eastDownTrigger,   eastLeftTrigger));
         allFaces.Add(CreateFaceData(westFaceTransform,   westFace,   westUpTrigger,   westRightTrigger,   westDownTrigger,   westLeftTrigger));
+
+        if (obstructionController != null)
+        {
+            allFaces[0].faceZone = obstructionController.faceTop;
+            allFaces[1].faceZone = obstructionController.faceBottom;
+            allFaces[2].faceZone = obstructionController.faceNorth;
+            allFaces[3].faceZone = obstructionController.faceSouth;
+            allFaces[4].faceZone = obstructionController.faceEast;
+            allFaces[5].faceZone = obstructionController.faceWest;
+        }
     }
 
     private FaceData CreateFaceData(Transform faceTransform, PowerLineType lineType,
@@ -206,20 +219,13 @@ public class RunodePower : MonoBehaviour
         
         if (faceTransform != null)
         {
-            Transform spriteChild = faceTransform.Find(POWER_LINE_SPRITE_NAME);
-            if (spriteChild != null)
+            // Try to find the sprite child by its name pattern
+            foreach (Transform child in faceTransform)
             {
-                data.faceSprite = spriteChild.GetComponent<SpriteRenderer>();
-                data.obstructionDetector = spriteChild.GetComponent<FaceObstructionDetector>();
-
-                if (data.obstructionDetector != null)
+                if (child.name.StartsWith("Power Line Sprite"))
                 {
-                    List<PowerConnectionTrigger> activeList = new List<PowerConnectionTrigger>();
-                    if (up != null) activeList.Add(up);
-                    if (right != null) activeList.Add(right);
-                    if (down != null) activeList.Add(down);
-                    if (left != null) activeList.Add(left);
-                    data.obstructionDetector.Initialize(this, activeList.ToArray());
+                    data.faceSprite = child.GetComponent<SpriteRenderer>();
+                    break;
                 }
             }
         }
@@ -252,7 +258,10 @@ public class RunodePower : MonoBehaviour
     public List<PowerConnectionTrigger> GetConnectedTriggersOnFace(PowerConnectionTrigger entry)
     {
         List<PowerConnectionTrigger> connected = new List<PowerConnectionTrigger>();
-        if (!triggerToFaceMap.TryGetValue(entry, out FaceData face) || face.obstructionDetector.IsObstructed)
+        if (!triggerToFaceMap.TryGetValue(entry, out FaceData face))
+            return connected;
+
+        if (obstructionController != null && obstructionController.IsFaceObstructed(face.faceZone))
             return connected;
 
         face.isFacePowered = true; 
@@ -265,6 +274,10 @@ public class RunodePower : MonoBehaviour
         {
             if (i != entryIndex && activeIndices[i] && face.triggers[i] != null && face.triggers[i].gameObject.activeInHierarchy)
             {
+                // Internal pinch check
+                if (obstructionController != null && obstructionController.IsInternalPathPinch(entry, face.triggers[i]))
+                    continue;
+
                 connected.Add(face.triggers[i]);
             }
         }
@@ -301,6 +314,10 @@ public class RunodePower : MonoBehaviour
     {
         if (internalNeighborMap.TryGetValue(t, out PowerConnectionTrigger neighbor))
         {
+            // Internal bridge check for corner wraps
+            if (obstructionController != null && obstructionController.IsInternalPathPinch(t, neighbor))
+                return null;
+
             return neighbor;
         }
         return null;
@@ -309,7 +326,8 @@ public class RunodePower : MonoBehaviour
     private void ApplyFaceColor(FaceData face, Color color)
     {
         if (face.faceSprite == null) return;
-        if (face.obstructionDetector != null && face.obstructionDetector.IsObstructed)
+        
+        if (obstructionController != null && obstructionController.IsFaceObstructed(face.faceZone))
         {
             face.faceSprite.color = new Color(0.08f, 0.08f, 0.08f);
             return;

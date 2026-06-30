@@ -72,8 +72,8 @@ public class ObstructionController : MonoBehaviour
         Vector3 halfExtents = zone.size * 0.5f;
         Quaternion rotation = zone.transform.rotation;
 
-        // Use a slightly smaller box to avoid grazing neighbors
-        Collider[] hits = Physics.OverlapBox(center, halfExtents * 0.95f, rotation, obstructionMask, QueryTriggerInteraction.Ignore);
+        // Use exact halfExtents from the collider as defined in the prefab
+        Collider[] hits = Physics.OverlapBox(center, halfExtents, rotation, obstructionMask, QueryTriggerInteraction.Ignore);
 
         foreach (var hit in hits)
         {
@@ -108,8 +108,14 @@ public class ObstructionController : MonoBehaviour
         UpdateFaceTriggers(faceWest, parentRunode.westUpTrigger, parentRunode.westRightTrigger, parentRunode.westDownTrigger, parentRunode.westLeftTrigger);
     }
 
+    public bool IsFaceObstructed(BoxCollider faceZone)
+    {
+        return obstructedZones.Contains(faceZone);
+    }
+
     private void UpdateFaceTriggers(BoxCollider faceZone, params PowerConnectionTrigger[] triggers)
     {
+        if (faceZone == null) return;
         bool isBlocked = obstructedZones.Contains(faceZone);
         foreach (var t in triggers)
         {
@@ -120,8 +126,32 @@ public class ObstructionController : MonoBehaviour
     // Returns true if the internal path between two triggers is pinched by an edge obstruction.
     public bool IsInternalPathPinch(PowerConnectionTrigger a, PowerConnectionTrigger b)
     {
-        // This will be expanded once we map the 12 edges to trigger pairs in the next step.
+        if (a == null || b == null) return false;
+
+        // 4 Vertical Edges
+        if (IsBetween(a, b, parentRunode.northRightTrigger, parentRunode.westLeftTrigger)) return obstructedZones.Contains(edgeNW);
+        if (IsBetween(a, b, parentRunode.northLeftTrigger, parentRunode.eastRightTrigger)) return obstructedZones.Contains(edgeNE);
+        if (IsBetween(a, b, parentRunode.southLeftTrigger, parentRunode.westRightTrigger)) return obstructedZones.Contains(edgeSW);
+        if (IsBetween(a, b, parentRunode.southRightTrigger, parentRunode.eastLeftTrigger)) return obstructedZones.Contains(edgeSE);
+
+        // 4 Top Edges
+        if (IsBetween(a, b, parentRunode.topUpTrigger, parentRunode.northUpTrigger)) return obstructedZones.Contains(edgeTN);
+        if (IsBetween(a, b, parentRunode.topDownTrigger, parentRunode.southUpTrigger)) return obstructedZones.Contains(edgeTS);
+        if (IsBetween(a, b, parentRunode.topRightTrigger, parentRunode.eastUpTrigger)) return obstructedZones.Contains(edgeTE);
+        if (IsBetween(a, b, parentRunode.topLeftTrigger, parentRunode.westUpTrigger)) return obstructedZones.Contains(edgeTW);
+
+        // 4 Bottom Edges
+        if (IsBetween(a, b, parentRunode.bottomUpTrigger, parentRunode.northDownTrigger)) return obstructedZones.Contains(edgeBN);
+        if (IsBetween(a, b, parentRunode.bottomDownTrigger, parentRunode.southDownTrigger)) return obstructedZones.Contains(edgeBS);
+        if (IsBetween(a, b, parentRunode.bottomRightTrigger, parentRunode.eastDownTrigger)) return obstructedZones.Contains(edgeBE);
+        if (IsBetween(a, b, parentRunode.bottomLeftTrigger, parentRunode.westDownTrigger)) return obstructedZones.Contains(edgeBW);
+
         return false;
+    }
+
+    private bool IsBetween(PowerConnectionTrigger entry, PowerConnectionTrigger exit, PowerConnectionTrigger targetA, PowerConnectionTrigger targetB)
+    {
+        return (entry == targetA && exit == targetB) || (entry == targetB && exit == targetA);
     }
 
     private void OnDrawGizmosSelected()

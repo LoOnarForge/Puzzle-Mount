@@ -37,15 +37,8 @@ public class PowerSource : MonoBehaviour
         propBlock = new MaterialPropertyBlock();
         if (topFaceTransform != null)
         {
-            Transform spriteChild = topFaceTransform.Find("Power Line Sprite");
-            if (spriteChild != null)
-            {
-                var detector = spriteChild.GetComponent<FaceObstructionDetector>();
-                if (detector != null)
-                {
-                    detector.Initialize(null, new[] { upTrigger, rightTrigger, downTrigger, leftTrigger });
-                }
-            }
+            // The detector component has been removed as per the new spatial system.
+            // PowerSource triggers are handled by the BFS which now respects obstruction flags updated by PowerManager.
         }
     }
 

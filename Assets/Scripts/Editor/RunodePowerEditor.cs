@@ -48,6 +48,10 @@ public class RunodePowerEditor : Editor
             cubePower.southFace  = PowerLineType.Empty;
             cubePower.eastFace   = PowerLineType.Empty;
             cubePower.westFace   = PowerLineType.Empty;
+            
+            // Apply changes immediately to trigger visual updates
+            serializedObject.ApplyModifiedProperties();
+            serializedObject.Update();
             EditorUtility.SetDirty(cubePower);
         }
 
@@ -91,6 +95,7 @@ public class RunodePowerEditor : Editor
 
         if (showRefs)
         {
+            EditorGUILayout.PropertyField(serializedObject.FindProperty("obstructionController"));
             EditorGUILayout.PropertyField(serializedObject.FindProperty("topFaceTransform"));
             EditorGUILayout.PropertyField(serializedObject.FindProperty("bottomFaceTransform"));
             EditorGUILayout.PropertyField(serializedObject.FindProperty("northFaceTransform"));
@@ -170,7 +175,17 @@ public class RunodePowerEditor : Editor
         Transform faceTransform = GetFaceTransform(faceIndex);
         if (faceTransform == null) return;
 
-        Transform spriteTransform = faceTransform.Find("Power Line Sprite");
+        // Use the same finding logic as RunodePower to ensure we find the sprite
+        Transform spriteTransform = null;
+        foreach (Transform child in faceTransform)
+        {
+            if (child.name.StartsWith("Power Line Sprite"))
+            {
+                spriteTransform = child;
+                break;
+            }
+        }
+
         if (spriteTransform == null) return;
 
         SpriteRenderer sr = spriteTransform.GetComponent<SpriteRenderer>();
@@ -298,6 +313,10 @@ public class RunodePowerEditor : Editor
         cubePower.southFace  = type;
         cubePower.eastFace   = type;
         cubePower.westFace   = type;
+        
+        // Apply changes immediately to trigger visual updates
+        serializedObject.ApplyModifiedProperties();
+        serializedObject.Update();
         EditorUtility.SetDirty(cubePower);
     }
 }

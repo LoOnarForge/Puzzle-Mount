@@ -207,6 +207,15 @@ public class RunodeMovement : MonoBehaviour
         PowerManager.Instance.RequestPowerFlowCheck();
     }
 
+    private void OnCollisionEnter(Collision collision)
+    {
+        // If we hit something while falling/moving physically, refresh power
+        if (!isMovingPos && !isRotating)
+        {
+            PowerManager.Instance.RequestPowerFlowCheck();
+        }
+    }
+
     private void ApplyRandomRotation()
     {
         float xRot = Random.Range(0, 4) * 90f;

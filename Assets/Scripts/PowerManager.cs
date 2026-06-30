@@ -52,10 +52,19 @@ public class PowerManager : MonoBehaviour
 
     private void RecalculateAllSources()
     {
-        // Clear all cube power states globally before any source runs BFS.
+        // 1. Perform spatial sweeps for all cubes to update their obstruction states
+        foreach (RunodePower runode in registeredRunodes)
+        {
+            if (runode.obstructionController != null)
+            {
+                runode.obstructionController.PerformSpatialSweep();
+            }
+        }
+
+        // 2. Clear all cube power states globally before any source runs BFS.
         ClearAllCubeStates();
 
-        // Each source independently runs BFS on its own connected graph.
+        // 3. Each source independently runs BFS on its own connected graph.
         foreach (PowerSource source in sources)
         {
             source.RunBFS();
