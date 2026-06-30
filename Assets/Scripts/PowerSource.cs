@@ -143,7 +143,7 @@ public class PowerSource : MonoBehaviour
                 }
 
                 SetTriggerPowered(neighbor, current.distanceFromSource + 1, queue, visitedTriggers);
-                if (neighborCube != null) neighborCube.MarkFacePowered(neighbor);
+                if (neighborCube != null) neighborCube.MarkFacePowered(neighbor, powerColor);
             }
 
             if (currentCube != null)
@@ -152,7 +152,7 @@ public class PowerSource : MonoBehaviour
                 if (internalBridge != null && internalBridge.gameObject.activeInHierarchy && !internalBridge.isObstructed && !visitedTriggers.Contains(internalBridge))
                 {
                     SetTriggerPowered(internalBridge, current.distanceFromSource, queue, visitedTriggers);
-                    currentCube.MarkFacePowered(internalBridge);
+                    currentCube.MarkFacePowered(internalBridge, powerColor);
                 }
 
                 var faceNeighbors = currentCube.GetConnectedTriggersOnFace(current);
@@ -168,7 +168,7 @@ public class PowerSource : MonoBehaviour
 
         foreach (var cube in visitedCubes)
         {
-            cube.RefreshFaceVisuals(powerColor);
+            cube.RefreshFaceVisuals();
         }
     }
 

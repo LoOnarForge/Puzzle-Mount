@@ -99,6 +99,7 @@ public class RunodePower : MonoBehaviour
         public PowerConnectionTrigger[] triggers; // [0]=Up, [1]=Right, [2]=Down, [3]=Left
         public PowerLineType lineType;
         public bool isFacePowered;
+        public Color faceColor = Color.white;
     }
 
     private static readonly Dictionary<PowerLineType, bool[]> ConnectivityMap = new Dictionary<PowerLineType, bool[]>
@@ -247,6 +248,7 @@ public class RunodePower : MonoBehaviour
         foreach (var face in allFaces)
         {
             face.isFacePowered = false;
+            face.faceColor = Color.white;
             foreach (var t in face.triggers)
             {
                 if (t != null) t.ClearPowerState();
@@ -293,20 +295,22 @@ public class RunodePower : MonoBehaviour
         return ConnectivityMap[PowerLineType.Empty];
     }
 
-    public void RefreshFaceVisuals(Color color)
+    public void RefreshFaceVisuals()
     {
-        currentPowerColor = color;
         foreach (var face in allFaces)
         {
-            ApplyFaceColor(face, face.isFacePowered ? color : Color.white);
+            ApplyFaceColor(face, face.isFacePowered ? face.faceColor : Color.white);
         }
     }
 
-    public void MarkFacePowered(PowerConnectionTrigger t)
+    public void MarkFacePowered(PowerConnectionTrigger t, Color color)
     {
         if (triggerToFaceMap.TryGetValue(t, out FaceData face))
         {
             face.isFacePowered = true;
+            face.faceColor = color;
+            // Also store for the cube as a whole (legacy/fallback)
+            currentPowerColor = color;
         }
     }
 

@@ -47,7 +47,7 @@ public class RunodeHighlighter : MonoBehaviour
         SpriteRenderer[] allSprites = GetComponentsInChildren<SpriteRenderer>(true);
         foreach (var sr in allSprites)
         {
-            if (sr.name == "Power Line Sprite")
+            if (sr.name.StartsWith("Power Line Sprite"))
                 cachedLineRenderers.Add(sr);
         }
     }
@@ -88,7 +88,7 @@ public class RunodeHighlighter : MonoBehaviour
             else if (currentLineColor != Color.white)
             {
                 currentLineColor = Color.white;
-                powerSystem.RefreshFaceVisuals(powerSystem.currentPowerColor);
+                powerSystem.RefreshFaceVisuals();
             }
         }
     }
