@@ -80,7 +80,7 @@ public class ObstructionController : MonoBehaviour
             if (IsActualObstruction(hit))
             {
                 obstructedZones.Add(zone);
-                Debug.Log($"[Obstruction] {parentRunode.name}: Zone {zone.name} BLOCKED by {hit.name}");
+             //   Debug.Log($"[Obstruction] {parentRunode.name}: Zone {zone.name} BLOCKED by {hit.name}");
                 break;
             }
         }

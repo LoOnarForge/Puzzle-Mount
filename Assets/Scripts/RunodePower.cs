@@ -318,11 +318,11 @@ public class RunodePower : MonoBehaviour
             // Internal bridge check for corner wraps
             if (obstructionController != null && obstructionController.IsInternalPathPinch(t, neighbor))
             {
-                Debug.Log($"[BFS] {name}: Corner wrap bridge between {t.name} and {neighbor.name} is PINCHED.");
+             //   Debug.Log($"[BFS] {name}: Corner wrap bridge between {t.name} and {neighbor.name} is PINCHED.");
                 return null;
             }
 
-            Debug.Log($"[BFS] {name}: Corner wrap bridge successful: {t.name} -> {neighbor.name}");
+          //  Debug.Log($"[BFS] {name}: Corner wrap bridge successful: {t.name} -> {neighbor.name}");
             return neighbor;
         }
         return null;
