@@ -92,6 +92,7 @@ public class RunodePower : MonoBehaviour
     public PowerSource poweredBySource { get; private set; } = null;
     public int distanceFromSource { get; private set; } = 0;
 
+    [System.Serializable]
     public class FaceData
     {
         public SpriteRenderer faceSprite;
@@ -122,7 +123,7 @@ public class RunodePower : MonoBehaviour
 
     private Dictionary<PowerConnectionTrigger, FaceData> triggerToFaceMap = new Dictionary<PowerConnectionTrigger, FaceData>();
     private Dictionary<PowerConnectionTrigger, PowerConnectionTrigger> internalNeighborMap = new Dictionary<PowerConnectionTrigger, PowerConnectionTrigger>();
-    private List<FaceData> allFaces = new List<FaceData>();
+    public List<FaceData> allFaces = new List<FaceData>();
 
     public Color currentPowerColor { get; private set; } = Color.white;
 
@@ -260,8 +261,8 @@ public class RunodePower : MonoBehaviour
             return connected;
         }
 
-        face.isFacePowered = true; 
-        IsPowered = true; 
+        // face.isFacePowered = true; // Controlled by MarkFacePowered
+        // IsPowered = true; 
 
         int entryIndex = System.Array.IndexOf(face.triggers, entry);
         bool[] activeIndices = GetLineConnectivity(face.lineType);
@@ -300,15 +301,32 @@ public class RunodePower : MonoBehaviour
         }
     }
 
-    public void MarkFacePowered(PowerConnectionTrigger t, Color color)
+    public bool MarkFacePowered(PowerConnectionTrigger t, Color color, string senderName, FaceData sourceFace = null)
     {
-        if (triggerToFaceMap.TryGetValue(t, out FaceData face))
+        if (triggerToFaceMap.TryGetValue(t, out FaceData targetFace))
         {
-            face.isFacePowered = true;
-            face.faceColor = color;
-            // Also store for the cube as a whole (legacy/fallback)
+            // Ignore if we are looking back at the face that just powered us
+            if (sourceFace != null && targetFace == sourceFace) return true;
+
+            if (targetFace.isFacePowered)
+            {
+                Debug.Log("GAME OVER");
+                Debug.Log($"Cube {name} caused short circuit by receiving power from {senderName} while already powered");
+                return false;
+            }
+
+            targetFace.isFacePowered = true;
+            targetFace.faceColor = color;
             currentPowerColor = color;
+            IsPowered = true;
         }
+        return true;
+    }
+
+    public FaceData GetFaceData(PowerConnectionTrigger t)
+    {
+        triggerToFaceMap.TryGetValue(t, out FaceData face);
+        return face;
     }
 
     public PowerConnectionTrigger GetInternalNeighbor(PowerConnectionTrigger t)

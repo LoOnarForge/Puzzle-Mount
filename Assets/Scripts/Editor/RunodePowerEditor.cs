@@ -140,6 +140,10 @@ public class RunodePowerEditor : Editor
             EditorGUILayout.PropertyField(serializedObject.FindProperty("westRightTrigger"));
             EditorGUILayout.PropertyField(serializedObject.FindProperty("westDownTrigger"));
             EditorGUILayout.PropertyField(serializedObject.FindProperty("westLeftTrigger"));
+
+            EditorGUILayout.Space();
+            EditorGUILayout.LabelField("Face Runtime State", EditorStyles.boldLabel);
+            EditorGUILayout.PropertyField(serializedObject.FindProperty("allFaces"));
         }
 
         serializedObject.ApplyModifiedProperties();

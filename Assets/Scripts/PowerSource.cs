@@ -9,6 +9,7 @@ public class PowerSource : MonoBehaviour
 
     public int maxPower = 10;
     public int currentCubesPowered = 0;
+    public List<RunodePower> poweredRunodes = new List<RunodePower>();
 
     public PowerLineType topFace = PowerLineType.Empty;
     public Transform topFaceTransform;
@@ -99,13 +100,26 @@ public class PowerSource : MonoBehaviour
         UpdateCrystalVisuals();
     }
 
+    private struct BFSNode
+    {
+        public PowerConnectionTrigger trigger;
+        public RunodePower.FaceData sourceFace;
+
+        public BFSNode(PowerConnectionTrigger t, RunodePower.FaceData f)
+        {
+            trigger = t;
+            sourceFace = f;
+        }
+    }
+
     public void RunBFS()
     {
-        Queue<PowerConnectionTrigger> queue = new Queue<PowerConnectionTrigger>();
+        Queue<BFSNode> queue = new Queue<BFSNode>();
         HashSet<PowerConnectionTrigger> visitedTriggers = new HashSet<PowerConnectionTrigger>();
         HashSet<RunodePower> visitedCubes = new HashSet<RunodePower>();
         
         currentCubesPowered = 0;
+        poweredRunodes.Clear();
 
         EnqueueSourceTrigger(upTrigger, queue, visitedTriggers, visitedCubes);
         EnqueueSourceTrigger(rightTrigger, queue, visitedTriggers, visitedCubes);
@@ -114,45 +128,59 @@ public class PowerSource : MonoBehaviour
 
         while (queue.Count > 0)
         {
-            PowerConnectionTrigger current = queue.Dequeue();
+            BFSNode node = queue.Dequeue();
+            PowerConnectionTrigger current = node.trigger;
             RunodePower currentCube = current.parentRunodePower;
 
+            // Get the face data for the CURRENT trigger to pass it forward as the 'sourceFace'
+            RunodePower.FaceData currentFace = null;
+            if (currentCube != null) currentFace = currentCube.GetFaceData(current);
+
             PowerConnectionTrigger neighbor = FindExternalNeighbor(current);
-            if (neighbor != null && neighbor.gameObject.activeInHierarchy && !neighbor.isObstructed && !visitedTriggers.Contains(neighbor))
+            if (neighbor != null && neighbor.gameObject.activeInHierarchy && !neighbor.isObstructed)
             {
                 RunodePower neighborCube = neighbor.parentRunodePower;
                 if (neighborCube == null) neighborCube = neighbor.GetComponentInParent<RunodePower>();
                 
-                bool isNewCube = neighborCube != null && !visitedCubes.Contains(neighborCube);
-
-                if (isNewCube && currentCubesPowered >= maxPower)
+                if (neighborCube != null)
                 {
-                    continue; 
+                    string sender = currentCube != null ? currentCube.name : name;
+                    // Check face power BEFORE skipping via visitedTriggers to catch loops. Pass the sourceFace to ignore back-links.
+                    if (!neighborCube.MarkFacePowered(neighbor, powerColor, sender, node.sourceFace)) return;
                 }
 
-                if (neighbor.isPowered && neighbor.currentPowerColor != powerColor)
+                if (!visitedTriggers.Contains(neighbor))
                 {
-                    TriggerGameOver();
-                    return;
-                }
+                    bool isNewCube = neighborCube != null && !visitedCubes.Contains(neighborCube);
 
-                if (isNewCube)
-                {
-                    visitedCubes.Add(neighborCube);
-                    currentCubesPowered++;
-                }
+                    if (isNewCube && currentCubesPowered >= maxPower)
+                    {
+                        continue; 
+                    }
 
-                SetTriggerPowered(neighbor, current.distanceFromSource + 1, queue, visitedTriggers);
-                if (neighborCube != null) neighborCube.MarkFacePowered(neighbor, powerColor);
+                    if (isNewCube)
+                    {
+                        visitedCubes.Add(neighborCube);
+                        poweredRunodes.Add(neighborCube);
+                        currentCubesPowered++;
+                    }
+
+                    SetTriggerPowered(neighbor, current.distanceFromSource + 1, queue, visitedTriggers, currentFace);
+                }
             }
 
             if (currentCube != null)
             {
                 PowerConnectionTrigger internalBridge = currentCube.GetInternalNeighbor(current);
-                if (internalBridge != null && internalBridge.gameObject.activeInHierarchy && !internalBridge.isObstructed && !visitedTriggers.Contains(internalBridge))
+                if (internalBridge != null && internalBridge.gameObject.activeInHierarchy && !internalBridge.isObstructed)
                 {
-                    SetTriggerPowered(internalBridge, current.distanceFromSource, queue, visitedTriggers);
-                    currentCube.MarkFacePowered(internalBridge, powerColor);
+                    // Check face power for corner wraps
+                    if (!currentCube.MarkFacePowered(internalBridge, powerColor, currentCube.name, node.sourceFace)) return;
+
+                    if (!visitedTriggers.Contains(internalBridge))
+                    {
+                        SetTriggerPowered(internalBridge, current.distanceFromSource, queue, visitedTriggers, currentFace);
+                    }
                 }
 
                 var faceNeighbors = currentCube.GetConnectedTriggersOnFace(current);
@@ -160,7 +188,8 @@ public class PowerSource : MonoBehaviour
                 {
                     if (fn.gameObject.activeInHierarchy && !visitedTriggers.Contains(fn))
                     {
-                        SetTriggerPowered(fn, current.distanceFromSource, queue, visitedTriggers);
+                        // Internal propagation on the same face: keep the same sourceFace reference
+                        SetTriggerPowered(fn, current.distanceFromSource, queue, visitedTriggers, node.sourceFace);
                     }
                 }
             }
@@ -172,7 +201,7 @@ public class PowerSource : MonoBehaviour
         }
     }
 
-    private void EnqueueSourceTrigger(PowerConnectionTrigger trigger, Queue<PowerConnectionTrigger> queue, HashSet<PowerConnectionTrigger> visitedTriggers, HashSet<RunodePower> visitedCubes)
+    private void EnqueueSourceTrigger(PowerConnectionTrigger trigger, Queue<BFSNode> queue, HashSet<PowerConnectionTrigger> visitedTriggers, HashSet<RunodePower> visitedCubes)
     {
         if (trigger == null || !trigger.gameObject.activeInHierarchy) return;
         
@@ -182,16 +211,23 @@ public class PowerSource : MonoBehaviour
         trigger.sourceMW = maxPower;
         
         visitedTriggers.Add(trigger);
-        queue.Enqueue(trigger);
+        queue.Enqueue(new BFSNode(trigger, null));
 
-        if (trigger.parentRunodePower != null && !visitedCubes.Contains(trigger.parentRunodePower))
+        if (trigger.parentRunodePower != null)
         {
-            visitedCubes.Add(trigger.parentRunodePower);
-            currentCubesPowered++;
+            // Initial power from source to cube face
+            trigger.parentRunodePower.MarkFacePowered(trigger, powerColor, name, null);
+
+            if (!visitedCubes.Contains(trigger.parentRunodePower))
+            {
+                visitedCubes.Add(trigger.parentRunodePower);
+                poweredRunodes.Add(trigger.parentRunodePower);
+                currentCubesPowered++;
+            }
         }
     }
 
-    private void SetTriggerPowered(PowerConnectionTrigger trigger, int distance, Queue<PowerConnectionTrigger> queue, HashSet<PowerConnectionTrigger> visited)
+    private void SetTriggerPowered(PowerConnectionTrigger trigger, int distance, Queue<BFSNode> queue, HashSet<PowerConnectionTrigger> visited, RunodePower.FaceData sourceFace)
     {
         trigger.isPowered = true;
         trigger.currentPowerColor = powerColor;
@@ -199,7 +235,7 @@ public class PowerSource : MonoBehaviour
         trigger.sourceMW = maxPower;
         
         visited.Add(trigger);
-        queue.Enqueue(trigger);
+        queue.Enqueue(new BFSNode(trigger, sourceFace));
     }
 
     private PowerConnectionTrigger FindExternalNeighbor(PowerConnectionTrigger source)
@@ -248,6 +284,7 @@ public class PowerSource : MonoBehaviour
 
     private void TriggerGameOver()
     {
-        Debug.Log("[PowerSource] Game Over - illegal connection detected (loop or color mixing).");
+        Debug.Log("GAME OVER");
+        Debug.Log($"[PowerSource] {name} detected illegal connection (loop or collision).");
     }
 }
