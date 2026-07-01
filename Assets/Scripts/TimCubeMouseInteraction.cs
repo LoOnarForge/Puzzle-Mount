@@ -97,7 +97,12 @@ public class TimCubeMouseInteraction : MonoBehaviour
                 if (highlighter != null)
                 {
                     bool isActuallyRotatable = IsActuallyRotatable(cube, hit.point);
-                    highlighter.SetHighlight(isActuallyRotatable);
+                    
+                    int faceIndex = -1;
+                    RunodePower power = cube.GetComponent<RunodePower>();
+                    if (power != null) faceIndex = power.GetFaceIndexFromPoint(hit.point);
+
+                    highlighter.SetHighlight(isActuallyRotatable, faceIndex);
 
                     if (lastHighlighter != null && lastHighlighter != highlighter)
                         lastHighlighter.ClearHighlight();
@@ -194,12 +199,16 @@ public class TimCubeMouseInteraction : MonoBehaviour
                 RunodeMovement cube = hit.collider.GetComponentInParent<RunodeMovement>();
                 if (IsActuallyRotatable(cube, hit.point))
                 {
+                    RunodePower power = cube.GetComponent<RunodePower>();
+                    int faceIndex = power != null ? power.GetFaceIndexFromPoint(hit.point) : -1;
+                    Vector3 visualNormal = (power != null && faceIndex != -1) ? power.GetFaceNormal(faceIndex) : hit.normal;
+
                     if (isLeftClick)
                     {
                         isMouseRotating = true;
                         hasTriggeredMouseRotation = false;
                         mouseRotTarget = cube;
-                        mouseHitNormal = hit.normal; 
+                        mouseHitNormal = visualNormal; 
                         lastMousePosition = Mouse.current.position.ReadValue();
                         
                         if (characterMovement != null) characterMovement.SetMovementEnabled(false);
@@ -208,7 +217,7 @@ public class TimCubeMouseInteraction : MonoBehaviour
                     {
                         if (isRotating || cube.isRotating) return;
                         
-                        Vector3 finalAxis = GetCardinalAxis(hit.normal);
+                        Vector3 finalAxis = GetCardinalAxis(visualNormal);
                         StartCoroutine(SmoothRotateCubePhysical(cube, -90f, finalAxis, mouseRotationDuration));
                     }
                 }

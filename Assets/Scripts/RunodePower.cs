@@ -323,6 +323,31 @@ public class RunodePower : MonoBehaviour
         return true;
     }
 
+    public int GetFaceIndexFromPoint(Vector3 worldPoint)
+    {
+        Vector3 localPoint = transform.InverseTransformPoint(worldPoint);
+        float lx = Mathf.Abs(localPoint.x), ly = Mathf.Abs(localPoint.y), lz = Mathf.Abs(localPoint.z);
+
+        // Order in allFaces: 0:Top, 1:Bottom, 2:North, 3:South, 4:East, 5:West
+        if (ly * 1.1f > lx && ly * 1.1f > lz) return localPoint.y > 0 ? 0 : 1;
+        if (lx >= lz) return localPoint.x > 0 ? 4 : 5;
+        return localPoint.z > 0 ? 2 : 3;
+    }
+
+    public Vector3 GetFaceNormal(int index)
+    {
+        switch (index)
+        {
+            case 0: return transform.up;
+            case 1: return -transform.up;
+            case 2: return transform.forward;
+            case 3: return -transform.forward;
+            case 4: return transform.right;
+            case 5: return -transform.right;
+            default: return transform.up;
+        }
+    }
+
     public FaceData GetFaceData(PowerConnectionTrigger t)
     {
         triggerToFaceMap.TryGetValue(t, out FaceData face);

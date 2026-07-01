@@ -19,6 +19,9 @@ public class RunodeHighlighter : MonoBehaviour
     public MeshRenderer cubeRenderer;
     public GameObject selectionFrame; 
 
+    [Header("FACE DECALS")]
+    public GameObject[] faceDecals; // Order: 0:Top, 1:Bottom, 2:North, 3:South, 4:East, 5:West
+
     private RunodePower powerSystem;
     private MaterialPropertyBlock cubePropBlock;
     private MaterialPropertyBlock linePropBlock;
@@ -28,6 +31,7 @@ public class RunodeHighlighter : MonoBehaviour
     
     private bool isHovered = false;
     private bool isInRange = false;
+    private int activeDecalIndex = -1;
 
     private static readonly int BaseColorId = Shader.PropertyToID("_BaseColor");
 
@@ -42,6 +46,9 @@ public class RunodeHighlighter : MonoBehaviour
         powerSystem = GetComponent<RunodePower>();
         if (cubeRenderer == null) cubeRenderer = GetComponentInChildren<MeshRenderer>();
         if (selectionFrame != null) selectionFrame.SetActive(false);
+
+        // Ensure all decals are off initially
+        ClearAllDecals();
 
         // Cache the line renderers once
         SpriteRenderer[] allSprites = GetComponentsInChildren<SpriteRenderer>(true);
@@ -76,7 +83,19 @@ public class RunodeHighlighter : MonoBehaviour
                 selectionFrame.SetActive(shouldBeActive);
         }
 
-        // 3. Power Line Darkening Logic
+        // 3. Decal Logic
+        if (faceDecals != null)
+        {
+            for (int i = 0; i < faceDecals.Length; i++)
+            {
+                if (faceDecals[i] == null) continue;
+                bool shouldBeActive = isHovered && isInRange && i == activeDecalIndex;
+                if (faceDecals[i].activeSelf != shouldBeActive)
+                    faceDecals[i].SetActive(shouldBeActive);
+            }
+        }
+
+        // 4. Power Line Darkening Logic
         if (darkenLinesOnHighlight && powerSystem != null)
         {
             bool shouldDarken = isHovered && isInRange;
@@ -104,14 +123,26 @@ public class RunodeHighlighter : MonoBehaviour
         }
     }
 
-    public void SetHighlight(bool rotatable)
+    public void SetHighlight(bool rotatable, int faceIndex = -1)
     {
         isHovered = true;
         isInRange = rotatable;
+        activeDecalIndex = faceIndex;
     }
 
     public void ClearHighlight()
     {
         isHovered = false;
+        activeDecalIndex = -1;
+        ClearAllDecals();
+    }
+
+    private void ClearAllDecals()
+    {
+        if (faceDecals == null) return;
+        foreach (var decal in faceDecals)
+        {
+            if (decal != null) decal.SetActive(false);
+        }
     }
 }
