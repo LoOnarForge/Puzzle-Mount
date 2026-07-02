@@ -325,7 +325,10 @@ public class RunodePower : MonoBehaviour
 
     public int GetFaceIndexFromPoint(Vector3 worldPoint)
     {
-        Vector3 localPoint = transform.InverseTransformPoint(worldPoint);
+        // Use the visual parent's coordinate space to identify the physical surface hit, 
+        // regardless of the root object's orientation.
+        Transform vParent = transform.GetChild(0);
+        Vector3 localPoint = vParent.InverseTransformPoint(worldPoint);
         float lx = Mathf.Abs(localPoint.x), ly = Mathf.Abs(localPoint.y), lz = Mathf.Abs(localPoint.z);
 
         // Order in allFaces: 0:Top, 1:Bottom, 2:North, 3:South, 4:East, 5:West
@@ -336,15 +339,16 @@ public class RunodePower : MonoBehaviour
 
     public Vector3 GetFaceNormal(int index)
     {
+        Transform vParent = transform.GetChild(0);
         switch (index)
         {
-            case 0: return transform.up;
-            case 1: return -transform.up;
-            case 2: return transform.forward;
-            case 3: return -transform.forward;
-            case 4: return transform.right;
-            case 5: return -transform.right;
-            default: return transform.up;
+            case 0: return vParent.up;
+            case 1: return -vParent.up;
+            case 2: return vParent.forward;
+            case 3: return -vParent.forward;
+            case 4: return vParent.right;
+            case 5: return -vParent.right;
+            default: return vParent.up;
         }
     }
 
