@@ -17,10 +17,10 @@ public class CameraFollow : MonoBehaviour
     public Vector3 offset = new Vector3(0, 5, -8);
     public bool constrainY = true;
     public float fixedYPosition = 10f;
+    [Tooltip("Offsets the screen position without changing the camera angle")]
+    public float screenFramingOffset = 0f;
     
-    [Header("Look At Settings")]
-    public bool lookAtTarget = true;
-    public Vector3 lookAtOffset = Vector3.up;
+    private Vector3 lookAtOffset = Vector3.up * 2f;
     
     [Header("Manual Control")]
     public Key clockwiseKey = Key.E;
@@ -126,17 +126,19 @@ public class CameraFollow : MonoBehaviour
     {
         Vector3 targetPos = target.position + offset;
         if (constrainY) targetPos.y = fixedYPosition;
+        
+        // Add framing offset relative to the camera's right axis to shift the camera position
+        targetPos += transform.right * screenFramingOffset;
+        
         transform.position = Vector3.SmoothDamp(transform.position, targetPos, ref velocity, DampingTime);
 
-        if (lookAtTarget)
+        // Calculate look target with the same framing offset so the camera doesn't turn back to center Tim
+        Vector3 lookAtPos = (target.position + lookAtOffset) + (transform.right * screenFramingOffset);
+        Vector3 direction = (lookAtPos - transform.position).normalized;
+        if (direction != Vector3.zero)
         {
-            Vector3 lookAtPos = target.position + lookAtOffset;
-            Vector3 direction = (lookAtPos - transform.position).normalized;
-            if (direction != Vector3.zero)
-            {
-                Quaternion targetRot = Quaternion.LookRotation(direction);
-                transform.rotation = Quaternion.Slerp(transform.rotation, targetRot, RotationLerpSpeed * Time.deltaTime);
-            }
+            Quaternion targetRot = Quaternion.LookRotation(direction);
+            transform.rotation = Quaternion.Slerp(transform.rotation, targetRot, RotationLerpSpeed * Time.deltaTime);
         }
     }
 
