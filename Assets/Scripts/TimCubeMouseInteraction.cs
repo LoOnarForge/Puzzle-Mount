@@ -7,6 +7,7 @@ using System.Collections.Generic;
 public class TimCubeMouseInteraction : MonoBehaviour
 {
     [Header("MOUSE ROTATION SETTINGS:")]
+    public LayerMask interactionLayer;
     public float mouseRotationSensitivity = 1.0f;
     public float mouseRotationDuration = 0.08f;
     public float maxRotationDistance = 5.0f;
@@ -88,7 +89,7 @@ public class TimCubeMouseInteraction : MonoBehaviour
         if (Mouse.current == null) return;
 
         Ray ray = Camera.main.ScreenPointToRay(Mouse.current.position.ReadValue());
-        if (Physics.Raycast(ray, out RaycastHit hit, 100f))
+        if (Physics.Raycast(ray, out RaycastHit hit, 100f, interactionLayer))
         {
             RunodeMovement cube = hit.collider.GetComponentInParent<RunodeMovement>();
             if (cube != null)
@@ -160,7 +161,7 @@ public class TimCubeMouseInteraction : MonoBehaviour
         if (Mouse.current == null) return;
 
         Ray ray = Camera.main.ScreenPointToRay(Mouse.current.position.ReadValue());
-        if (Physics.Raycast(ray, out RaycastHit hit, 100f))
+        if (Physics.Raycast(ray, out RaycastHit hit, 100f, interactionLayer))
         {
             // Only gaze at valid Runode cubes
             if (hit.collider.GetComponentInParent<RunodeMovement>() != null)
@@ -194,7 +195,7 @@ public class TimCubeMouseInteraction : MonoBehaviour
         {
             bool isLeftClick = Mouse.current.leftButton.wasPressedThisFrame;
             Ray ray = Camera.main.ScreenPointToRay(Mouse.current.position.ReadValue());
-            if (Physics.Raycast(ray, out RaycastHit hit, 100f))
+            if (Physics.Raycast(ray, out RaycastHit hit, 100f, interactionLayer))
             {
                 RunodeMovement cube = hit.collider.GetComponentInParent<RunodeMovement>();
                 if (IsActuallyRotatable(cube, hit.point))
@@ -384,7 +385,7 @@ public class TimCubeMouseInteraction : MonoBehaviour
             Vector3 dir = (targetPoint - origin);
             float maxDist = dir.magnitude;
             
-            if (Physics.Raycast(origin, dir.normalized, out RaycastHit hit, maxDist + 0.1f))
+            if (Physics.Raycast(origin, dir.normalized, out RaycastHit hit, maxDist + 0.1f, interactionLayer))
             {
                 if (hit.collider.transform.IsChildOf(timTransform)) continue;
                 RunodeMovement hitCube = hit.collider.GetComponentInParent<RunodeMovement>();
