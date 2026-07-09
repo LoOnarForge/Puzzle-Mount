@@ -331,7 +331,30 @@ public class RunodePower : MonoBehaviour
     {
         foreach (var face in allFaces)
         {
-            ApplyFaceColor(face, face.isFacePowered ? face.faceColor : Color.white);
+            // By default, refresh calls are not instant to allow for the BFS sequential feel.
+            // But we pass through the isFacePowered color to ensure visual matches logic.
+            ApplyFaceColor(face, face.isFacePowered ? face.faceColor : Color.white, false);
+        }
+    }
+
+    /// <summary>
+    /// Updates visuals for a specific face. Use for targeted BFS updates.
+    /// </summary>
+    public void UpdateFaceVisuals(int index, Color color, bool instant = false)
+    {
+        if (index < 0 || index >= allFaces.Count) return;
+        ApplyFaceColor(allFaces[index], color, instant);
+    }
+
+    /// <summary>
+    /// Forces an immediate visual update of all faces on this cube.
+    /// Use for highlighting or editor updates.
+    /// </summary>
+    public void RefreshFaceVisualsInstant()
+    {
+        foreach (var face in allFaces)
+        {
+            ApplyFaceColor(face, face.isFacePowered ? face.faceColor : Color.white, true);
         }
     }
 

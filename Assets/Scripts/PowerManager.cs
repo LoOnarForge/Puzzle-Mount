@@ -45,18 +45,28 @@ public class PowerManager : MonoBehaviour
         if (alteredCube != null) lastAlteredCube = alteredCube;
     }
 
+    private bool recalculationInProgress = false;
+    private bool needsAnotherRecalculation = false;
+
     private void LateUpdate()
     {
         if (!recalculationRequested) return;
 
         recalculationRequested = false;
         
-        if (recalculationRoutine != null) StopCoroutine(recalculationRoutine);
+        if (recalculationInProgress)
+        {
+            needsAnotherRecalculation = true;
+            return;
+        }
+
         recalculationRoutine = StartCoroutine(RecalculateAllSourcesRoutine());
     }
 
     private System.Collections.IEnumerator RecalculateAllSourcesRoutine()
     {
+        recalculationInProgress = true;
+
         if (PowerDisplayManager.Instance != null) PowerDisplayManager.Instance.ResetQueue();
 
         // 1. Perform spatial sweeps for all cubes to update their obstruction states
@@ -68,14 +78,14 @@ public class PowerManager : MonoBehaviour
             }
         }
 
-        // 2. Handle Invalidation
+        // 2. Handle Invalidation - Logic only (Silent clear to prevent flickering)
         if (lastAlteredCube != null)
         {
             InvalidateSubtree(lastAlteredCube);
         }
         else
         {
-            ClearAllCubeStates();
+            ClearAllCubeStates(false);
         }
 
         // 3. Each source independently runs BFS. 
@@ -85,17 +95,24 @@ public class PowerManager : MonoBehaviour
             yield return StartCoroutine(source.RunBFS(delay));
         }
 
+        recalculationInProgress = false;
         recalculationRoutine = null;
         lastAlteredCube = null;
+
+        // If a request came in while we were working, run it again now.
+        if (needsAnotherRecalculation)
+        {
+            needsAnotherRecalculation = false;
+            recalculationRequested = true;
+        }
     }
 
-    private void ClearAllCubeStates()
+    private void ClearAllCubeStates(bool visual = true)
     {
         // Faster lookup: only iterate over registered active runodes.
         foreach (RunodePower runode in registeredRunodes)
         {
-            // By default, ClearPowerState calls ApplyFaceColor with instant = false.
-            runode.ClearPowerState();
+            runode.ClearPowerState(visual);
         }
     }
 
@@ -116,7 +133,7 @@ public class PowerManager : MonoBehaviour
 
             cleared.Add(current);
             RunodePower cube = current.cube;
-            if (cube != null) cube.ClearFace(current.faceIndex, true); // Visual drain sequence
+            if (cube != null) cube.ClearFace(current.faceIndex, false); // SILENT logic clear to avoid flicker
 
             // Find children (faces that have 'current' as their parent)
             foreach (var runode in registeredRunodes)

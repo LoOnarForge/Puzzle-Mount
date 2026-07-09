@@ -37,7 +37,14 @@ public class PowerDisplayManager : MonoBehaviour
             StopCoroutine(processRoutine);
             processRoutine = null;
         }
-        updateQueue.Clear();
+
+        // Snap everything in the queue to its final state instantly
+        // to ensure visual state matches logical state before next recalc.
+        while (updateQueue.Count > 0)
+        {
+            var update = updateQueue.Dequeue();
+            ApplyVisualDirect(update.cube, update.faceIndex, update.color, update.isObstructed);
+        }
     }
 
     /// <summary>

@@ -169,7 +169,9 @@ public class PowerSource : MonoBehaviour
                                     visitedFaces.Add(nextFace);
                                     poweredFaces.Add(nextFace);
                                     currentFacesPowered++;
-                                    currentCube.RefreshFaceVisuals();
+                                    
+                                    // TARGETED UPDATE: Only update the specific face that just changed
+                                    currentCube.UpdateFaceVisuals(nextFace.faceIndex, powerColor);
                                     yield return wait;
                                 }
                                 else continue;
@@ -212,7 +214,9 @@ public class PowerSource : MonoBehaviour
                                 visitedFaces.Add(nextFace);
                                 poweredFaces.Add(nextFace);
                                 currentFacesPowered++;
-                                neighborCube.RefreshFaceVisuals();
+                                
+                                // TARGETED UPDATE: Only update the specific face that just changed
+                                neighborCube.UpdateFaceVisuals(nextFace.faceIndex, powerColor);
                                 yield return wait;
                             }
                             else continue;

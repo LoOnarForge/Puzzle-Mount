@@ -11,28 +11,32 @@ public class PowerSourceEditor : Editor
     private void OnEnable()
     {
         powerSource = (PowerSource)target;
-        lastTopFace = powerSource.topFace;
-        UpdateFacePrefab(powerSource.topFace);
+        if (powerSource != null)
+        {
+            lastTopFace = powerSource.topFace;
+            UpdateFacePrefab(powerSource.topFace);
+        }
         initialized = true;
     }
 
     public override void OnInspectorGUI()
     {
+        if (serializedObject == null) return;
         serializedObject.Update();
 
         EditorGUILayout.LabelField("═══ TOP FACE ═══", EditorStyles.boldLabel);
-        EditorGUILayout.PropertyField(serializedObject.FindProperty("topFace"), GUIContent.none);
+        DrawProperty("topFace");
         
         EditorGUILayout.Space();
         EditorGUILayout.LabelField("POWER SOURCE SETTINGS", EditorStyles.boldLabel);
-        EditorGUILayout.PropertyField(serializedObject.FindProperty("colorIndex"));
-        EditorGUILayout.PropertyField(serializedObject.FindProperty("maxPower"));
-        EditorGUILayout.PropertyField(serializedObject.FindProperty("poweredRunodes"));
-        EditorGUILayout.PropertyField(serializedObject.FindProperty("sourceCrystals"));
+        DrawProperty("colorIndex");
+        DrawProperty("maxPower");
+        DrawProperty("sourceCrystals");
 
         EditorGUILayout.Space();
         if (GUILayout.Button("RESET TOP FACE"))
         {
+            Undo.RecordObject(powerSource, "Reset Top Face");
             powerSource.topFace = PowerLineType.Empty;
             EditorUtility.SetDirty(powerSource);
         }
@@ -48,33 +52,46 @@ public class PowerSourceEditor : Editor
 
         if (showRefs)
         {
-            EditorGUILayout.PropertyField(serializedObject.FindProperty("topFaceTransform"));
-            EditorGUILayout.PropertyField(serializedObject.FindProperty("powerSprite"));
-            EditorGUILayout.PropertyField(serializedObject.FindProperty("horizontalSprite"));
-            EditorGUILayout.PropertyField(serializedObject.FindProperty("verticalSprite"));
-            EditorGUILayout.PropertyField(serializedObject.FindProperty("cornerSprite"));
-            EditorGUILayout.PropertyField(serializedObject.FindProperty("tSectionSprite"));
-            EditorGUILayout.PropertyField(serializedObject.FindProperty("crossSprite"));
+            DrawProperty("topFaceTransform");
+            DrawProperty("powerSprite");
+            DrawProperty("horizontalSprite");
+            DrawProperty("verticalSprite");
+            DrawProperty("cornerSprite");
+            DrawProperty("tSectionSprite");
+            DrawProperty("crossSprite");
 
             EditorGUILayout.Space();
-            EditorGUILayout.PropertyField(serializedObject.FindProperty("upTrigger"));
-            EditorGUILayout.PropertyField(serializedObject.FindProperty("rightTrigger"));
-            EditorGUILayout.PropertyField(serializedObject.FindProperty("downTrigger"));
-            EditorGUILayout.PropertyField(serializedObject.FindProperty("leftTrigger"));
+            DrawProperty("upTrigger");
+            DrawProperty("rightTrigger");
+            DrawProperty("downTrigger");
+            DrawProperty("leftTrigger");
         }
 
         serializedObject.ApplyModifiedProperties();
 
-        if (initialized && powerSource.topFace != lastTopFace)
+        if (initialized && powerSource != null && powerSource.topFace != lastTopFace)
         {
             UpdateFacePrefab(powerSource.topFace);
             lastTopFace = powerSource.topFace;
         }
     }
 
+    private void DrawProperty(string name)
+    {
+        SerializedProperty prop = serializedObject.FindProperty(name);
+        if (prop != null)
+        {
+            EditorGUILayout.PropertyField(prop, true);
+        }
+        else
+        {
+            EditorGUILayout.LabelField($"(Property '{name}' not found)", EditorStyles.miniLabel);
+        }
+    }
+
     private void UpdateFacePrefab(PowerLineType newType)
     {
-        if (powerSource.topFaceTransform == null) return;
+        if (powerSource == null || powerSource.topFaceTransform == null) return;
 
         Transform spriteTransform = powerSource.topFaceTransform.Find("Power Line Sprite");
         if (spriteTransform == null) return;
@@ -104,6 +121,7 @@ public class PowerSourceEditor : Editor
 
     private void UpdateTriggers(PowerLineType type)
     {
+        if (powerSource == null) return;
         bool[] states = GetStates(type);
         if (powerSource.upTrigger != null) powerSource.upTrigger.gameObject.SetActive(states[0]);
         if (powerSource.rightTrigger != null) powerSource.rightTrigger.gameObject.SetActive(states[1]);
@@ -132,6 +150,7 @@ public class PowerSourceEditor : Editor
 
     private Sprite GetSprite(PowerLineType type)
     {
+        if (powerSource == null) return null;
         switch (type)
         {
             case PowerLineType.Horizontal: return powerSource.horizontalSprite;
