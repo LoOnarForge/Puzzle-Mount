@@ -342,7 +342,9 @@ public class TimCubeMouseInteraction : MonoBehaviour
         Physics.SyncTransforms();
         cube.isRotating = false;
         isRotating = false;
-        if (PowerManager.Instance != null) PowerManager.Instance.RequestPowerFlowCheck();
+        
+        RunodePower p = cube.GetComponent<RunodePower>();
+        if (PowerManager.Instance != null) PowerManager.Instance.RequestPowerFlowCheck(p);
     }
 
     private RunodeMovement[] GetStackFromCube(RunodeMovement baseCube)

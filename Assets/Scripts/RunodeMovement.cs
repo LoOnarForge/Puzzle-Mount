@@ -204,7 +204,8 @@ public class RunodeMovement : MonoBehaviour
         rb.constraints = RigidbodyConstraints.FreezePositionX | RigidbodyConstraints.FreezePositionZ | RigidbodyConstraints.FreezeRotation;
 
         isMovingPos = false;
-        PowerManager.Instance.RequestPowerFlowCheck();
+        RunodePower p = GetComponent<RunodePower>();
+        PowerManager.Instance.RequestPowerFlowCheck(p);
     }
 
     private void OnCollisionEnter(Collision collision)
@@ -212,7 +213,8 @@ public class RunodeMovement : MonoBehaviour
         // If we hit something while falling/moving physically, refresh power
         if (!isMovingPos && !isRotating)
         {
-            PowerManager.Instance.RequestPowerFlowCheck();
+            RunodePower p = GetComponent<RunodePower>();
+            PowerManager.Instance.RequestPowerFlowCheck(p);
         }
     }
 

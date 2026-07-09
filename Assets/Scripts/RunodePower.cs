@@ -90,6 +90,7 @@ public class RunodePower : MonoBehaviour
 
     public bool IsPowered { get; private set; } = false;
     public PowerSource poweredBySource;
+    public RunodePower parentCube;
     public int distanceFromSource { get; private set; } = 0;
 
     [System.Serializable]
@@ -309,11 +310,20 @@ public class RunodePower : MonoBehaviour
             // Ignore if we are looking back at the face that just powered us
             if (sourceFace != null && targetFace == sourceFace) return true;
 
-            if (targetFace.isFacePowered)
+            // Collision check: 
+            // If it's already powered by a DIFFERENT source -> Short Circuit!
+            if (targetFace.isFacePowered && poweredBySource != null && poweredBySource != source)
             {
                 Debug.Log("GAME OVER");
-                Debug.Log($"Cube {name} caused short circuit by receiving power from {senderName} while already powered");
+                Debug.Log($"Cube {name} caused short circuit between {poweredBySource.name} and {source.name}");
                 return false;
+            }
+
+            // If it's already powered by the SAME source, it's a loop. 
+            // We allow re-entry for BFS discovery but don't count it as a "new" powered state for visual purposes.
+            if (targetFace.isFacePowered && poweredBySource == source)
+            {
+                return true; 
             }
 
             targetFace.isFacePowered = true;

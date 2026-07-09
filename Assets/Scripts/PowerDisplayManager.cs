@@ -45,7 +45,14 @@ public class PowerDisplayManager : MonoBehaviour
     /// </summary>
     public void UpdateFaceVisuals(RunodePower cube, int faceIndex, Color color, bool isObstructed, bool instant = false)
     {
-        if (cube == null) return;
+        if (cube == null || faceIndex < 0 || faceIndex >= cube.allFaces.Count) return;
+
+        // Skip if the visual is already at the target state
+        var face = cube.allFaces[faceIndex];
+        if (face.faceSprite != null && face.faceSprite.color == color)
+        {
+            return;
+        }
 
         if (instant)
         {

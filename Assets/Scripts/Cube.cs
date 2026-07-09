@@ -309,7 +309,8 @@ public class PowerCube : MonoBehaviour
         rb.constraints = RigidbodyConstraints.FreezePositionX | RigidbodyConstraints.FreezePositionZ | RigidbodyConstraints.FreezeRotation;
 
         isMoving = false;
-        PowerManager.Instance.RequestPowerFlowCheck();
+        RunodePower p = GetComponent<RunodePower>();
+        PowerManager.Instance.RequestPowerFlowCheck(p);
     }
 
 

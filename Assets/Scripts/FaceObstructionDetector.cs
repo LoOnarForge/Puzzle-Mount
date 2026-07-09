@@ -152,6 +152,9 @@ public class FaceObstructionDetector : MonoBehaviour
         }
 
         if (PowerManager.Instance != null)
-            PowerManager.Instance.RequestPowerFlowCheck();
+        {
+            RunodePower p = GetComponentInParent<RunodePower>();
+            PowerManager.Instance.RequestPowerFlowCheck(p);
+        }
     }
 }

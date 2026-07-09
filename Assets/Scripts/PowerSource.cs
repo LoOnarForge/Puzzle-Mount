@@ -163,6 +163,9 @@ public class PowerSource : MonoBehaviour
                         visitedCubes.Add(neighborCube);
                         poweredRunodes.Add(neighborCube);
                         currentCubesPowered++;
+                        
+                        neighborCube.parentCube = currentCube;
+                        neighborCube.RefreshFaceVisuals();
                     }
 
                     SetTriggerPowered(neighbor, current.distanceFromSource + 1, queue, visitedTriggers, currentFace);
@@ -217,6 +220,7 @@ public class PowerSource : MonoBehaviour
         {
             // Initial power from source to cube face
             trigger.parentRunodePower.MarkFacePowered(trigger, powerColor, name, null, this);
+            trigger.parentRunodePower.parentCube = null;
 
             if (!visitedCubes.Contains(trigger.parentRunodePower))
             {
