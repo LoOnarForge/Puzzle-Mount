@@ -89,7 +89,7 @@ public class RunodePower : MonoBehaviour
     public ObstructionController obstructionController;
 
     public bool IsPowered { get; private set; } = false;
-    public PowerSource poweredBySource { get; private set; } = null;
+    public PowerSource poweredBySource;
     public int distanceFromSource { get; private set; } = 0;
 
     [System.Serializable]
@@ -236,6 +236,7 @@ public class RunodePower : MonoBehaviour
         IsPowered = false;
         currentPowerColor = Color.white;
         distanceFromSource = 0;
+        poweredBySource = null;
 
         foreach (var face in allFaces)
         {
@@ -245,7 +246,7 @@ public class RunodePower : MonoBehaviour
             {
                 if (t != null) t.ClearPowerState();
             }
-            ApplyFaceColor(face, Color.white);
+            ApplyFaceColor(face, Color.white, false);
         }
     }
 
@@ -301,7 +302,7 @@ public class RunodePower : MonoBehaviour
         }
     }
 
-    public bool MarkFacePowered(PowerConnectionTrigger t, Color color, string senderName, FaceData sourceFace = null)
+    public bool MarkFacePowered(PowerConnectionTrigger t, Color color, string senderName, FaceData sourceFace = null, PowerSource source = null)
     {
         if (triggerToFaceMap.TryGetValue(t, out FaceData targetFace))
         {
@@ -319,6 +320,7 @@ public class RunodePower : MonoBehaviour
             targetFace.faceColor = color;
             currentPowerColor = color;
             IsPowered = true;
+            poweredBySource = source;
         }
         return true;
     }
@@ -375,16 +377,15 @@ public class RunodePower : MonoBehaviour
         return null;
     }
 
-    private void ApplyFaceColor(FaceData face, Color color)
+    private void ApplyFaceColor(FaceData face, Color color, bool instant = false)
     {
-        if (face.faceSprite == null) return;
+        int index = allFaces.IndexOf(face);
+        bool isObstructed = obstructionController != null && obstructionController.IsFaceObstructed(face.faceZone);
         
-        if (obstructionController != null && obstructionController.IsFaceObstructed(face.faceZone))
+        if (PowerDisplayManager.Instance != null)
         {
-            face.faceSprite.color = new Color(0.08f, 0.08f, 0.08f);
-            return;
+            PowerDisplayManager.Instance.UpdateFaceVisuals(this, index, color, isObstructed, instant);
         }
-        face.faceSprite.color = color;
     }
 
     public IEnumerable<PowerConnectionTrigger> GetAllTriggers() { yield break; }

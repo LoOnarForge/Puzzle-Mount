@@ -52,6 +52,8 @@ public class PowerManager : MonoBehaviour
 
     private void RecalculateAllSources()
     {
+        if (PowerDisplayManager.Instance != null) PowerDisplayManager.Instance.ResetQueue();
+
         // 1. Perform spatial sweeps for all cubes to update their obstruction states
         foreach (RunodePower runode in registeredRunodes)
         {
@@ -62,6 +64,7 @@ public class PowerManager : MonoBehaviour
         }
 
         // 2. Clear all cube power states globally before any source runs BFS.
+        // We removed the 'true' instant flag so it follows the depowerDelay queue.
         ClearAllCubeStates();
 
         // 3. Each source independently runs BFS on its own connected graph.
@@ -76,6 +79,7 @@ public class PowerManager : MonoBehaviour
         // Faster lookup: only iterate over registered active runodes.
         foreach (RunodePower runode in registeredRunodes)
         {
+            // By default, ClearPowerState calls ApplyFaceColor with instant = false.
             runode.ClearPowerState();
         }
     }

@@ -146,7 +146,7 @@ public class PowerSource : MonoBehaviour
                 {
                     string sender = currentCube != null ? currentCube.name : name;
                     // Check face power BEFORE skipping via visitedTriggers to catch loops. Pass the sourceFace to ignore back-links.
-                    if (!neighborCube.MarkFacePowered(neighbor, powerColor, sender, node.sourceFace)) return;
+                    if (!neighborCube.MarkFacePowered(neighbor, powerColor, sender, node.sourceFace, this)) return;
                 }
 
                 if (!visitedTriggers.Contains(neighbor))
@@ -175,7 +175,7 @@ public class PowerSource : MonoBehaviour
                 if (internalBridge != null && internalBridge.gameObject.activeInHierarchy && !internalBridge.isObstructed)
                 {
                     // Check face power for corner wraps
-                    if (!currentCube.MarkFacePowered(internalBridge, powerColor, currentCube.name, node.sourceFace)) return;
+                    if (!currentCube.MarkFacePowered(internalBridge, powerColor, currentCube.name, node.sourceFace, this)) return;
 
                     if (!visitedTriggers.Contains(internalBridge))
                     {
@@ -216,7 +216,7 @@ public class PowerSource : MonoBehaviour
         if (trigger.parentRunodePower != null)
         {
             // Initial power from source to cube face
-            trigger.parentRunodePower.MarkFacePowered(trigger, powerColor, name, null);
+            trigger.parentRunodePower.MarkFacePowered(trigger, powerColor, name, null, this);
 
             if (!visitedCubes.Contains(trigger.parentRunodePower))
             {
