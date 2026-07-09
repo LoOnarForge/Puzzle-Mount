@@ -11,6 +11,7 @@ public class PowerManager : MonoBehaviour
     private List<RunodePower> registeredRunodes = new List<RunodePower>();
     private bool recalculationRequested = false;
     private RunodePower lastAlteredCube;
+    private Coroutine recalculationRoutine;
 
     private void Awake()
     {
@@ -49,11 +50,12 @@ public class PowerManager : MonoBehaviour
         if (!recalculationRequested) return;
 
         recalculationRequested = false;
-        RecalculateAllSources();
-        lastAlteredCube = null;
+        
+        if (recalculationRoutine != null) StopCoroutine(recalculationRoutine);
+        recalculationRoutine = StartCoroutine(RecalculateAllSourcesRoutine());
     }
 
-    private void RecalculateAllSources()
+    private System.Collections.IEnumerator RecalculateAllSourcesRoutine()
     {
         if (PowerDisplayManager.Instance != null) PowerDisplayManager.Instance.ResetQueue();
 
@@ -73,51 +75,18 @@ public class PowerManager : MonoBehaviour
         }
         else
         {
-            // If no specific cube was altered, we still do a full clear for safety (e.g. game start)
             ClearAllCubeStates();
         }
 
         // 3. Each source independently runs BFS. 
-        // Note: RunBFS needs to be able to resume from existing frontier or handle already powered cubes.
+        float delay = PowerDisplayManager.Instance != null ? PowerDisplayManager.Instance.propagationDelay : 0.05f;
         foreach (PowerSource source in sources)
         {
-            source.RunBFS();
-        }
-    }
-
-    private void InvalidateSubtree(RunodePower root)
-    {
-        Queue<RunodePower> toClear = new Queue<RunodePower>();
-        toClear.Enqueue(root);
-
-        // We also need to clear anything that WAS fed by this root
-        foreach (var runode in registeredRunodes)
-        {
-            if (runode.parentCube == root)
-            {
-                toClear.Enqueue(runode);
-            }
+            yield return StartCoroutine(source.RunBFS(delay));
         }
 
-        // Standard BFS-style subtree invalidation
-        HashSet<RunodePower> cleared = new HashSet<RunodePower>();
-        while (toClear.Count > 0)
-        {
-            RunodePower current = toClear.Dequeue();
-            if (current == null || cleared.Contains(current)) continue;
-
-            cleared.Add(current);
-            current.ClearPowerState();
-
-            // Find children (cubes that have 'current' as their parent)
-            foreach (var runode in registeredRunodes)
-            {
-                if (runode.parentCube == current)
-                {
-                    toClear.Enqueue(runode);
-                }
-            }
-        }
+        recalculationRoutine = null;
+        lastAlteredCube = null;
     }
 
     private void ClearAllCubeStates()
@@ -127,6 +96,32 @@ public class PowerManager : MonoBehaviour
         {
             // By default, ClearPowerState calls ApplyFaceColor with instant = false.
             runode.ClearPowerState();
+        }
+    }
+
+    private void InvalidateSubtree(RunodePower root)
+    {
+        Queue<RunodePower> toClear = new Queue<RunodePower>();
+        toClear.Enqueue(root);
+
+        // Standard BFS-style subtree invalidation
+        HashSet<RunodePower> cleared = new HashSet<RunodePower>();
+        while (toClear.Count > 0)
+        {
+            RunodePower current = toClear.Dequeue();
+            if (current == null || cleared.Contains(current)) continue;
+
+            cleared.Add(current);
+            current.ClearPowerState(true); // Visual drain sequence
+
+            // Find children (cubes that have 'current' as their parent)
+            foreach (var runode in registeredRunodes)
+            {
+                if (runode.parentCube == current)
+                {
+                    toClear.Enqueue(runode);
+                }
+            }
         }
     }
 }

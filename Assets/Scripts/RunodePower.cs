@@ -232,12 +232,13 @@ public class RunodePower : MonoBehaviour
         return data;
     }
 
-    public void ClearPowerState()
+    public void ClearPowerState(bool visual = true)
     {
         IsPowered = false;
         currentPowerColor = Color.white;
         distanceFromSource = 0;
         poweredBySource = null;
+        parentCube = null;
 
         foreach (var face in allFaces)
         {
@@ -247,7 +248,11 @@ public class RunodePower : MonoBehaviour
             {
                 if (t != null) t.ClearPowerState();
             }
-            ApplyFaceColor(face, Color.white, false);
+            
+            if (visual)
+            {
+                ApplyFaceColor(face, Color.white, false);
+            }
         }
     }
 

@@ -112,8 +112,19 @@ public class PowerSource : MonoBehaviour
         }
     }
 
-    public void RunBFS()
+    public System.Collections.IEnumerator RunBFS(float delay)
     {
+        WaitForSeconds wait = new WaitForSeconds(delay);
+        
+        // 1. Snapshot old state for capacity theft cleanup
+        List<RunodePower> previouslyPowered = new List<RunodePower>(poweredRunodes);
+        
+        // 2. Logic Clear: Reset flags for our territory ONLY (No visual updates)
+        foreach (var cube in previouslyPowered)
+        {
+            if (cube != null) cube.ClearPowerState(false);
+        }
+
         Queue<BFSNode> queue = new Queue<BFSNode>();
         HashSet<PowerConnectionTrigger> visitedTriggers = new HashSet<PowerConnectionTrigger>();
         HashSet<RunodePower> visitedCubes = new HashSet<RunodePower>();
@@ -132,75 +143,78 @@ public class PowerSource : MonoBehaviour
             PowerConnectionTrigger current = node.trigger;
             RunodePower currentCube = current.parentRunodePower;
 
-            // Get the face data for the CURRENT trigger to pass it forward as the 'sourceFace'
+            // Get the face data for the CURRENT trigger
             RunodePower.FaceData currentFace = null;
             if (currentCube != null) currentFace = currentCube.GetFaceData(current);
 
+            // PRIORITY: Discover all internal connections on the SAME cube first
+            if (currentCube != null)
+            {
+                // Internal bridges (corner wraps)
+                PowerConnectionTrigger internalBridge = currentCube.GetInternalNeighbor(current);
+                if (internalBridge != null && internalBridge.gameObject.activeInHierarchy && !internalBridge.isObstructed)
+                {
+                    if (currentCube.MarkFacePowered(internalBridge, powerColor, currentCube.name, node.sourceFace, this))
+                    {
+                        if (!visitedTriggers.Contains(internalBridge))
+                        {
+                            SetTriggerPowered(internalBridge, current.distanceFromSource, queue, visitedTriggers, currentFace);
+                        }
+                    }
+                }
+
+                // Face neighbors (same face)
+                var faceNeighbors = currentCube.GetConnectedTriggersOnFace(current);
+                foreach (var fn in faceNeighbors)
+                {
+                    if (fn.gameObject.activeInHierarchy && !visitedTriggers.Contains(fn))
+                    {
+                        SetTriggerPowered(fn, current.distanceFromSource, queue, visitedTriggers, node.sourceFace);
+                    }
+                }
+            }
+
+            // THEN Discover External Neighbors
             PowerConnectionTrigger neighbor = FindExternalNeighbor(current);
             if (neighbor != null && neighbor.gameObject.activeInHierarchy && !neighbor.isObstructed)
             {
-                RunodePower neighborCube = neighbor.parentRunodePower;
-                if (neighborCube == null) neighborCube = neighbor.GetComponentInParent<RunodePower>();
+                RunodePower neighborCube = neighbor.parentRunodePower ?? neighbor.GetComponentInParent<RunodePower>();
                 
                 if (neighborCube != null)
                 {
                     string sender = currentCube != null ? currentCube.name : name;
-                    // Check face power BEFORE skipping via visitedTriggers to catch loops. Pass the sourceFace to ignore back-links.
-                    if (!neighborCube.MarkFacePowered(neighbor, powerColor, sender, node.sourceFace, this)) return;
+                    if (!neighborCube.MarkFacePowered(neighbor, powerColor, sender, node.sourceFace, this)) yield break;
                 }
 
                 if (!visitedTriggers.Contains(neighbor))
                 {
                     bool isNewCube = neighborCube != null && !visitedCubes.Contains(neighborCube);
 
-                    if (isNewCube && currentCubesPowered >= maxPower)
-                    {
-                        continue; 
-                    }
-
                     if (isNewCube)
                     {
+                        if (currentCubesPowered >= maxPower) continue;
+
                         visitedCubes.Add(neighborCube);
                         poweredRunodes.Add(neighborCube);
                         currentCubesPowered++;
                         
                         neighborCube.parentCube = currentCube;
                         neighborCube.RefreshFaceVisuals();
+                        yield return wait;
                     }
 
                     SetTriggerPowered(neighbor, current.distanceFromSource + 1, queue, visitedTriggers, currentFace);
                 }
             }
-
-            if (currentCube != null)
-            {
-                PowerConnectionTrigger internalBridge = currentCube.GetInternalNeighbor(current);
-                if (internalBridge != null && internalBridge.gameObject.activeInHierarchy && !internalBridge.isObstructed)
-                {
-                    // Check face power for corner wraps
-                    if (!currentCube.MarkFacePowered(internalBridge, powerColor, currentCube.name, node.sourceFace, this)) return;
-
-                    if (!visitedTriggers.Contains(internalBridge))
-                    {
-                        SetTriggerPowered(internalBridge, current.distanceFromSource, queue, visitedTriggers, currentFace);
-                    }
-                }
-
-                var faceNeighbors = currentCube.GetConnectedTriggersOnFace(current);
-                foreach (var fn in faceNeighbors)
-                {
-                    if (fn.gameObject.activeInHierarchy && !visitedTriggers.Contains(fn))
-                    {
-                        // Internal propagation on the same face: keep the same sourceFace reference
-                        SetTriggerPowered(fn, current.distanceFromSource, queue, visitedTriggers, node.sourceFace);
-                    }
-                }
-            }
         }
 
-        foreach (var cube in visitedCubes)
+        // 3. CAPACITY THEFT: Clear any cubes that were powered but are no longer in the set
+        foreach (var cube in previouslyPowered)
         {
-            cube.RefreshFaceVisuals();
+            if (cube != null && !visitedCubes.Contains(cube))
+            {
+                cube.ClearPowerState(true); // Visual depower sequence
+            }
         }
     }
 
