@@ -8,8 +8,8 @@ public class PowerSource : MonoBehaviour
     [HideInInspector] public Color powerColor;
 
     public int maxPower = 10;
-    public int currentCubesPowered = 0;
-    public List<RunodePower> poweredRunodes = new List<RunodePower>();
+    public int currentFacesPowered = 0;
+    public List<RunodePower.FaceData> poweredFaces = new List<RunodePower.FaceData>();
 
     public PowerLineType topFace = PowerLineType.Empty;
     public Transform topFaceTransform;
@@ -117,25 +117,28 @@ public class PowerSource : MonoBehaviour
         WaitForSeconds wait = new WaitForSeconds(delay);
         
         // 1. Snapshot old state for capacity theft cleanup
-        List<RunodePower> previouslyPowered = new List<RunodePower>(poweredRunodes);
+        List<RunodePower.FaceData> previouslyPowered = new List<RunodePower.FaceData>(poweredFaces);
         
         // 2. Logic Clear: Reset flags for our territory ONLY (No visual updates)
-        foreach (var cube in previouslyPowered)
+        foreach (var face in previouslyPowered)
         {
-            if (cube != null) cube.ClearPowerState(false);
+            if (face != null && face.cube != null)
+            {
+                face.cube.ClearFace(face.faceIndex, false);
+            }
         }
 
         Queue<BFSNode> queue = new Queue<BFSNode>();
         HashSet<PowerConnectionTrigger> visitedTriggers = new HashSet<PowerConnectionTrigger>();
-        HashSet<RunodePower> visitedCubes = new HashSet<RunodePower>();
+        HashSet<RunodePower.FaceData> visitedFaces = new HashSet<RunodePower.FaceData>();
         
-        currentCubesPowered = 0;
-        poweredRunodes.Clear();
+        currentFacesPowered = 0;
+        poweredFaces.Clear();
 
-        EnqueueSourceTrigger(upTrigger, queue, visitedTriggers, visitedCubes);
-        EnqueueSourceTrigger(rightTrigger, queue, visitedTriggers, visitedCubes);
-        EnqueueSourceTrigger(downTrigger, queue, visitedTriggers, visitedCubes);
-        EnqueueSourceTrigger(leftTrigger, queue, visitedTriggers, visitedCubes);
+        EnqueueSourceTrigger(upTrigger, queue, visitedTriggers, visitedFaces);
+        EnqueueSourceTrigger(rightTrigger, queue, visitedTriggers, visitedFaces);
+        EnqueueSourceTrigger(downTrigger, queue, visitedTriggers, visitedFaces);
+        EnqueueSourceTrigger(leftTrigger, queue, visitedTriggers, visitedFaces);
 
         while (queue.Count > 0)
         {
@@ -148,17 +151,30 @@ public class PowerSource : MonoBehaviour
             if (currentCube != null) currentFace = currentCube.GetFaceData(current);
 
             // PRIORITY: Discover all internal connections on the SAME cube first
-            if (currentCube != null)
+            if (currentCube != null && currentFace != null)
             {
                 // Internal bridges (corner wraps)
                 PowerConnectionTrigger internalBridge = currentCube.GetInternalNeighbor(current);
                 if (internalBridge != null && internalBridge.gameObject.activeInHierarchy && !internalBridge.isObstructed)
                 {
-                    if (currentCube.MarkFacePowered(internalBridge, powerColor, currentCube.name, node.sourceFace, this))
+                    if (currentCube.MarkFacePowered(internalBridge, powerColor, currentCube.name, node.sourceFace, this, currentFace.distanceFromSource))
                     {
                         if (!visitedTriggers.Contains(internalBridge))
                         {
-                            SetTriggerPowered(internalBridge, current.distanceFromSource, queue, visitedTriggers, currentFace);
+                            RunodePower.FaceData nextFace = currentCube.GetFaceData(internalBridge);
+                            if (nextFace != null && !visitedFaces.Contains(nextFace))
+                            {
+                                if (currentFacesPowered < maxPower)
+                                {
+                                    visitedFaces.Add(nextFace);
+                                    poweredFaces.Add(nextFace);
+                                    currentFacesPowered++;
+                                    currentCube.RefreshFaceVisuals();
+                                    yield return wait;
+                                }
+                                else continue;
+                            }
+                            SetTriggerPowered(internalBridge, currentFace.distanceFromSource, queue, visitedTriggers, currentFace);
                         }
                     }
                 }
@@ -169,7 +185,7 @@ public class PowerSource : MonoBehaviour
                 {
                     if (fn.gameObject.activeInHierarchy && !visitedTriggers.Contains(fn))
                     {
-                        SetTriggerPowered(fn, current.distanceFromSource, queue, visitedTriggers, node.sourceFace);
+                        SetTriggerPowered(fn, currentFace.distanceFromSource, queue, visitedTriggers, node.sourceFace);
                     }
                 }
             }
@@ -182,43 +198,42 @@ public class PowerSource : MonoBehaviour
                 
                 if (neighborCube != null)
                 {
+                    int nextDist = currentFace != null ? currentFace.distanceFromSource + 1 : 1;
                     string sender = currentCube != null ? currentCube.name : name;
-                    if (!neighborCube.MarkFacePowered(neighbor, powerColor, sender, node.sourceFace, this)) yield break;
-                }
-
-                if (!visitedTriggers.Contains(neighbor))
-                {
-                    bool isNewCube = neighborCube != null && !visitedCubes.Contains(neighborCube);
-
-                    if (isNewCube)
+                    if (!neighborCube.MarkFacePowered(neighbor, powerColor, sender, currentFace, this, nextDist)) yield break;
+                    
+                    RunodePower.FaceData nextFace = neighborCube.GetFaceData(neighbor);
+                    if (nextFace != null && !visitedTriggers.Contains(neighbor))
                     {
-                        if (currentCubesPowered >= maxPower) continue;
-
-                        visitedCubes.Add(neighborCube);
-                        poweredRunodes.Add(neighborCube);
-                        currentCubesPowered++;
-                        
-                        neighborCube.parentCube = currentCube;
-                        neighborCube.RefreshFaceVisuals();
-                        yield return wait;
+                        if (!visitedFaces.Contains(nextFace))
+                        {
+                            if (currentFacesPowered < maxPower)
+                            {
+                                visitedFaces.Add(nextFace);
+                                poweredFaces.Add(nextFace);
+                                currentFacesPowered++;
+                                neighborCube.RefreshFaceVisuals();
+                                yield return wait;
+                            }
+                            else continue;
+                        }
+                        SetTriggerPowered(neighbor, nextDist, queue, visitedTriggers, currentFace);
                     }
-
-                    SetTriggerPowered(neighbor, current.distanceFromSource + 1, queue, visitedTriggers, currentFace);
                 }
             }
         }
 
-        // 3. CAPACITY THEFT: Clear any cubes that were powered but are no longer in the set
-        foreach (var cube in previouslyPowered)
+        // 3. CAPACITY THEFT: Clear any faces that were powered but are no longer in the set
+        foreach (var face in previouslyPowered)
         {
-            if (cube != null && !visitedCubes.Contains(cube))
+            if (face != null && !visitedFaces.Contains(face) && face.cube != null)
             {
-                cube.ClearPowerState(true); // Visual depower sequence
+                face.cube.ClearFace(face.faceIndex, true);
             }
         }
     }
 
-    private void EnqueueSourceTrigger(PowerConnectionTrigger trigger, Queue<BFSNode> queue, HashSet<PowerConnectionTrigger> visitedTriggers, HashSet<RunodePower> visitedCubes)
+    private void EnqueueSourceTrigger(PowerConnectionTrigger trigger, Queue<BFSNode> queue, HashSet<PowerConnectionTrigger> visitedTriggers, HashSet<RunodePower.FaceData> visitedFaces)
     {
         if (trigger == null || !trigger.gameObject.activeInHierarchy) return;
         
@@ -233,14 +248,14 @@ public class PowerSource : MonoBehaviour
         if (trigger.parentRunodePower != null)
         {
             // Initial power from source to cube face
-            trigger.parentRunodePower.MarkFacePowered(trigger, powerColor, name, null, this);
-            trigger.parentRunodePower.parentCube = null;
+            trigger.parentRunodePower.MarkFacePowered(trigger, powerColor, name, null, this, 0);
 
-            if (!visitedCubes.Contains(trigger.parentRunodePower))
+            RunodePower.FaceData targetFace = trigger.parentRunodePower.GetFaceData(trigger);
+            if (targetFace != null && !visitedFaces.Contains(targetFace))
             {
-                visitedCubes.Add(trigger.parentRunodePower);
-                poweredRunodes.Add(trigger.parentRunodePower);
-                currentCubesPowered++;
+                visitedFaces.Add(targetFace);
+                poweredFaces.Add(targetFace);
+                currentFacesPowered++;
             }
         }
     }

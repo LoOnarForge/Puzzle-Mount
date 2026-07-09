@@ -101,25 +101,32 @@ public class PowerManager : MonoBehaviour
 
     private void InvalidateSubtree(RunodePower root)
     {
-        Queue<RunodePower> toClear = new Queue<RunodePower>();
-        toClear.Enqueue(root);
+        Queue<RunodePower.FaceData> toClear = new Queue<RunodePower.FaceData>();
+        foreach (var face in root.allFaces)
+        {
+            if (face.isFacePowered) toClear.Enqueue(face);
+        }
 
         // Standard BFS-style subtree invalidation
-        HashSet<RunodePower> cleared = new HashSet<RunodePower>();
+        HashSet<RunodePower.FaceData> cleared = new HashSet<RunodePower.FaceData>();
         while (toClear.Count > 0)
         {
-            RunodePower current = toClear.Dequeue();
+            RunodePower.FaceData current = toClear.Dequeue();
             if (current == null || cleared.Contains(current)) continue;
 
             cleared.Add(current);
-            current.ClearPowerState(true); // Visual drain sequence
+            RunodePower cube = current.cube;
+            if (cube != null) cube.ClearFace(current.faceIndex, true); // Visual drain sequence
 
-            // Find children (cubes that have 'current' as their parent)
+            // Find children (faces that have 'current' as their parent)
             foreach (var runode in registeredRunodes)
             {
-                if (runode.parentCube == current)
+                foreach (var face in runode.allFaces)
                 {
-                    toClear.Enqueue(runode);
+                    if (face.parentCube == cube && face.parentFaceIndex == current.faceIndex)
+                    {
+                        toClear.Enqueue(face);
+                    }
                 }
             }
         }

@@ -138,11 +138,12 @@ public class FaceObstructionDetector : MonoBehaviour
         if (spriteRenderer != null)
         {
             Color normalColor = Color.white;
-            if (parentRunode != null)
+            if (parentRunode != null && faceTriggers != null && faceTriggers.Length > 0)
             {
-                normalColor = parentRunode.IsPowered ? parentRunode.currentPowerColor : Color.white;
+                RunodePower.FaceData face = parentRunode.GetFaceData(faceTriggers[0]);
+                if (face != null && face.isFacePowered) normalColor = face.faceColor;
             }
-            else
+            else if (parentRunode == null)
             {
                 PowerSource ps = GetComponentInParent<PowerSource>();
                 if (ps != null) normalColor = ps.powerColor;
