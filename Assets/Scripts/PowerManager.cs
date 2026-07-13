@@ -45,6 +45,13 @@ public class PowerManager : MonoBehaviour
         if (alteredCube != null) lastAlteredCube = alteredCube;
     }
 
+    /// Called by movement systems that should not depend on RunodePower directly.
+    public void RequestPowerFlowCheck(Transform source)
+    {
+        RunodePower runode = source.GetComponent<RunodePower>();
+        RequestPowerFlowCheck(runode);
+    }
+
     private bool recalculationInProgress = false;
     private bool needsAnotherRecalculation = false;
 
