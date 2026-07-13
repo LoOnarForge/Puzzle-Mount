@@ -26,6 +26,17 @@ public class PowerDisplayManager : MonoBehaviour
         Instance = this;
     }
 
+    // Discards all pending updates without applying them. Use this to abort active animations.
+    public void DiscardQueue()
+    {
+        if (processRoutine != null)
+        {
+            StopCoroutine(processRoutine);
+            processRoutine = null;
+        }
+        updateQueue.Clear();
+    }
+
     // Clears the pending animation queue, snapping all queued updates to their final state.
     public void ResetQueue()
     {

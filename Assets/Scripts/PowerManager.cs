@@ -113,7 +113,7 @@ public class PowerManager : MonoBehaviour
         {
             if (!face.isFacePowered && face.faceSprite != null && face.faceSprite.color != Color.white)
             {
-                face.Clear(true);
+                face.Clear(true, true);
             }
         }
 
@@ -138,6 +138,10 @@ public class PowerManager : MonoBehaviour
 
     public void InvalidateSubtree(Transform root, bool visual = true)
     {
+        // Kill any active power-up animations immediately
+        if (visual && PowerDisplayManager.Instance != null)
+            PowerDisplayManager.Instance.DiscardQueue();
+
         Queue<RunodeFace> toClear = new Queue<RunodeFace>();
         foreach (var face in root.GetComponentsInChildren<RunodeFace>())
         {
@@ -151,7 +155,7 @@ public class PowerManager : MonoBehaviour
             if (current == null || cleared.Contains(current)) continue;
 
             cleared.Add(current);
-            current.Clear(visual); 
+            current.Clear(visual, true); // Clear INSTANTLY to provide immediate feedback
 
             foreach (RunodeFace face in registeredFaces)
             {

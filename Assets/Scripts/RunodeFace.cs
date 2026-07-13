@@ -129,7 +129,7 @@ public class RunodeFace : MonoBehaviour
     }
 
     // Resets this face's power state and clears its triggers.
-    public void Clear(bool visual = true)
+    public void Clear(bool visual = true, bool instant = false)
     {
         isFacePowered = false;
         faceColor = Color.white;
@@ -146,7 +146,7 @@ public class RunodeFace : MonoBehaviour
         }
 
         if (visual)
-            ApplyColor(Color.white, false);
+            ApplyColor(Color.white, instant);
     }
 
     // Dispatches this face's visual update through PowerDisplayManager.
