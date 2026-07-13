@@ -102,18 +102,40 @@ public class PowerManager : MonoBehaviour
         if (lastAlteredTransform != null)
             InvalidateSubtree(lastAlteredTransform, true);
 
-        // 4. Each source independently runs BFS instantly.
+        // 4. Seed all BFS queues.
         foreach (PowerSource source in sources)
         {
-            source.RunBFS();
+            source.InitBFS();
         }
 
-        // 5. Final Pass: Visual Clear for any faces that lost power.
-        foreach (RunodeFace face in registeredFaces)
+        // 5. Interleaved round-robin BFS: one step per source per round.
+        bool shortCircuit = false;
+        bool anyActive = true;
+        while (anyActive && !shortCircuit)
         {
-            if (!face.isFacePowered && face.faceSprite != null && face.faceSprite.color != Color.white)
+            anyActive = false;
+            foreach (PowerSource source in sources)
             {
-                face.Clear(true, false);
+                if (!source.HasPendingSteps) continue;
+                anyActive = true;
+                if (!source.StepBFS())
+                {
+                    shortCircuit = true;
+                    break;
+                }
+            }
+        }
+
+        // 6. Final Pass: Visual Clear for any faces that lost power.
+        // Skipped on short circuit — all colors freeze exactly as they are.
+        if (!shortCircuit)
+        {
+            foreach (RunodeFace face in registeredFaces)
+            {
+                if (!face.isFacePowered && face.faceSprite != null && face.faceSprite.color != Color.white)
+                {
+                    face.Clear(true, false);
+                }
             }
         }
 

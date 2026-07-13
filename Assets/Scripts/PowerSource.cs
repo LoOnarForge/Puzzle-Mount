@@ -107,102 +107,116 @@ public class PowerSource : MonoBehaviour
         }
     }
 
-    public void RunBFS()
+    private Queue<BFSNode> bfsQueue = new Queue<BFSNode>();
+    private HashSet<PowerConnectionTrigger> visitedTriggers = new HashSet<PowerConnectionTrigger>();
+    private HashSet<RunodeFace> visitedFaces = new HashSet<RunodeFace>();
+
+    public bool HasPendingSteps => bfsQueue.Count > 0;
+
+    // Seeds the BFS queue with all source triggers. Called by PowerManager before the interleaved loop.
+    public void InitBFS()
     {
-        Queue<BFSNode> queue = new Queue<BFSNode>();
-        HashSet<PowerConnectionTrigger> visitedTriggers = new HashSet<PowerConnectionTrigger>();
-        HashSet<RunodeFace> visitedFaces = new HashSet<RunodeFace>();
+        bfsQueue.Clear();
+        visitedTriggers.Clear();
+        visitedFaces.Clear();
 
-        EnqueueSourceTrigger(upTrigger, queue, visitedTriggers, visitedFaces);
-        EnqueueSourceTrigger(rightTrigger, queue, visitedTriggers, visitedFaces);
-        EnqueueSourceTrigger(downTrigger, queue, visitedTriggers, visitedFaces);
-        EnqueueSourceTrigger(leftTrigger, queue, visitedTriggers, visitedFaces);
+        EnqueueSourceTrigger(upTrigger);
+        EnqueueSourceTrigger(rightTrigger);
+        EnqueueSourceTrigger(downTrigger);
+        EnqueueSourceTrigger(leftTrigger);
+    }
 
-        while (queue.Count > 0)
+    // Processes one node from the BFS queue. Returns false if a short circuit is detected.
+    public bool StepBFS()
+    {
+        if (bfsQueue.Count == 0) return true;
+
+        BFSNode node = bfsQueue.Dequeue();
+        PowerConnectionTrigger current = node.trigger;
+        RunodeFace currentFace = current.parentRunodeFace;
+
+        if (currentFace != null)
         {
-            BFSNode node = queue.Dequeue();
-            PowerConnectionTrigger current = node.trigger;
-            RunodeFace currentFace = current.parentRunodeFace;
-
-            // PRIORITY: Discover all internal connections on the SAME cube first
-            if (currentFace != null)
+            // Internal bridge (corner/edge wrap)
+            PowerConnectionTrigger internalBridge = currentFace.GetInternalNeighbor(current);
+            if (internalBridge != null && internalBridge.gameObject.activeInHierarchy && !internalBridge.isObstructed)
             {
-                // Internal bridges (corner wraps)
-                PowerConnectionTrigger internalBridge = currentFace.GetInternalNeighbor(current);
-                if (internalBridge != null && internalBridge.gameObject.activeInHierarchy && !internalBridge.isObstructed)
+                RunodeFace bridgeFace = internalBridge.parentRunodeFace;
+                if (bridgeFace != null)
                 {
-                    RunodeFace bridgeFace = internalBridge.parentRunodeFace;
-                    if (bridgeFace != null && bridgeFace.MarkPowered(powerColor, node.sourceFace, this, currentFace.distanceFromSource))
+                    if (!bridgeFace.MarkPowered(powerColor, node.sourceFace, this, currentFace.distanceFromSource))
+                        return false;
+
+                    if (!visitedTriggers.Contains(internalBridge))
                     {
-                        if (!visitedTriggers.Contains(internalBridge))
-                        {
-                            if (!visitedFaces.Contains(bridgeFace))
-                            {
-                                if (currentFacesPowered < maxPower)
-                                {
-                                    visitedFaces.Add(bridgeFace);
-                                    poweredFaces.Add(bridgeFace);
-                                    currentFacesPowered++;
-                                    bridgeFace.ApplyColor(powerColor);
-                                }
-                                else continue;
-                            }
-                            SetTriggerPowered(internalBridge, currentFace.distanceFromSource, queue, visitedTriggers, currentFace);
-                        }
-                    }
-                }
-
-                // Face neighbors (same face)
-                var faceNeighbors = currentFace.GetConnectedTriggersOnFace(current);
-                foreach (var fn in faceNeighbors)
-                {
-                    if (fn.gameObject.activeInHierarchy && !visitedTriggers.Contains(fn))
-                        SetTriggerPowered(fn, currentFace.distanceFromSource, queue, visitedTriggers, node.sourceFace);
-                }
-            }
-
-            // THEN Discover External Neighbors
-            PowerConnectionTrigger neighbor = FindExternalNeighbor(current);
-            if (neighbor != null && neighbor.gameObject.activeInHierarchy && !neighbor.isObstructed)
-            {
-                RunodeFace neighborFace = neighbor.parentRunodeFace;
-
-                if (neighborFace != null)
-                {
-                    int nextDist = currentFace != null ? currentFace.distanceFromSource + 1 : 1;
-                    if (!neighborFace.MarkPowered(powerColor, currentFace, this, nextDist)) return;
-
-                    if (!visitedTriggers.Contains(neighbor))
-                    {
-                        if (!visitedFaces.Contains(neighborFace))
+                        if (!visitedFaces.Contains(bridgeFace))
                         {
                             if (currentFacesPowered < maxPower)
                             {
-                                visitedFaces.Add(neighborFace);
-                                poweredFaces.Add(neighborFace);
+                                visitedFaces.Add(bridgeFace);
+                                poweredFaces.Add(bridgeFace);
                                 currentFacesPowered++;
-                                neighborFace.ApplyColor(powerColor);
+                                bridgeFace.ApplyColor(powerColor);
                             }
-                            else continue;
+                            else return true;
                         }
-                        SetTriggerPowered(neighbor, nextDist, queue, visitedTriggers, currentFace);
+                        SetTriggerPowered(internalBridge, currentFace.distanceFromSource, currentFace);
                     }
                 }
             }
+
+            // Face neighbors (same face)
+            var faceNeighbors = currentFace.GetConnectedTriggersOnFace(current);
+            foreach (var fn in faceNeighbors)
+            {
+                if (fn.gameObject.activeInHierarchy && !visitedTriggers.Contains(fn))
+                    SetTriggerPowered(fn, currentFace.distanceFromSource, node.sourceFace);
+            }
         }
+
+        // External neighbor (adjacent cube)
+        PowerConnectionTrigger neighbor = FindExternalNeighbor(current);
+        if (neighbor != null && neighbor.gameObject.activeInHierarchy && !neighbor.isObstructed)
+        {
+            RunodeFace neighborFace = neighbor.parentRunodeFace;
+            if (neighborFace != null)
+            {
+                int nextDist = currentFace != null ? currentFace.distanceFromSource + 1 : 1;
+                if (!neighborFace.MarkPowered(powerColor, currentFace, this, nextDist))
+                    return false;
+
+                if (!visitedTriggers.Contains(neighbor))
+                {
+                    if (!visitedFaces.Contains(neighborFace))
+                    {
+                        if (currentFacesPowered < maxPower)
+                        {
+                            visitedFaces.Add(neighborFace);
+                            poweredFaces.Add(neighborFace);
+                            currentFacesPowered++;
+                            neighborFace.ApplyColor(powerColor);
+                        }
+                        else return true;
+                    }
+                    SetTriggerPowered(neighbor, nextDist, currentFace);
+                }
+            }
+        }
+
+        return true;
     }
 
-    private void EnqueueSourceTrigger(PowerConnectionTrigger trigger, Queue<BFSNode> queue, HashSet<PowerConnectionTrigger> visitedTriggers, HashSet<RunodeFace> visitedFaces)
+    private void EnqueueSourceTrigger(PowerConnectionTrigger trigger)
     {
         if (trigger == null || !trigger.gameObject.activeInHierarchy) return;
-        
+
         trigger.isPowered = true;
         trigger.currentPowerColor = powerColor;
         trigger.distanceFromSource = 0;
         trigger.sourceMW = maxPower;
-        
+
         visitedTriggers.Add(trigger);
-        queue.Enqueue(new BFSNode(trigger, null));
+        bfsQueue.Enqueue(new BFSNode(trigger, null));
 
         if (trigger.parentRunodePower != null)
         {
@@ -220,15 +234,15 @@ public class PowerSource : MonoBehaviour
         }
     }
 
-    private void SetTriggerPowered(PowerConnectionTrigger trigger, int distance, Queue<BFSNode> queue, HashSet<PowerConnectionTrigger> visited, RunodeFace sourceFace)
+    private void SetTriggerPowered(PowerConnectionTrigger trigger, int distance, RunodeFace sourceFace)
     {
         trigger.isPowered = true;
         trigger.currentPowerColor = powerColor;
         trigger.distanceFromSource = distance;
         trigger.sourceMW = maxPower;
-        
-        visited.Add(trigger);
-        queue.Enqueue(new BFSNode(trigger, sourceFace));
+
+        visitedTriggers.Add(trigger);
+        bfsQueue.Enqueue(new BFSNode(trigger, sourceFace));
     }
 
     private PowerConnectionTrigger FindExternalNeighbor(PowerConnectionTrigger source)
