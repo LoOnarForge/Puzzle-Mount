@@ -111,39 +111,12 @@ public class RunodePowerEditor : Editor
             EditorGUILayout.PropertyField(serializedObject.FindProperty("crossSprite"));
 
             EditorGUILayout.Space();
-            EditorGUILayout.PropertyField(serializedObject.FindProperty("topUpTrigger"));
-            EditorGUILayout.PropertyField(serializedObject.FindProperty("topRightTrigger"));
-            EditorGUILayout.PropertyField(serializedObject.FindProperty("topDownTrigger"));
-            EditorGUILayout.PropertyField(serializedObject.FindProperty("topLeftTrigger"));
-
-            EditorGUILayout.PropertyField(serializedObject.FindProperty("bottomUpTrigger"));
-            EditorGUILayout.PropertyField(serializedObject.FindProperty("bottomRightTrigger"));
-            EditorGUILayout.PropertyField(serializedObject.FindProperty("bottomDownTrigger"));
-            EditorGUILayout.PropertyField(serializedObject.FindProperty("bottomLeftTrigger"));
-
-            EditorGUILayout.PropertyField(serializedObject.FindProperty("northUpTrigger"));
-            EditorGUILayout.PropertyField(serializedObject.FindProperty("northRightTrigger"));
-            EditorGUILayout.PropertyField(serializedObject.FindProperty("northDownTrigger"));
-            EditorGUILayout.PropertyField(serializedObject.FindProperty("northLeftTrigger"));
-
-            EditorGUILayout.PropertyField(serializedObject.FindProperty("southUpTrigger"));
-            EditorGUILayout.PropertyField(serializedObject.FindProperty("southRightTrigger"));
-            EditorGUILayout.PropertyField(serializedObject.FindProperty("southDownTrigger"));
-            EditorGUILayout.PropertyField(serializedObject.FindProperty("southLeftTrigger"));
-
-            EditorGUILayout.PropertyField(serializedObject.FindProperty("eastUpTrigger"));
-            EditorGUILayout.PropertyField(serializedObject.FindProperty("eastRightTrigger"));
-            EditorGUILayout.PropertyField(serializedObject.FindProperty("eastDownTrigger"));
-            EditorGUILayout.PropertyField(serializedObject.FindProperty("eastLeftTrigger"));
-
-            EditorGUILayout.PropertyField(serializedObject.FindProperty("westUpTrigger"));
-            EditorGUILayout.PropertyField(serializedObject.FindProperty("westRightTrigger"));
-            EditorGUILayout.PropertyField(serializedObject.FindProperty("westDownTrigger"));
-            EditorGUILayout.PropertyField(serializedObject.FindProperty("westLeftTrigger"));
-
-            EditorGUILayout.Space();
             EditorGUILayout.LabelField("Face Runtime State", EditorStyles.boldLabel);
-            EditorGUILayout.PropertyField(serializedObject.FindProperty("allFaces"));
+            if (GUILayout.Button("Log Active Faces"))
+            {
+                foreach (var f in cubePower.GetComponentsInChildren<RunodeFace>())
+                    Debug.Log($"Face {f.faceIndex}: Powered={f.isFacePowered}, Source={f.poweredBySource?.name}");
+            }
         }
 
         serializedObject.ApplyModifiedProperties();
@@ -229,16 +202,24 @@ public class RunodePowerEditor : Editor
 
     private PowerConnectionTrigger[] GetFaceTriggers(int faceIndex)
     {
-        switch (faceIndex)
+        Transform t = GetFaceTransform(faceIndex);
+        return t != null ? FindTriggersOnFace(t) : new PowerConnectionTrigger[4];
+    }
+
+    private PowerConnectionTrigger[] FindTriggersOnFace(Transform faceTransform)
+    {
+        var result = new PowerConnectionTrigger[4];
+        foreach (Transform child in faceTransform)
         {
-            case 0: return new[] { cubePower.topUpTrigger,    cubePower.topRightTrigger,    cubePower.topDownTrigger,    cubePower.topLeftTrigger };
-            case 1: return new[] { cubePower.bottomUpTrigger, cubePower.bottomRightTrigger, cubePower.bottomDownTrigger, cubePower.bottomLeftTrigger };
-            case 2: return new[] { cubePower.northUpTrigger,  cubePower.northRightTrigger,  cubePower.northDownTrigger,  cubePower.northLeftTrigger };
-            case 3: return new[] { cubePower.southUpTrigger,  cubePower.southRightTrigger,  cubePower.southDownTrigger,  cubePower.southLeftTrigger };
-            case 4: return new[] { cubePower.eastUpTrigger,   cubePower.eastRightTrigger,   cubePower.eastDownTrigger,   cubePower.eastLeftTrigger };
-            case 5: return new[] { cubePower.westUpTrigger,   cubePower.westRightTrigger,   cubePower.westDownTrigger,   cubePower.westLeftTrigger };
-            default: return new PowerConnectionTrigger[4];
+            PowerConnectionTrigger t = child.GetComponent<PowerConnectionTrigger>();
+            if (t == null) continue;
+            string n = child.name.ToLower();
+            if      (n.Contains("up"))    result[0] = t;
+            else if (n.Contains("right")) result[1] = t;
+            else if (n.Contains("down"))  result[2] = t;
+            else if (n.Contains("left"))  result[3] = t;
         }
+        return result;
     }
 
     private bool[] GetTriggerStates(PowerLineType lineType)

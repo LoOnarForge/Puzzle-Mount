@@ -1,4 +1,3 @@
-using System.Collections.Generic;
 using UnityEngine;
 
 public enum PowerLineType
@@ -56,36 +55,6 @@ public class RunodePower : MonoBehaviour
     public Sprite tSectionSprite;
     public Sprite crossSprite;
 
-    public PowerConnectionTrigger topUpTrigger;
-    public PowerConnectionTrigger topRightTrigger;
-    public PowerConnectionTrigger topDownTrigger;
-    public PowerConnectionTrigger topLeftTrigger;
-
-    public PowerConnectionTrigger bottomUpTrigger;
-    public PowerConnectionTrigger bottomRightTrigger;
-    public PowerConnectionTrigger bottomDownTrigger;
-    public PowerConnectionTrigger bottomLeftTrigger;
-
-    public PowerConnectionTrigger northUpTrigger;
-    public PowerConnectionTrigger northRightTrigger;
-    public PowerConnectionTrigger northDownTrigger;
-    public PowerConnectionTrigger northLeftTrigger;
-
-    public PowerConnectionTrigger southUpTrigger;
-    public PowerConnectionTrigger southRightTrigger;
-    public PowerConnectionTrigger southDownTrigger;
-    public PowerConnectionTrigger southLeftTrigger;
-
-    public PowerConnectionTrigger eastUpTrigger;
-    public PowerConnectionTrigger eastRightTrigger;
-    public PowerConnectionTrigger eastDownTrigger;
-    public PowerConnectionTrigger eastLeftTrigger;
-
-    public PowerConnectionTrigger westUpTrigger;
-    public PowerConnectionTrigger westRightTrigger;
-    public PowerConnectionTrigger westDownTrigger;
-    public PowerConnectionTrigger westLeftTrigger;
-
     public ObstructionController obstructionController;
 
     public bool IsPowered
@@ -98,70 +67,30 @@ public class RunodePower : MonoBehaviour
         }
     }
 
-    private Dictionary<PowerConnectionTrigger, PowerConnectionTrigger> internalNeighborMap =
-        new Dictionary<PowerConnectionTrigger, PowerConnectionTrigger>();
-
     private void Awake()
     {
         if (obstructionController == null) obstructionController = GetComponent<ObstructionController>();
-        InitializeInternalNeighborMap();
         InitializeFaceComponents();
     }
 
     private void InitializeFaceComponents()
     {
-        AssignFace(topFaceTransform,    0, obstructionController?.faceTop,    topUpTrigger,    topRightTrigger,    topDownTrigger,    topLeftTrigger,    topFace);
-        AssignFace(bottomFaceTransform, 1, obstructionController?.faceBottom, bottomUpTrigger, bottomRightTrigger, bottomDownTrigger, bottomLeftTrigger, bottomFace);
-        AssignFace(northFaceTransform,  2, obstructionController?.faceNorth,  northUpTrigger,  northRightTrigger,  northDownTrigger,  northLeftTrigger,  northFace);
-        AssignFace(southFaceTransform,  3, obstructionController?.faceSouth,  southUpTrigger,  southRightTrigger,  southDownTrigger,  southLeftTrigger,  southFace);
-        AssignFace(eastFaceTransform,   4, obstructionController?.faceEast,   eastUpTrigger,   eastRightTrigger,   eastDownTrigger,   eastLeftTrigger,   eastFace);
-        AssignFace(westFaceTransform,   5, obstructionController?.faceWest,   westUpTrigger,   westRightTrigger,   westDownTrigger,   westLeftTrigger,   westFace);
+        AssignFace(topFaceTransform,    0, obstructionController?.faceTop,    topFace);
+        AssignFace(bottomFaceTransform, 1, obstructionController?.faceBottom, bottomFace);
+        AssignFace(northFaceTransform,  2, obstructionController?.faceNorth,  northFace);
+        AssignFace(southFaceTransform,  3, obstructionController?.faceSouth,  southFace);
+        AssignFace(eastFaceTransform,   4, obstructionController?.faceEast,   eastFace);
+        AssignFace(westFaceTransform,   5, obstructionController?.faceWest,   westFace);
     }
 
-    private void AssignFace(Transform t, int index, BoxCollider zone,
-        PowerConnectionTrigger up, PowerConnectionTrigger right,
-        PowerConnectionTrigger down, PowerConnectionTrigger left,
-        PowerLineType type)
+    private void AssignFace(Transform t, int index, BoxCollider zone, PowerLineType type)
     {
         if (t == null) return;
         RunodeFace face = t.GetComponent<RunodeFace>();
         if (face == null) return;
-        face.triggers  = new[] { up, right, down, left };
         face.faceIndex = index;
         face.faceZone  = zone;
         face.lineType  = type;
-    }
-
-    private void InitializeInternalNeighborMap()
-    {
-        internalNeighborMap.Clear();
-
-        MapInternal(northLeftTrigger,   eastRightTrigger);
-        MapInternal(northRightTrigger,  westLeftTrigger);
-        MapInternal(southRightTrigger,  eastLeftTrigger);
-        MapInternal(southLeftTrigger,   westRightTrigger);
-
-        MapInternal(topUpTrigger,    northUpTrigger);
-        MapInternal(topDownTrigger,  southUpTrigger);
-        MapInternal(topRightTrigger, eastUpTrigger);
-        MapInternal(topLeftTrigger,  westUpTrigger);
-
-        MapInternal(bottomDownTrigger,  northDownTrigger);
-        MapInternal(bottomUpTrigger,    southDownTrigger);
-        MapInternal(bottomRightTrigger, eastDownTrigger);
-        MapInternal(bottomLeftTrigger,  westDownTrigger);
-
-        var keys = new List<PowerConnectionTrigger>(internalNeighborMap.Keys);
-        foreach (var key in keys)
-        {
-            var neighbor = internalNeighborMap[key];
-            if (neighbor != null) internalNeighborMap[neighbor] = key;
-        }
-    }
-
-    private void MapInternal(PowerConnectionTrigger a, PowerConnectionTrigger b)
-    {
-        if (a != null && b != null) internalNeighborMap[a] = b;
     }
 
     // Shim for FaceObstructionDetector compatibility.
@@ -175,17 +104,6 @@ public class RunodePower : MonoBehaviour
     {
         foreach (var face in GetComponentsInChildren<RunodeFace>())
             face.ApplyColor(face.isFacePowered ? face.faceColor : Color.white, false);
-    }
-
-    public PowerConnectionTrigger GetInternalNeighbor(PowerConnectionTrigger t)
-    {
-        if (internalNeighborMap.TryGetValue(t, out PowerConnectionTrigger neighbor))
-        {
-            if (obstructionController != null && obstructionController.IsInternalPathPinch(t, neighbor))
-                return null;
-            return neighbor;
-        }
-        return null;
     }
 
     public int GetFaceIndexFromPoint(Vector3 worldPoint)

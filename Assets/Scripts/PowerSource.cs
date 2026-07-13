@@ -142,13 +142,12 @@ public class PowerSource : MonoBehaviour
             BFSNode node = queue.Dequeue();
             PowerConnectionTrigger current = node.trigger;
             RunodeFace currentFace = current.parentRunodeFace;
-            RunodePower currentCube = current.parentRunodePower; // retained for GetInternalNeighbor
 
             // PRIORITY: Discover all internal connections on the SAME cube first
             if (currentFace != null)
             {
                 // Internal bridges (corner wraps)
-                PowerConnectionTrigger internalBridge = currentCube != null ? currentCube.GetInternalNeighbor(current) : null;
+                PowerConnectionTrigger internalBridge = currentFace.GetInternalNeighbor(current);
                 if (internalBridge != null && internalBridge.gameObject.activeInHierarchy && !internalBridge.isObstructed)
                 {
                     RunodeFace bridgeFace = internalBridge.parentRunodeFace;

@@ -38,14 +38,29 @@ public class RunodeFace : MonoBehaviour
     {
         obstructionController = GetComponentInParent<ObstructionController>();
 
+        triggers = new PowerConnectionTrigger[4];
+
         foreach (Transform child in transform)
         {
             if (child.name.StartsWith("Power Line Sprite"))
-            {
                 faceSprite = child.GetComponent<SpriteRenderer>();
-                break;
+
+            PowerConnectionTrigger t = child.GetComponent<PowerConnectionTrigger>();
+            if (t != null)
+            {
+                string n = child.name.ToLower();
+                if      (n.Contains("up"))    triggers[0] = t;
+                else if (n.Contains("right")) triggers[1] = t;
+                else if (n.Contains("down"))  triggers[2] = t;
+                else if (n.Contains("left"))  triggers[3] = t;
             }
         }
+    }
+
+    // Returns the corner/edge-wrapped neighbor of t, delegating to ObstructionController.
+    public PowerConnectionTrigger GetInternalNeighbor(PowerConnectionTrigger t)
+    {
+        return obstructionController != null ? obstructionController.GetInternalNeighbor(t) : null;
     }
 
     private void OnEnable()
