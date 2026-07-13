@@ -121,17 +121,6 @@ public class RunodeHighlighter : MonoBehaviour
         }
     }
 
-    private void ApplyColorToAllLines(Color color)
-    {
-        foreach (var sr in cachedLineRenderers)
-        {
-            if (sr == null) continue;
-            // Using direct color assignment for Sprites as it's more reliable 
-            // than MPB with the default URP sprite shader in some versions.
-            sr.color = color;
-        }
-    }
-
     public void SetHighlight(bool rotatable, int faceIndex = -1)
     {
         isHovered = true;

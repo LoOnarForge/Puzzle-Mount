@@ -6,13 +6,10 @@ public class PowerConnectionTrigger : MonoBehaviour
     public bool isPowered = false;
     public bool isObstructed = false;
     public Color currentPowerColor = Color.white;
-    public PowerSource parentPowerSource;
 
     [Header("SECONDARY DETAILS:")]
     public RunodePower parentRunodePower;
     public RunodeFace parentRunodeFace;
-    public RunodePower neighboursRunodePower;
-    public PowerConnectionTrigger currentNeighbor; // Keeping for inspector debugging, but logic will ignore it
     public int distanceFromSource = 0;
     public int sourceMW = 0;
 
@@ -20,24 +17,6 @@ public class PowerConnectionTrigger : MonoBehaviour
     {
         parentRunodePower = GetComponentInParent<RunodePower>();
         parentRunodeFace  = GetComponentInParent<RunodeFace>();
-    }
-
-    private void OnTriggerEnter(Collider other)
-    {
-        // Legacy: only for visual debugging in inspector
-        PowerConnectionTrigger neighbor = other.GetComponent<PowerConnectionTrigger>();
-        if (neighbor == null || neighbor == this) return;
-        currentNeighbor = neighbor;
-    }
-
-    private void OnTriggerExit(Collider other)
-    {
-        // Legacy: only for visual debugging in inspector
-        PowerConnectionTrigger neighbor = other.GetComponent<PowerConnectionTrigger>();
-        if (neighbor != null && currentNeighbor == neighbor)
-        {
-            currentNeighbor = null;
-        }
     }
 
     public void ClearPowerState()

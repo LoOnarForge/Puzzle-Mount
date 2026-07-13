@@ -36,11 +36,6 @@ public class PowerSource : MonoBehaviour
     private void Awake()
     {
         propBlock = new MaterialPropertyBlock();
-        if (topFaceTransform != null)
-        {
-            // The detector component has been removed as per the new spatial system.
-            // PowerSource triggers are handled by the BFS which now respects obstruction flags updated by PowerManager.
-        }
     }
 
     private void Start()
@@ -114,14 +109,9 @@ public class PowerSource : MonoBehaviour
 
     public void RunBFS()
     {
-        // Snapshot old state for capacity theft cleanup
-        List<RunodeFace> previouslyPowered = new List<RunodeFace>(poweredFaces);
-        
         Queue<BFSNode> queue = new Queue<BFSNode>();
         HashSet<PowerConnectionTrigger> visitedTriggers = new HashSet<PowerConnectionTrigger>();
         HashSet<RunodeFace> visitedFaces = new HashSet<RunodeFace>();
-        
-        // Note: tracking is now handled globally by PowerManager.
 
         EnqueueSourceTrigger(upTrigger, queue, visitedTriggers, visitedFaces);
         EnqueueSourceTrigger(rightTrigger, queue, visitedTriggers, visitedFaces);
@@ -216,7 +206,6 @@ public class PowerSource : MonoBehaviour
 
         if (trigger.parentRunodePower != null)
         {
-            // Initial power from source to cube face
             RunodeFace targetFace = trigger.parentRunodeFace;
             if (targetFace != null)
             {
@@ -284,11 +273,5 @@ public class PowerSource : MonoBehaviour
             }
         }
         return null;
-    }
-
-    private void TriggerGameOver()
-    {
-        Debug.Log("GAME OVER");
-        Debug.Log($"[PowerSource] {name} detected illegal connection (loop or collision).");
     }
 }

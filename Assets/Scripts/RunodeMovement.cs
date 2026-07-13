@@ -54,9 +54,6 @@ public class RunodeMovement : MonoBehaviour
         if (rb == null) rb = GetComponent<Rigidbody>();
         rb.isKinematic = kinematic;
 
-        // COLLISION: We keep it solid so cubes above don't fall.
-        // To prevent pushing Tim, we'll use Physics.IgnoreCollision in TimCubeInteraction.
-
         if (!kinematic)
         {
             rb.constraints = RigidbodyConstraints.FreezePositionX | RigidbodyConstraints.FreezePositionZ | RigidbodyConstraints.FreezeRotation;
@@ -171,7 +168,6 @@ public class RunodeMovement : MonoBehaviour
         isMovingPos = true;
         Vector3 startPos = transform.position;
 
-        // Restore exact logic from old script: use constraints, NOT kinematic
         if (direction == Vector3.right || direction == Vector3.left)
         {
             rb.constraints = RigidbodyConstraints.FreezePositionZ | RigidbodyConstraints.FreezeRotation;
@@ -201,10 +197,8 @@ public class RunodeMovement : MonoBehaviour
 
         transform.position = new Vector3(targetPosition.x, startPos.y, targetPosition.z);
 
-        // Ensure triggers are updated in the physics world before recalculation
         Physics.SyncTransforms();
 
-        // Restore default state
         rb.constraints = RigidbodyConstraints.FreezePositionX | RigidbodyConstraints.FreezePositionZ | RigidbodyConstraints.FreezeRotation;
 
         isMovingPos = false;
