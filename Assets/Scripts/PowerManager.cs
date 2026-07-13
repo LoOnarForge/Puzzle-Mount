@@ -113,7 +113,7 @@ public class PowerManager : MonoBehaviour
         {
             if (!face.isFacePowered && face.faceSprite != null && face.faceSprite.color != Color.white)
             {
-                face.Clear(true, true);
+                face.Clear(true, false);
             }
         }
 
@@ -155,7 +155,7 @@ public class PowerManager : MonoBehaviour
             if (current == null || cleared.Contains(current)) continue;
 
             cleared.Add(current);
-            current.Clear(visual, true); // Clear INSTANTLY to provide immediate feedback
+            current.Clear(visual, false); // Use false to respect the depowerDelay wave
 
             foreach (RunodeFace face in registeredFaces)
             {
