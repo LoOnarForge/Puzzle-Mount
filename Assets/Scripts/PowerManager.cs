@@ -102,11 +102,10 @@ public class PowerManager : MonoBehaviour
         if (lastAlteredTransform != null)
             InvalidateSubtree(lastAlteredTransform, true);
 
-        // 4. Each source independently runs BFS.
-        float delay = PowerDisplayManager.Instance != null ? PowerDisplayManager.Instance.propagationDelay : 0.05f;
+        // 4. Each source independently runs BFS instantly.
         foreach (PowerSource source in sources)
         {
-            yield return StartCoroutine(source.RunBFS(delay));
+            source.RunBFS();
         }
 
         // 5. Final Pass: Visual Clear for any faces that lost power.
@@ -127,6 +126,8 @@ public class PowerManager : MonoBehaviour
             needsAnotherRecalculation = false;
             recalculationRequested = true;
         }
+
+        yield break;
     }
 
     private void ClearAllFaceStates(bool visual = true)

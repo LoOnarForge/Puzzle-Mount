@@ -112,9 +112,10 @@ public class PowerSource : MonoBehaviour
         }
     }
 
-    public System.Collections.IEnumerator RunBFS(float delay)
+    public void RunBFS()
     {
-        WaitForSeconds wait = new WaitForSeconds(delay);
+        // Snapshot old state for capacity theft cleanup
+        List<RunodeFace> previouslyPowered = new List<RunodeFace>(poweredFaces);
         
         Queue<BFSNode> queue = new Queue<BFSNode>();
         HashSet<PowerConnectionTrigger> visitedTriggers = new HashSet<PowerConnectionTrigger>();
@@ -153,7 +154,6 @@ public class PowerSource : MonoBehaviour
                                     poweredFaces.Add(bridgeFace);
                                     currentFacesPowered++;
                                     bridgeFace.ApplyColor(powerColor);
-                                    yield return wait;
                                 }
                                 else continue;
                             }
@@ -180,7 +180,7 @@ public class PowerSource : MonoBehaviour
                 if (neighborFace != null)
                 {
                     int nextDist = currentFace != null ? currentFace.distanceFromSource + 1 : 1;
-                    if (!neighborFace.MarkPowered(powerColor, currentFace, this, nextDist)) yield break;
+                    if (!neighborFace.MarkPowered(powerColor, currentFace, this, nextDist)) return;
 
                     if (!visitedTriggers.Contains(neighbor))
                     {
@@ -192,7 +192,6 @@ public class PowerSource : MonoBehaviour
                                 poweredFaces.Add(neighborFace);
                                 currentFacesPowered++;
                                 neighborFace.ApplyColor(powerColor);
-                                yield return wait;
                             }
                             else continue;
                         }
