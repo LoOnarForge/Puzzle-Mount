@@ -6,9 +6,20 @@ public class PowerDisplayManager : MonoBehaviour
 {
     public static PowerDisplayManager Instance { get; private set; }
 
-    [Header("SETTINGS")]
-    public float propagationDelay = 0.05f;
+    [Header("SETTINGS:")]
+    [Range(0f, 1f)]
+    [Tooltip("Standard delay between consecutive cubes powering up.")]
+    public float powerUpDelay = 0.05f;
+
+    [Range(0f, 1f)]
+    [Tooltip("Delay for the very first cube to power up after an alteration.")]
+    public float initialPowerUpDelay = 0.2f;
+
+    [Range(0f, 1f)]
+    [Tooltip("Delay between consecutive cubes depowering.")]
     public float depowerDelay = 0.02f;
+
+    private bool isFirstInSequence = true;
 
     private struct FaceUpdate
     {
@@ -35,6 +46,7 @@ public class PowerDisplayManager : MonoBehaviour
             processRoutine = null;
         }
         updateQueue.Clear();
+        isFirstInSequence = true;
     }
 
     // Clears the pending animation queue, snapping all queued updates to their final state.
@@ -51,6 +63,7 @@ public class PowerDisplayManager : MonoBehaviour
             var update = updateQueue.Dequeue();
             ApplyVisualDirect(update.face, update.color, update.isObstructed);
         }
+        isFirstInSequence = true;
     }
 
     // Queues a visual update for a specific face.
@@ -88,7 +101,24 @@ public class PowerDisplayManager : MonoBehaviour
             var update = updateQueue.Dequeue();
             ApplyVisualDirect(update.face, update.color, update.isObstructed);
 
-            float delay = update.isDepowering ? depowerDelay : propagationDelay;
+            float delay;
+            if (update.isDepowering)
+            {
+                delay = depowerDelay;
+            }
+            else
+            {
+                if (isFirstInSequence)
+                {
+                    delay = initialPowerUpDelay;
+                    isFirstInSequence = false;
+                }
+                else
+                {
+                    delay = powerUpDelay;
+                }
+            }
+
             if (delay > 0)
                 yield return new WaitForSeconds(delay);
         }
@@ -97,14 +127,9 @@ public class PowerDisplayManager : MonoBehaviour
 
     private void ApplyVisualDirect(RunodeFace face, Color color, bool isObstructed)
     {
-        if (face == null || face.faceSprite == null) return;
+        if (face == null) return;
 
-        if (isObstructed)
-        {
-            face.faceSprite.color = new Color(0.08f, 0.08f, 0.08f);
-            return;
-        }
-
-        face.faceSprite.color = color;
+        face.powerColorLayer = color;
+        face.UpdateSpriteVisuals();
     }
 }

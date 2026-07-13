@@ -95,20 +95,29 @@ public class RunodeHighlighter : MonoBehaviour
             }
         }
 
-        // 4. Power Line Darkening Logic
+        // 4. Power Line Darkening Logic (Layered)
         if (darkenLinesOnHighlight && powerSystem != null)
         {
             bool shouldDarken = isHovered && isInRange;
             if (shouldDarken)
             {
                 currentLineColor = Color.Lerp(currentLineColor, lineDarkenedColor, Time.deltaTime * transitionSpeed);
-                ApplyColorToAllLines(currentLineColor);
+                UpdateHighlightLayerOnFaces(currentLineColor);
             }
             else if (currentLineColor != Color.white)
             {
                 currentLineColor = Color.white;
-                powerSystem.RefreshFaceVisuals();
+                UpdateHighlightLayerOnFaces(Color.white);
             }
+        }
+    }
+
+    private void UpdateHighlightLayerOnFaces(Color highlightColor)
+    {
+        foreach (var face in GetComponentsInChildren<RunodeFace>())
+        {
+            face.highlightColorLayer = highlightColor;
+            face.UpdateSpriteVisuals();
         }
     }
 

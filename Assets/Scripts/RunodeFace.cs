@@ -16,7 +16,21 @@ public class RunodeFace : MonoBehaviour
     public RunodeFace parentFace;
     public int distanceFromSource = 0;
 
+    [Header("VISUAL LAYERS")]
+    [HideInInspector] public Color powerColorLayer = Color.white;
+    [HideInInspector] public Color highlightColorLayer = Color.white;
+
     [HideInInspector] public ObstructionController obstructionController;
+
+    public void UpdateSpriteVisuals()
+    {
+        if (faceSprite == null) return;
+
+        bool isObstructed = obstructionController != null && obstructionController.IsFaceObstructed(faceZone);
+        
+        Color baseColor = isObstructed ? new Color(0.08f, 0.08f, 0.08f) : powerColorLayer;
+        faceSprite.color = baseColor * highlightColorLayer;
+    }
 
     private static readonly Dictionary<PowerLineType, bool[]> ConnectivityMap = new Dictionary<PowerLineType, bool[]>
     {

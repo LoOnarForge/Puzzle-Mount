@@ -103,7 +103,7 @@ public class RunodePower : MonoBehaviour
     public void RefreshFaceVisuals()
     {
         foreach (var face in GetComponentsInChildren<RunodeFace>())
-            face.ApplyColor(face.isFacePowered ? face.faceColor : Color.white, false);
+            face.UpdateSpriteVisuals();
     }
 
     public int GetFaceIndexFromPoint(Vector3 worldPoint)
