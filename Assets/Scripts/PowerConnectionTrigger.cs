@@ -10,6 +10,7 @@ public class PowerConnectionTrigger : MonoBehaviour
 
     [Header("SECONDARY DETAILS:")]
     public RunodePower parentRunodePower;
+    public RunodeFace parentRunodeFace;
     public RunodePower neighboursRunodePower;
     public PowerConnectionTrigger currentNeighbor; // Keeping for inspector debugging, but logic will ignore it
     public int distanceFromSource = 0;
@@ -18,6 +19,7 @@ public class PowerConnectionTrigger : MonoBehaviour
     private void Awake()
     {
         parentRunodePower = GetComponentInParent<RunodePower>();
+        parentRunodeFace  = GetComponentInParent<RunodeFace>();
     }
 
     private void OnTriggerEnter(Collider other)

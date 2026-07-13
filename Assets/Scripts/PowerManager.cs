@@ -1,16 +1,15 @@
 using System.Collections.Generic;
 using UnityEngine;
 
-
 [DefaultExecutionOrder(-40)]
 public class PowerManager : MonoBehaviour
 {
     public static PowerManager Instance { get; private set; }
 
     private List<PowerSource> sources = new List<PowerSource>();
-    private List<RunodePower> registeredRunodes = new List<RunodePower>();
+    private List<RunodeFace> registeredFaces = new List<RunodeFace>();
     private bool recalculationRequested = false;
-    private RunodePower lastAlteredCube;
+    private Transform lastAlteredTransform;
     private Coroutine recalculationRoutine;
 
     private void Awake()
@@ -18,38 +17,38 @@ public class PowerManager : MonoBehaviour
         Instance = this;
     }
 
-    /// Registers a runode to the tracking list for efficient power clearing.
-    public void RegisterRunode(RunodePower runode)
+    // Registers a face to the tracking list for power clearing and invalidation.
+    public void RegisterRunodeFace(RunodeFace face)
     {
-        if (!registeredRunodes.Contains(runode))
-            registeredRunodes.Add(runode);
+        if (!registeredFaces.Contains(face))
+            registeredFaces.Add(face);
     }
 
-    /// Removes a runode from tracking.
-    public void UnregisterRunode(RunodePower runode)
+    // Removes a face from tracking.
+    public void UnregisterRunodeFace(RunodeFace face)
     {
-        registeredRunodes.Remove(runode);
+        registeredFaces.Remove(face);
     }
 
-    /// Called by PowerSources on Start to register themselves.
+    // Called by PowerSources on Start to register themselves.
     public void RegisterSource(PowerSource source)
     {
         if (!sources.Contains(source))
             sources.Add(source);
     }
 
-    /// Called by PowerConnectionTrigger on enter/exit, or by cubes on move/rotate.
+    // Called by FaceObstructionDetector and other RunodePower-aware callers.
     public void RequestPowerFlowCheck(RunodePower alteredCube = null)
     {
         recalculationRequested = true;
-        if (alteredCube != null) lastAlteredCube = alteredCube;
+        if (alteredCube != null) lastAlteredTransform = alteredCube.transform;
     }
 
-    /// Called by movement systems that should not depend on RunodePower directly.
+    // Called by movement systems that do not depend on RunodePower directly.
     public void RequestPowerFlowCheck(Transform source)
     {
-        RunodePower runode = source.GetComponent<RunodePower>();
-        RequestPowerFlowCheck(runode);
+        recalculationRequested = true;
+        if (source != null) lastAlteredTransform = source;
     }
 
     private bool recalculationInProgress = false;
@@ -60,7 +59,7 @@ public class PowerManager : MonoBehaviour
         if (!recalculationRequested) return;
 
         recalculationRequested = false;
-        
+
         if (recalculationInProgress)
         {
             needsAnotherRecalculation = true;
@@ -76,26 +75,22 @@ public class PowerManager : MonoBehaviour
 
         if (PowerDisplayManager.Instance != null) PowerDisplayManager.Instance.ResetQueue();
 
-        // 1. Perform spatial sweeps for all cubes to update their obstruction states
-        foreach (RunodePower runode in registeredRunodes)
+        // 1. Perform spatial sweeps, one per unique ObstructionController.
+        HashSet<ObstructionController> sweptControllers = new HashSet<ObstructionController>();
+        foreach (RunodeFace face in registeredFaces)
         {
-            if (runode.obstructionController != null)
-            {
-                runode.obstructionController.PerformSpatialSweep();
-            }
+            ObstructionController oc = face.GetComponentInParent<ObstructionController>();
+            if (oc != null && sweptControllers.Add(oc))
+                oc.PerformSpatialSweep();
         }
 
-        // 2. Handle Invalidation - Logic only (Silent clear to prevent flickering)
-        if (lastAlteredCube != null)
-        {
-            InvalidateSubtree(lastAlteredCube);
-        }
+        // 2. Handle invalidation - logic only (silent clear to prevent flickering).
+        if (lastAlteredTransform != null)
+            InvalidateSubtree(lastAlteredTransform);
         else
-        {
-            ClearAllCubeStates(false);
-        }
+            ClearAllFaceStates(false);
 
-        // 3. Each source independently runs BFS. 
+        // 3. Each source independently runs BFS.
         float delay = PowerDisplayManager.Instance != null ? PowerDisplayManager.Instance.propagationDelay : 0.05f;
         foreach (PowerSource source in sources)
         {
@@ -104,9 +99,8 @@ public class PowerManager : MonoBehaviour
 
         recalculationInProgress = false;
         recalculationRoutine = null;
-        lastAlteredCube = null;
+        lastAlteredTransform = null;
 
-        // If a request came in while we were working, run it again now.
         if (needsAnotherRecalculation)
         {
             needsAnotherRecalculation = false;
@@ -114,24 +108,20 @@ public class PowerManager : MonoBehaviour
         }
     }
 
-    private void ClearAllCubeStates(bool visual = true)
+    private void ClearAllFaceStates(bool visual = true)
     {
-        // Faster lookup: only iterate over registered active runodes.
-        foreach (RunodePower runode in registeredRunodes)
-        {
-            runode.ClearPowerState(visual);
-        }
+        foreach (RunodeFace face in registeredFaces)
+            face.Clear(visual);
     }
 
-    private void InvalidateSubtree(RunodePower root)
+    private void InvalidateSubtree(Transform root)
     {
         Queue<RunodeFace> toClear = new Queue<RunodeFace>();
-        foreach (var face in root.allFaces)
+        foreach (var face in root.GetComponentsInChildren<RunodeFace>())
         {
             if (face.isFacePowered) toClear.Enqueue(face);
         }
 
-        // Standard BFS-style subtree invalidation
         HashSet<RunodeFace> cleared = new HashSet<RunodeFace>();
         while (toClear.Count > 0)
         {
@@ -139,19 +129,12 @@ public class PowerManager : MonoBehaviour
             if (current == null || cleared.Contains(current)) continue;
 
             cleared.Add(current);
-            RunodePower cube = current.cube;
-            if (cube != null) cube.ClearFace(current.faceIndex, false); // SILENT logic clear to avoid flicker
+            current.Clear(false); // SILENT logic clear to avoid flicker
 
-            // Find children (faces that have 'current' as their parent)
-            foreach (var runode in registeredRunodes)
+            foreach (RunodeFace face in registeredFaces)
             {
-                foreach (var face in runode.allFaces)
-                {
-                    if (face.parentCube == cube && face.parentFaceIndex == current.faceIndex)
-                    {
-                        toClear.Enqueue(face);
-                    }
-                }
+                if (face.parentFace == current)
+                    toClear.Enqueue(face);
             }
         }
     }

@@ -122,10 +122,7 @@ public class PowerSource : MonoBehaviour
         // 2. Logic Clear: Reset flags for our territory ONLY (No visual updates)
         foreach (var face in previouslyPowered)
         {
-            if (face != null && face.cube != null)
-            {
-                face.cube.ClearFace(face.faceIndex, false);
-            }
+            if (face != null) face.Clear(false);
         }
 
         Queue<BFSNode> queue = new Queue<BFSNode>();
@@ -144,34 +141,29 @@ public class PowerSource : MonoBehaviour
         {
             BFSNode node = queue.Dequeue();
             PowerConnectionTrigger current = node.trigger;
-            RunodePower currentCube = current.parentRunodePower;
-
-            // Get the face data for the CURRENT trigger
-            RunodeFace currentFace = null;
-            if (currentCube != null) currentFace = currentCube.GetFaceData(current);
+            RunodeFace currentFace = current.parentRunodeFace;
+            RunodePower currentCube = current.parentRunodePower; // retained for GetInternalNeighbor
 
             // PRIORITY: Discover all internal connections on the SAME cube first
-            if (currentCube != null && currentFace != null)
+            if (currentFace != null)
             {
                 // Internal bridges (corner wraps)
-                PowerConnectionTrigger internalBridge = currentCube.GetInternalNeighbor(current);
+                PowerConnectionTrigger internalBridge = currentCube != null ? currentCube.GetInternalNeighbor(current) : null;
                 if (internalBridge != null && internalBridge.gameObject.activeInHierarchy && !internalBridge.isObstructed)
                 {
-                    if (currentCube.MarkFacePowered(internalBridge, powerColor, currentCube.name, node.sourceFace, this, currentFace.distanceFromSource))
+                    RunodeFace bridgeFace = internalBridge.parentRunodeFace;
+                    if (bridgeFace != null && bridgeFace.MarkPowered(powerColor, node.sourceFace, this, currentFace.distanceFromSource))
                     {
                         if (!visitedTriggers.Contains(internalBridge))
                         {
-                            RunodeFace nextFace = currentCube.GetFaceData(internalBridge);
-                            if (nextFace != null && !visitedFaces.Contains(nextFace))
+                            if (!visitedFaces.Contains(bridgeFace))
                             {
                                 if (currentFacesPowered < maxPower)
                                 {
-                                    visitedFaces.Add(nextFace);
-                                    poweredFaces.Add(nextFace);
+                                    visitedFaces.Add(bridgeFace);
+                                    poweredFaces.Add(bridgeFace);
                                     currentFacesPowered++;
-                                    
-                                    // TARGETED UPDATE: Only update the specific face that just changed
-                                    currentCube.UpdateFaceVisuals(nextFace.faceIndex, powerColor);
+                                    bridgeFace.ApplyColor(powerColor);
                                     yield return wait;
                                 }
                                 else continue;
@@ -182,13 +174,11 @@ public class PowerSource : MonoBehaviour
                 }
 
                 // Face neighbors (same face)
-                var faceNeighbors = currentCube.GetConnectedTriggersOnFace(current);
+                var faceNeighbors = currentFace.GetConnectedTriggersOnFace(current);
                 foreach (var fn in faceNeighbors)
                 {
                     if (fn.gameObject.activeInHierarchy && !visitedTriggers.Contains(fn))
-                    {
                         SetTriggerPowered(fn, currentFace.distanceFromSource, queue, visitedTriggers, node.sourceFace);
-                    }
                 }
             }
 
@@ -196,27 +186,23 @@ public class PowerSource : MonoBehaviour
             PowerConnectionTrigger neighbor = FindExternalNeighbor(current);
             if (neighbor != null && neighbor.gameObject.activeInHierarchy && !neighbor.isObstructed)
             {
-                RunodePower neighborCube = neighbor.parentRunodePower ?? neighbor.GetComponentInParent<RunodePower>();
-                
-                if (neighborCube != null)
+                RunodeFace neighborFace = neighbor.parentRunodeFace;
+
+                if (neighborFace != null)
                 {
                     int nextDist = currentFace != null ? currentFace.distanceFromSource + 1 : 1;
-                    string sender = currentCube != null ? currentCube.name : name;
-                    if (!neighborCube.MarkFacePowered(neighbor, powerColor, sender, currentFace, this, nextDist)) yield break;
-                    
-                    RunodeFace nextFace = neighborCube.GetFaceData(neighbor);
-                    if (nextFace != null && !visitedTriggers.Contains(neighbor))
+                    if (!neighborFace.MarkPowered(powerColor, currentFace, this, nextDist)) yield break;
+
+                    if (!visitedTriggers.Contains(neighbor))
                     {
-                        if (!visitedFaces.Contains(nextFace))
+                        if (!visitedFaces.Contains(neighborFace))
                         {
                             if (currentFacesPowered < maxPower)
                             {
-                                visitedFaces.Add(nextFace);
-                                poweredFaces.Add(nextFace);
+                                visitedFaces.Add(neighborFace);
+                                poweredFaces.Add(neighborFace);
                                 currentFacesPowered++;
-                                
-                                // TARGETED UPDATE: Only update the specific face that just changed
-                                neighborCube.UpdateFaceVisuals(nextFace.faceIndex, powerColor);
+                                neighborFace.ApplyColor(powerColor);
                                 yield return wait;
                             }
                             else continue;
@@ -230,10 +216,8 @@ public class PowerSource : MonoBehaviour
         // 3. CAPACITY THEFT: Clear any faces that were powered but are no longer in the set
         foreach (var face in previouslyPowered)
         {
-            if (face != null && !visitedFaces.Contains(face) && face.cube != null)
-            {
-                face.cube.ClearFace(face.faceIndex, true);
-            }
+            if (face != null && !visitedFaces.Contains(face))
+                face.Clear(true);
         }
     }
 
@@ -252,14 +236,16 @@ public class PowerSource : MonoBehaviour
         if (trigger.parentRunodePower != null)
         {
             // Initial power from source to cube face
-            trigger.parentRunodePower.MarkFacePowered(trigger, powerColor, name, null, this, 0);
-
-            RunodeFace targetFace = trigger.parentRunodePower.GetFaceData(trigger);
-            if (targetFace != null && !visitedFaces.Contains(targetFace))
+            RunodeFace targetFace = trigger.parentRunodeFace;
+            if (targetFace != null)
             {
-                visitedFaces.Add(targetFace);
-                poweredFaces.Add(targetFace);
-                currentFacesPowered++;
+                targetFace.MarkPowered(powerColor, null, this, 0);
+                if (!visitedFaces.Contains(targetFace))
+                {
+                    visitedFaces.Add(targetFace);
+                    poweredFaces.Add(targetFace);
+                    currentFacesPowered++;
+                }
             }
         }
     }

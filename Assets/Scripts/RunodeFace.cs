@@ -1,43 +1,106 @@
+using System.Collections.Generic;
 using UnityEngine;
 
-[System.Serializable]
-public class RunodeFace
+public class RunodeFace : MonoBehaviour
 {
-    public SpriteRenderer faceSprite;
-    public BoxCollider faceZone;
-    public PowerConnectionTrigger[] triggers; // [0]=Up, [1]=Right, [2]=Down, [3]=Left
-    public PowerLineType lineType;
-    public bool isFacePowered;
-    public Color faceColor = Color.white;
+    [HideInInspector] public SpriteRenderer faceSprite;
+    [HideInInspector] public BoxCollider faceZone;
+    [HideInInspector] public PowerConnectionTrigger[] triggers; // [0]=Up, [1]=Right, [2]=Down, [3]=Left
+    [HideInInspector] public PowerLineType lineType;
+    [HideInInspector] public int faceIndex;
 
     [Header("LOGIC STATE")]
-    public RunodePower cube; // The physical cube this face belongs to
+    public bool isFacePowered;
+    public Color faceColor = Color.white;
     public PowerSource poweredBySource;
-    public int faceIndex; // Self-reference to index in allFaces
-    public RunodePower parentCube; // The cube that fed this face (Logic Parent)
-    public int parentFaceIndex = -1; // The face on parentCube (or this cube) that fed this face
+    public RunodeFace parentFace;
     public int distanceFromSource = 0;
 
-    // Applies power state to this face. Returns false on short circuit (different source).
+    [HideInInspector] public ObstructionController obstructionController;
+
+    private static readonly Dictionary<PowerLineType, bool[]> ConnectivityMap = new Dictionary<PowerLineType, bool[]>
+    {
+        { PowerLineType.Horizontal,        new[] { false, true,  false, true  } },
+        { PowerLineType.Vertical,          new[] { true,  false, true,  false } },
+        { PowerLineType.CornerLeftTop,     new[] { true,  false, false, true  } },
+        { PowerLineType.CornerTopRight,    new[] { true,  true,  false, false } },
+        { PowerLineType.CornerRightBottom, new[] { false, true,  true,  false } },
+        { PowerLineType.CornerBottomLeft,  new[] { false, false, true,  true  } },
+        { PowerLineType.TSectionLeft,      new[] { true,  true,  false, true  } },
+        { PowerLineType.TSectionTop,       new[] { true,  true,  true,  false } },
+        { PowerLineType.TSectionRight,     new[] { false, true,  true,  true  } },
+        { PowerLineType.TSectionBottom,    new[] { true,  false, true,  true  } },
+        { PowerLineType.Cross,             new[] { true,  true,  true,  true  } },
+        { PowerLineType.Empty,             new[] { false, false, false, false } }
+    };
+
+    private void Awake()
+    {
+        obstructionController = GetComponentInParent<ObstructionController>();
+
+        foreach (Transform child in transform)
+        {
+            if (child.name.StartsWith("Power Line Sprite"))
+            {
+                faceSprite = child.GetComponent<SpriteRenderer>();
+                break;
+            }
+        }
+    }
+
+    private void OnEnable()
+    {
+        if (PowerManager.Instance != null) PowerManager.Instance.RegisterRunodeFace(this);
+    }
+
+    private void OnDisable()
+    {
+        if (PowerManager.Instance != null) PowerManager.Instance.UnregisterRunodeFace(this);
+    }
+
+    // Returns all triggers on this face connected to the entry trigger.
+    public List<PowerConnectionTrigger> GetConnectedTriggersOnFace(PowerConnectionTrigger entry)
+    {
+        List<PowerConnectionTrigger> connected = new List<PowerConnectionTrigger>();
+
+        if (obstructionController != null && obstructionController.IsFaceObstructed(faceZone))
+        {
+            Debug.Log($"[BFS] {name}: Face {faceZone?.name ?? "Unknown"} is obstructed. Connection denied.");
+            return connected;
+        }
+
+        int entryIndex = System.Array.IndexOf(triggers, entry);
+        bool[] activeIndices = GetLineConnectivity(lineType);
+
+        for (int i = 0; i < triggers.Length; i++)
+        {
+            if (i != entryIndex && activeIndices[i] && triggers[i] != null && triggers[i].gameObject.activeInHierarchy)
+            {
+                if (obstructionController != null && obstructionController.IsInternalPathPinch(entry, triggers[i]))
+                {
+                    Debug.Log($"[BFS] {name}: Internal path on face between {entry.name} and {triggers[i].name} is PINCHED.");
+                    continue;
+                }
+                connected.Add(triggers[i]);
+            }
+        }
+        return connected;
+    }
+
+    // Applies power state to this face. Returns false on short circuit.
     public bool MarkPowered(Color color, RunodeFace sourceFace, PowerSource source, int distance)
     {
-        // Ignore if we are looking back at the face that just powered us
         if (sourceFace != null && this == sourceFace) return true;
 
-        // Collision check:
-        // If it's already powered by a DIFFERENT source -> Short Circuit!
         if (isFacePowered && poweredBySource != null && poweredBySource != source)
         {
             Debug.Log("GAME OVER");
-            Debug.Log($"Cube {cube.name} Face {faceIndex} caused short circuit between {poweredBySource.name} and {source.name}");
+            Debug.Log($"Cube {transform.root.name} Face {faceIndex} caused short circuit between {poweredBySource.name} and {source.name}");
             return false;
         }
 
-        // If it's already powered by the SAME source, it's a loop.
         if (isFacePowered && poweredBySource == source)
-        {
             return true;
-        }
 
         isFacePowered = true;
         faceColor = color;
@@ -45,10 +108,8 @@ public class RunodeFace
         distanceFromSource = distance;
 
         if (sourceFace != null)
-        {
-            parentCube = sourceFace.cube;
-            parentFaceIndex = sourceFace.faceIndex;
-        }
+            parentFace = sourceFace;
+
         return true;
     }
 
@@ -58,30 +119,33 @@ public class RunodeFace
         isFacePowered = false;
         faceColor = Color.white;
         poweredBySource = null;
-        parentCube = null;
-        parentFaceIndex = -1;
+        parentFace = null;
         distanceFromSource = 0;
 
-        foreach (var t in triggers)
+        if (triggers != null)
         {
-            if (t != null) t.ClearPowerState();
+            foreach (var t in triggers)
+            {
+                if (t != null) t.ClearPowerState();
+            }
         }
 
         if (visual)
-        {
             ApplyColor(Color.white, false);
-        }
     }
 
-    // Dispatches this face's visual update through the PowerDisplayManager.
+    // Dispatches this face's visual update through PowerDisplayManager.
     public void ApplyColor(Color color, bool instant = false)
     {
-        int index = cube.allFaces.IndexOf(this);
-        bool isObstructed = cube.obstructionController != null && cube.obstructionController.IsFaceObstructed(faceZone);
-
+        bool isObstructed = obstructionController != null && obstructionController.IsFaceObstructed(faceZone);
         if (PowerDisplayManager.Instance != null)
-        {
-            PowerDisplayManager.Instance.UpdateFaceVisuals(cube, index, color, isObstructed, instant);
-        }
+            PowerDisplayManager.Instance.UpdateFaceVisuals(this, color, isObstructed, instant);
+    }
+
+    private bool[] GetLineConnectivity(PowerLineType type)
+    {
+        if (ConnectivityMap.TryGetValue(type, out bool[] connectivity))
+            return connectivity;
+        return ConnectivityMap[PowerLineType.Empty];
     }
 }
