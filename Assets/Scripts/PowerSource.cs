@@ -116,21 +116,11 @@ public class PowerSource : MonoBehaviour
     {
         WaitForSeconds wait = new WaitForSeconds(delay);
         
-        // 1. Snapshot old state for capacity theft cleanup
-        List<RunodeFace> previouslyPowered = new List<RunodeFace>(poweredFaces);
-        
-        // 2. Logic Clear: Reset flags for our territory ONLY (No visual updates)
-        foreach (var face in previouslyPowered)
-        {
-            if (face != null) face.Clear(false);
-        }
-
         Queue<BFSNode> queue = new Queue<BFSNode>();
         HashSet<PowerConnectionTrigger> visitedTriggers = new HashSet<PowerConnectionTrigger>();
         HashSet<RunodeFace> visitedFaces = new HashSet<RunodeFace>();
         
-        currentFacesPowered = 0;
-        poweredFaces.Clear();
+        // Note: tracking is now handled globally by PowerManager.
 
         EnqueueSourceTrigger(upTrigger, queue, visitedTriggers, visitedFaces);
         EnqueueSourceTrigger(rightTrigger, queue, visitedTriggers, visitedFaces);
@@ -210,13 +200,6 @@ public class PowerSource : MonoBehaviour
                     }
                 }
             }
-        }
-
-        // 3. CAPACITY THEFT: Clear any faces that were powered but are no longer in the set
-        foreach (var face in previouslyPowered)
-        {
-            if (face != null && !visitedFaces.Contains(face))
-                face.Clear(true);
         }
     }
 

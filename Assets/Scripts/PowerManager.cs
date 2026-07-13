@@ -75,7 +75,7 @@ public class PowerManager : MonoBehaviour
 
         if (PowerDisplayManager.Instance != null) PowerDisplayManager.Instance.ResetQueue();
 
-        // 1. Perform spatial sweeps, one per unique ObstructionController.
+        // 1. Perform spatial sweeps.
         HashSet<ObstructionController> sweptControllers = new HashSet<ObstructionController>();
         foreach (RunodeFace face in registeredFaces)
         {
@@ -84,17 +84,38 @@ public class PowerManager : MonoBehaviour
                 oc.PerformSpatialSweep();
         }
 
-        // 2. Handle invalidation - logic only (silent clear to prevent flickering).
-        if (lastAlteredTransform != null)
-            InvalidateSubtree(lastAlteredTransform);
-        else
-            ClearAllFaceStates(false);
+        // 2. Prepare for new calculation: Global Logic Clear.
+        // This prevents Source B from clearing Source A's results during the sequential BFS loop.
+        foreach (RunodeFace face in registeredFaces)
+        {
+            face.Clear(false);
+        }
 
-        // 3. Each source independently runs BFS.
+        // Clear source-specific tracking lists.
+        foreach (PowerSource source in sources)
+        {
+            source.poweredFaces.Clear();
+            source.currentFacesPowered = 0;
+        }
+
+        // 3. Visual Clear for the affected area (requested for immediate feedback).
+        if (lastAlteredTransform != null)
+            InvalidateSubtree(lastAlteredTransform, true);
+
+        // 4. Each source independently runs BFS.
         float delay = PowerDisplayManager.Instance != null ? PowerDisplayManager.Instance.propagationDelay : 0.05f;
         foreach (PowerSource source in sources)
         {
             yield return StartCoroutine(source.RunBFS(delay));
+        }
+
+        // 5. Final Pass: Visual Clear for any faces that lost power.
+        foreach (RunodeFace face in registeredFaces)
+        {
+            if (!face.isFacePowered && face.faceSprite != null && face.faceSprite.color != Color.white)
+            {
+                face.Clear(true);
+            }
         }
 
         recalculationInProgress = false;
@@ -114,12 +135,12 @@ public class PowerManager : MonoBehaviour
             face.Clear(visual);
     }
 
-    private void InvalidateSubtree(Transform root)
+    private void InvalidateSubtree(Transform root, bool visual = true)
     {
         Queue<RunodeFace> toClear = new Queue<RunodeFace>();
         foreach (var face in root.GetComponentsInChildren<RunodeFace>())
         {
-            if (face.isFacePowered) toClear.Enqueue(face);
+            toClear.Enqueue(face);
         }
 
         HashSet<RunodeFace> cleared = new HashSet<RunodeFace>();
@@ -129,7 +150,7 @@ public class PowerManager : MonoBehaviour
             if (current == null || cleared.Contains(current)) continue;
 
             cleared.Add(current);
-            current.Clear(false); // SILENT logic clear to avoid flicker
+            current.Clear(visual); 
 
             foreach (RunodeFace face in registeredFaces)
             {
