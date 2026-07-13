@@ -292,6 +292,10 @@ public class TimCubeMouseInteraction : MonoBehaviour
     {
         if (cube == null || cube.visualParent == null) yield break;
         
+        // Instant visual wipe for the affected circuit
+        if (PowerManager.Instance != null)
+            PowerManager.Instance.InvalidateSubtree(cube.transform, true);
+
         isRotating = true;
         cube.isRotating = true;
         

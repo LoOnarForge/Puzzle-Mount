@@ -164,6 +164,10 @@ public class RunodeMovement : MonoBehaviour
 
     private System.Collections.IEnumerator MoveTo(Vector3 targetPosition, Vector3 direction)
     {
+        // Instant visual wipe for the affected circuit
+        if (PowerManager.Instance != null)
+            PowerManager.Instance.InvalidateSubtree(transform, true);
+
         isMovingPos = true;
         Vector3 startPos = transform.position;
 

@@ -135,7 +135,7 @@ public class PowerManager : MonoBehaviour
             face.Clear(visual);
     }
 
-    private void InvalidateSubtree(Transform root, bool visual = true)
+    public void InvalidateSubtree(Transform root, bool visual = true)
     {
         Queue<RunodeFace> toClear = new Queue<RunodeFace>();
         foreach (var face in root.GetComponentsInChildren<RunodeFace>())

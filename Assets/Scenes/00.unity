@@ -18741,7 +18741,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 4453437046821941177, guid: 89f58cd1fe3778044a5657f9fea304e4, type: 3}
       propertyPath: m_LocalPosition.z
-      value: -9
+      value: -10
       objectReference: {fileID: 0}
     - target: {fileID: 4453437046821941177, guid: 89f58cd1fe3778044a5657f9fea304e4, type: 3}
       propertyPath: m_LocalRotation.w
@@ -20928,8 +20928,8 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 2df6ec5bbb32d3e4782c93122783932e, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::PowerDisplayManager
-  propagationDelay: 0.005
-  depowerDelay: 0.001
+  propagationDelay: 0.01
+  depowerDelay: 0.01
 --- !u!4 &1515250805
 Transform:
   m_ObjectHideFlags: 0
