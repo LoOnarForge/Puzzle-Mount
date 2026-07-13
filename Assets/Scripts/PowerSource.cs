@@ -144,21 +144,20 @@ public class PowerSource : MonoBehaviour
                 RunodeFace bridgeFace = internalBridge.parentRunodeFace;
                 if (bridgeFace != null)
                 {
+                    bool isNewBridgeFace = !visitedFaces.Contains(bridgeFace);
+                    if (isNewBridgeFace && currentFacesPowered >= maxPower) return true;
+
                     if (!bridgeFace.MarkPowered(powerColor, node.sourceFace, this, currentFace.distanceFromSource))
                         return false;
 
                     if (!visitedTriggers.Contains(internalBridge))
                     {
-                        if (!visitedFaces.Contains(bridgeFace))
+                        if (isNewBridgeFace)
                         {
-                            if (currentFacesPowered < maxPower)
-                            {
-                                visitedFaces.Add(bridgeFace);
-                                poweredFaces.Add(bridgeFace);
-                                currentFacesPowered++;
-                                bridgeFace.ApplyColor(powerColor);
-                            }
-                            else return true;
+                            visitedFaces.Add(bridgeFace);
+                            poweredFaces.Add(bridgeFace);
+                            currentFacesPowered++;
+                            bridgeFace.ApplyColor(powerColor);
                         }
                         SetTriggerPowered(internalBridge, currentFace.distanceFromSource, currentFace);
                     }
@@ -182,21 +181,20 @@ public class PowerSource : MonoBehaviour
             if (neighborFace != null)
             {
                 int nextDist = currentFace != null ? currentFace.distanceFromSource + 1 : 1;
+                bool isNewNeighborFace = !visitedFaces.Contains(neighborFace);
+                if (isNewNeighborFace && currentFacesPowered >= maxPower) return true;
+
                 if (!neighborFace.MarkPowered(powerColor, currentFace, this, nextDist))
                     return false;
 
                 if (!visitedTriggers.Contains(neighbor))
                 {
-                    if (!visitedFaces.Contains(neighborFace))
+                    if (isNewNeighborFace)
                     {
-                        if (currentFacesPowered < maxPower)
-                        {
-                            visitedFaces.Add(neighborFace);
-                            poweredFaces.Add(neighborFace);
-                            currentFacesPowered++;
-                            neighborFace.ApplyColor(powerColor);
-                        }
-                        else return true;
+                        visitedFaces.Add(neighborFace);
+                        poweredFaces.Add(neighborFace);
+                        currentFacesPowered++;
+                        neighborFace.ApplyColor(powerColor);
                     }
                     SetTriggerPowered(neighbor, nextDist, currentFace);
                 }
