@@ -90,25 +90,6 @@ public class RunodePower : MonoBehaviour
 
     public bool IsPowered => allFaces.Exists(f => f.isFacePowered);
 
-    [System.Serializable]
-    public class FaceData
-    {
-        public SpriteRenderer faceSprite;
-        public BoxCollider faceZone;
-        public PowerConnectionTrigger[] triggers; // [0]=Up, [1]=Right, [2]=Down, [3]=Left
-        public PowerLineType lineType;
-        public bool isFacePowered;
-        public Color faceColor = Color.white;
-        
-        [Header("LOGIC STATE")]
-        public RunodePower cube; // The physical cube this face belongs to
-        public PowerSource poweredBySource;
-        public int faceIndex; // Self-reference to index in allFaces
-        public RunodePower parentCube; // The cube that fed this face (Logic Parent)
-        public int parentFaceIndex = -1; // The face on parentCube (or this cube) that fed this face
-        public int distanceFromSource = 0;
-    }
-
     private static readonly Dictionary<PowerLineType, bool[]> ConnectivityMap = new Dictionary<PowerLineType, bool[]>
     {
         { PowerLineType.Horizontal,        new[] { false, true,  false, true  } },
@@ -127,9 +108,9 @@ public class RunodePower : MonoBehaviour
 
     private const string POWER_LINE_SPRITE_NAME = "Power Line Sprite";
 
-    private Dictionary<PowerConnectionTrigger, FaceData> triggerToFaceMap = new Dictionary<PowerConnectionTrigger, FaceData>();
+    private Dictionary<PowerConnectionTrigger, RunodeFace> triggerToFaceMap = new Dictionary<PowerConnectionTrigger, RunodeFace>();
     private Dictionary<PowerConnectionTrigger, PowerConnectionTrigger> internalNeighborMap = new Dictionary<PowerConnectionTrigger, PowerConnectionTrigger>();
-    public List<FaceData> allFaces = new List<FaceData>();
+    public List<RunodeFace> allFaces = new List<RunodeFace>();
 
     private void Awake()
     {
@@ -208,11 +189,11 @@ public class RunodePower : MonoBehaviour
         }
     }
 
-    private FaceData CreateFaceData(Transform faceTransform, PowerLineType lineType,
+    private RunodeFace CreateFaceData(Transform faceTransform, PowerLineType lineType,
         PowerConnectionTrigger up, PowerConnectionTrigger right,
         PowerConnectionTrigger down, PowerConnectionTrigger left, int index)
     {
-        FaceData data = new FaceData { lineType = lineType, triggers = new[] { up, right, down, left }, faceIndex = index, cube = this };
+        RunodeFace data = new RunodeFace { lineType = lineType, triggers = new[] { up, right, down, left }, faceIndex = index, cube = this };
         
         if (faceTransform != null)
         {
@@ -241,52 +222,20 @@ public class RunodePower : MonoBehaviour
         {
             if (filterSource != null && face.poweredBySource != filterSource) continue;
 
-            face.isFacePowered = false;
-            face.faceColor = Color.white;
-            face.poweredBySource = null;
-            face.parentCube = null;
-            face.parentFaceIndex = -1;
-            face.distanceFromSource = 0;
-
-            foreach (var t in face.triggers)
-            {
-                if (t != null) t.ClearPowerState();
-            }
-            
-            if (visual)
-            {
-                ApplyFaceColor(face, Color.white, false);
-            }
+            face.Clear(visual);
         }
     }
 
     public void ClearFace(int index, bool visual = true)
     {
         if (index < 0 || index >= allFaces.Count) return;
-        var face = allFaces[index];
-
-        face.isFacePowered = false;
-        face.faceColor = Color.white;
-        face.poweredBySource = null;
-        face.parentCube = null;
-        face.parentFaceIndex = -1;
-        face.distanceFromSource = 0;
-
-        foreach (var t in face.triggers)
-        {
-            if (t != null) t.ClearPowerState();
-        }
-
-        if (visual)
-        {
-            ApplyFaceColor(face, Color.white, false);
-        }
+        allFaces[index].Clear(visual);
     }
     
     public List<PowerConnectionTrigger> GetConnectedTriggersOnFace(PowerConnectionTrigger entry)
     {
         List<PowerConnectionTrigger> connected = new List<PowerConnectionTrigger>();
-        if (!triggerToFaceMap.TryGetValue(entry, out FaceData face))
+        if (!triggerToFaceMap.TryGetValue(entry, out RunodeFace face))
             return connected;
 
         if (obstructionController != null && obstructionController.IsFaceObstructed(face.faceZone))
@@ -333,7 +282,7 @@ public class RunodePower : MonoBehaviour
         {
             // By default, refresh calls are not instant to allow for the BFS sequential feel.
             // But we pass through the isFacePowered color to ensure visual matches logic.
-            ApplyFaceColor(face, face.isFacePowered ? face.faceColor : Color.white, false);
+            face.ApplyColor(face.isFacePowered ? face.faceColor : Color.white, false);
         }
     }
 
@@ -343,7 +292,7 @@ public class RunodePower : MonoBehaviour
     public void UpdateFaceVisuals(int index, Color color, bool instant = false)
     {
         if (index < 0 || index >= allFaces.Count) return;
-        ApplyFaceColor(allFaces[index], color, instant);
+        allFaces[index].ApplyColor(color, instant);
     }
 
     /// <summary>
@@ -354,42 +303,15 @@ public class RunodePower : MonoBehaviour
     {
         foreach (var face in allFaces)
         {
-            ApplyFaceColor(face, face.isFacePowered ? face.faceColor : Color.white, true);
+            face.ApplyColor(face.isFacePowered ? face.faceColor : Color.white, true);
         }
     }
 
-    public bool MarkFacePowered(PowerConnectionTrigger t, Color color, string senderName, FaceData sourceFace = null, PowerSource source = null, int distance = 0)
+    public bool MarkFacePowered(PowerConnectionTrigger t, Color color, string senderName, RunodeFace sourceFace = null, PowerSource source = null, int distance = 0)
     {
-        if (triggerToFaceMap.TryGetValue(t, out FaceData targetFace))
+        if (triggerToFaceMap.TryGetValue(t, out RunodeFace targetFace))
         {
-            // Ignore if we are looking back at the face that just powered us
-            if (sourceFace != null && targetFace == sourceFace) return true;
-
-            // Collision check: 
-            // If it's already powered by a DIFFERENT source -> Short Circuit!
-            if (targetFace.isFacePowered && targetFace.poweredBySource != null && targetFace.poweredBySource != source)
-            {
-                Debug.Log("GAME OVER");
-                Debug.Log($"Cube {name} Face {targetFace.faceIndex} caused short circuit between {targetFace.poweredBySource.name} and {source.name}");
-                return false;
-            }
-
-            // If it's already powered by the SAME source, it's a loop. 
-            if (targetFace.isFacePowered && targetFace.poweredBySource == source)
-            {
-                return true; 
-            }
-
-            targetFace.isFacePowered = true;
-            targetFace.faceColor = color;
-            targetFace.poweredBySource = source;
-            targetFace.distanceFromSource = distance;
-
-            if (sourceFace != null)
-            {
-                targetFace.parentCube = sourceFace.cube;
-                targetFace.parentFaceIndex = sourceFace.faceIndex;
-            }
+            return targetFace.MarkPowered(color, sourceFace, source, distance);
         }
         return true;
     }
@@ -423,9 +345,9 @@ public class RunodePower : MonoBehaviour
         }
     }
 
-    public FaceData GetFaceData(PowerConnectionTrigger t)
+    public RunodeFace GetFaceData(PowerConnectionTrigger t)
     {
-        triggerToFaceMap.TryGetValue(t, out FaceData face);
+        triggerToFaceMap.TryGetValue(t, out RunodeFace face);
         return face;
     }
 
@@ -444,17 +366,6 @@ public class RunodePower : MonoBehaviour
             return neighbor;
         }
         return null;
-    }
-
-    private void ApplyFaceColor(FaceData face, Color color, bool instant = false)
-    {
-        int index = allFaces.IndexOf(face);
-        bool isObstructed = obstructionController != null && obstructionController.IsFaceObstructed(face.faceZone);
-        
-        if (PowerDisplayManager.Instance != null)
-        {
-            PowerDisplayManager.Instance.UpdateFaceVisuals(this, index, color, isObstructed, instant);
-        }
     }
 
     public IEnumerable<PowerConnectionTrigger> GetAllTriggers() { yield break; }

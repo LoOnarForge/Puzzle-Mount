@@ -140,7 +140,7 @@ public class FaceObstructionDetector : MonoBehaviour
             Color normalColor = Color.white;
             if (parentRunode != null && faceTriggers != null && faceTriggers.Length > 0)
             {
-                RunodePower.FaceData face = parentRunode.GetFaceData(faceTriggers[0]);
+                RunodeFace face = parentRunode.GetFaceData(faceTriggers[0]);
                 if (face != null && face.isFacePowered) normalColor = face.faceColor;
             }
             else if (parentRunode == null)

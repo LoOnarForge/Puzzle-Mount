@@ -118,17 +118,17 @@ public class PowerManager : MonoBehaviour
 
     private void InvalidateSubtree(RunodePower root)
     {
-        Queue<RunodePower.FaceData> toClear = new Queue<RunodePower.FaceData>();
+        Queue<RunodeFace> toClear = new Queue<RunodeFace>();
         foreach (var face in root.allFaces)
         {
             if (face.isFacePowered) toClear.Enqueue(face);
         }
 
         // Standard BFS-style subtree invalidation
-        HashSet<RunodePower.FaceData> cleared = new HashSet<RunodePower.FaceData>();
+        HashSet<RunodeFace> cleared = new HashSet<RunodeFace>();
         while (toClear.Count > 0)
         {
-            RunodePower.FaceData current = toClear.Dequeue();
+            RunodeFace current = toClear.Dequeue();
             if (current == null || cleared.Contains(current)) continue;
 
             cleared.Add(current);
