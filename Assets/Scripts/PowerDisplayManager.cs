@@ -21,15 +21,16 @@ public class PowerDisplayManager : MonoBehaviour
 
     private bool isFirstInSequence = true;
 
-    private struct FaceUpdate
+    // A single buffered face visual change. Batched and handed off by PowerManager once per recalculation.
+    public struct FaceVisualUpdate
     {
         public RunodeFace face;
         public Color color;
         public bool isObstructed;
-        public bool isDepowering;
+        public bool instant;
     }
 
-    private Queue<FaceUpdate> updateQueue = new Queue<FaceUpdate>();
+    private Queue<FaceVisualUpdate> updateQueue = new Queue<FaceVisualUpdate>();
     private Coroutine processRoutine;
 
     private void Awake()
@@ -37,57 +38,37 @@ public class PowerDisplayManager : MonoBehaviour
         Instance = this;
     }
 
-    // Discards all pending updates without applying them. Use this to abort active animations.
-    public void DiscardQueue()
+    // Single entry point: replaces any in-progress animation with a new batch of visual updates.
+    // Any leftover updates from a previous batch are snapped to their final state instantly.
+    public void SubmitBatch(List<FaceVisualUpdate> batch)
     {
         if (processRoutine != null)
         {
             StopCoroutine(processRoutine);
             processRoutine = null;
         }
-        updateQueue.Clear();
-        isFirstInSequence = true;
-    }
 
-    // Clears the pending animation queue, snapping all queued updates to their final state.
-    public void ResetQueue()
-    {
-        if (processRoutine != null)
-        {
-            StopCoroutine(processRoutine);
-            processRoutine = null;
-        }
+        if (updateQueue.Count > 0)
+            Debug.Log($"[SubmitBatch] Snapping {updateQueue.Count} leftover queued updates instantly before starting new batch.");
 
         while (updateQueue.Count > 0)
         {
-            var update = updateQueue.Dequeue();
-            ApplyVisualDirect(update.face, update.color, update.isObstructed);
+            var leftover = updateQueue.Dequeue();
+            Debug.Log($"[SubmitBatch] Snapping leftover: {(leftover.face != null ? leftover.face.transform.root.name + "/" + leftover.face.name : "null")} -> {leftover.color}");
+            ApplyVisualDirect(leftover.face, leftover.color, leftover.isObstructed);
         }
+
         isFirstInSequence = true;
-    }
 
-    // Queues a visual update for a specific face.
-    public void UpdateFaceVisuals(RunodeFace face, Color color, bool isObstructed, bool instant = false)
-    {
-        if (face == null) return;
+        if (batch == null) return;
 
-        if (instant)
+        foreach (var update in batch)
         {
-            ApplyVisualDirect(face, color, isObstructed);
-            return;
+            if (update.face == null) continue;
+            updateQueue.Enqueue(update);
         }
 
-        bool isDepowering = (color == Color.white);
-
-        updateQueue.Enqueue(new FaceUpdate
-        {
-            face = face,
-            color = color,
-            isObstructed = isObstructed,
-            isDepowering = isDepowering
-        });
-
-        if (processRoutine == null)
+        if (updateQueue.Count > 0)
             processRoutine = StartCoroutine(ProcessQueue());
     }
 
@@ -97,14 +78,16 @@ public class PowerDisplayManager : MonoBehaviour
         {
             var update = updateQueue.Dequeue();
 
-            float delay;
-            if (update.isDepowering)
+            bool isDepowering = (update.color == Color.white);
+
+            float delay = 0f;
+            if (!update.instant)
             {
-                delay = depowerDelay;
-            }
-            else
-            {
-                if (isFirstInSequence)
+                if (isDepowering)
+                {
+                    delay = depowerDelay;
+                }
+                else if (isFirstInSequence)
                 {
                     delay = initialPowerUpDelay;
                     isFirstInSequence = false;

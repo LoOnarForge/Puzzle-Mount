@@ -124,7 +124,7 @@ public class RunodeFace : MonoBehaviour
         if (isFacePowered && poweredBySource != null && poweredBySource != source)
         {
             Debug.Log("GAME OVER");
-            Debug.Log($"Cube {transform.root.name} Face {faceIndex} caused short circuit between {poweredBySource.name} and {source.name}");
+            Debug.Log($"Cube {transform.root.name} Face {faceIndex} caused short circuit between {poweredBySource.name} and {source.name}. Face was already colored {faceColor}, incoming color {color}.");
             return false;
         }
 
@@ -163,12 +163,12 @@ public class RunodeFace : MonoBehaviour
             ApplyColor(Color.white, instant);
     }
 
-    // Dispatches this face's visual update through PowerDisplayManager.
+    // Buffers this face's visual update with PowerManager. PowerManager hands the full batch to PowerDisplayManager once per recalculation.
     public void ApplyColor(Color color, bool instant = false)
     {
         bool isObstructed = obstructionController != null && obstructionController.IsFaceObstructed(faceZone);
-        if (PowerDisplayManager.Instance != null)
-            PowerDisplayManager.Instance.UpdateFaceVisuals(this, color, isObstructed, instant);
+        if (PowerManager.Instance != null)
+            PowerManager.Instance.QueueVisualUpdate(this, color, isObstructed, instant);
     }
 
     private bool[] GetLineConnectivity(PowerLineType type)

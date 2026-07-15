@@ -54,6 +54,49 @@ public class PowerManager : MonoBehaviour
     private bool recalculationInProgress = false;
     private bool needsAnotherRecalculation = false;
 
+    private List<PowerDisplayManager.FaceVisualUpdate> pendingVisualUpdates = new List<PowerDisplayManager.FaceVisualUpdate>();
+
+    // Buffers a single face's visual update. Sent to PowerDisplayManager as one batch via FlushVisualUpdates.
+    public void QueueVisualUpdate(RunodeFace face, Color color, bool isObstructed, bool instant = false)
+    {
+        if (face == null) return;
+
+        pendingVisualUpdates.Add(new PowerDisplayManager.FaceVisualUpdate
+        {
+            face = face,
+            color = color,
+            isObstructed = isObstructed,
+            instant = instant
+        });
+    }
+
+    // Hands all buffered visual updates to PowerDisplayManager in a single call.
+    private void FlushVisualUpdates()
+    {
+        Dictionary<RunodeFace, Color> lastColorForFace = new Dictionary<RunodeFace, Color>();
+        for (int i = 0; i < pendingVisualUpdates.Count; i++)
+        {
+            var u = pendingVisualUpdates[i];
+            if (u.face == null) continue;
+            if (lastColorForFace.TryGetValue(u.face, out Color prevColor) && prevColor != u.color)
+            {
+                Debug.Log($"[FlushVisualUpdates] Face {u.face.transform.root.name}/{u.face.name} queued twice in same batch with different colors: {prevColor} -> {u.color} (index {i}).");
+            }
+            lastColorForFace[u.face] = u.color;
+        }
+        Debug.Log($"[FlushVisualUpdates] Sending batch of {pendingVisualUpdates.Count} entries.");
+
+        if (PowerDisplayManager.Instance == null)
+        {
+            pendingVisualUpdates.Clear();
+            return;
+        }
+
+        List<PowerDisplayManager.FaceVisualUpdate> batch = pendingVisualUpdates;
+        pendingVisualUpdates = new List<PowerDisplayManager.FaceVisualUpdate>();
+        PowerDisplayManager.Instance.SubmitBatch(batch);
+    }
+
     private void LateUpdate()
     {
         if (!recalculationRequested) return;
@@ -72,8 +115,6 @@ public class PowerManager : MonoBehaviour
     private System.Collections.IEnumerator RecalculateAllSourcesRoutine()
     {
         recalculationInProgress = true;
-
-        if (PowerDisplayManager.Instance != null) PowerDisplayManager.Instance.ResetQueue();
 
         // 1. Perform spatial sweeps.
         HashSet<ObstructionController> sweptControllers = new HashSet<ObstructionController>();
@@ -100,7 +141,7 @@ public class PowerManager : MonoBehaviour
 
         // 3. Visual Clear for the affected area (requested for immediate feedback).
         if (lastAlteredTransform != null)
-            InvalidateSubtree(lastAlteredTransform, true);
+            ClearSubtreeState(lastAlteredTransform, true);
 
         // 4. Seed all BFS queues.
         foreach (PowerSource source in sources)
@@ -143,6 +184,8 @@ public class PowerManager : MonoBehaviour
         recalculationRoutine = null;
         lastAlteredTransform = null;
 
+        FlushVisualUpdates();
+
         if (needsAnotherRecalculation)
         {
             needsAnotherRecalculation = false;
@@ -160,10 +203,13 @@ public class PowerManager : MonoBehaviour
 
     public void InvalidateSubtree(Transform root, bool visual = true)
     {
-        // Kill any active power-up animations immediately
-        if (visual && PowerDisplayManager.Instance != null)
-            PowerDisplayManager.Instance.DiscardQueue();
+        ClearSubtreeState(root, visual);
+        if (visual) FlushVisualUpdates();
+    }
 
+    // Walks the subtree clearing each face's logic state, buffering the matching visual clear if requested.
+    private void ClearSubtreeState(Transform root, bool visual = true)
+    {
         Queue<RunodeFace> toClear = new Queue<RunodeFace>();
         foreach (var face in root.GetComponentsInChildren<RunodeFace>())
         {
