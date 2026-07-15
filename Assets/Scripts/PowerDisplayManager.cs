@@ -71,9 +71,6 @@ public class PowerDisplayManager : MonoBehaviour
     {
         if (face == null) return;
 
-        if (face.faceSprite != null && face.faceSprite.color == color)
-            return;
-
         if (instant)
         {
             ApplyVisualDirect(face, color, isObstructed);
@@ -99,7 +96,6 @@ public class PowerDisplayManager : MonoBehaviour
         while (updateQueue.Count > 0)
         {
             var update = updateQueue.Dequeue();
-            ApplyVisualDirect(update.face, update.color, update.isObstructed);
 
             float delay;
             if (update.isDepowering)
@@ -121,6 +117,8 @@ public class PowerDisplayManager : MonoBehaviour
 
             if (delay > 0)
                 yield return new WaitForSeconds(delay);
+
+            ApplyVisualDirect(update.face, update.color, update.isObstructed);
         }
         processRoutine = null;
     }

@@ -227,6 +227,7 @@ public class PowerSource : MonoBehaviour
                     visitedFaces.Add(targetFace);
                     poweredFaces.Add(targetFace);
                     currentFacesPowered++;
+                    targetFace.ApplyColor(powerColor);
                 }
             }
         }
