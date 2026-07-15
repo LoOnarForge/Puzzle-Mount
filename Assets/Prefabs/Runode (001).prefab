@@ -498,11 +498,8 @@ MonoBehaviour:
   isPowered: 0
   isObstructed: 0
   currentPowerColor: {r: 1, g: 1, b: 1, a: 1}
-  parentPowerSource: {fileID: 0}
   parentRunodePower: {fileID: 0}
   parentRunodeFace: {fileID: 0}
-  neighboursRunodePower: {fileID: 0}
-  currentNeighbor: {fileID: 0}
   distanceFromSource: 0
   sourceMW: 0
 --- !u!1 &745421399426024813
@@ -728,8 +725,11 @@ MonoBehaviour:
   isFacePowered: 0
   faceColor: {r: 1, g: 1, b: 1, a: 1}
   poweredBySource: {fileID: 0}
+  lastPoweredBySource: {fileID: 0}
   parentFace: {fileID: 0}
   distanceFromSource: 0
+  powerColorLayer: {r: 1, g: 1, b: 1, a: 1}
+  highlightColorLayer: {r: 1, g: 1, b: 1, a: 1}
   obstructionController: {fileID: 0}
 --- !u!1 &1094527477771902222
 GameObject:
@@ -789,8 +789,11 @@ MonoBehaviour:
   isFacePowered: 0
   faceColor: {r: 1, g: 1, b: 1, a: 1}
   poweredBySource: {fileID: 0}
+  lastPoweredBySource: {fileID: 0}
   parentFace: {fileID: 0}
   distanceFromSource: 0
+  powerColorLayer: {r: 1, g: 1, b: 1, a: 1}
+  highlightColorLayer: {r: 1, g: 1, b: 1, a: 1}
   obstructionController: {fileID: 0}
 --- !u!1 &1128623766828125027
 GameObject:
@@ -973,11 +976,8 @@ MonoBehaviour:
   isPowered: 0
   isObstructed: 0
   currentPowerColor: {r: 1, g: 1, b: 1, a: 1}
-  parentPowerSource: {fileID: 0}
   parentRunodePower: {fileID: 0}
   parentRunodeFace: {fileID: 0}
-  neighboursRunodePower: {fileID: 0}
-  currentNeighbor: {fileID: 0}
   distanceFromSource: 0
   sourceMW: 0
 --- !u!1 &1439791266903955863
@@ -1129,8 +1129,11 @@ MonoBehaviour:
   isFacePowered: 0
   faceColor: {r: 1, g: 1, b: 1, a: 1}
   poweredBySource: {fileID: 0}
+  lastPoweredBySource: {fileID: 0}
   parentFace: {fileID: 0}
   distanceFromSource: 0
+  powerColorLayer: {r: 1, g: 1, b: 1, a: 1}
+  highlightColorLayer: {r: 1, g: 1, b: 1, a: 1}
   obstructionController: {fileID: 0}
 --- !u!1 &1667205179888702176
 GameObject:
@@ -1405,11 +1408,8 @@ MonoBehaviour:
   isPowered: 0
   isObstructed: 0
   currentPowerColor: {r: 1, g: 1, b: 1, a: 1}
-  parentPowerSource: {fileID: 0}
   parentRunodePower: {fileID: 0}
   parentRunodeFace: {fileID: 0}
-  neighboursRunodePower: {fileID: 0}
-  currentNeighbor: {fileID: 0}
   distanceFromSource: 0
   sourceMW: 0
 --- !u!1 &1871200174806205108
@@ -1594,11 +1594,8 @@ MonoBehaviour:
   isPowered: 0
   isObstructed: 0
   currentPowerColor: {r: 1, g: 1, b: 1, a: 1}
-  parentPowerSource: {fileID: 0}
   parentRunodePower: {fileID: 0}
   parentRunodeFace: {fileID: 0}
-  neighboursRunodePower: {fileID: 0}
-  currentNeighbor: {fileID: 0}
   distanceFromSource: 0
   sourceMW: 0
 --- !u!1 &2166236299990629248
@@ -1867,8 +1864,11 @@ MonoBehaviour:
   isFacePowered: 0
   faceColor: {r: 1, g: 1, b: 1, a: 1}
   poweredBySource: {fileID: 0}
+  lastPoweredBySource: {fileID: 0}
   parentFace: {fileID: 0}
   distanceFromSource: 0
+  powerColorLayer: {r: 1, g: 1, b: 1, a: 1}
+  highlightColorLayer: {r: 1, g: 1, b: 1, a: 1}
   obstructionController: {fileID: 0}
 --- !u!1 &2820569981113994875
 GameObject:
@@ -1939,11 +1939,8 @@ MonoBehaviour:
   isPowered: 0
   isObstructed: 0
   currentPowerColor: {r: 1, g: 1, b: 1, a: 1}
-  parentPowerSource: {fileID: 0}
   parentRunodePower: {fileID: 0}
   parentRunodeFace: {fileID: 0}
-  neighboursRunodePower: {fileID: 0}
-  currentNeighbor: {fileID: 0}
   distanceFromSource: 0
   sourceMW: 0
 --- !u!1 &2822505574208638616
@@ -2197,11 +2194,8 @@ MonoBehaviour:
   isPowered: 0
   isObstructed: 0
   currentPowerColor: {r: 1, g: 1, b: 1, a: 1}
-  parentPowerSource: {fileID: 0}
   parentRunodePower: {fileID: 0}
   parentRunodeFace: {fileID: 0}
-  neighboursRunodePower: {fileID: 0}
-  currentNeighbor: {fileID: 0}
   distanceFromSource: 0
   sourceMW: 0
 --- !u!1 &3362451191265441135
@@ -2273,11 +2267,8 @@ MonoBehaviour:
   isPowered: 0
   isObstructed: 0
   currentPowerColor: {r: 1, g: 1, b: 1, a: 1}
-  parentPowerSource: {fileID: 0}
   parentRunodePower: {fileID: 0}
   parentRunodeFace: {fileID: 0}
-  neighboursRunodePower: {fileID: 0}
-  currentNeighbor: {fileID: 0}
   distanceFromSource: 0
   sourceMW: 0
 --- !u!1 &3599117858800853491
@@ -2462,11 +2453,8 @@ MonoBehaviour:
   isPowered: 0
   isObstructed: 0
   currentPowerColor: {r: 1, g: 1, b: 1, a: 1}
-  parentPowerSource: {fileID: 0}
   parentRunodePower: {fileID: 0}
   parentRunodeFace: {fileID: 0}
-  neighboursRunodePower: {fileID: 0}
-  currentNeighbor: {fileID: 0}
   distanceFromSource: 0
   sourceMW: 0
 --- !u!1 &3953414520238516346
@@ -2746,11 +2734,8 @@ MonoBehaviour:
   isPowered: 0
   isObstructed: 0
   currentPowerColor: {r: 1, g: 1, b: 1, a: 1}
-  parentPowerSource: {fileID: 0}
   parentRunodePower: {fileID: 0}
   parentRunodeFace: {fileID: 0}
-  neighboursRunodePower: {fileID: 0}
-  currentNeighbor: {fileID: 0}
   distanceFromSource: 0
   sourceMW: 0
 --- !u!1 &4333444884432367208
@@ -2934,11 +2919,8 @@ MonoBehaviour:
   isPowered: 0
   isObstructed: 0
   currentPowerColor: {r: 1, g: 1, b: 1, a: 1}
-  parentPowerSource: {fileID: 0}
   parentRunodePower: {fileID: 0}
   parentRunodeFace: {fileID: 0}
-  neighboursRunodePower: {fileID: 0}
-  currentNeighbor: {fileID: 0}
   distanceFromSource: 0
   sourceMW: 0
 --- !u!1 &4468425439177621924
@@ -3399,11 +3381,8 @@ MonoBehaviour:
   isPowered: 0
   isObstructed: 0
   currentPowerColor: {r: 1, g: 1, b: 1, a: 1}
-  parentPowerSource: {fileID: 0}
   parentRunodePower: {fileID: 0}
   parentRunodeFace: {fileID: 0}
-  neighboursRunodePower: {fileID: 0}
-  currentNeighbor: {fileID: 0}
   distanceFromSource: 0
   sourceMW: 0
 --- !u!1 &5240559528277214836
@@ -3464,8 +3443,11 @@ MonoBehaviour:
   isFacePowered: 0
   faceColor: {r: 1, g: 1, b: 1, a: 1}
   poweredBySource: {fileID: 0}
+  lastPoweredBySource: {fileID: 0}
   parentFace: {fileID: 0}
   distanceFromSource: 0
+  powerColorLayer: {r: 1, g: 1, b: 1, a: 1}
+  highlightColorLayer: {r: 1, g: 1, b: 1, a: 1}
   obstructionController: {fileID: 0}
 --- !u!1 &5258833212082782054
 GameObject:
@@ -3649,11 +3631,8 @@ MonoBehaviour:
   isPowered: 0
   isObstructed: 0
   currentPowerColor: {r: 1, g: 1, b: 1, a: 1}
-  parentPowerSource: {fileID: 0}
   parentRunodePower: {fileID: 0}
   parentRunodeFace: {fileID: 0}
-  neighboursRunodePower: {fileID: 0}
-  currentNeighbor: {fileID: 0}
   distanceFromSource: 0
   sourceMW: 0
 --- !u!1 &5515005355070406806
@@ -3725,11 +3704,8 @@ MonoBehaviour:
   isPowered: 0
   isObstructed: 0
   currentPowerColor: {r: 1, g: 1, b: 1, a: 1}
-  parentPowerSource: {fileID: 0}
   parentRunodePower: {fileID: 0}
   parentRunodeFace: {fileID: 0}
-  neighboursRunodePower: {fileID: 0}
-  currentNeighbor: {fileID: 0}
   distanceFromSource: 0
   sourceMW: 0
 --- !u!1 &5700722213316241729
@@ -3801,11 +3777,8 @@ MonoBehaviour:
   isPowered: 0
   isObstructed: 0
   currentPowerColor: {r: 1, g: 1, b: 1, a: 1}
-  parentPowerSource: {fileID: 0}
   parentRunodePower: {fileID: 0}
   parentRunodeFace: {fileID: 0}
-  neighboursRunodePower: {fileID: 0}
-  currentNeighbor: {fileID: 0}
   distanceFromSource: 0
   sourceMW: 0
 --- !u!1 &5715370418556471034
@@ -3877,11 +3850,8 @@ MonoBehaviour:
   isPowered: 0
   isObstructed: 0
   currentPowerColor: {r: 1, g: 1, b: 1, a: 1}
-  parentPowerSource: {fileID: 0}
   parentRunodePower: {fileID: 0}
   parentRunodeFace: {fileID: 0}
-  neighboursRunodePower: {fileID: 0}
-  currentNeighbor: {fileID: 0}
   distanceFromSource: 0
   sourceMW: 0
 --- !u!1 &5836412772635605891
@@ -3953,11 +3923,8 @@ MonoBehaviour:
   isPowered: 0
   isObstructed: 0
   currentPowerColor: {r: 1, g: 1, b: 1, a: 1}
-  parentPowerSource: {fileID: 0}
   parentRunodePower: {fileID: 0}
   parentRunodeFace: {fileID: 0}
-  neighboursRunodePower: {fileID: 0}
-  currentNeighbor: {fileID: 0}
   distanceFromSource: 0
   sourceMW: 0
 --- !u!1 &6180393115772579085
@@ -4029,11 +3996,8 @@ MonoBehaviour:
   isPowered: 0
   isObstructed: 0
   currentPowerColor: {r: 1, g: 1, b: 1, a: 1}
-  parentPowerSource: {fileID: 0}
   parentRunodePower: {fileID: 0}
   parentRunodeFace: {fileID: 0}
-  neighboursRunodePower: {fileID: 0}
-  currentNeighbor: {fileID: 0}
   distanceFromSource: 0
   sourceMW: 0
 --- !u!1 &6254232815239183815
@@ -4196,11 +4160,8 @@ MonoBehaviour:
   isPowered: 0
   isObstructed: 0
   currentPowerColor: {r: 1, g: 1, b: 1, a: 1}
-  parentPowerSource: {fileID: 0}
   parentRunodePower: {fileID: 0}
   parentRunodeFace: {fileID: 0}
-  neighboursRunodePower: {fileID: 0}
-  currentNeighbor: {fileID: 0}
   distanceFromSource: 0
   sourceMW: 0
 --- !u!1 &6352174822382214932
@@ -4272,11 +4233,8 @@ MonoBehaviour:
   isPowered: 0
   isObstructed: 0
   currentPowerColor: {r: 1, g: 1, b: 1, a: 1}
-  parentPowerSource: {fileID: 0}
   parentRunodePower: {fileID: 0}
   parentRunodeFace: {fileID: 0}
-  neighboursRunodePower: {fileID: 0}
-  currentNeighbor: {fileID: 0}
   distanceFromSource: 0
   sourceMW: 0
 --- !u!1 &6512034698196238707
@@ -4461,11 +4419,8 @@ MonoBehaviour:
   isPowered: 0
   isObstructed: 0
   currentPowerColor: {r: 1, g: 1, b: 1, a: 1}
-  parentPowerSource: {fileID: 0}
   parentRunodePower: {fileID: 0}
   parentRunodeFace: {fileID: 0}
-  neighboursRunodePower: {fileID: 0}
-  currentNeighbor: {fileID: 0}
   distanceFromSource: 0
   sourceMW: 0
 --- !u!1 &7005243488239984562
@@ -4755,11 +4710,8 @@ MonoBehaviour:
   isPowered: 0
   isObstructed: 0
   currentPowerColor: {r: 1, g: 1, b: 1, a: 1}
-  parentPowerSource: {fileID: 0}
   parentRunodePower: {fileID: 0}
   parentRunodeFace: {fileID: 0}
-  neighboursRunodePower: {fileID: 0}
-  currentNeighbor: {fileID: 0}
   distanceFromSource: 0
   sourceMW: 0
 --- !u!1 &7151190750320505962
@@ -4831,11 +4783,8 @@ MonoBehaviour:
   isPowered: 0
   isObstructed: 0
   currentPowerColor: {r: 1, g: 1, b: 1, a: 1}
-  parentPowerSource: {fileID: 0}
   parentRunodePower: {fileID: 0}
   parentRunodeFace: {fileID: 0}
-  neighboursRunodePower: {fileID: 0}
-  currentNeighbor: {fileID: 0}
   distanceFromSource: 0
   sourceMW: 0
 --- !u!1 &7230760256473414929
@@ -5061,8 +5010,11 @@ MonoBehaviour:
   isFacePowered: 0
   faceColor: {r: 1, g: 1, b: 1, a: 1}
   poweredBySource: {fileID: 0}
+  lastPoweredBySource: {fileID: 0}
   parentFace: {fileID: 0}
   distanceFromSource: 0
+  powerColorLayer: {r: 1, g: 1, b: 1, a: 1}
+  highlightColorLayer: {r: 1, g: 1, b: 1, a: 1}
   obstructionController: {fileID: 0}
 --- !u!1 &7481875440630768147
 GameObject:
@@ -5277,11 +5229,8 @@ MonoBehaviour:
   isPowered: 0
   isObstructed: 0
   currentPowerColor: {r: 1, g: 1, b: 1, a: 1}
-  parentPowerSource: {fileID: 0}
   parentRunodePower: {fileID: 0}
   parentRunodeFace: {fileID: 0}
-  neighboursRunodePower: {fileID: 0}
-  currentNeighbor: {fileID: 0}
   distanceFromSource: 0
   sourceMW: 0
 --- !u!1 &8053925701350047373
@@ -5351,30 +5300,6 @@ MonoBehaviour:
   cornerSprite: {fileID: -2119537049, guid: 88b338f3ac0dba24cb9aafaafa9397da, type: 3}
   tSectionSprite: {fileID: -779058951, guid: 88b338f3ac0dba24cb9aafaafa9397da, type: 3}
   crossSprite: {fileID: -133059019, guid: 88b338f3ac0dba24cb9aafaafa9397da, type: 3}
-  topUpTrigger: {fileID: 8991791820602112375}
-  topRightTrigger: {fileID: 24097207569100669}
-  topDownTrigger: {fileID: 4292130754894755919}
-  topLeftTrigger: {fileID: 8357443674264217811}
-  bottomUpTrigger: {fileID: 4724644575980089428}
-  bottomRightTrigger: {fileID: 452988055599593399}
-  bottomDownTrigger: {fileID: 8737013158727502399}
-  bottomLeftTrigger: {fileID: 3215059053692964930}
-  northUpTrigger: {fileID: 8976518284285964212}
-  northRightTrigger: {fileID: 6149156307237577919}
-  northDownTrigger: {fileID: 5630464584115887930}
-  northLeftTrigger: {fileID: 1562908461938599885}
-  southUpTrigger: {fileID: 2149390403554504231}
-  southRightTrigger: {fileID: 8330434079006224051}
-  southDownTrigger: {fileID: 5006596754139749131}
-  southLeftTrigger: {fileID: 7459009687098655455}
-  eastUpTrigger: {fileID: 7326819364081551693}
-  eastRightTrigger: {fileID: 4388003898670661464}
-  eastDownTrigger: {fileID: 4730784875618298768}
-  eastLeftTrigger: {fileID: 2756649573111811973}
-  westUpTrigger: {fileID: 1549469732403433913}
-  westRightTrigger: {fileID: 1318605005517652510}
-  westDownTrigger: {fileID: 5292215442091758524}
-  westLeftTrigger: {fileID: 4672371740015094766}
   obstructionController: {fileID: 0}
 --- !u!114 &2517290546170563241
 MonoBehaviour:
@@ -5787,10 +5712,7 @@ MonoBehaviour:
   isPowered: 0
   isObstructed: 0
   currentPowerColor: {r: 1, g: 1, b: 1, a: 1}
-  parentPowerSource: {fileID: 0}
   parentRunodePower: {fileID: 0}
   parentRunodeFace: {fileID: 0}
-  neighboursRunodePower: {fileID: 0}
-  currentNeighbor: {fileID: 0}
   distanceFromSource: 0
   sourceMW: 0

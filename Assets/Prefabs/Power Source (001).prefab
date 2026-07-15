@@ -165,10 +165,8 @@ MonoBehaviour:
   isPowered: 0
   isObstructed: 0
   currentPowerColor: {r: 1, g: 1, b: 1, a: 1}
-  parentPowerSource: {fileID: 0}
   parentRunodePower: {fileID: 0}
-  neighboursRunodePower: {fileID: 0}
-  currentNeighbor: {fileID: 0}
+  parentRunodeFace: {fileID: 0}
   distanceFromSource: 0
   sourceMW: 0
 --- !u!1 &3527706871271359237
@@ -353,10 +351,8 @@ MonoBehaviour:
   isPowered: 0
   isObstructed: 0
   currentPowerColor: {r: 1, g: 1, b: 1, a: 1}
-  parentPowerSource: {fileID: 0}
   parentRunodePower: {fileID: 0}
-  neighboursRunodePower: {fileID: 0}
-  currentNeighbor: {fileID: 0}
+  parentRunodeFace: {fileID: 0}
   distanceFromSource: 0
   sourceMW: 0
 --- !u!1 &4638631933046505328
@@ -557,8 +553,8 @@ MonoBehaviour:
   colorIndex: 0
   powerColor: {r: 0.9685534, g: 0.28325605, b: 0.4545804, a: 1}
   maxPower: 10
-  currentCubesPowered: 0
-  poweredRunodes: []
+  currentFacesPowered: 0
+  poweredFaces: []
   topFace: 14
   topFaceTransform: {fileID: 9222749964804156424}
   horizontalSprite: {fileID: -621088084, guid: 88b338f3ac0dba24cb9aafaafa9397da, type: 3}
@@ -693,10 +689,8 @@ MonoBehaviour:
   isPowered: 0
   isObstructed: 0
   currentPowerColor: {r: 1, g: 1, b: 1, a: 1}
-  parentPowerSource: {fileID: 0}
   parentRunodePower: {fileID: 0}
-  neighboursRunodePower: {fileID: 0}
-  currentNeighbor: {fileID: 0}
+  parentRunodeFace: {fileID: 0}
   distanceFromSource: 0
   sourceMW: 0
 --- !u!1 &5790085452733356049
@@ -1086,10 +1080,8 @@ MonoBehaviour:
   isPowered: 0
   isObstructed: 0
   currentPowerColor: {r: 1, g: 1, b: 1, a: 1}
-  parentPowerSource: {fileID: 0}
   parentRunodePower: {fileID: 0}
-  neighboursRunodePower: {fileID: 0}
-  currentNeighbor: {fileID: 0}
+  parentRunodeFace: {fileID: 0}
   distanceFromSource: 0
   sourceMW: 0
 --- !u!1 &8833166465955729647
