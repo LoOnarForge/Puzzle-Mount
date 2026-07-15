@@ -57,7 +57,7 @@ public class PowerManager : MonoBehaviour
     private List<PowerDisplayManager.FaceVisualUpdate> pendingVisualUpdates = new List<PowerDisplayManager.FaceVisualUpdate>();
 
     // Buffers a single face's visual update. Sent to PowerDisplayManager as one batch via FlushVisualUpdates.
-    public void QueueVisualUpdate(RunodeFace face, Color color, bool isObstructed, bool instant = false)
+    public void QueueVisualUpdate(RunodeFace face, Color color, PowerSource source, bool isObstructed, bool instant = false)
     {
         if (face == null) return;
 
@@ -65,6 +65,7 @@ public class PowerManager : MonoBehaviour
         {
             face = face,
             color = color,
+            source = source,
             isObstructed = isObstructed,
             instant = instant
         });
@@ -80,11 +81,9 @@ public class PowerManager : MonoBehaviour
             if (u.face == null) continue;
             if (lastColorForFace.TryGetValue(u.face, out Color prevColor) && prevColor != u.color)
             {
-                Debug.Log($"[FlushVisualUpdates] Face {u.face.transform.root.name}/{u.face.name} queued twice in same batch with different colors: {prevColor} -> {u.color} (index {i}).");
             }
             lastColorForFace[u.face] = u.color;
         }
-        Debug.Log($"[FlushVisualUpdates] Sending batch of {pendingVisualUpdates.Count} entries.");
 
         if (PowerDisplayManager.Instance == null)
         {
@@ -149,34 +148,27 @@ public class PowerManager : MonoBehaviour
             source.InitBFS();
         }
 
-        // 5. Interleaved round-robin BFS: one step per source per round.
-        bool shortCircuit = false;
+        // 5. Interleaved round-robin BFS: one step per source per round. BFS never halts on
+        // conflict — PowerDisplayManager is the sole authority for detecting a short circuit.
         bool anyActive = true;
-        while (anyActive && !shortCircuit)
+        while (anyActive)
         {
             anyActive = false;
             foreach (PowerSource source in sources)
             {
                 if (!source.HasPendingSteps) continue;
                 anyActive = true;
-                if (!source.StepBFS())
-                {
-                    shortCircuit = true;
-                    break;
-                }
+                source.StepBFS();
             }
         }
 
         // 6. Final Pass: Visual Clear for any faces that lost power.
-        // Skipped on short circuit — all colors freeze exactly as they are.
-        if (!shortCircuit)
+        foreach (RunodeFace face in registeredFaces)
         {
-            foreach (RunodeFace face in registeredFaces)
+            if (!face.isFacePowered && face.faceSprite != null && face.faceSprite.color != Color.white)
             {
-                if (!face.isFacePowered && face.faceSprite != null && face.faceSprite.color != Color.white)
-                {
-                    face.Clear(true, false);
-                }
+                face.Clear(true, false);
+                face.lastPoweredBySource = null;
             }
         }
 

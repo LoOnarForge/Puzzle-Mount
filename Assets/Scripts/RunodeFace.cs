@@ -13,6 +13,12 @@ public class RunodeFace : MonoBehaviour
     public bool isFacePowered;
     public Color faceColor = Color.white;
     public PowerSource poweredBySource;
+
+    // Persists across recalculations. Only cleared when this face genuinely loses power
+    // (PowerManager's final pass). PowerDisplayManager compares against this to detect a real
+    // short circuit at the moment of coloring, regardless of what BFS wiped and recomputed this pass.
+    public PowerSource lastPoweredBySource;
+
     public RunodeFace parentFace;
     public int distanceFromSource = 0;
 
@@ -116,30 +122,27 @@ public class RunodeFace : MonoBehaviour
         return connected;
     }
 
-    // Applies power state to this face. Returns false on short circuit.
-    public bool MarkPowered(Color color, RunodeFace sourceFace, PowerSource source, int distance)
+    // Claims this face for the given source. BFS never blocks or short-circuits here — every
+    // source is free to walk through a face another source already claimed this pass. The one
+    // and only game-over check happens later, in PowerDisplayManager, at the moment of coloring.
+    public void MarkPowered(Color color, RunodeFace sourceFace, PowerSource source, int distance)
     {
-        if (sourceFace != null && this == sourceFace) return true;
-
-        if (isFacePowered && poweredBySource != null && poweredBySource != source)
-        {
-            Debug.Log("GAME OVER");
-            Debug.Log($"Cube {transform.root.name} Face {faceIndex} caused short circuit between {poweredBySource.name} and {source.name}. Face was already colored {faceColor}, incoming color {color}.");
-            return false;
-        }
-
-        if (isFacePowered && poweredBySource == source)
-            return true;
+        if (sourceFace != null && this == sourceFace) return;
 
         isFacePowered = true;
         faceColor = color;
         poweredBySource = source;
+
+        // Only ever update the persisted owner if it's unclaimed or already this source.
+        // A different source must never silently overwrite it mid-pass — that's exactly the
+        // case PowerDisplayManager needs to still see as a conflict later.
+        if (lastPoweredBySource == null || lastPoweredBySource == source)
+            lastPoweredBySource = source;
+
         distanceFromSource = distance;
 
         if (sourceFace != null)
             parentFace = sourceFace;
-
-        return true;
     }
 
     // Resets this face's power state and clears its triggers.
@@ -160,15 +163,15 @@ public class RunodeFace : MonoBehaviour
         }
 
         if (visual)
-            ApplyColor(Color.white, instant);
+            ApplyColor(Color.white, null, instant);
     }
 
     // Buffers this face's visual update with PowerManager. PowerManager hands the full batch to PowerDisplayManager once per recalculation.
-    public void ApplyColor(Color color, bool instant = false)
+    public void ApplyColor(Color color, PowerSource source = null, bool instant = false)
     {
         bool isObstructed = obstructionController != null && obstructionController.IsFaceObstructed(faceZone);
         if (PowerManager.Instance != null)
-            PowerManager.Instance.QueueVisualUpdate(this, color, isObstructed, instant);
+            PowerManager.Instance.QueueVisualUpdate(this, color, source, isObstructed, instant);
     }
 
     private bool[] GetLineConnectivity(PowerLineType type)

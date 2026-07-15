@@ -26,12 +26,17 @@ public class PowerDisplayManager : MonoBehaviour
     {
         public RunodeFace face;
         public Color color;
+        public PowerSource source;
         public bool isObstructed;
         public bool instant;
     }
 
     private Queue<FaceVisualUpdate> updateQueue = new Queue<FaceVisualUpdate>();
     private Coroutine processRoutine;
+
+    // True once a real short circuit has been visually confirmed (a face already held by a
+    // different source was about to be colored). Coloring stops permanently at that point.
+    public bool IsGameOver { get; private set; }
 
     private void Awake()
     {
@@ -42,6 +47,8 @@ public class PowerDisplayManager : MonoBehaviour
     // Any leftover updates from a previous batch are snapped to their final state instantly.
     public void SubmitBatch(List<FaceVisualUpdate> batch)
     {
+        if (IsGameOver) return;
+
         if (processRoutine != null)
         {
             StopCoroutine(processRoutine);
@@ -49,13 +56,16 @@ public class PowerDisplayManager : MonoBehaviour
         }
 
         if (updateQueue.Count > 0)
-            Debug.Log($"[SubmitBatch] Snapping {updateQueue.Count} leftover queued updates instantly before starting new batch.");
 
         while (updateQueue.Count > 0)
         {
             var leftover = updateQueue.Dequeue();
-            Debug.Log($"[SubmitBatch] Snapping leftover: {(leftover.face != null ? leftover.face.transform.root.name + "/" + leftover.face.name : "null")} -> {leftover.color}");
-            ApplyVisualDirect(leftover.face, leftover.color, leftover.isObstructed);
+
+            if (!TryApplyUpdate(leftover))
+            {
+                updateQueue.Clear();
+                return;
+            }
         }
 
         isFirstInSequence = true;
@@ -101,9 +111,38 @@ public class PowerDisplayManager : MonoBehaviour
             if (delay > 0)
                 yield return new WaitForSeconds(delay);
 
-            ApplyVisualDirect(update.face, update.color, update.isObstructed);
+            if (!TryApplyUpdate(update))
+            {
+                updateQueue.Clear();
+                processRoutine = null;
+                yield break;
+            }
         }
         processRoutine = null;
+    }
+
+    // Applies a single update, or detects a real short circuit at the moment of coloring:
+    // a face already held by a different source is about to be colored by this one.
+    private bool TryApplyUpdate(FaceVisualUpdate update)
+    {
+        if (update.face == null) return true;
+
+        bool isDepowering = (update.color == Color.white);
+        if (!isDepowering && update.face.lastPoweredBySource != null && update.face.lastPoweredBySource != update.source)
+        {
+            TriggerGameOver(update.face, update.source);
+            return false;
+        }
+
+        ApplyVisualDirect(update.face, update.color, update.isObstructed);
+        return true;
+    }
+
+    private void TriggerGameOver(RunodeFace face, PowerSource incomingSource)
+    {
+        if (IsGameOver) return;
+        IsGameOver = true;
+        Debug.Log($"[PowerDisplayManager] GAME OVER: short circuit at {face.transform.root.name}/{face.name} between {face.lastPoweredBySource?.name} and {incomingSource?.name}.");
     }
 
     private void ApplyVisualDirect(RunodeFace face, Color color, bool isObstructed)

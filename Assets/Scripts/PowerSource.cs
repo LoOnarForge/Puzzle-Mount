@@ -126,10 +126,11 @@ public class PowerSource : MonoBehaviour
         EnqueueSourceTrigger(leftTrigger);
     }
 
-    // Processes one node from the BFS queue. Returns false if a short circuit is detected.
-    public bool StepBFS()
+    // Processes one node from the BFS queue. Conflicts are never resolved here — every source
+    // claims and colors faces freely; PowerDisplayManager is the sole authority for game over.
+    public void StepBFS()
     {
-        if (bfsQueue.Count == 0) return true;
+        if (bfsQueue.Count == 0) return;
 
         BFSNode node = bfsQueue.Dequeue();
         PowerConnectionTrigger current = node.trigger;
@@ -145,10 +146,9 @@ public class PowerSource : MonoBehaviour
                 if (bridgeFace != null)
                 {
                     bool isNewBridgeFace = !visitedFaces.Contains(bridgeFace);
-                    if (isNewBridgeFace && currentFacesPowered >= maxPower) return true;
+                    if (isNewBridgeFace && currentFacesPowered >= maxPower) return;
 
-                    if (!bridgeFace.MarkPowered(powerColor, node.sourceFace, this, currentFace.distanceFromSource))
-                        return false;
+                    bridgeFace.MarkPowered(powerColor, node.sourceFace, this, currentFace.distanceFromSource);
 
                     if (!visitedTriggers.Contains(internalBridge))
                     {
@@ -157,7 +157,7 @@ public class PowerSource : MonoBehaviour
                             visitedFaces.Add(bridgeFace);
                             poweredFaces.Add(bridgeFace);
                             currentFacesPowered++;
-                            bridgeFace.ApplyColor(powerColor);
+                            bridgeFace.ApplyColor(powerColor, this);
                         }
                         SetTriggerPowered(internalBridge, currentFace.distanceFromSource, currentFace);
                     }
@@ -182,10 +182,9 @@ public class PowerSource : MonoBehaviour
             {
                 int nextDist = currentFace != null ? currentFace.distanceFromSource + 1 : 1;
                 bool isNewNeighborFace = !visitedFaces.Contains(neighborFace);
-                if (isNewNeighborFace && currentFacesPowered >= maxPower) return true;
+                if (isNewNeighborFace && currentFacesPowered >= maxPower) return;
 
-                if (!neighborFace.MarkPowered(powerColor, currentFace, this, nextDist))
-                    return false;
+                neighborFace.MarkPowered(powerColor, currentFace, this, nextDist);
 
                 if (!visitedTriggers.Contains(neighbor))
                 {
@@ -194,14 +193,14 @@ public class PowerSource : MonoBehaviour
                         visitedFaces.Add(neighborFace);
                         poweredFaces.Add(neighborFace);
                         currentFacesPowered++;
-                        neighborFace.ApplyColor(powerColor);
+                        neighborFace.ApplyColor(powerColor, this);
                     }
                     SetTriggerPowered(neighbor, nextDist, currentFace);
                 }
             }
         }
 
-        return true;
+        return;
     }
 
     private void EnqueueSourceTrigger(PowerConnectionTrigger trigger)
@@ -227,7 +226,7 @@ public class PowerSource : MonoBehaviour
                     visitedFaces.Add(targetFace);
                     poweredFaces.Add(targetFace);
                     currentFacesPowered++;
-                    targetFace.ApplyColor(powerColor);
+                    targetFace.ApplyColor(powerColor, this);
                 }
             }
         }
