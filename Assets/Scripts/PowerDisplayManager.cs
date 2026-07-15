@@ -28,7 +28,9 @@ public class PowerDisplayManager : MonoBehaviour
 
     // One animated wave per source. Keeping them independent means depowering one source never
     // has to wait on another source's power-up wave (or even its own previous wave) to finish.
-    private Dictionary<PowerSource, Queue<FaceVisualUpdate>> sourceQueues = new Dictionary<PowerSource, Queue<FaceVisualUpdate>>();
+    // A List (not a Queue) so SubmitBatch can merge a partial batch (e.g. just one rotated cube's
+    // subtree) into whatever's already pending without discarding unrelated, still-pending faces.
+    private Dictionary<PowerSource, List<FaceVisualUpdate>> sourcePending = new Dictionary<PowerSource, List<FaceVisualUpdate>>();
     private Dictionary<PowerSource, Coroutine> sourceRoutines = new Dictionary<PowerSource, Coroutine>();
 
     // True once a real short circuit has been visually confirmed (a face already held by a
@@ -40,13 +42,14 @@ public class PowerDisplayManager : MonoBehaviour
         Instance = this;
     }
 
-    // Single entry point: PowerManager hands over the full current target state (every face
-    // that is powered or depowered this recalculation), not an incremental diff. This method:
+    // Single entry point: PowerManager hands over updates for whatever faces changed this pass —
+    // this can be a full network snapshot (a normal recalculation) or a small partial batch (an
+    // instant subtree wipe kicked off the moment a rotation/move starts). Either way this method:
     // 1. Drops any update that already matches what's currently displayed (no need to replay it).
-    // 2. Groups everything else by source and sorts each group strictly downstream by distance.
-    // 3. Replaces each source's pending wave with the new one (already-shown progress is kept,
-    //    only what's left to animate is superseded), so an interrupted wave always keeps
-    //    animating toward a correct, current target instead of snapping or leaving artifacts.
+    // 2. Groups everything else by source and merges it into that source's pending wave, only
+    //    superseding entries for the same face — unrelated pending faces on the same source are
+    //    left alone so an unaffected branch keeps powering up uninterrupted.
+    // 3. Re-sorts each touched source's pending wave strictly downstream by distance.
     public void SubmitBatch(List<FaceVisualUpdate> batch)
     {
         if (IsGameOver || batch == null) return;
@@ -58,6 +61,8 @@ public class PowerDisplayManager : MonoBehaviour
         {
             if (update.face == null) continue;
             if (IsAlreadyCorrect(update)) continue;
+
+            Debug.Log($"[PowerDebug] Queuing {(update.color == Color.white ? "DEPOWER" : "POWER")} for {update.face.transform.root.name}/{update.face.name} src={update.source?.name ?? "null"} dist={update.distanceFromSource}");
 
             // Updates with no owning source (or explicitly marked instant) have nothing to
             // sequence against — apply them right away instead of holding up a wave for them.
@@ -83,40 +88,45 @@ public class PowerDisplayManager : MonoBehaviour
         foreach (var pair in grouped)
         {
             PowerSource source = pair.Key;
-            List<FaceVisualUpdate> list = pair.Value;
-            list.Sort((a, b) => a.distanceFromSource.CompareTo(b.distanceFromSource));
+            List<FaceVisualUpdate> incoming = pair.Value;
 
-            if (!sourceQueues.TryGetValue(source, out Queue<FaceVisualUpdate> queue))
+            if (!sourcePending.TryGetValue(source, out List<FaceVisualUpdate> pending))
             {
-                queue = new Queue<FaceVisualUpdate>();
-                sourceQueues[source] = queue;
+                pending = new List<FaceVisualUpdate>();
+                sourcePending[source] = pending;
             }
 
-            queue.Clear();
-            foreach (var update in list)
-                queue.Enqueue(update);
+            HashSet<RunodeFace> incomingFaces = new HashSet<RunodeFace>();
+            foreach (var update in incoming)
+                incomingFaces.Add(update.face);
+
+            pending.RemoveAll(p => incomingFaces.Contains(p.face));
+            pending.AddRange(incoming);
+            pending.Sort((a, b) => a.distanceFromSource.CompareTo(b.distanceFromSource));
 
             if (!sourceRoutines.TryGetValue(source, out Coroutine routine) || routine == null)
                 sourceRoutines[source] = StartCoroutine(ProcessSourceQueue(source));
         }
     }
 
-    // Plays one source's wave: strictly in downstream order, at a steady pace, until its queue
-    // (which SubmitBatch may refill mid-flight) runs dry.
+    // Plays one source's wave: strictly in downstream order, at a steady pace, until its pending
+    // list (which SubmitBatch may merge more into mid-flight) runs dry.
     private IEnumerator ProcessSourceQueue(PowerSource source)
     {
-        Queue<FaceVisualUpdate> queue = sourceQueues[source];
-
-        while (queue.Count > 0)
+        while (true)
         {
             if (IsGameOver)
             {
-                queue.Clear();
+                sourcePending[source].Clear();
                 sourceRoutines[source] = null;
                 yield break;
             }
 
-            var update = queue.Dequeue();
+            List<FaceVisualUpdate> pending = sourcePending[source];
+            if (pending.Count == 0) break;
+
+            FaceVisualUpdate update = pending[0];
+            pending.RemoveAt(0);
 
             bool isDepowering = update.color == Color.white;
             float delay = isDepowering ? depowerDelay : powerUpDelay;
@@ -126,7 +136,7 @@ public class PowerDisplayManager : MonoBehaviour
 
             if (!TryApplyUpdate(update))
             {
-                queue.Clear();
+                sourcePending[source].Clear();
                 sourceRoutines[source] = null;
                 yield break;
             }
