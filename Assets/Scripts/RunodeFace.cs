@@ -19,6 +19,11 @@ public class RunodeFace : MonoBehaviour
     // short circuit at the moment of coloring, regardless of what BFS wiped and recomputed this pass.
     public PowerSource lastPoweredBySource;
 
+    // Persists alongside lastPoweredBySource for the same reason: PowerManager's Global Logic
+    // Clear zeroes distanceFromSource every recalculation before depower visuals are queued, so
+    // Clear() cannot rely on distanceFromSource to know how far downstream this face actually was.
+    public int lastDistanceFromSource;
+
     public RunodeFace parentFace;
     public int distanceFromSource = 0;
 
@@ -137,7 +142,10 @@ public class RunodeFace : MonoBehaviour
         // A different source must never silently overwrite it mid-pass — that's exactly the
         // case PowerDisplayManager needs to still see as a conflict later.
         if (lastPoweredBySource == null || lastPoweredBySource == source)
+        {
             lastPoweredBySource = source;
+            lastDistanceFromSource = distance;
+        }
 
         distanceFromSource = distance;
 
@@ -148,6 +156,13 @@ public class RunodeFace : MonoBehaviour
     // Resets this face's power state and clears its triggers.
     public void Clear(bool visual = true, bool instant = false)
     {
+        // Captured before the reset below so the depower visual update still knows which
+        // source used to own this face and how far downstream it was, for correct grouping/ordering.
+        // lastDistanceFromSource is used instead of distanceFromSource because PowerManager's
+        // Global Logic Clear already zeroes distanceFromSource earlier in the same recalculation.
+        PowerSource previousSource = lastPoweredBySource;
+        int previousDistance = lastDistanceFromSource;
+
         isFacePowered = false;
         faceColor = Color.white;
         poweredBySource = null;
@@ -163,15 +178,17 @@ public class RunodeFace : MonoBehaviour
         }
 
         if (visual)
-            ApplyColor(Color.white, null, instant);
+            ApplyColor(Color.white, previousSource, instant, previousDistance);
     }
 
     // Buffers this face's visual update with PowerManager. PowerManager hands the full batch to PowerDisplayManager once per recalculation.
-    public void ApplyColor(Color color, PowerSource source = null, bool instant = false)
+    // distanceOverride lets callers (e.g. Clear) supply the distance this face had before it was reset; otherwise the face's current distanceFromSource is used.
+    public void ApplyColor(Color color, PowerSource source = null, bool instant = false, int? distanceOverride = null)
     {
         bool isObstructed = obstructionController != null && obstructionController.IsFaceObstructed(faceZone);
+        int distance = distanceOverride ?? distanceFromSource;
         if (PowerManager.Instance != null)
-            PowerManager.Instance.QueueVisualUpdate(this, color, source, isObstructed, instant);
+            PowerManager.Instance.QueueVisualUpdate(this, color, source, isObstructed, distance, instant);
     }
 
     private bool[] GetLineConnectivity(PowerLineType type)
