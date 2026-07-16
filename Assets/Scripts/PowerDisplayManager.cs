@@ -47,6 +47,12 @@ public class PowerDisplayManager : MonoBehaviour
     // each one only ever advances through the exact distances it was given at creation time.
     private Dictionary<PowerSource, List<Pulse>> activePulses = new Dictionary<PowerSource, List<Pulse>>();
 
+    // Tracks which source is currently rendered on each non-white face, in real time, as pulses
+    // actually paint them — independent of any logical claim. This is what a genuine short
+    // circuit means visually: a face already showing one source's color is about to be painted a
+    // different source's color. Set on every non-white paint, cleared on every depower (white) paint.
+    private Dictionary<RunodeFace, PowerSource> currentVisualOwner = new Dictionary<RunodeFace, PowerSource>();
+
     // True once a real short circuit has been visually confirmed (a face already held by a
     // different source was about to be colored). Coloring stops permanently at that point.
     public bool IsGameOver { get; private set; }
@@ -155,16 +161,29 @@ public class PowerDisplayManager : MonoBehaviour
     }
 
     // Applies a single update, or detects a real short circuit at the moment of coloring:
-    // a face already held by a different source is about to be colored by this one.
+    // a face currently rendered with a different source's color is about to be painted by this
+    // one. Checked against currentVisualOwner (what's actually on screen right now) rather than
+    // any logical claim, so two pulses from different sources that happen to cross the same face
+    // at the same time are always caught, even if neither one's logical claim ever overlapped.
     private bool TryApplyUpdate(FaceVisualUpdate update)
     {
         if (update.face == null) return true;
 
         bool isDepowering = (update.color == Color.white);
-        if (!isDepowering && update.face.lastPoweredBySource != null && update.face.lastPoweredBySource != update.source)
+
+        if (!isDepowering)
         {
-            TriggerGameOver(update.face, update.source);
-            return false;
+            if (currentVisualOwner.TryGetValue(update.face, out PowerSource owner) && owner != null && owner != update.source)
+            {
+                TriggerGameOver(update.face, update.source);
+                return false;
+            }
+
+            currentVisualOwner[update.face] = update.source;
+        }
+        else
+        {
+            currentVisualOwner.Remove(update.face);
         }
 
         ApplyVisualDirect(update.face, update.color, update.isObstructed);
