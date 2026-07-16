@@ -154,10 +154,13 @@ public class PowerManager : MonoBehaviour
             }
         }
 
-        // 6. Final Pass: Visual Clear for any faces that lost power.
+        // 6. Final Pass: Visual Clear for any faces that lost power. Checked against
+        // lastPoweredBySource (the persistent logical claim) rather than the rendered sprite
+        // color — a face can be logically unpowered this pass while still visually unlit because
+        // its power-up pulse hasn't reached it yet. Using the rendered color here would miss it.
         foreach (RunodeFace face in registeredFaces)
         {
-            if (!face.isFacePowered && face.faceSprite != null && face.faceSprite.color != Color.white)
+            if (!face.isFacePowered && face.lastPoweredBySource != null)
             {
                 face.Clear(true, false);
                 face.lastPoweredBySource = null;

@@ -26,16 +26,21 @@ public class PowerDisplayManager : MonoBehaviour
         public bool instant;
     }
 
-    // Two fully independent animated tracks per source — one for powering up, one for depowering.
-    // Keeping them separate (rather than one merged, distance-sorted queue) means a power-up wave
-    // and a depower wave for the same source run truly in parallel: each has its own list and its
-    // own coroutine, so neither one's pacing or ordering can be disturbed by the other. A List (not
-    // a Queue) so SubmitBatch can merge a partial batch into whatever's already pending on that
-    // track without discarding unrelated, still-pending faces.
-    private Dictionary<PowerSource, List<FaceVisualUpdate>> sourcePendingPower = new Dictionary<PowerSource, List<FaceVisualUpdate>>();
-    private Dictionary<PowerSource, List<FaceVisualUpdate>> sourcePendingDepower = new Dictionary<PowerSource, List<FaceVisualUpdate>>();
-    private Dictionary<PowerSource, Coroutine> sourceRoutinesPower = new Dictionary<PowerSource, Coroutine>();
-    private Dictionary<PowerSource, Coroutine> sourceRoutinesDepower = new Dictionary<PowerSource, Coroutine>();
+    // One independent, self-contained wave of face updates, strictly sorted downstream by
+    // distance. Once created, a pulse is never modified, merged, cancelled, or reordered by
+    // anything else — it has no awareness of any other pulse, running or finished. It simply
+    // steps through its own list at a fixed pace until exhausted, then removes itself.
+    private class Pulse
+    {
+        public List<FaceVisualUpdate> steps;
+        public int index;
+    }
+
+    // Every source can have any number of pulses running at once, power and depower alike, each
+    // its own coroutine over its own list. Multiple pulses for the same source behave like
+    // independent trains on the same track: same pace, never colliding, never overtaking, because
+    // each one only ever advances through the exact distances it was given at creation time.
+    private Dictionary<PowerSource, List<Pulse>> activePulses = new Dictionary<PowerSource, List<Pulse>>();
 
     // True once a real short circuit has been visually confirmed (a face already held by a
     // different source was about to be colored). Coloring stops permanently at that point.
@@ -46,15 +51,12 @@ public class PowerDisplayManager : MonoBehaviour
         Instance = this;
     }
 
-    // Single entry point: PowerManager hands over updates for whatever faces changed this pass —
-    // this can be a full network snapshot (a normal recalculation) or a small partial batch (an
-    // instant subtree wipe kicked off the moment a rotation/move starts). Either way this method:
-    // 1. Drops any update that already matches what's currently displayed (no need to replay it).
-    // 2. Splits everything else by direction (power vs depower) and groups by source, merging into
-    //    that source's power or depower track — only superseding entries for the same face on that
-    //    track; unrelated pending faces are left alone so an unaffected branch keeps animating
-    //    uninterrupted.
-    // 3. Re-sorts each touched track strictly downstream by distance.
+    // Single entry point: PowerManager hands over every face whose visual state must change this
+    // pass — this can be a full network snapshot (a normal recalculation) or a small partial
+    // batch (an instant subtree wipe kicked off the moment a rotation/move starts). This is split
+    // by direction (power vs depower) and grouped by source; each resulting group becomes exactly
+    // one brand new pulse. Nothing here compares against what's currently displayed, what's
+    // already pending, or what any other pulse intends — a batch simply becomes a pulse and runs.
     public void SubmitBatch(List<FaceVisualUpdate> batch)
     {
         if (IsGameOver || batch == null) return;
@@ -66,10 +68,9 @@ public class PowerDisplayManager : MonoBehaviour
         foreach (var update in batch)
         {
             if (update.face == null) continue;
-            if (IsAlreadyCorrect(update)) continue;
 
             // Updates with no owning source (or explicitly marked instant) have nothing to
-            // sequence against — apply them right away instead of holding up a wave for them.
+            // sequence against — apply them right away instead of holding up a pulse for them.
             if (update.instant || update.source == null)
             {
                 immediate.Add(update);
@@ -92,103 +93,60 @@ public class PowerDisplayManager : MonoBehaviour
             if (!TryApplyUpdate(update)) return;
         }
 
-        MergeIntoTrack(groupedPower, sourcePendingPower, sourcePendingDepower, sourceRoutinesPower, isDepowerTrack: false);
-        MergeIntoTrack(groupedDepower, sourcePendingDepower, sourcePendingPower, sourceRoutinesDepower, isDepowerTrack: true);
+        StartPulses(groupedPower, isDepowerPulse: false);
+        StartPulses(groupedDepower, isDepowerPulse: true);
     }
 
-    // Merges incoming updates (already grouped by source) into one direction's track per source,
-    // starting that track's coroutine if it isn't already running. Also purges any stale entry for
-    // the same faces from the OTHER track — if a face's fate flipped direction this pass, a
-    // leftover entry sitting on the opposite track would still fire later and fight this outcome.
-    private void MergeIntoTrack(
-        Dictionary<PowerSource, List<FaceVisualUpdate>> incomingBySource,
-        Dictionary<PowerSource, List<FaceVisualUpdate>> ownTrack,
-        Dictionary<PowerSource, List<FaceVisualUpdate>> otherTrack,
-        Dictionary<PowerSource, Coroutine> ownRoutines,
-        bool isDepowerTrack)
+    // Spins up exactly one new pulse per source for this direction's group, sorted strictly
+    // downstream by distance, and starts it running immediately alongside whatever pulses are
+    // already active for that source.
+    private void StartPulses(Dictionary<PowerSource, List<FaceVisualUpdate>> groupedBySource, bool isDepowerPulse)
     {
-        foreach (var pair in incomingBySource)
+        foreach (var pair in groupedBySource)
         {
             PowerSource source = pair.Key;
-            List<FaceVisualUpdate> incoming = pair.Value;
+            List<FaceVisualUpdate> steps = pair.Value;
+            steps.Sort((a, b) => a.distanceFromSource.CompareTo(b.distanceFromSource));
 
-            if (!ownTrack.TryGetValue(source, out List<FaceVisualUpdate> pending))
+            Pulse pulse = new Pulse { steps = steps, index = 0 };
+
+            if (!activePulses.TryGetValue(source, out List<Pulse> pulses))
             {
-                pending = new List<FaceVisualUpdate>();
-                ownTrack[source] = pending;
+                pulses = new List<Pulse>();
+                activePulses[source] = pulses;
             }
+            pulses.Add(pulse);
 
-            HashSet<RunodeFace> incomingFaces = new HashSet<RunodeFace>();
-            foreach (var update in incoming)
-                incomingFaces.Add(update.face);
-
-            if (otherTrack.TryGetValue(source, out List<FaceVisualUpdate> otherPending))
-                otherPending.RemoveAll(p => incomingFaces.Contains(p.face));
-
-            pending.RemoveAll(p => incomingFaces.Contains(p.face));
-            pending.AddRange(incoming);
-            pending.Sort((a, b) => a.distanceFromSource.CompareTo(b.distanceFromSource));
-
-            if (!ownRoutines.TryGetValue(source, out Coroutine routine) || routine == null)
-                ownRoutines[source] = StartCoroutine(ProcessSourceQueue(source, ownTrack, ownRoutines, isDepowerTrack));
+            StartCoroutine(RunPulse(source, pulse, isDepowerPulse));
         }
     }
 
-    // Plays one source's single-direction wave: strictly in downstream order, at a steady pace,
-    // until its pending list (which SubmitBatch may merge more into mid-flight) runs dry. Entirely
-    // independent of the other direction's track/coroutine for the same source.
-    private IEnumerator ProcessSourceQueue(PowerSource source, Dictionary<PowerSource, List<FaceVisualUpdate>> track, Dictionary<PowerSource, Coroutine> routines, bool isDepowerTrack)
+    // Plays one pulse strictly downstream at a steady pace until its own list runs dry, then
+    // removes itself. Entirely blind to every other pulse for this source, including ones running
+    // the opposite direction — that independence is what guarantees a power pulse and a depower
+    // pulse can run over the same faces without ever fighting, as long as they were started at
+    // different times (which a real rotation always is).
+    private IEnumerator RunPulse(PowerSource source, Pulse pulse, bool isDepowerPulse)
     {
-        float delay = isDepowerTrack ? depowerDelay : powerUpDelay;
+        float delay = isDepowerPulse ? depowerDelay : powerUpDelay;
 
-        while (true)
+        while (pulse.index < pulse.steps.Count)
         {
-            if (IsGameOver)
-            {
-                track[source].Clear();
-                routines[source] = null;
-                yield break;
-            }
-
-            List<FaceVisualUpdate> pending = track[source];
-            if (pending.Count == 0) break;
-
-            FaceVisualUpdate update = pending[0];
-            pending.RemoveAt(0);
+            if (IsGameOver) break;
 
             if (delay > 0f)
                 yield return new WaitForSeconds(delay);
 
-            if (!TryApplyUpdate(update))
-            {
-                track[source].Clear();
-                routines[source] = null;
-                yield break;
-            }
+            if (IsGameOver) break;
+
+            FaceVisualUpdate update = pulse.steps[pulse.index];
+            pulse.index++;
+
+            if (!TryApplyUpdate(update)) break;
         }
 
-        routines[source] = null;
-    }
-
-    // A face is already correctly displayed if its current color layer matches the target, OR if
-    // it never actually needed to change in the first place:
-    // - Depowering: lastPoweredBySource is only ever nulled by PowerManager's own final pass once
-    //   it has fully confirmed a face is genuinely unpowered. Since a whole recalculation always
-    //   finishes before PowerDisplayManager ever sees the batch, lastPoweredBySource already holds
-    //   the true, final answer by the time this runs. If it still matches this update's source,
-    //   the face never actually lost power from that source (this depower is a stray/eager one
-    //   queued for other reasons) — skip it so it doesn't visually reset.
-    // - Powering: a color match alone isn't enough to rule out a genuine change of ownership,
-    //   which still needs to go through the short circuit check, so ownership must also match.
-    private bool IsAlreadyCorrect(FaceVisualUpdate update)
-    {
-        RunodeFace face = update.face;
-
-        if (update.color == Color.white)
-            return face.lastPoweredBySource == update.source;
-
-        if (face.powerColorLayer != update.color) return false;
-        return face.lastPoweredBySource == update.source;
+        if (activePulses.TryGetValue(source, out List<Pulse> pulses))
+            pulses.Remove(pulse);
     }
 
     // Applies a single update, or detects a real short circuit at the moment of coloring:
