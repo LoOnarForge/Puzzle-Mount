@@ -194,7 +194,6 @@ public class PowerManager : MonoBehaviour
     // Walks the subtree clearing each face's logic state, buffering the matching visual clear if requested.
     private void ClearSubtreeState(Transform root, bool visual = true)
     {
-        Debug.Log($"[PowerDebug] ClearSubtreeState root={root.name}");
 
         Queue<RunodeFace> toClear = new Queue<RunodeFace>();
         foreach (var face in root.GetComponentsInChildren<RunodeFace>())
@@ -209,7 +208,6 @@ public class PowerManager : MonoBehaviour
             if (current == null || cleared.Contains(current)) continue;
 
             cleared.Add(current);
-            Debug.Log($"[PowerDebug] ClearSubtreeState clearing {current.transform.root.name}/{current.name} (wasPowered={current.isFacePowered}, lastSource={current.lastPoweredBySource?.name ?? "null"})");
             current.Clear(visual, false); // Use false to respect the depowerDelay wave
 
             foreach (RunodeFace face in registeredFaces)

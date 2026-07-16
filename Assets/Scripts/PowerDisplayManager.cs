@@ -62,7 +62,6 @@ public class PowerDisplayManager : MonoBehaviour
             if (update.face == null) continue;
             if (IsAlreadyCorrect(update)) continue;
 
-            Debug.Log($"[PowerDebug] Queuing {(update.color == Color.white ? "DEPOWER" : "POWER")} for {update.face.transform.root.name}/{update.face.name} src={update.source?.name ?? "null"} dist={update.distanceFromSource}");
 
             // Updates with no owning source (or explicitly marked instant) have nothing to
             // sequence against — apply them right away instead of holding up a wave for them.
@@ -145,15 +144,24 @@ public class PowerDisplayManager : MonoBehaviour
         sourceRoutines[source] = null;
     }
 
-    // A face is already correctly displayed if its current color layer matches the target:
-    // for depowering, the owning source no longer matters once it's visually off; for powering,
-    // it must also already be owned by the same source (a color match alone isn't enough to
-    // rule out a genuine change of ownership, which still needs to go through the short circuit check).
+    // A face is already correctly displayed if its current color layer matches the target, OR if
+    // it never actually needed to change in the first place:
+    // - Depowering: lastPoweredBySource is only ever nulled by PowerManager's own final pass once
+    //   it has fully confirmed a face is genuinely unpowered. Since a whole recalculation always
+    //   finishes before PowerDisplayManager ever sees the batch, lastPoweredBySource already holds
+    //   the true, final answer by the time this runs. If it still matches this update's source,
+    //   the face never actually lost power from that source (this depower is a stray/eager one
+    //   queued for other reasons) — skip it so it doesn't visually reset.
+    // - Powering: a color match alone isn't enough to rule out a genuine change of ownership,
+    //   which still needs to go through the short circuit check, so ownership must also match.
     private bool IsAlreadyCorrect(FaceVisualUpdate update)
     {
         RunodeFace face = update.face;
+
+        if (update.color == Color.white)
+            return face.lastPoweredBySource == update.source;
+
         if (face.powerColorLayer != update.color) return false;
-        if (update.color == Color.white) return true;
         return face.lastPoweredBySource == update.source;
     }
 
@@ -178,7 +186,6 @@ public class PowerDisplayManager : MonoBehaviour
     {
         if (IsGameOver) return;
         IsGameOver = true;
-        Debug.Log($"[PowerDisplayManager] GAME OVER: short circuit at {face.transform.root.name}/{face.name} between {face.lastPoweredBySource?.name} and {incomingSource?.name}.");
     }
 
     private void ApplyVisualDirect(RunodeFace face, Color color, bool isObstructed)
