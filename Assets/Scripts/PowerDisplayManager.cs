@@ -23,6 +23,11 @@ public class PowerDisplayManager : MonoBehaviour
         public PowerSource source;
         public bool isObstructed;
         public int distanceFromSource;
+        // Unique, monotonically-increasing per-source claim order recorded at the moment this
+        // face was powered. Used instead of distanceFromSource to sort pulses, because distance
+        // can tie between two faces of the same physical cube (internal bridge connections don't
+        // increment distance) while this value never does.
+        public int order;
         public bool instant;
     }
 
@@ -106,7 +111,7 @@ public class PowerDisplayManager : MonoBehaviour
         {
             PowerSource source = pair.Key;
             List<FaceVisualUpdate> steps = pair.Value;
-            steps.Sort((a, b) => a.distanceFromSource.CompareTo(b.distanceFromSource));
+            steps.Sort((a, b) => a.order.CompareTo(b.order));
 
             Pulse pulse = new Pulse { steps = steps, index = 0 };
 

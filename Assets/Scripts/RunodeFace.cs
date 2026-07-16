@@ -24,6 +24,14 @@ public class RunodeFace : MonoBehaviour
     // Clear() cannot rely on distanceFromSource to know how far downstream this face actually was.
     public int lastDistanceFromSource;
 
+    // Persists alongside lastPoweredBySource/lastDistanceFromSource. Records the exact sequence
+    // this face was claimed in during its source's BFS pass (set by PowerSource, unique per
+    // source per pass). distanceFromSource can tie between two faces of the same physical cube
+    // (an internal bridge connection doesn't increment distance), but this value never ties, so
+    // PowerDisplayManager can always sort a depower batch into the exact same order the faces
+    // were originally powered in, even across a tied pair.
+    public int lastPowerOrder;
+
     public RunodeFace parentFace;
     public int distanceFromSource = 0;
 
@@ -162,6 +170,7 @@ public class RunodeFace : MonoBehaviour
         // Global Logic Clear already zeroes distanceFromSource earlier in the same recalculation.
         PowerSource previousSource = lastPoweredBySource;
         int previousDistance = lastDistanceFromSource;
+        int previousOrder = lastPowerOrder;
 
         isFacePowered = false;
         faceColor = Color.white;
@@ -178,17 +187,18 @@ public class RunodeFace : MonoBehaviour
         }
 
         if (visual)
-            ApplyColor(Color.white, previousSource, instant, previousDistance);
+            ApplyColor(Color.white, previousSource, instant, previousDistance, previousOrder);
     }
 
     // Buffers this face's visual update with PowerManager. PowerManager hands the full batch to PowerDisplayManager once per recalculation.
-    // distanceOverride lets callers (e.g. Clear) supply the distance this face had before it was reset; otherwise the face's current distanceFromSource is used.
-    public void ApplyColor(Color color, PowerSource source = null, bool instant = false, int? distanceOverride = null)
+    // distanceOverride/orderOverride let callers (e.g. Clear) supply the distance/order this face had before it was reset; otherwise the face's current values are used.
+    public void ApplyColor(Color color, PowerSource source = null, bool instant = false, int? distanceOverride = null, int? orderOverride = null)
     {
         bool isObstructed = obstructionController != null && obstructionController.IsFaceObstructed(faceZone);
         int distance = distanceOverride ?? distanceFromSource;
+        int order = orderOverride ?? lastPowerOrder;
         if (PowerManager.Instance != null)
-            PowerManager.Instance.QueueVisualUpdate(this, color, source, isObstructed, distance, instant);
+            PowerManager.Instance.QueueVisualUpdate(this, color, source, isObstructed, distance, order, instant);
     }
 
     private bool[] GetLineConnectivity(PowerLineType type)

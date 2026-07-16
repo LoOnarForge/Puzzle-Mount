@@ -111,6 +111,12 @@ public class PowerSource : MonoBehaviour
     private HashSet<PowerConnectionTrigger> visitedTriggers = new HashSet<PowerConnectionTrigger>();
     private HashSet<RunodeFace> visitedFaces = new HashSet<RunodeFace>();
 
+    // Incremented every time this source newly claims and colors a face during a BFS pass.
+    // Recorded on the face as lastPowerOrder so PowerDisplayManager can later sort a depower
+    // batch into the exact same order the faces were originally powered in, even when two faces
+    // share the same distanceFromSource (an internal bridge connection on the same cube).
+    private int powerOrderCounter;
+
     public bool HasPendingSteps => bfsQueue.Count > 0;
 
     // Seeds the BFS queue with all source triggers. Called by PowerManager before the interleaved loop.
@@ -119,6 +125,7 @@ public class PowerSource : MonoBehaviour
         bfsQueue.Clear();
         visitedTriggers.Clear();
         visitedFaces.Clear();
+        powerOrderCounter = 0;
 
         EnqueueSourceTrigger(upTrigger);
         EnqueueSourceTrigger(rightTrigger);
@@ -157,6 +164,7 @@ public class PowerSource : MonoBehaviour
                             visitedFaces.Add(bridgeFace);
                             poweredFaces.Add(bridgeFace);
                             currentFacesPowered++;
+                            bridgeFace.lastPowerOrder = powerOrderCounter++;
                             bridgeFace.ApplyColor(powerColor, this);
                         }
                         SetTriggerPowered(internalBridge, currentFace.distanceFromSource, currentFace);
@@ -193,6 +201,7 @@ public class PowerSource : MonoBehaviour
                         visitedFaces.Add(neighborFace);
                         poweredFaces.Add(neighborFace);
                         currentFacesPowered++;
+                        neighborFace.lastPowerOrder = powerOrderCounter++;
                         neighborFace.ApplyColor(powerColor, this);
                     }
                     SetTriggerPowered(neighbor, nextDist, currentFace);
@@ -226,6 +235,7 @@ public class PowerSource : MonoBehaviour
                     visitedFaces.Add(targetFace);
                     poweredFaces.Add(targetFace);
                     currentFacesPowered++;
+                    targetFace.lastPowerOrder = powerOrderCounter++;
                     targetFace.ApplyColor(powerColor, this);
                 }
             }

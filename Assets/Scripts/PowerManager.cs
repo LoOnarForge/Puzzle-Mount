@@ -57,8 +57,8 @@ public class PowerManager : MonoBehaviour
     private List<PowerDisplayManager.FaceVisualUpdate> pendingVisualUpdates = new List<PowerDisplayManager.FaceVisualUpdate>();
 
     // Buffers a single face's visual update. Sent to PowerDisplayManager as one batch via FlushVisualUpdates.
-    // distanceFromSource is forwarded so PowerDisplayManager can order its animation strictly downstream from the source, regardless of the order updates are queued in here.
-    public void QueueVisualUpdate(RunodeFace face, Color color, PowerSource source, bool isObstructed, int distanceFromSource, bool instant = false)
+    // distanceFromSource/order are forwarded so PowerDisplayManager can order its animation strictly downstream from the source, regardless of the order updates are queued in here.
+    public void QueueVisualUpdate(RunodeFace face, Color color, PowerSource source, bool isObstructed, int distanceFromSource, int order, bool instant = false)
     {
         if (face == null) return;
 
@@ -69,6 +69,7 @@ public class PowerManager : MonoBehaviour
             source = source,
             isObstructed = isObstructed,
             distanceFromSource = distanceFromSource,
+            order = order,
             instant = instant
         });
     }
