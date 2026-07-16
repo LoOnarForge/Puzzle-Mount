@@ -170,6 +170,7 @@ public class PowerDisplayManager : MonoBehaviour
     {
         if (IsGameOver) return;
         IsGameOver = true;
+        Debug.Log("GAME OVER LOOSER!");
     }
 
     private void ApplyVisualDirect(RunodeFace face, Color color, bool isObstructed)
