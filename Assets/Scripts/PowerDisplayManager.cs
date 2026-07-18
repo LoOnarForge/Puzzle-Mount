@@ -68,9 +68,21 @@ public class PowerDisplayManager : MonoBehaviour
     // by direction (power vs depower) and grouped by source; each resulting group becomes exactly
     // one brand new pulse. Nothing here compares against what's currently displayed, what's
     // already pending, or what any other pulse intends — a batch simply becomes a pulse and runs.
+    // TEMP DIAGNOSTIC — remove after root cause is confirmed. No behavior change.
+    private static int debugBatchCounter = 0;
+
     public void SubmitBatch(List<FaceVisualUpdate> batch)
     {
         if (IsGameOver || batch == null) return;
+
+        // TEMP DIAGNOSTIC — remove after root cause is confirmed. No behavior change.
+        int batchId = debugBatchCounter++;
+        foreach (var u in batch)
+        {
+            if (u.source != null && u.source.name != "Power Source (001)") continue;
+            currentVisualOwner.TryGetValue(u.face, out PowerSource ownerNow);
+            string cubeName = u.face != null ? u.face.transform.root.name : "null";
+        }
 
         Dictionary<PowerSource, List<FaceVisualUpdate>> groupedPower = new Dictionary<PowerSource, List<FaceVisualUpdate>>();
         Dictionary<PowerSource, List<FaceVisualUpdate>> groupedDepower = new Dictionary<PowerSource, List<FaceVisualUpdate>>();
@@ -170,6 +182,12 @@ public class PowerDisplayManager : MonoBehaviour
         if (update.face == null) return true;
 
         bool isDepowering = (update.color == Color.white);
+
+        // TEMP DIAGNOSTIC — remove after root cause is confirmed. No behavior change.
+        if (update.source == null || update.source.name == "Power Source (001)")
+        {
+            string cubeName = update.face.transform.root.name;
+        }
 
         if (!isDepowering)
         {
