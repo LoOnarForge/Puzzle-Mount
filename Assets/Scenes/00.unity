@@ -1911,7 +1911,7 @@ GameObject:
   - component: {fileID: 134650939}
   - component: {fileID: 134650940}
   m_Layer: 19
-  m_Name: Face Trigger N
+  m_Name: Port Main N
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -2193,7 +2193,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 1
+  m_IsActive: 0
 --- !u!4 &154181164
 Transform:
   m_ObjectHideFlags: 0
@@ -3993,7 +3993,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 1
+  m_IsActive: 0
 --- !u!4 &364058313
 Transform:
   m_ObjectHideFlags: 0
@@ -4131,7 +4131,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 1
+  m_IsActive: 0
 --- !u!4 &380524944
 Transform:
   m_ObjectHideFlags: 0
@@ -4949,7 +4949,7 @@ GameObject:
   - component: {fileID: 452978337}
   - component: {fileID: 452978338}
   m_Layer: 19
-  m_Name: Face Trigger B
+  m_Name: Port Main B
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -5730,7 +5730,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 1
+  m_IsActive: 0
 --- !u!4 &557866928
 Transform:
   m_ObjectHideFlags: 0
@@ -5895,7 +5895,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 1
+  m_IsActive: 0
 --- !u!4 &600884330
 Transform:
   m_ObjectHideFlags: 0
@@ -7730,7 +7730,7 @@ GameObject:
   - component: {fileID: 773006799}
   - component: {fileID: 773006800}
   m_Layer: 19
-  m_Name: Face Trigger S
+  m_Name: Port Main S
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -8335,7 +8335,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 1
+  m_IsActive: 0
 --- !u!4 &851283811
 Transform:
   m_ObjectHideFlags: 0
@@ -9122,7 +9122,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 1
+  m_IsActive: 0
 --- !u!4 &932505266
 Transform:
   m_ObjectHideFlags: 0
@@ -9288,7 +9288,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 1
+  m_IsActive: 0
 --- !u!4 &957528600
 Transform:
   m_ObjectHideFlags: 0
@@ -9341,7 +9341,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 1
+  m_IsActive: 0
 --- !u!4 &967748285
 Transform:
   m_ObjectHideFlags: 0
@@ -9627,6 +9627,7 @@ GameObject:
   m_Component:
   - component: {fileID: 983344094}
   - component: {fileID: 983344095}
+  - component: {fileID: 983344096}
   m_Layer: 19
   m_Name: Port  Left T
   m_TagString: Untagged
@@ -9670,6 +9671,23 @@ BoxCollider:
   serializedVersion: 3
   m_Size: {x: 0.2, y: 0.1, z: 0.1}
   m_Center: {x: 0, y: 0, z: 0}
+--- !u!114 &983344096
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 983344093}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 76f51020e999be84291314a0ce7a8641, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::PortTrigger
+  parentFace: {fileID: 0}
+  portName: 0
+  obstructionMask:
+    serializedVersion: 2
+    m_Bits: 3584
 --- !u!1 &985697103
 GameObject:
   m_ObjectHideFlags: 0
@@ -9686,7 +9704,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 1
+  m_IsActive: 0
 --- !u!4 &985697104
 Transform:
   m_ObjectHideFlags: 0
@@ -10814,7 +10832,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 1
+  m_IsActive: 0
 --- !u!4 &1113145270
 Transform:
   m_ObjectHideFlags: 0
@@ -10867,7 +10885,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 1
+  m_IsActive: 0
 --- !u!4 &1142459526
 Transform:
   m_ObjectHideFlags: 0
@@ -11391,7 +11409,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 1
+  m_IsActive: 0
 --- !u!4 &1219889509
 Transform:
   m_ObjectHideFlags: 0
@@ -12030,7 +12048,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 1
+  m_IsActive: 0
 --- !u!4 &1311725889
 Transform:
   m_ObjectHideFlags: 0
@@ -13822,8 +13840,9 @@ GameObject:
   m_Component:
   - component: {fileID: 1506736588}
   - component: {fileID: 1506736589}
+  - component: {fileID: 1506736590}
   m_Layer: 19
-  m_Name: Face Trigger T
+  m_Name: Port Main T
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -13865,6 +13884,23 @@ BoxCollider:
   serializedVersion: 3
   m_Size: {x: 0.7, y: 0.7, z: 0.1}
   m_Center: {x: 0, y: 0, z: 0}
+--- !u!114 &1506736590
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1506736587}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 76f51020e999be84291314a0ce7a8641, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::PortTrigger
+  parentFace: {fileID: 0}
+  portName: 0
+  obstructionMask:
+    serializedVersion: 2
+    m_Bits: 3584
 --- !u!1 &1512422409
 GameObject:
   m_ObjectHideFlags: 0
@@ -13881,7 +13917,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 1
+  m_IsActive: 0
 --- !u!4 &1512422410
 Transform:
   m_ObjectHideFlags: 0
@@ -15610,13 +15646,14 @@ GameObject:
   m_Component:
   - component: {fileID: 1634782198}
   - component: {fileID: 1634782199}
+  - component: {fileID: 1634782200}
   m_Layer: 19
   m_Name: Port  Down T
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 1
+  m_IsActive: 0
 --- !u!4 &1634782198
 Transform:
   m_ObjectHideFlags: 0
@@ -15653,6 +15690,23 @@ BoxCollider:
   serializedVersion: 3
   m_Size: {x: 0.1, y: 0.2, z: 0.1}
   m_Center: {x: 0, y: 0, z: 0}
+--- !u!114 &1634782200
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1634782197}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 76f51020e999be84291314a0ce7a8641, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::PortTrigger
+  parentFace: {fileID: 0}
+  portName: 0
+  obstructionMask:
+    serializedVersion: 2
+    m_Bits: 3584
 --- !u!1 &1639175005
 GameObject:
   m_ObjectHideFlags: 0
@@ -15934,7 +15988,7 @@ GameObject:
   - component: {fileID: 1644445403}
   - component: {fileID: 1644445404}
   m_Layer: 19
-  m_Name: Face Trigger E
+  m_Name: Port Main E
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -17330,7 +17384,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 1
+  m_IsActive: 0
 --- !u!4 &1806208666
 Transform:
   m_ObjectHideFlags: 0
@@ -17503,13 +17557,14 @@ GameObject:
   m_Component:
   - component: {fileID: 1824309303}
   - component: {fileID: 1824309304}
+  - component: {fileID: 1824309305}
   m_Layer: 19
   m_Name: Port  Right T
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 1
+  m_IsActive: 0
 --- !u!4 &1824309303
 Transform:
   m_ObjectHideFlags: 0
@@ -17546,6 +17601,23 @@ BoxCollider:
   serializedVersion: 3
   m_Size: {x: 0.2, y: 0.1, z: 0.1}
   m_Center: {x: 0, y: 0, z: 0}
+--- !u!114 &1824309305
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1824309302}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 76f51020e999be84291314a0ce7a8641, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::PortTrigger
+  parentFace: {fileID: 0}
+  portName: 0
+  obstructionMask:
+    serializedVersion: 2
+    m_Bits: 3584
 --- !u!1 &1826547645
 GameObject:
   m_ObjectHideFlags: 0
@@ -17674,7 +17746,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 1
+  m_IsActive: 0
 --- !u!4 &1836573688
 Transform:
   m_ObjectHideFlags: 0
@@ -17839,7 +17911,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 1
+  m_IsActive: 0
 --- !u!4 &1840697396
 Transform:
   m_ObjectHideFlags: 0
@@ -18156,7 +18228,7 @@ GameObject:
   - component: {fileID: 1858374250}
   - component: {fileID: 1858374251}
   m_Layer: 19
-  m_Name: Face Trigger W
+  m_Name: Port Main W
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -19614,7 +19686,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 1
+  m_IsActive: 0
 --- !u!4 &1979503184
 Transform:
   m_ObjectHideFlags: 0
@@ -19667,7 +19739,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 1
+  m_IsActive: 0
 --- !u!4 &1990927693
 Transform:
   m_ObjectHideFlags: 0
@@ -20549,6 +20621,7 @@ GameObject:
   m_Component:
   - component: {fileID: 2081227391}
   - component: {fileID: 2081227392}
+  - component: {fileID: 2081227393}
   m_Layer: 19
   m_Name: Port  Up T
   m_TagString: Untagged
@@ -20592,6 +20665,23 @@ BoxCollider:
   serializedVersion: 3
   m_Size: {x: 0.1, y: 0.2, z: 0.1}
   m_Center: {x: 0, y: 0, z: 0}
+--- !u!114 &2081227393
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2081227390}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 76f51020e999be84291314a0ce7a8641, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::PortTrigger
+  parentFace: {fileID: 0}
+  portName: 0
+  obstructionMask:
+    serializedVersion: 2
+    m_Bits: 3584
 --- !u!1 &2089665452
 GameObject:
   m_ObjectHideFlags: 0
@@ -21325,7 +21415,7 @@ SpriteRenderer:
   m_SortingLayer: 0
   m_SortingOrder: 0
   m_MaskInteraction: 0
-  m_Sprite: {fileID: -133059019, guid: 88b338f3ac0dba24cb9aafaafa9397da, type: 3}
+  m_Sprite: {fileID: -2119537049, guid: 88b338f3ac0dba24cb9aafaafa9397da, type: 3}
   m_Color: {r: 1, g: 1, b: 1, a: 1}
   m_FlipX: 0
   m_FlipY: 0
@@ -21467,7 +21557,7 @@ SpriteRenderer:
   m_SortingLayer: 0
   m_SortingOrder: 0
   m_MaskInteraction: 0
-  m_Sprite: {fileID: -133059019, guid: 88b338f3ac0dba24cb9aafaafa9397da, type: 3}
+  m_Sprite: {fileID: -2119537049, guid: 88b338f3ac0dba24cb9aafaafa9397da, type: 3}
   m_Color: {r: 1, g: 1, b: 1, a: 1}
   m_FlipX: 0
   m_FlipY: 0
@@ -21477,34 +21567,6 @@ SpriteRenderer:
   m_SpriteTileMode: 0
   m_WasSpriteAssigned: 1
   m_SpriteSortPoint: 0
---- !u!114 &259972281276401025
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1094527478816771362}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: c992cc5caf20dc44682e8ab64dee01bf, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::RunodeFace
-  faceSprite: {fileID: 0}
-  faceZone: {fileID: 0}
-  triggers: []
-  lineType: 0
-  faceIndex: 0
-  isFacePowered: 0
-  faceColor: {r: 1, g: 1, b: 1, a: 1}
-  poweredBySource: {fileID: 0}
-  lastPoweredBySource: {fileID: 0}
-  lastDistanceFromSource: 0
-  lastPowerOrder: 0
-  parentFace: {fileID: 0}
-  distanceFromSource: 0
-  powerColorLayer: {r: 1, g: 1, b: 1, a: 1}
-  highlightColorLayer: {r: 1, g: 1, b: 1, a: 1}
-  obstructionController: {fileID: 0}
 --- !u!33 &269073733132070171
 MeshFilter:
   m_ObjectHideFlags: 0
@@ -21695,34 +21757,6 @@ GameObject:
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 2147483647
   m_IsActive: 1
---- !u!114 &735192872474535266
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1599226723308219510}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: c992cc5caf20dc44682e8ab64dee01bf, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::RunodeFace
-  faceSprite: {fileID: 0}
-  faceZone: {fileID: 0}
-  triggers: []
-  lineType: 0
-  faceIndex: 0
-  isFacePowered: 0
-  faceColor: {r: 1, g: 1, b: 1, a: 1}
-  poweredBySource: {fileID: 0}
-  lastPoweredBySource: {fileID: 0}
-  lastDistanceFromSource: 0
-  lastPowerOrder: 0
-  parentFace: {fileID: 0}
-  distanceFromSource: 0
-  powerColorLayer: {r: 1, g: 1, b: 1, a: 1}
-  highlightColorLayer: {r: 1, g: 1, b: 1, a: 1}
-  obstructionController: {fileID: 0}
 --- !u!1 &745421400595748161
 GameObject:
   m_ObjectHideFlags: 0
@@ -21773,7 +21807,6 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 4241986859323210502}
-  - component: {fileID: 4092294497696878311}
   m_Layer: 0
   m_Name: Bottom Face
   m_TagString: Untagged
@@ -21790,7 +21823,6 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 6865805264148462818}
-  - component: {fileID: 259972281276401025}
   m_Layer: 0
   m_Name: East Face
   m_TagString: Untagged
@@ -21817,34 +21849,6 @@ GameObject:
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
   m_IsActive: 1
---- !u!114 &1196387512685522558
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 7463614216560191777}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: c992cc5caf20dc44682e8ab64dee01bf, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::RunodeFace
-  faceSprite: {fileID: 0}
-  faceZone: {fileID: 0}
-  triggers: []
-  lineType: 0
-  faceIndex: 0
-  isFacePowered: 0
-  faceColor: {r: 1, g: 1, b: 1, a: 1}
-  poweredBySource: {fileID: 0}
-  lastPoweredBySource: {fileID: 0}
-  lastDistanceFromSource: 0
-  lastPowerOrder: 0
-  parentFace: {fileID: 0}
-  distanceFromSource: 0
-  powerColorLayer: {r: 1, g: 1, b: 1, a: 1}
-  highlightColorLayer: {r: 1, g: 1, b: 1, a: 1}
-  obstructionController: {fileID: 0}
 --- !u!4 &1249411923018458861
 Transform:
   m_ObjectHideFlags: 0
@@ -22035,7 +22039,6 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 110234360137731407}
-  - component: {fileID: 735192872474535266}
   m_Layer: 0
   m_Name: South Face
   m_TagString: Untagged
@@ -22536,7 +22539,6 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 945967600262334095}
-  - component: {fileID: 7963434834170097930}
   m_Layer: 0
   m_Name: North Face
   m_TagString: Untagged
@@ -23063,7 +23065,7 @@ SpriteRenderer:
   m_SortingLayer: 0
   m_SortingOrder: 0
   m_MaskInteraction: 0
-  m_Sprite: {fileID: -133059019, guid: 88b338f3ac0dba24cb9aafaafa9397da, type: 3}
+  m_Sprite: {fileID: -2119537049, guid: 88b338f3ac0dba24cb9aafaafa9397da, type: 3}
   m_Color: {r: 1, g: 1, b: 1, a: 1}
   m_FlipX: 0
   m_FlipY: 0
@@ -23190,7 +23192,7 @@ SpriteRenderer:
   m_SortingLayer: 0
   m_SortingOrder: 0
   m_MaskInteraction: 0
-  m_Sprite: {fileID: -133059019, guid: 88b338f3ac0dba24cb9aafaafa9397da, type: 3}
+  m_Sprite: {fileID: -2119537049, guid: 88b338f3ac0dba24cb9aafaafa9397da, type: 3}
   m_Color: {r: 1, g: 1, b: 1, a: 1}
   m_FlipX: 0
   m_FlipY: 0
@@ -23200,34 +23202,6 @@ SpriteRenderer:
   m_SpriteTileMode: 0
   m_WasSpriteAssigned: 1
   m_SpriteSortPoint: 0
---- !u!114 &4092294497696878311
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1070293361805975258}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: c992cc5caf20dc44682e8ab64dee01bf, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::RunodeFace
-  faceSprite: {fileID: 0}
-  faceZone: {fileID: 0}
-  triggers: []
-  lineType: 0
-  faceIndex: 0
-  isFacePowered: 0
-  faceColor: {r: 1, g: 1, b: 1, a: 1}
-  poweredBySource: {fileID: 0}
-  lastPoweredBySource: {fileID: 0}
-  lastDistanceFromSource: 0
-  lastPowerOrder: 0
-  parentFace: {fileID: 0}
-  distanceFromSource: 0
-  powerColorLayer: {r: 1, g: 1, b: 1, a: 1}
-  highlightColorLayer: {r: 1, g: 1, b: 1, a: 1}
-  obstructionController: {fileID: 0}
 --- !u!4 &4110883256100478740
 Transform:
   m_ObjectHideFlags: 0
@@ -23559,34 +23533,6 @@ Transform:
   m_Children: []
   m_Father: {fileID: 4150791447664136617}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
---- !u!114 &5117085490009582371
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 5240559529396541016}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: c992cc5caf20dc44682e8ab64dee01bf, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::RunodeFace
-  faceSprite: {fileID: 0}
-  faceZone: {fileID: 0}
-  triggers: []
-  lineType: 0
-  faceIndex: 0
-  isFacePowered: 0
-  faceColor: {r: 1, g: 1, b: 1, a: 1}
-  poweredBySource: {fileID: 0}
-  lastPoweredBySource: {fileID: 0}
-  lastDistanceFromSource: 0
-  lastPowerOrder: 0
-  parentFace: {fileID: 0}
-  distanceFromSource: 0
-  powerColorLayer: {r: 1, g: 1, b: 1, a: 1}
-  highlightColorLayer: {r: 1, g: 1, b: 1, a: 1}
-  obstructionController: {fileID: 0}
 --- !u!4 &5226861443789479669
 Transform:
   m_ObjectHideFlags: 0
@@ -23611,7 +23557,6 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 4150791447664136617}
-  - component: {fileID: 5117085490009582371}
   m_Layer: 0
   m_Name: West Face
   m_TagString: Untagged
@@ -23724,12 +23669,12 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 5c903f28f5274c94ba62ada9a7a9a24d, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::RunodePower
-  topFace: 14
-  bottomFace: 14
-  northFace: 14
-  southFace: 14
-  eastFace: 14
-  westFace: 14
+  topFace: 4
+  bottomFace: 4
+  northFace: 4
+  southFace: 4
+  eastFace: 4
+  westFace: 4
   topFaceTransform: {fileID: 4110883256100478740}
   bottomFaceTransform: {fileID: 4241986859323210502}
   northFaceTransform: {fileID: 945967600262334095}
@@ -23925,7 +23870,7 @@ SpriteRenderer:
   m_SortingLayer: 0
   m_SortingOrder: 0
   m_MaskInteraction: 0
-  m_Sprite: {fileID: -133059019, guid: 88b338f3ac0dba24cb9aafaafa9397da, type: 3}
+  m_Sprite: {fileID: -2119537049, guid: 88b338f3ac0dba24cb9aafaafa9397da, type: 3}
   m_Color: {r: 1, g: 1, b: 1, a: 1}
   m_FlipX: 0
   m_FlipY: 0
@@ -24246,7 +24191,7 @@ SpriteRenderer:
   m_SortingLayer: 0
   m_SortingOrder: 0
   m_MaskInteraction: 0
-  m_Sprite: {fileID: -133059019, guid: 88b338f3ac0dba24cb9aafaafa9397da, type: 3}
+  m_Sprite: {fileID: -2119537049, guid: 88b338f3ac0dba24cb9aafaafa9397da, type: 3}
   m_Color: {r: 1, g: 1, b: 1, a: 1}
   m_FlipX: 0
   m_FlipY: 0
@@ -24339,7 +24284,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 4110883256100478740}
-  - component: {fileID: 1196387512685522558}
+  - component: {fileID: 7463614216560191778}
   m_Layer: 0
   m_Name: Top Face
   m_TagString: Untagged
@@ -24347,6 +24292,28 @@ GameObject:
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
   m_IsActive: 1
+--- !u!114 &7463614216560191778
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 7463614216560191777}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 0faea3ebde937f8469cff0fc3409daf5, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::RunodeFace2
+  powerLineType: 4
+  poweredBySource: {fileID: 0}
+  isFacePowered: 0
+  isFaceBlocked: 0
+  upBlocked: 0
+  rightBlocked: 0
+  downBlocked: 0
+  leftBlocked: 0
+  lineRenderer: {fileID: 6955400730448177283}
+  activePorts: []
 --- !u!33 &7504076425672026869
 MeshFilter:
   m_ObjectHideFlags: 0
@@ -24494,34 +24461,6 @@ PrefabInstance:
     m_AddedGameObjects: []
     m_AddedComponents: []
   m_SourcePrefab: {fileID: 100100000, guid: 6f45bed0eba7ce6418dd0136f3f6b5a2, type: 3}
---- !u!114 &7963434834170097930
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 2745211770907058905}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: c992cc5caf20dc44682e8ab64dee01bf, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::RunodeFace
-  faceSprite: {fileID: 0}
-  faceZone: {fileID: 0}
-  triggers: []
-  lineType: 0
-  faceIndex: 0
-  isFacePowered: 0
-  faceColor: {r: 1, g: 1, b: 1, a: 1}
-  poweredBySource: {fileID: 0}
-  lastPoweredBySource: {fileID: 0}
-  lastDistanceFromSource: 0
-  lastPowerOrder: 0
-  parentFace: {fileID: 0}
-  distanceFromSource: 0
-  powerColorLayer: {r: 1, g: 1, b: 1, a: 1}
-  highlightColorLayer: {r: 1, g: 1, b: 1, a: 1}
-  obstructionController: {fileID: 0}
 --- !u!4 &7984453523395513715
 Transform:
   m_ObjectHideFlags: 0

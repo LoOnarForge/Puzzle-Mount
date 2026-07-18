@@ -1,6 +1,6 @@
 using UnityEngine;
 
-public enum PortID { Up, Right, Down, Left }
+public enum PortID { Main, Up, Right, Down, Left }
 
 public class PortTrigger : MonoBehaviour
 {
@@ -11,12 +11,22 @@ public class PortTrigger : MonoBehaviour
     private void OnTriggerEnter(Collider other)
     {
         if (((1 << other.gameObject.layer) & obstructionMask) != 0)
-            parentFace.SetInternalPortBlocked(portName, true);
+        {
+            if (portName == PortID.Main)
+                parentFace.SetFaceBlocked(true);
+            else
+                parentFace.SetInternalPortBlocked(portName, true);
+        }
     }
 
     private void OnTriggerExit(Collider other)
     {
         if (((1 << other.gameObject.layer) & obstructionMask) != 0)
-            parentFace.SetInternalPortBlocked(portName, false);
+        {
+            if (portName == PortID.Main)
+                parentFace.SetFaceBlocked(false);
+            else
+                parentFace.SetInternalPortBlocked(portName, false);
+        }
     }
 }

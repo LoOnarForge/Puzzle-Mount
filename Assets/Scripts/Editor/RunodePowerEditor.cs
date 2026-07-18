@@ -114,8 +114,8 @@ public class RunodePowerEditor : Editor
             EditorGUILayout.LabelField("Face Runtime State", EditorStyles.boldLabel);
             if (GUILayout.Button("Log Active Faces"))
             {
-                foreach (var f in cubePower.GetComponentsInChildren<RunodeFace>())
-                    Debug.Log($"Face {f.faceIndex}: Powered={f.isFacePowered}, Source={f.poweredBySource?.name}");
+                foreach (var f in cubePower.GetComponentsInChildren<RunodeFace2>())
+                    Debug.Log($"Face {f.name}: Powered={f.isFacePowered}, Source={f.poweredBySource?.name}");
             }
         }
 
@@ -152,74 +152,85 @@ public class RunodePowerEditor : Editor
         Transform faceTransform = GetFaceTransform(faceIndex);
         if (faceTransform == null) return;
 
-        // Use the same finding logic as RunodePower to ensure we find the sprite
+        // Find Line Sprite and Port Main
         Transform spriteTransform = null;
+        Transform portMainTransform = null;
+        
         foreach (Transform child in faceTransform)
         {
-            if (child.name.StartsWith("Power Line Sprite"))
+            string childName = child.name;
+            if (childName.Contains("Line Sprite") || childName.StartsWith("Power Line Sprite"))
             {
                 spriteTransform = child;
-                break;
             }
-        }
-
-        if (spriteTransform == null) return;
-
-        SpriteRenderer sr = spriteTransform.GetComponent<SpriteRenderer>();
-        if (sr == null) return;
-
-        if (newType != PowerLineType.Empty)
-        {
-            spriteTransform.gameObject.SetActive(true);
-            Sprite s = GetSpriteForType(newType);
-            if (s != null)
+            else if (childName.Contains("Port Main"))
             {
-                sr.sprite = s;
-                sr.size = s.bounds.size * 1.98f;
-                spriteTransform.localRotation = Quaternion.Euler(0, 0, GetTypeRotation(newType));
+                portMainTransform = child;
             }
         }
-        else
+
+        // Handle Line Sprite
+        if (spriteTransform != null)
         {
-            spriteTransform.gameObject.SetActive(false);
+            if (newType != PowerLineType.Empty)
+            {
+                spriteTransform.gameObject.SetActive(true);
+                SpriteRenderer sr = spriteTransform.GetComponent<SpriteRenderer>();
+                if (sr != null)
+                {
+                    Sprite s = GetSpriteForType(newType);
+                    if (s != null)
+                    {
+                        sr.sprite = s;
+                        sr.size = s.bounds.size * 1.98f;
+                        spriteTransform.localRotation = Quaternion.Euler(0, 0, GetTypeRotation(newType));
+                    }
+                }
+            }
+            else
+            {
+                spriteTransform.gameObject.SetActive(false);
+            }
+            EditorUtility.SetDirty(spriteTransform.gameObject);
+        }
+
+        // Handle Port Main
+        if (portMainTransform != null)
+        {
+            portMainTransform.gameObject.SetActive(newType != PowerLineType.Empty);
+            EditorUtility.SetDirty(portMainTransform.gameObject);
         }
 
         UpdateTriggerStates(faceIndex, newType);
-        EditorUtility.SetDirty(spriteTransform.gameObject);
+        
+        // Sync to RunodeFace2 if exists
+        RunodeFace2 faceComp = faceTransform.GetComponent<RunodeFace2>();
+        if (faceComp != null)
+        {
+            faceComp.powerLineType = newType;
+            if (spriteTransform != null) faceComp.lineRenderer = spriteTransform.GetComponent<SpriteRenderer>();
+            EditorUtility.SetDirty(faceComp);
+        }
     }
 
     private void UpdateTriggerStates(int faceIndex, PowerLineType lineType)
     {
-        PowerConnectionTrigger[] triggers = GetFaceTriggers(faceIndex);
-        bool[] enableStates = GetTriggerStates(lineType);
-
-        for (int i = 0; i < 4; i++)
-        {
-            if (triggers[i] != null)
-                triggers[i].gameObject.SetActive(enableStates[i]);
-        }
-    }
-
-    private PowerConnectionTrigger[] GetFaceTriggers(int faceIndex)
-    {
         Transform t = GetFaceTransform(faceIndex);
-        return t != null ? FindTriggersOnFace(t) : new PowerConnectionTrigger[4];
-    }
+        if (t == null) return;
 
-    private PowerConnectionTrigger[] FindTriggersOnFace(Transform faceTransform)
-    {
-        var result = new PowerConnectionTrigger[4];
-        foreach (Transform child in faceTransform)
+        bool[] enableStates = GetTriggerStates(lineType);
+        
+        foreach (Transform child in t)
         {
-            PowerConnectionTrigger t = child.GetComponent<PowerConnectionTrigger>();
-            if (t == null) continue;
+            PortTrigger trigger = child.GetComponent<PortTrigger>();
+            if (trigger == null) continue;
+
             string n = child.name.ToLower();
-            if      (n.Contains("up"))    result[0] = t;
-            else if (n.Contains("right")) result[1] = t;
-            else if (n.Contains("down"))  result[2] = t;
-            else if (n.Contains("left"))  result[3] = t;
+            if (n.Contains("up"))    child.gameObject.SetActive(enableStates[0]);
+            else if (n.Contains("right")) child.gameObject.SetActive(enableStates[1]);
+            else if (n.Contains("down"))  child.gameObject.SetActive(enableStates[2]);
+            else if (n.Contains("left"))  child.gameObject.SetActive(enableStates[3]);
         }
-        return result;
     }
 
     private bool[] GetTriggerStates(PowerLineType lineType)
