@@ -18,6 +18,7 @@ public class RunodeHighlighter : MonoBehaviour
     [Header("REFERENCES")]
     public MeshRenderer cubeRenderer;
     public GameObject selectionFrame; 
+    public TimCubeController timCubeController;
 
     [Header("FACE DECALS")]
     public GameObject[] faceDecals; // Order: 0:Top, 1:Bottom, 2:North, 3:South, 4:East, 5:West
@@ -139,7 +140,7 @@ public class RunodeHighlighter : MonoBehaviour
 
     private void LateUpdate()
     {
-        TimCubeController controller = FindFirstObjectByType<TimCubeController>();
+        TimCubeController controller = timCubeController;
         if (controller == null)
         {
             if (isHovered) ClearHighlight();
