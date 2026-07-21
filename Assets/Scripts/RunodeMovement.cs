@@ -230,11 +230,11 @@ public class RunodeMovement : MonoBehaviour
 
     // === MOVED FROM Tim scripts during merge ===
 
-    private static RunodeMovement[] allCubesCache = null;
-    private static float lastCubesCacheTime = 0f;
+    private RunodeMovement[] allCubesCache = null;
+    private float lastCubesCacheTime = 0f;
     private const float CACHE_REFRESH_INTERVAL = 1.0f;
 
-    private static RunodeMovement[] GetAllCubesOptimized()
+    private RunodeMovement[] GetAllCubesOptimized()
     {
         float currentTime = Time.time;
         if (allCubesCache == null || currentTime - lastCubesCacheTime > CACHE_REFRESH_INTERVAL)
