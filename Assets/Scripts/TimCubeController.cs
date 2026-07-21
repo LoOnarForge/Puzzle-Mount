@@ -335,8 +335,8 @@ public class TimCubeController : MonoBehaviour
             {
                 isMouseRotating = false;
                 hasTriggeredMouseRotation = false;
+                hasMouseMovedDuringDrag = false;
                 mouseRotTarget = null;
-                characterMovement.SetMovementEnabled(true);
             }
             return;
         }
@@ -360,8 +360,6 @@ public class TimCubeController : MonoBehaviour
                         mouseRotTarget = mouseHitCube;
                         mouseHitNormal = visualNormal;
                         lastMousePosition = Mouse.current.position.ReadValue();
-
-                        if (characterMovement != null) characterMovement.SetMovementEnabled(false);
                     }
                     else
                     {
@@ -376,6 +374,19 @@ public class TimCubeController : MonoBehaviour
 
         if (isMouseRotating)
         {
+            if (mouseRotTarget != null)
+            {
+                float dist = Vector3.ProjectOnPlane(mouseRotTarget.transform.position - timTransform.position, Vector3.up).magnitude;
+                if (dist > maxRotationDistance)
+                {
+                    isMouseRotating = false;
+                    hasTriggeredMouseRotation = false;
+                    hasMouseMovedDuringDrag = false;
+                    mouseRotTarget = null;
+                    return;
+                }
+            }
+
             if (Mouse.current.leftButton.isPressed)
             {
                 if (hasTriggeredMouseRotation) return;
@@ -424,7 +435,6 @@ public class TimCubeController : MonoBehaviour
                 hasTriggeredMouseRotation = false;
                 hasMouseMovedDuringDrag = false;
                 mouseRotTarget = null;
-                if (characterMovement != null) characterMovement.SetMovementEnabled(true);
             }
         }
     }
