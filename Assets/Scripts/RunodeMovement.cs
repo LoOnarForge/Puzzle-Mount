@@ -279,6 +279,8 @@ public class RunodeMovement : MonoBehaviour
 
     public bool IsVisibleFrom(Transform observer, Vector3 targetPoint, LayerMask layerMask)
     {
+        Vector3 cubeCenter = transform.position;
+
         Vector3[] origins = new Vector3[]
         {
             observer.position + Vector3.up * 1.7f,
@@ -289,7 +291,7 @@ public class RunodeMovement : MonoBehaviour
 
         foreach (Vector3 origin in origins)
         {
-            Vector3 dir = (targetPoint - origin);
+            Vector3 dir = (cubeCenter - origin);
             float maxDist = dir.magnitude;
             Vector3 rayDir = dir.normalized;
 
