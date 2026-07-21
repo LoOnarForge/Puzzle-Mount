@@ -33,6 +33,8 @@ public class RunodeHighlighter : MonoBehaviour
     private bool isHovered = false;
     private bool isInRange = false;
     private int activeDecalIndex = -1;
+    private bool colorNeedsUpdate = false;
+    private bool lineColorNeedsUpdate = false;
 
     private static RunodeHighlighter currentHovered;
 
@@ -65,17 +67,26 @@ public class RunodeHighlighter : MonoBehaviour
     private void Update()
     {
         // 1. Cube Highlight Transition
-        Color target;
-        if (!isHovered) target = Color.white;
-        else target = isInRange ? inRangeColor : outOfRangeColor;
-
-        currentColor = Color.Lerp(currentColor, target, Time.deltaTime * transitionSpeed);
-        
-        if (cubeRenderer != null)
+        if (colorNeedsUpdate)
         {
-            cubeRenderer.GetPropertyBlock(cubePropBlock);
-            cubePropBlock.SetColor(BaseColorId, currentColor);
-            cubeRenderer.SetPropertyBlock(cubePropBlock);
+            Color target;
+            if (!isHovered) target = Color.white;
+            else target = isInRange ? inRangeColor : outOfRangeColor;
+
+            currentColor = Color.Lerp(currentColor, target, Time.deltaTime * transitionSpeed);
+        
+            if (cubeRenderer != null)
+            {
+                cubeRenderer.GetPropertyBlock(cubePropBlock);
+                cubePropBlock.SetColor(BaseColorId, currentColor);
+                cubeRenderer.SetPropertyBlock(cubePropBlock);
+            }
+
+            if (ColorsApproximatelyEqual(currentColor, target))
+            {
+                currentColor = target;
+                colorNeedsUpdate = false;
+            }
         }
 
         // 2. Selection Frame Logic (Occluded gizmo)
@@ -102,12 +113,18 @@ public class RunodeHighlighter : MonoBehaviour
         if (darkenLinesOnHighlight && powerSystem != null)
         {
             bool shouldDarken = isHovered && isInRange;
-            if (shouldDarken)
+            if (shouldDarken && lineColorNeedsUpdate)
             {
                 currentLineColor = Color.Lerp(currentLineColor, lineDarkenedColor, Time.deltaTime * transitionSpeed);
                 UpdateHighlightLayerOnFaces(currentLineColor);
+
+                if (ColorsApproximatelyEqual(currentLineColor, lineDarkenedColor))
+                {
+                    currentLineColor = lineDarkenedColor;
+                    lineColorNeedsUpdate = false;
+                }
             }
-            else if (currentLineColor != Color.white)
+            else if (!shouldDarken && currentLineColor != Color.white)
             {
                 currentLineColor = Color.white;
                 UpdateHighlightLayerOnFaces(Color.white);
@@ -124,11 +141,19 @@ public class RunodeHighlighter : MonoBehaviour
         }
     }
 
+    private static bool ColorsApproximatelyEqual(Color a, Color b)
+    {
+        return Mathf.Abs(a.r - b.r) < 0.01f && Mathf.Abs(a.g - b.g) < 0.01f
+            && Mathf.Abs(a.b - b.b) < 0.01f && Mathf.Abs(a.a - b.a) < 0.01f;
+    }
+
     public void SetHighlight(bool rotatable, int faceIndex = -1)
     {
         isHovered = true;
         isInRange = rotatable;
         activeDecalIndex = faceIndex;
+        colorNeedsUpdate = true;
+        lineColorNeedsUpdate = true;
     }
 
     public void ClearHighlight()
@@ -136,6 +161,7 @@ public class RunodeHighlighter : MonoBehaviour
         isHovered = false;
         activeDecalIndex = -1;
         ClearAllDecals();
+        colorNeedsUpdate = true;
     }
 
     private void LateUpdate()
