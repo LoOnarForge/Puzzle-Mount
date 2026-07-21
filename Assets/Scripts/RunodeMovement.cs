@@ -14,13 +14,16 @@ public class RunodeMovement : MonoBehaviour
 
     [Header("DEBUG:")]
     public bool isMovingPos = false;
-    public bool isRotating = false;
+    public bool isRotating { get; private set; }
 
     public bool IsBusy => isMovingPos || isRotating;
 
+    [Header("PHYSICS LAYERS:")]
+    [SerializeField] private LayerMask groundCheckMask = 0;
+    [SerializeField] private LayerMask obstructionCheckMask = 0;
+
     private Rigidbody rb;
-    [HideInInspector]
-    public Transform visualParent;
+    private Transform visualParent;
 
     // Stores the rotation as it was set in the Editor
     private Quaternion baseRotation;
@@ -115,7 +118,8 @@ public class RunodeMovement : MonoBehaviour
 
     private bool IsGrounded()
     {
-        return Physics.Raycast(transform.position + Vector3.up * 0.1f, Vector3.down, 0.6f);
+        int mask = groundCheckMask == 0 ? ~0 : groundCheckMask;
+        return Physics.Raycast(transform.position + Vector3.up * 0.1f, Vector3.down, 0.6f, mask);
     }
 
     private Vector3 GetGridDirection(Vector3 direction)
@@ -137,7 +141,8 @@ public class RunodeMovement : MonoBehaviour
 
     private bool IsPositionClear(Vector3 position)
     {
-        Collider[] overlapping = Physics.OverlapBox(position, Vector3.one * 0.45f);
+        int mask = obstructionCheckMask == 0 ? ~0 : obstructionCheckMask;
+        Collider[] overlapping = Physics.OverlapBox(position, Vector3.one * 0.45f, Quaternion.identity, mask);
 
         foreach (Collider col in overlapping)
         {
