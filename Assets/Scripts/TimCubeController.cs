@@ -38,6 +38,9 @@ public class TimCubeController : MonoBehaviour
 
     [HideInInspector] public bool isRotating = false;
 
+    public RunodeMovement MouseHitCube { get; private set; } = null;
+    public Vector3 MouseHitPoint { get; private set; }
+
     private Transform timTransform;
     private CharacterMovement characterMovement;
     private CharacterController controller;
@@ -63,8 +66,6 @@ public class TimCubeController : MonoBehaviour
     private bool isCameraDragging = false;
     private Vector2 cameraDragStartPos;
 
-    private RunodeHighlighter lastHighlighter;
-
     private bool isPreciseMode = false;
 
     private void Awake()
@@ -81,7 +82,7 @@ public class TimCubeController : MonoBehaviour
     {
         isPushingThisFrame = false;
 
-        // Single mouse raycast shared by highlight, gaze, and rotation
+        // Single mouse raycast shared by gaze and rotation
         bool mouseHitValid = false;
         RaycastHit mouseHit = default;
         RunodeMovement mouseHitCube = null;
@@ -95,6 +96,9 @@ public class TimCubeController : MonoBehaviour
                 mouseHitCube = mouseHit.collider.GetComponentInParent<RunodeMovement>();
             }
         }
+
+        MouseHitCube = mouseHitCube;
+        MouseHitPoint = mouseHitValid ? mouseHit.point : Vector3.zero;
 
         if (characterMovement.IsGrounded && !isRotating)
         {
@@ -113,7 +117,6 @@ public class TimCubeController : MonoBehaviour
         HandleMouseRotation(mouseHitValid, mouseHit, mouseHitCube);
         HandleCameraRotation();
         UpdateGaze(mouseHitValid, mouseHit, mouseHitCube);
-        UpdateHighlight(mouseHitValid, mouseHit, mouseHitCube);
     }
 
     // === PUSH LOGIC (from TimCubeInteraction) ===
@@ -280,57 +283,6 @@ public class TimCubeController : MonoBehaviour
         }
     }
 
-    private void UpdateHighlight(bool mouseHitValid, RaycastHit mouseHit, RunodeMovement mouseHitCube)
-    {
-        if (Mouse.current == null) return;
-
-        if (mouseHitValid && mouseHitCube != null)
-        {
-            RunodeHighlighter highlighter = mouseHitCube.GetComponent<RunodeHighlighter>();
-            if (highlighter != null)
-            {
-                bool isActuallyRotatable = IsActuallyRotatable(mouseHitCube, mouseHit.point);
-
-                int faceIndex = -1;
-                RunodePower power = mouseHitCube.GetComponent<RunodePower>();
-                if (power != null) faceIndex = power.GetFaceIndexFromPoint(mouseHit.point);
-
-                highlighter.SetHighlight(isActuallyRotatable, faceIndex);
-
-                if (lastHighlighter != null && lastHighlighter != highlighter)
-                    lastHighlighter.ClearHighlight();
-
-                lastHighlighter = highlighter;
-                return;
-            }
-        }
-
-        if (lastHighlighter != null)
-        {
-            lastHighlighter.ClearHighlight();
-            lastHighlighter = null;
-        }
-    }
-
-    private bool IsActuallyRotatable(RunodeMovement cube, Vector3 hitPoint)
-    {
-        if (cube == null) return false;
-        if (characterMovement != null && !characterMovement.IsGrounded) return false;
-
-        float dist = Vector3.ProjectOnPlane(cube.transform.position - timTransform.position, Vector3.up).magnitude;
-        if (dist > maxRotationDistance) return false;
-
-        if (!cube.IsInStackRange(3)) return false;
-
-        float verticalDist = cube.transform.position.y - timTransform.position.y;
-        if (verticalDist < -1.5f || verticalDist > 2.5f) return false;
-
-        if (!cube.IsVisibleFrom(timTransform, hitPoint, interactionLayer)) return false;
-
-        return true;
-    }
-
-    // Directs Tim's head to look at the cube surface under the mouse cursor
     private void UpdateGaze(bool mouseHitValid, RaycastHit mouseHit, RunodeMovement mouseHitCube)
     {
         if (playerAnimator == null || characterMovement == null) return;
@@ -353,6 +305,26 @@ public class TimCubeController : MonoBehaviour
 
         playerAnimator.SetLookTarget(null);
     }
+
+    public bool IsCubeRotatable(RunodeMovement cube, Vector3 hitPoint)
+    {
+        if (cube == null) return false;
+        if (characterMovement != null && !characterMovement.IsGrounded) return false;
+
+        float dist = Vector3.ProjectOnPlane(cube.transform.position - timTransform.position, Vector3.up).magnitude;
+        if (dist > maxRotationDistance) return false;
+
+        if (!cube.IsInStackRange(3)) return false;
+
+        float verticalDist = cube.transform.position.y - timTransform.position.y;
+        if (verticalDist < -1.5f || verticalDist > 2.5f) return false;
+
+        if (!cube.IsVisibleFrom(timTransform, hitPoint, interactionLayer)) return false;
+
+        return true;
+    }
+
+    public bool IsActuallyRotatable(RunodeMovement cube, Vector3 hitPoint) => IsCubeRotatable(cube, hitPoint);
 
     private void HandleMouseRotation(bool mouseHitValid, RaycastHit mouseHit, RunodeMovement mouseHitCube)
     {

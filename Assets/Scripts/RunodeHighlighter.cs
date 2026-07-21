@@ -33,6 +33,8 @@ public class RunodeHighlighter : MonoBehaviour
     private bool isInRange = false;
     private int activeDecalIndex = -1;
 
+    private static RunodeHighlighter currentHovered;
+
     private static readonly int BaseColorId = Shader.PropertyToID("_BaseColor");
 
     private List<SpriteRenderer> cachedLineRenderers = new List<SpriteRenderer>();
@@ -133,6 +135,37 @@ public class RunodeHighlighter : MonoBehaviour
         isHovered = false;
         activeDecalIndex = -1;
         ClearAllDecals();
+    }
+
+    private void LateUpdate()
+    {
+        TimCubeController controller = FindFirstObjectByType<TimCubeController>();
+        if (controller == null)
+        {
+            if (isHovered) ClearHighlight();
+            return;
+        }
+
+        RunodeMovement hitCube = controller.MouseHitCube;
+        if (hitCube != null && hitCube.gameObject == gameObject)
+        {
+            if (currentHovered != null && currentHovered != this)
+                currentHovered.ClearHighlight();
+
+            bool rotatable = controller.IsCubeRotatable(hitCube, controller.MouseHitPoint);
+
+            int faceIndex = -1;
+            if (powerSystem != null)
+                faceIndex = powerSystem.GetFaceIndexFromPoint(controller.MouseHitPoint);
+
+            SetHighlight(rotatable, faceIndex);
+            currentHovered = this;
+        }
+        else
+        {
+            if (isHovered) ClearHighlight();
+            if (currentHovered == this) currentHovered = null;
+        }
     }
 
     private void ClearAllDecals()
