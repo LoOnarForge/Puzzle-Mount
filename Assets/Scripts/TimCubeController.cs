@@ -33,9 +33,6 @@ public class TimCubeController : MonoBehaviour
     [Header("JUICE SETTINGS:")]
     public float squashAmount = 0.15f;
 
-    [Header("CAMERA ROTATION SETTINGS:")]
-    public float cameraRotationThreshold = 50.0f;
-
     [HideInInspector] public bool isRotating = false;
 
     public RunodeMovement MouseHitCube { get; private set; } = null;
@@ -269,7 +266,7 @@ public class TimCubeController : MonoBehaviour
             Vector2 currentPos = Mouse.current.position.ReadValue();
             float deltaX = currentPos.x - cameraDragStartPos.x;
 
-            if (Mathf.Abs(deltaX) > cameraRotationThreshold)
+            if (Mathf.Abs(deltaX) > cameraFollow.cameraRotationThreshold)
             {
                 if (deltaX > 0) cameraFollow.CycleClockwise();
                 else cameraFollow.CycleCounterClockwise();

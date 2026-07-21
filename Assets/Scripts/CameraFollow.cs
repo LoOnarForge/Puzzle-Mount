@@ -29,6 +29,9 @@ public class CameraFollow : MonoBehaviour
     public Key inspectionToggleKey = Key.Tab;
     public float rotationCooldown = 0.25f;
 
+    [Header("CAMERA ROTATION SETTINGS")]
+    public float cameraRotationThreshold = 50.0f;
+
     [Header("INSPECTION MODE (LEYA)")]
     public LeyasCamera leyaController;
     
@@ -167,5 +170,38 @@ public class CameraFollow : MonoBehaviour
         currentAngleIndex = 0;
         offset = presetOffsets[0];
         lastRotationTime = Time.unscaledTime;
+    }
+
+    public Vector3 GetMovementDirectionForCameraAngle(Vector2 moveInput)
+    {
+        // Define forward and right directions for each camera angle
+        Vector3 forward, right;
+        
+        switch (currentAngleIndex)
+        {
+            case 0: // North view
+                forward = Vector3.forward;  // North (0,0,1)
+                right = Vector3.right;      // East (1,0,0)
+                break;
+            case 1: // East view
+                forward = Vector3.left;     // West (-1,0,0)
+                right = Vector3.forward;    // North (0,0,1)
+                break;
+            case 2: // South view
+                forward = Vector3.back;     // South (0,0,-1)
+                right = Vector3.left;       // West (-1,0,0)
+                break;
+            case 3: // West view
+                forward = Vector3.right;    // East (1,0,0)
+                right = Vector3.back;       // South (0,0,-1)
+                break;
+            default:
+                forward = Vector3.forward;
+                right = Vector3.right;
+                break;
+        }
+        
+        // Calculate movement direction: forward * W/S input + right * A/D input
+        return forward * moveInput.y + right * moveInput.x;
     }
 }
