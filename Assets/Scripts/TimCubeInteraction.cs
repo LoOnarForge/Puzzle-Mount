@@ -1,3 +1,4 @@
+/*
 using UnityEngine;
 using UnityEngine.InputSystem;
 using System.Collections.Generic;
@@ -230,3 +231,4 @@ public class TimCubeInteraction : MonoBehaviour
     public bool IsDelayActive => isDelayActive;
     public bool IsFirstPush => isFirstPush;
 }
+*/

@@ -46,7 +46,7 @@ public class MenuManager : MonoBehaviour
 
 
         // Initialize HUD icon state
-        var interaction = Object.FindFirstObjectByType<TimCubeInteraction>();
+        var interaction = Object.FindFirstObjectByType<TimCubeController>();
         if (interaction != null)
         {
             // Direct field access check since we are in the same project

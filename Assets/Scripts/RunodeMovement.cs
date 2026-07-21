@@ -1,4 +1,6 @@
 using UnityEngine;
+using System.Collections;
+using System.Collections.Generic;
 
 [RequireComponent(typeof(Rigidbody))]
 [RequireComponent(typeof(BoxCollider))]
@@ -224,5 +226,145 @@ public class RunodeMovement : MonoBehaviour
         {
             visualParent.localRotation = Quaternion.Euler(xRot, yRot, zRot);
         }
+    }
+
+    // === MOVED FROM Tim scripts during merge ===
+
+    private static RunodeMovement[] allCubesCache = null;
+    private static float lastCubesCacheTime = 0f;
+    private const float CACHE_REFRESH_INTERVAL = 1.0f;
+
+    private static RunodeMovement[] GetAllCubesOptimized()
+    {
+        float currentTime = Time.time;
+        if (allCubesCache == null || currentTime - lastCubesCacheTime > CACHE_REFRESH_INTERVAL)
+        {
+            allCubesCache = Object.FindObjectsByType<RunodeMovement>(FindObjectsSortMode.None);
+            lastCubesCacheTime = currentTime;
+        }
+        return allCubesCache;
+    }
+
+    public RunodeMovement[] GetStack()
+    {
+        List<RunodeMovement> stack = new List<RunodeMovement> { this };
+        RunodeMovement[] allCubes = GetAllCubesOptimized();
+        Vector3 basePos = transform.position;
+        foreach (RunodeMovement cube in allCubes)
+        {
+            if (cube == this) continue;
+            Vector3 cubePos = cube.transform.position;
+            bool isAligned = Mathf.Abs(cubePos.x - basePos.x) < 0.1f && Mathf.Abs(cubePos.z - basePos.z) < 0.1f;
+            bool isAbove = cubePos.y > basePos.y;
+            if (isAligned && isAbove) stack.Add(cube);
+        }
+        stack.Sort((a, b) => a.transform.position.y.CompareTo(b.transform.position.y));
+        return stack.ToArray();
+    }
+
+    public bool IsInStackRange(int maxDepth)
+    {
+        RunodeMovement[] stack = GetStack();
+        for (int i = 0; i < Mathf.Min(maxDepth, stack.Length); i++)
+        {
+            if (stack[i] == this) return true;
+        }
+        return false;
+    }
+
+    public bool IsVisibleFrom(Transform observer, Vector3 targetPoint, LayerMask layerMask)
+    {
+        Vector3[] origins = new Vector3[]
+        {
+            observer.position + Vector3.up * 1.7f,
+            observer.position + Vector3.up * 1.0f,
+            observer.position + Vector3.up * 1.0f + observer.right * 0.25f,
+            observer.position + Vector3.up * 1.0f - observer.right * 0.25f
+        };
+
+        foreach (Vector3 origin in origins)
+        {
+            Vector3 dir = (targetPoint - origin);
+            float maxDist = dir.magnitude;
+
+            if (Physics.Raycast(origin, dir.normalized, out RaycastHit hit, maxDist + 0.1f, layerMask))
+            {
+                if (hit.collider.transform.IsChildOf(observer)) continue;
+                RunodeMovement hitCube = hit.collider.GetComponentInParent<RunodeMovement>();
+                if (hitCube == this) return true;
+            }
+        }
+        return false;
+    }
+
+    public static Vector3 GetCardinalAxis(Vector3 v)
+    {
+        float absX = Mathf.Abs(v.x);
+        float absY = Mathf.Abs(v.y);
+        float absZ = Mathf.Abs(v.z);
+
+        if (absX > absY && absX > absZ) return Vector3.right * Mathf.Sign(v.x);
+        if (absY > absX && absY > absZ) return Vector3.up * Mathf.Sign(v.y);
+        return Vector3.forward * Mathf.Sign(v.z);
+    }
+
+    public IEnumerator RotateVisualSmooth(float degrees, Vector3 worldAxis, float duration, float squashAmount)
+    {
+        if (visualParent == null) yield break;
+
+        if (PowerManager.Instance != null)
+            PowerManager.Instance.InvalidateSubtree(transform, true);
+
+        isRotating = true;
+
+        Transform targetTransform = visualParent;
+        Quaternion startRotation = targetTransform.localRotation;
+        Vector3 rotAxis = transform.InverseTransformDirection(worldAxis);
+
+        Quaternion targetRotation = Quaternion.AngleAxis(degrees, rotAxis) * startRotation;
+
+        Vector3 targetEuler = targetRotation.eulerAngles;
+        targetEuler.x = Mathf.Round(targetEuler.x / 90f) * 90f;
+        targetEuler.y = Mathf.Round(targetEuler.y / 90f) * 90f;
+        targetEuler.z = Mathf.Round(targetEuler.z / 90f) * 90f;
+        targetRotation = Quaternion.Euler(targetEuler);
+
+        Quaternion overshootRot = Quaternion.AngleAxis(degrees + (degrees > 0 ? 5f : -5f), rotAxis) * startRotation;
+
+        float elapsedTime = 0f;
+        Vector3 originalScale = targetTransform.localScale;
+
+        while (elapsedTime < duration)
+        {
+            elapsedTime += Time.deltaTime;
+            float t = elapsedTime / duration;
+
+            if (t < 0.8f) targetTransform.localRotation = Quaternion.Slerp(startRotation, overshootRot, t / 0.8f);
+            else targetTransform.localRotation = Quaternion.Slerp(overshootRot, targetRotation, (t - 0.8f) / 0.2f);
+
+            float squash = Mathf.Sin(t * Mathf.PI) * squashAmount;
+            targetTransform.localScale = new Vector3(originalScale.x * (1 + squash), originalScale.y * (1 - squash), originalScale.z * (1 + squash));
+            yield return null;
+        }
+
+        targetTransform.localRotation = targetRotation;
+
+        float bounceTime = duration * 0.5f;
+        float bElapsed = 0;
+        while (bElapsed < bounceTime)
+        {
+            bElapsed += Time.deltaTime;
+            float bt = bElapsed / bounceTime;
+            float bounceSquash = Mathf.Sin(bt * Mathf.PI) * (squashAmount * 0.5f);
+            targetTransform.localScale = new Vector3(originalScale.x * (1 - bounceSquash), originalScale.y * (1 + bounceSquash), originalScale.z * (1 - bounceSquash));
+            yield return null;
+        }
+        targetTransform.localScale = originalScale;
+
+        Physics.SyncTransforms();
+        isRotating = false;
+
+        RunodePower p = GetComponent<RunodePower>();
+        if (PowerManager.Instance != null) PowerManager.Instance.RequestPowerFlowCheck(p);
     }
 }

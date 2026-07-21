@@ -11011,7 +11011,8 @@ PrefabInstance:
       propertyPath: m_Layer
       value: 24
       objectReference: {fileID: 0}
-    m_RemovedComponents: []
+    m_RemovedComponents:
+    - {fileID: 546811167740978532, guid: 8327116535cf1624d9db336499d66ebe, type: 3}
     m_RemovedGameObjects: []
     m_AddedGameObjects:
     - targetCorrespondingSourceObject: {fileID: 7276313125923345546, guid: 8327116535cf1624d9db336499d66ebe, type: 3}
@@ -11019,15 +11020,15 @@ PrefabInstance:
       addedObject: {fileID: 1854022091}
     m_AddedComponents:
     - targetCorrespondingSourceObject: {fileID: 478215984424799453, guid: 8327116535cf1624d9db336499d66ebe, type: 3}
-      insertIndex: 3
-      addedObject: {fileID: 1097024148}
+      insertIndex: 2
+      addedObject: {fileID: 1097024155}
   m_SourcePrefab: {fileID: 100100000, guid: 8327116535cf1624d9db336499d66ebe, type: 3}
 --- !u!1 &1097024147 stripped
 GameObject:
   m_CorrespondingSourceObject: {fileID: 478215984424799453, guid: 8327116535cf1624d9db336499d66ebe, type: 3}
   m_PrefabInstance: {fileID: 1097024146}
   m_PrefabAsset: {fileID: 0}
---- !u!114 &1097024148
+--- !u!114 &1097024155
 MonoBehaviour:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
@@ -11036,18 +11037,24 @@ MonoBehaviour:
   m_GameObject: {fileID: 1097024147}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 8a9d6b56b26696d4d9ffb664ac8831be, type: 3}
+  m_Script: {fileID: 11500000, guid: 37e82b28fd0e1cd41b1ac069c93346ff, type: 3}
   m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::TimCubeMouseInteraction
+  m_EditorClassIdentifier: Assembly-CSharp::TimCubeController
+  pushRange: 0.5
+  initialPushDelay: 0.35
+  fastPushInterval: 0.1
+  precisePushInterval: 0.5
+  pushableRunode: {fileID: 0}
+  detectionTolerance: 0.6
   interactionLayer:
     serializedVersion: 2
     m_Bits: 2048
-  mouseRotationSensitivity: 5
-  mouseRotationDuration: 0.2
-  maxRotationDistance: 2
+  mouseRotationSensitivity: 2
+  mouseRotationDuration: 0.15
+  maxRotationDistance: 3
   mouseRotationClarity: 1.5
   mouseTwitchDeadzone: 0.01
-  squashAmount: 0.15
+  squashAmount: 0.2
   cameraRotationThreshold: 300
   isRotating: 0
 --- !u!1 &1113145269
@@ -22570,6 +22577,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::RunodeFace2
   powerLineType: 7
   poweredBySource: {fileID: 0}
+  isFaceDirty: 0
   isFacePowered: 0
   isFaceBlocked: 0
   upBlocked: 0
@@ -23093,6 +23101,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::RunodeFace2
   powerLineType: 7
   poweredBySource: {fileID: 0}
+  isFaceDirty: 0
   isFacePowered: 0
   isFaceBlocked: 0
   upBlocked: 0
@@ -23868,6 +23877,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::RunodeFace2
   powerLineType: 7
   poweredBySource: {fileID: 0}
+  isFaceDirty: 0
   isFacePowered: 0
   isFaceBlocked: 0
   upBlocked: 0
@@ -23904,7 +23914,7 @@ Transform:
   m_GameObject: {fileID: 8053925700251627169}
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalPosition: {x: 1, y: 7, z: 2}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children:
@@ -24156,6 +24166,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::RunodeFace2
   powerLineType: 7
   poweredBySource: {fileID: 0}
+  isFaceDirty: 0
   isFacePowered: 0
   isFaceBlocked: 0
   upBlocked: 0
@@ -24748,6 +24759,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::RunodeFace2
   powerLineType: 7
   poweredBySource: {fileID: 0}
+  isFaceDirty: 0
   isFacePowered: 0
   isFaceBlocked: 0
   upBlocked: 0
@@ -24928,6 +24940,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::RunodeFace2
   powerLineType: 7
   poweredBySource: {fileID: 0}
+  isFaceDirty: 0
   isFacePowered: 0
   isFaceBlocked: 0
   upBlocked: 0

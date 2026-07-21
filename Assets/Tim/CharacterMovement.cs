@@ -25,7 +25,7 @@ public class CharacterMovement : MonoBehaviour
     private CharacterController controller;
     private PlayerInput playerInput;
     private PlayerAnimator playerAnimator;
-    private TimCubeInteraction cubeInteraction;
+    private TimCubeController cubeInteraction;
     private bool isMovementEnabled = true;
     public void SetMovementEnabled(bool enabled) { isMovementEnabled = enabled; }
 
@@ -60,7 +60,7 @@ public class CharacterMovement : MonoBehaviour
         controller = GetComponent<CharacterController>();
         playerInput = GetComponent<PlayerInput>();
         playerAnimator = GetComponent<PlayerAnimator>();
-        cubeInteraction = GetComponent<TimCubeInteraction>();
+        cubeInteraction = GetComponent<TimCubeController>();
         cameraFollow = FindFirstObjectByType<CameraFollow>();
         
         // Fix PlayerInput notification behavior
