@@ -281,15 +281,16 @@ public class RunodeMovement : MonoBehaviour
     {
         Vector3 cubeCenter = transform.position;
         Vector3 right = observer.right;
+        Vector3 back = -observer.forward;
 
         Vector3[] origins = new Vector3[]
         {
             observer.position + Vector3.up * 1.7f,
             observer.position + Vector3.up * 1.0f,
-            observer.position + Vector3.up * 1.0f + right * 0.35f,
-            observer.position + Vector3.up * 1.0f - right * 0.35f,
-            observer.position + Vector3.up * 1.35f + right * 0.35f,
-            observer.position + Vector3.up * 0.75f - right * 0.35f,
+            observer.position + Vector3.up * 1.0f + right * 0.35f + back * 0.3f,
+            observer.position + Vector3.up * 1.0f - right * 0.35f + back * 0.3f,
+            observer.position + Vector3.up * 1.35f + right * 0.35f + back * 0.2f,
+            observer.position + Vector3.up * 0.75f - right * 0.35f + back * 0.2f,
         };
 
         int hitCount = 0;
