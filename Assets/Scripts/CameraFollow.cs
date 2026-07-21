@@ -45,10 +45,10 @@ public class CameraFollow : MonoBehaviour
     
     private Vector3[] presetOffsets = new Vector3[]
     {
-        new Vector3(0, 7, -10),    // North 
-        new Vector3(10, 7, 0),     // East  
-        new Vector3(0, 7, 10),     // South 
-        new Vector3(-10, 7, 0)     // West  
+        new Vector3(-1.5f, 7, -10),  // North 
+        new Vector3(10, 7, -1.5f),   // East  
+        new Vector3(1.5f, 7, 10),    // South 
+        new Vector3(-10, 7, 1.5f)    // West  
     };
     
     private int currentAngleIndex = 0;
