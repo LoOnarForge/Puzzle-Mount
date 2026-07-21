@@ -4,9 +4,11 @@ using UnityEngine;
 public class RunodeFace2 : MonoBehaviour
 {
 
-    [Header("DEBUG STATUS:")]
+    [Header("STATUS:")]
     public PowerLineType powerLineType = PowerLineType.Empty;
     public GameObject poweredBySource;
+
+    public bool isFaceDirty; 
     public bool isFacePowered;
     public bool isFaceBlocked;
 
@@ -24,7 +26,7 @@ public class RunodeFace2 : MonoBehaviour
 
     private void Awake()
     {
-        InitializeActivePorts();
+        InitializeActivePortsList();
     }
     public void SetInternalPortBlocked(PortID portName, bool blocked)
     {
@@ -32,17 +34,15 @@ public class RunodeFace2 : MonoBehaviour
         else if (portName == PortID.Right) rightBlocked = blocked;
         else if (portName == PortID.Down) downBlocked = blocked;
         else if (portName == PortID.Left) leftBlocked = blocked;
-
-        RefreshState();
     }
 
-    public void SetFaceBlocked(bool blocked)
+    public void SetFaceState(bool blocked)
     {
         isFaceBlocked = blocked;
 
         if (isFaceBlocked)
         {
-            if (lineRenderer != null) lineRenderer.color = new Color(0.18f, 0.18f, 0.18f); // Obstructed Dark Gray
+            if (lineRenderer != null) lineRenderer.color = new Color(0.18f, 0.18f, 0.18f); 
             isFacePowered = false;
             poweredBySource = null;
         }
@@ -50,16 +50,9 @@ public class RunodeFace2 : MonoBehaviour
         {
             if (lineRenderer != null) lineRenderer.color = Color.white;
         }
-
-        RefreshState();
     }
 
-    public void RefreshState() 
-    { 
-        // Snapshot logic for Overlord will go here
-    }
-
-    public void UpdateVisuals(Color newColor, GameObject source)
+    public void UpdateFaceVisuals(Color newColor, GameObject source)
     {
         if (isFaceBlocked) return;
 
@@ -73,7 +66,7 @@ public class RunodeFace2 : MonoBehaviour
     }
 
 
-    private void InitializeActivePorts()
+    private void InitializeActivePortsList()
     {
         activePorts.Clear();
 

@@ -1910,6 +1910,7 @@ GameObject:
   m_Component:
   - component: {fileID: 134650939}
   - component: {fileID: 134650940}
+  - component: {fileID: 134650941}
   m_Layer: 19
   m_Name: Port Main N
   m_TagString: Untagged
@@ -1953,6 +1954,23 @@ BoxCollider:
   serializedVersion: 3
   m_Size: {x: 0.7, y: 0.7, z: 0.1}
   m_Center: {x: 0, y: 0, z: 0}
+--- !u!114 &134650941
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 134650938}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 76f51020e999be84291314a0ce7a8641, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::PortTrigger
+  parentFace: {fileID: 2745211770907058906}
+  portName: 0
+  obstructionMask:
+    serializedVersion: 2
+    m_Bits: 3584
 --- !u!1 &135166048
 GameObject:
   m_ObjectHideFlags: 0
@@ -2187,6 +2205,7 @@ GameObject:
   m_Component:
   - component: {fileID: 154181164}
   - component: {fileID: 154181165}
+  - component: {fileID: 154181166}
   m_Layer: 19
   m_Name: Port  Right B
   m_TagString: Untagged
@@ -2230,6 +2249,23 @@ BoxCollider:
   serializedVersion: 3
   m_Size: {x: 0.2, y: 0.1, z: 0.1}
   m_Center: {x: 0, y: 0, z: 0}
+--- !u!114 &154181166
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 154181163}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 76f51020e999be84291314a0ce7a8641, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::PortTrigger
+  parentFace: {fileID: 4241986859323210503}
+  portName: 2
+  obstructionMask:
+    serializedVersion: 2
+    m_Bits: 3584
 --- !u!1 &154774457
 GameObject:
   m_ObjectHideFlags: 0
@@ -3987,13 +4023,14 @@ GameObject:
   m_Component:
   - component: {fileID: 364058313}
   - component: {fileID: 364058314}
+  - component: {fileID: 364058315}
   m_Layer: 19
   m_Name: Port  Left B
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 0
+  m_IsActive: 1
 --- !u!4 &364058313
 Transform:
   m_ObjectHideFlags: 0
@@ -4030,6 +4067,23 @@ BoxCollider:
   serializedVersion: 3
   m_Size: {x: 0.2, y: 0.1, z: 0.1}
   m_Center: {x: 0, y: 0, z: 0}
+--- !u!114 &364058315
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 364058312}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 76f51020e999be84291314a0ce7a8641, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::PortTrigger
+  parentFace: {fileID: 4241986859323210503}
+  portName: 4
+  obstructionMask:
+    serializedVersion: 2
+    m_Bits: 3584
 --- !u!4 &364163060 stripped
 Transform:
   m_CorrespondingSourceObject: {fileID: 1729853625214559490, guid: b2d107c109e46fc48aebda36ce5e9ae6, type: 3}
@@ -4125,6 +4179,7 @@ GameObject:
   m_Component:
   - component: {fileID: 380524944}
   - component: {fileID: 380524945}
+  - component: {fileID: 380524946}
   m_Layer: 19
   m_Name: Port Right N
   m_TagString: Untagged
@@ -4168,6 +4223,23 @@ BoxCollider:
   serializedVersion: 3
   m_Size: {x: 0.2, y: 0.1, z: 0.1}
   m_Center: {x: 0, y: 0, z: 0}
+--- !u!114 &380524946
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 380524943}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 76f51020e999be84291314a0ce7a8641, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::PortTrigger
+  parentFace: {fileID: 2745211770907058906}
+  portName: 2
+  obstructionMask:
+    serializedVersion: 2
+    m_Bits: 3584
 --- !u!1 &383162888
 GameObject:
   m_ObjectHideFlags: 0
@@ -4948,6 +5020,7 @@ GameObject:
   m_Component:
   - component: {fileID: 452978337}
   - component: {fileID: 452978338}
+  - component: {fileID: 452978339}
   m_Layer: 19
   m_Name: Port Main B
   m_TagString: Untagged
@@ -4991,6 +5064,23 @@ BoxCollider:
   serializedVersion: 3
   m_Size: {x: 0.7, y: 0.7, z: 0.1}
   m_Center: {x: 0, y: 0, z: 0}
+--- !u!114 &452978339
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 452978336}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 76f51020e999be84291314a0ce7a8641, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::PortTrigger
+  parentFace: {fileID: 4241986859323210503}
+  portName: 0
+  obstructionMask:
+    serializedVersion: 2
+    m_Bits: 3584
 --- !u!1 &464060274
 GameObject:
   m_ObjectHideFlags: 0
@@ -5724,13 +5814,14 @@ GameObject:
   m_Component:
   - component: {fileID: 557866928}
   - component: {fileID: 557866929}
+  - component: {fileID: 557866930}
   m_Layer: 19
   m_Name: Port Down S
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 0
+  m_IsActive: 1
 --- !u!4 &557866928
 Transform:
   m_ObjectHideFlags: 0
@@ -5767,6 +5858,23 @@ BoxCollider:
   serializedVersion: 3
   m_Size: {x: 0.1, y: 0.2, z: 0.1}
   m_Center: {x: 0, y: 0, z: 0}
+--- !u!114 &557866930
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 557866927}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 76f51020e999be84291314a0ce7a8641, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::PortTrigger
+  parentFace: {fileID: 1599226723308219511}
+  portName: 3
+  obstructionMask:
+    serializedVersion: 2
+    m_Bits: 3584
 --- !u!1 &572771888
 GameObject:
   m_ObjectHideFlags: 0
@@ -5889,13 +5997,14 @@ GameObject:
   m_Component:
   - component: {fileID: 600884330}
   - component: {fileID: 600884331}
+  - component: {fileID: 600884332}
   m_Layer: 19
   m_Name: Port Left W
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 0
+  m_IsActive: 1
 --- !u!4 &600884330
 Transform:
   m_ObjectHideFlags: 0
@@ -5932,6 +6041,23 @@ BoxCollider:
   serializedVersion: 3
   m_Size: {x: 0.2, y: 0.1, z: 0.1}
   m_Center: {x: 0, y: 0, z: 0}
+--- !u!114 &600884332
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 600884329}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 76f51020e999be84291314a0ce7a8641, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::PortTrigger
+  parentFace: {fileID: 5240559529396541017}
+  portName: 4
+  obstructionMask:
+    serializedVersion: 2
+    m_Bits: 3584
 --- !u!1 &603787540
 GameObject:
   m_ObjectHideFlags: 0
@@ -7729,6 +7855,7 @@ GameObject:
   m_Component:
   - component: {fileID: 773006799}
   - component: {fileID: 773006800}
+  - component: {fileID: 773006801}
   m_Layer: 19
   m_Name: Port Main S
   m_TagString: Untagged
@@ -7772,6 +7899,23 @@ BoxCollider:
   serializedVersion: 3
   m_Size: {x: 0.7, y: 0.7, z: 0.1}
   m_Center: {x: 0, y: 0, z: 0}
+--- !u!114 &773006801
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 773006798}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 76f51020e999be84291314a0ce7a8641, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::PortTrigger
+  parentFace: {fileID: 1599226723308219511}
+  portName: 0
+  obstructionMask:
+    serializedVersion: 2
+    m_Bits: 3584
 --- !u!1 &782393697
 GameObject:
   m_ObjectHideFlags: 0
@@ -8329,6 +8473,7 @@ GameObject:
   m_Component:
   - component: {fileID: 851283811}
   - component: {fileID: 851283812}
+  - component: {fileID: 851283813}
   m_Layer: 19
   m_Name: Port Right S
   m_TagString: Untagged
@@ -8372,6 +8517,23 @@ BoxCollider:
   serializedVersion: 3
   m_Size: {x: 0.2, y: 0.1, z: 0.1}
   m_Center: {x: 0, y: 0, z: 0}
+--- !u!114 &851283813
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 851283810}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 76f51020e999be84291314a0ce7a8641, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::PortTrigger
+  parentFace: {fileID: 1599226723308219511}
+  portName: 2
+  obstructionMask:
+    serializedVersion: 2
+    m_Bits: 3584
 --- !u!1 &853821501
 GameObject:
   m_ObjectHideFlags: 0
@@ -9116,6 +9278,7 @@ GameObject:
   m_Component:
   - component: {fileID: 932505266}
   - component: {fileID: 932505267}
+  - component: {fileID: 932505268}
   m_Layer: 19
   m_Name: Port Up B
   m_TagString: Untagged
@@ -9159,6 +9322,23 @@ BoxCollider:
   serializedVersion: 3
   m_Size: {x: 0.1, y: 0.2, z: 0.1}
   m_Center: {x: 0, y: 0, z: 0}
+--- !u!114 &932505268
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 932505265}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 76f51020e999be84291314a0ce7a8641, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::PortTrigger
+  parentFace: {fileID: 4241986859323210503}
+  portName: 1
+  obstructionMask:
+    serializedVersion: 2
+    m_Bits: 3584
 --- !u!1 &956693183
 GameObject:
   m_ObjectHideFlags: 0
@@ -9282,6 +9462,7 @@ GameObject:
   m_Component:
   - component: {fileID: 957528600}
   - component: {fileID: 957528601}
+  - component: {fileID: 957528602}
   m_Layer: 19
   m_Name: Port Up S
   m_TagString: Untagged
@@ -9325,6 +9506,23 @@ BoxCollider:
   serializedVersion: 3
   m_Size: {x: 0.1, y: 0.2, z: 0.1}
   m_Center: {x: 0, y: 0, z: 0}
+--- !u!114 &957528602
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 957528599}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 76f51020e999be84291314a0ce7a8641, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::PortTrigger
+  parentFace: {fileID: 1599226723308219511}
+  portName: 1
+  obstructionMask:
+    serializedVersion: 2
+    m_Bits: 3584
 --- !u!1 &967748284
 GameObject:
   m_ObjectHideFlags: 0
@@ -9335,13 +9533,14 @@ GameObject:
   m_Component:
   - component: {fileID: 967748285}
   - component: {fileID: 967748286}
+  - component: {fileID: 967748287}
   m_Layer: 19
   m_Name: Port Down E
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 0
+  m_IsActive: 1
 --- !u!4 &967748285
 Transform:
   m_ObjectHideFlags: 0
@@ -9378,6 +9577,23 @@ BoxCollider:
   serializedVersion: 3
   m_Size: {x: 0.1, y: 0.2, z: 0.1}
   m_Center: {x: 0, y: 0, z: 0}
+--- !u!114 &967748287
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 967748284}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 76f51020e999be84291314a0ce7a8641, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::PortTrigger
+  parentFace: {fileID: 6865805264148462819}
+  portName: 3
+  obstructionMask:
+    serializedVersion: 2
+    m_Bits: 3584
 --- !u!1 &971381842
 GameObject:
   m_ObjectHideFlags: 0
@@ -9683,8 +9899,8 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 76f51020e999be84291314a0ce7a8641, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::PortTrigger
-  parentFace: {fileID: 0}
-  portName: 0
+  parentFace: {fileID: 7463614216560191778}
+  portName: 4
   obstructionMask:
     serializedVersion: 2
     m_Bits: 3584
@@ -9698,6 +9914,7 @@ GameObject:
   m_Component:
   - component: {fileID: 985697104}
   - component: {fileID: 985697105}
+  - component: {fileID: 985697106}
   m_Layer: 19
   m_Name: Port Up N
   m_TagString: Untagged
@@ -9741,6 +9958,23 @@ BoxCollider:
   serializedVersion: 3
   m_Size: {x: 0.1, y: 0.2, z: 0.1}
   m_Center: {x: 0, y: 0, z: 0}
+--- !u!114 &985697106
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 985697103}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 76f51020e999be84291314a0ce7a8641, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::PortTrigger
+  parentFace: {fileID: 2745211770907058906}
+  portName: 1
+  obstructionMask:
+    serializedVersion: 2
+    m_Bits: 3584
 --- !u!1 &1040249984
 GameObject:
   m_ObjectHideFlags: 0
@@ -10826,6 +11060,7 @@ GameObject:
   m_Component:
   - component: {fileID: 1113145270}
   - component: {fileID: 1113145271}
+  - component: {fileID: 1113145272}
   m_Layer: 19
   m_Name: Port Up E
   m_TagString: Untagged
@@ -10869,6 +11104,23 @@ BoxCollider:
   serializedVersion: 3
   m_Size: {x: 0.1, y: 0.2, z: 0.1}
   m_Center: {x: 0, y: 0, z: 0}
+--- !u!114 &1113145272
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1113145269}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 76f51020e999be84291314a0ce7a8641, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::PortTrigger
+  parentFace: {fileID: 6865805264148462819}
+  portName: 1
+  obstructionMask:
+    serializedVersion: 2
+    m_Bits: 3584
 --- !u!1 &1142459525
 GameObject:
   m_ObjectHideFlags: 0
@@ -10879,13 +11131,14 @@ GameObject:
   m_Component:
   - component: {fileID: 1142459526}
   - component: {fileID: 1142459527}
+  - component: {fileID: 1142459528}
   m_Layer: 19
   m_Name: Port Down W
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 0
+  m_IsActive: 1
 --- !u!4 &1142459526
 Transform:
   m_ObjectHideFlags: 0
@@ -10922,6 +11175,23 @@ BoxCollider:
   serializedVersion: 3
   m_Size: {x: 0.1, y: 0.2, z: 0.1}
   m_Center: {x: 0, y: 0, z: 0}
+--- !u!114 &1142459528
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1142459525}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 76f51020e999be84291314a0ce7a8641, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::PortTrigger
+  parentFace: {fileID: 5240559529396541017}
+  portName: 3
+  obstructionMask:
+    serializedVersion: 2
+    m_Bits: 3584
 --- !u!1 &1161400239
 GameObject:
   m_ObjectHideFlags: 0
@@ -11403,13 +11673,14 @@ GameObject:
   m_Component:
   - component: {fileID: 1219889509}
   - component: {fileID: 1219889510}
+  - component: {fileID: 1219889511}
   m_Layer: 19
   m_Name: Port Down N
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 0
+  m_IsActive: 1
 --- !u!4 &1219889509
 Transform:
   m_ObjectHideFlags: 0
@@ -11446,6 +11717,23 @@ BoxCollider:
   serializedVersion: 3
   m_Size: {x: 0.1, y: 0.2, z: 0.1}
   m_Center: {x: 0, y: 0, z: 0}
+--- !u!114 &1219889511
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1219889508}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 76f51020e999be84291314a0ce7a8641, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::PortTrigger
+  parentFace: {fileID: 2745211770907058906}
+  portName: 3
+  obstructionMask:
+    serializedVersion: 2
+    m_Bits: 3584
 --- !u!4 &1230552791 stripped
 Transform:
   m_CorrespondingSourceObject: {fileID: 7276313125923345546, guid: 8327116535cf1624d9db336499d66ebe, type: 3}
@@ -12042,6 +12330,7 @@ GameObject:
   m_Component:
   - component: {fileID: 1311725889}
   - component: {fileID: 1311725890}
+  - component: {fileID: 1311725891}
   m_Layer: 19
   m_Name: Port Right W
   m_TagString: Untagged
@@ -12085,6 +12374,23 @@ BoxCollider:
   serializedVersion: 3
   m_Size: {x: 0.2, y: 0.1, z: 0.1}
   m_Center: {x: 0, y: 0, z: 0}
+--- !u!114 &1311725891
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1311725888}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 76f51020e999be84291314a0ce7a8641, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::PortTrigger
+  parentFace: {fileID: 5240559529396541017}
+  portName: 2
+  obstructionMask:
+    serializedVersion: 2
+    m_Bits: 3584
 --- !u!1 &1328362159
 GameObject:
   m_ObjectHideFlags: 0
@@ -13896,7 +14202,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 76f51020e999be84291314a0ce7a8641, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::PortTrigger
-  parentFace: {fileID: 0}
+  parentFace: {fileID: 7463614216560191778}
   portName: 0
   obstructionMask:
     serializedVersion: 2
@@ -13911,6 +14217,7 @@ GameObject:
   m_Component:
   - component: {fileID: 1512422410}
   - component: {fileID: 1512422411}
+  - component: {fileID: 1512422412}
   m_Layer: 19
   m_Name: Port Up W
   m_TagString: Untagged
@@ -13954,6 +14261,23 @@ BoxCollider:
   serializedVersion: 3
   m_Size: {x: 0.1, y: 0.2, z: 0.1}
   m_Center: {x: 0, y: 0, z: 0}
+--- !u!114 &1512422412
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1512422409}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 76f51020e999be84291314a0ce7a8641, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::PortTrigger
+  parentFace: {fileID: 5240559529396541017}
+  portName: 1
+  obstructionMask:
+    serializedVersion: 2
+    m_Bits: 3584
 --- !u!1 &1513080151
 GameObject:
   m_ObjectHideFlags: 0
@@ -14834,6 +15158,63 @@ MeshFilter:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1583983401}
   m_Mesh: {fileID: 10202, guid: 0000000000000000e000000000000000, type: 0}
+--- !u!1001 &1584310765
+PrefabInstance:
+  m_ObjectHideFlags: 0
+  serializedVersion: 2
+  m_Modification:
+    serializedVersion: 3
+    m_TransformParent: {fileID: 0}
+    m_Modifications:
+    - target: {fileID: 3273271998406272428, guid: dbd0f4ebc6a48084d9e297b9265589b0, type: 3}
+      propertyPath: m_LocalPosition.x
+      value: 6
+      objectReference: {fileID: 0}
+    - target: {fileID: 3273271998406272428, guid: dbd0f4ebc6a48084d9e297b9265589b0, type: 3}
+      propertyPath: m_LocalPosition.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 3273271998406272428, guid: dbd0f4ebc6a48084d9e297b9265589b0, type: 3}
+      propertyPath: m_LocalPosition.z
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 3273271998406272428, guid: dbd0f4ebc6a48084d9e297b9265589b0, type: 3}
+      propertyPath: m_LocalRotation.w
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 3273271998406272428, guid: dbd0f4ebc6a48084d9e297b9265589b0, type: 3}
+      propertyPath: m_LocalRotation.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 3273271998406272428, guid: dbd0f4ebc6a48084d9e297b9265589b0, type: 3}
+      propertyPath: m_LocalRotation.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 3273271998406272428, guid: dbd0f4ebc6a48084d9e297b9265589b0, type: 3}
+      propertyPath: m_LocalRotation.z
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 3273271998406272428, guid: dbd0f4ebc6a48084d9e297b9265589b0, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 3273271998406272428, guid: dbd0f4ebc6a48084d9e297b9265589b0, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 3273271998406272428, guid: dbd0f4ebc6a48084d9e297b9265589b0, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.z
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 5487544837066006667, guid: dbd0f4ebc6a48084d9e297b9265589b0, type: 3}
+      propertyPath: m_Name
+      value: Power Source (001)
+      objectReference: {fileID: 0}
+    m_RemovedComponents: []
+    m_RemovedGameObjects: []
+    m_AddedGameObjects: []
+    m_AddedComponents: []
+  m_SourcePrefab: {fileID: 100100000, guid: dbd0f4ebc6a48084d9e297b9265589b0, type: 3}
 --- !u!1 &1593776423
 GameObject:
   m_ObjectHideFlags: 0
@@ -15653,7 +16034,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 0
+  m_IsActive: 1
 --- !u!4 &1634782198
 Transform:
   m_ObjectHideFlags: 0
@@ -15702,8 +16083,8 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 76f51020e999be84291314a0ce7a8641, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::PortTrigger
-  parentFace: {fileID: 0}
-  portName: 0
+  parentFace: {fileID: 7463614216560191778}
+  portName: 3
   obstructionMask:
     serializedVersion: 2
     m_Bits: 3584
@@ -15987,6 +16368,7 @@ GameObject:
   m_Component:
   - component: {fileID: 1644445403}
   - component: {fileID: 1644445404}
+  - component: {fileID: 1644445405}
   m_Layer: 19
   m_Name: Port Main E
   m_TagString: Untagged
@@ -16030,6 +16412,23 @@ BoxCollider:
   serializedVersion: 3
   m_Size: {x: 0.7, y: 0.7, z: 0.1}
   m_Center: {x: 0, y: 0, z: 0}
+--- !u!114 &1644445405
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1644445402}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 76f51020e999be84291314a0ce7a8641, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::PortTrigger
+  parentFace: {fileID: 6865805264148462819}
+  portName: 0
+  obstructionMask:
+    serializedVersion: 2
+    m_Bits: 3584
 --- !u!4 &1660527590 stripped
 Transform:
   m_CorrespondingSourceObject: {fileID: 8902606975863235329, guid: 855201908bf14984d8f14c02bd26d1bc, type: 3}
@@ -17378,13 +17777,14 @@ GameObject:
   m_Component:
   - component: {fileID: 1806208666}
   - component: {fileID: 1806208667}
+  - component: {fileID: 1806208668}
   m_Layer: 19
   m_Name: Port Left N
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 0
+  m_IsActive: 1
 --- !u!4 &1806208666
 Transform:
   m_ObjectHideFlags: 0
@@ -17421,6 +17821,23 @@ BoxCollider:
   serializedVersion: 3
   m_Size: {x: 0.2, y: 0.1, z: 0.1}
   m_Center: {x: 0, y: 0, z: 0}
+--- !u!114 &1806208668
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1806208665}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 76f51020e999be84291314a0ce7a8641, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::PortTrigger
+  parentFace: {fileID: 2745211770907058906}
+  portName: 4
+  obstructionMask:
+    serializedVersion: 2
+    m_Bits: 3584
 --- !u!1 &1814463768
 GameObject:
   m_ObjectHideFlags: 0
@@ -17613,8 +18030,8 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 76f51020e999be84291314a0ce7a8641, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::PortTrigger
-  parentFace: {fileID: 0}
-  portName: 0
+  parentFace: {fileID: 7463614216560191778}
+  portName: 2
   obstructionMask:
     serializedVersion: 2
     m_Bits: 3584
@@ -17740,13 +18157,14 @@ GameObject:
   m_Component:
   - component: {fileID: 1836573688}
   - component: {fileID: 1836573689}
+  - component: {fileID: 1836573690}
   m_Layer: 19
   m_Name: Port Left S
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 0
+  m_IsActive: 1
 --- !u!4 &1836573688
 Transform:
   m_ObjectHideFlags: 0
@@ -17783,6 +18201,23 @@ BoxCollider:
   serializedVersion: 3
   m_Size: {x: 0.2, y: 0.1, z: 0.1}
   m_Center: {x: 0, y: 0, z: 0}
+--- !u!114 &1836573690
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1836573687}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 76f51020e999be84291314a0ce7a8641, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::PortTrigger
+  parentFace: {fileID: 1599226723308219511}
+  portName: 4
+  obstructionMask:
+    serializedVersion: 2
+    m_Bits: 3584
 --- !u!1 &1837290286
 GameObject:
   m_ObjectHideFlags: 0
@@ -17905,13 +18340,14 @@ GameObject:
   m_Component:
   - component: {fileID: 1840697396}
   - component: {fileID: 1840697397}
+  - component: {fileID: 1840697398}
   m_Layer: 19
   m_Name: Port  Down B
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 0
+  m_IsActive: 1
 --- !u!4 &1840697396
 Transform:
   m_ObjectHideFlags: 0
@@ -17948,6 +18384,23 @@ BoxCollider:
   serializedVersion: 3
   m_Size: {x: 0.1, y: 0.2, z: 0.1}
   m_Center: {x: 0, y: 0, z: 0}
+--- !u!114 &1840697398
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1840697395}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 76f51020e999be84291314a0ce7a8641, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::PortTrigger
+  parentFace: {fileID: 4241986859323210503}
+  portName: 3
+  obstructionMask:
+    serializedVersion: 2
+    m_Bits: 3584
 --- !u!1 &1852940356
 GameObject:
   m_ObjectHideFlags: 0
@@ -18227,6 +18680,7 @@ GameObject:
   m_Component:
   - component: {fileID: 1858374250}
   - component: {fileID: 1858374251}
+  - component: {fileID: 1858374252}
   m_Layer: 19
   m_Name: Port Main W
   m_TagString: Untagged
@@ -18270,6 +18724,23 @@ BoxCollider:
   serializedVersion: 3
   m_Size: {x: 0.7, y: 0.7, z: 0.1}
   m_Center: {x: 0, y: 0, z: 0}
+--- !u!114 &1858374252
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1858374249}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 76f51020e999be84291314a0ce7a8641, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::PortTrigger
+  parentFace: {fileID: 5240559529396541017}
+  portName: 0
+  obstructionMask:
+    serializedVersion: 2
+    m_Bits: 3584
 --- !u!1 &1870936591
 GameObject:
   m_ObjectHideFlags: 0
@@ -19680,6 +20151,7 @@ GameObject:
   m_Component:
   - component: {fileID: 1979503184}
   - component: {fileID: 1979503185}
+  - component: {fileID: 1979503186}
   m_Layer: 19
   m_Name: Port Right E
   m_TagString: Untagged
@@ -19723,6 +20195,23 @@ BoxCollider:
   serializedVersion: 3
   m_Size: {x: 0.2, y: 0.1, z: 0.1}
   m_Center: {x: 0, y: 0, z: 0}
+--- !u!114 &1979503186
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1979503183}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 76f51020e999be84291314a0ce7a8641, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::PortTrigger
+  parentFace: {fileID: 6865805264148462819}
+  portName: 2
+  obstructionMask:
+    serializedVersion: 2
+    m_Bits: 3584
 --- !u!1 &1990927692
 GameObject:
   m_ObjectHideFlags: 0
@@ -19733,13 +20222,14 @@ GameObject:
   m_Component:
   - component: {fileID: 1990927693}
   - component: {fileID: 1990927694}
+  - component: {fileID: 1990927695}
   m_Layer: 19
   m_Name: Port Left E
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 0
+  m_IsActive: 1
 --- !u!4 &1990927693
 Transform:
   m_ObjectHideFlags: 0
@@ -19776,6 +20266,23 @@ BoxCollider:
   serializedVersion: 3
   m_Size: {x: 0.2, y: 0.1, z: 0.1}
   m_Center: {x: 0, y: 0, z: 0}
+--- !u!114 &1990927695
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1990927692}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 76f51020e999be84291314a0ce7a8641, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::PortTrigger
+  parentFace: {fileID: 6865805264148462819}
+  portName: 4
+  obstructionMask:
+    serializedVersion: 2
+    m_Bits: 3584
 --- !u!1 &1997408849
 GameObject:
   m_ObjectHideFlags: 0
@@ -20628,7 +21135,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 1
+  m_IsActive: 0
 --- !u!4 &2081227391
 Transform:
   m_ObjectHideFlags: 0
@@ -20677,8 +21184,8 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 76f51020e999be84291314a0ce7a8641, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::PortTrigger
-  parentFace: {fileID: 0}
-  portName: 0
+  parentFace: {fileID: 7463614216560191778}
+  portName: 1
   obstructionMask:
     serializedVersion: 2
     m_Bits: 3584
@@ -21807,6 +22314,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 4241986859323210502}
+  - component: {fileID: 4241986859323210503}
   m_Layer: 0
   m_Name: Bottom Face
   m_TagString: Untagged
@@ -21823,6 +22331,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 6865805264148462818}
+  - component: {fileID: 6865805264148462819}
   m_Layer: 0
   m_Name: East Face
   m_TagString: Untagged
@@ -21857,7 +22366,7 @@ Transform:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1871200175901479576}
   serializedVersion: 2
-  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalRotation: {x: 0, y: 0, z: 0.7071068, w: 0.7071068}
   m_LocalPosition: {x: 0, y: 0, z: -0.002}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
@@ -22039,6 +22548,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 110234360137731407}
+  - component: {fileID: 1599226723308219511}
   m_Layer: 0
   m_Name: South Face
   m_TagString: Untagged
@@ -22046,6 +22556,28 @@ GameObject:
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
   m_IsActive: 1
+--- !u!114 &1599226723308219511
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1599226723308219510}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 0faea3ebde937f8469cff0fc3409daf5, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::RunodeFace2
+  powerLineType: 7
+  poweredBySource: {fileID: 0}
+  isFacePowered: 0
+  isFaceBlocked: 0
+  upBlocked: 0
+  rightBlocked: 0
+  downBlocked: 0
+  leftBlocked: 0
+  lineRenderer: {fileID: 3805558453740456540}
+  activePorts: []
 --- !u!1 &1667205180985017036
 GameObject:
   m_ObjectHideFlags: 0
@@ -22539,6 +23071,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 945967600262334095}
+  - component: {fileID: 2745211770907058906}
   m_Layer: 0
   m_Name: North Face
   m_TagString: Untagged
@@ -22546,6 +23079,28 @@ GameObject:
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
   m_IsActive: 1
+--- !u!114 &2745211770907058906
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2745211770907058905}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 0faea3ebde937f8469cff0fc3409daf5, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::RunodeFace2
+  powerLineType: 7
+  poweredBySource: {fileID: 0}
+  isFacePowered: 0
+  isFaceBlocked: 0
+  upBlocked: 0
+  rightBlocked: 0
+  downBlocked: 0
+  leftBlocked: 0
+  lineRenderer: {fileID: 6411443038047748188}
+  activePorts: []
 --- !u!1 &2822505575193812660
 GameObject:
   m_ObjectHideFlags: 0
@@ -23299,6 +23854,28 @@ Transform:
   - {fileID: 364058313}
   m_Father: {fileID: 7857640728555318650}
   m_LocalEulerAnglesHint: {x: 270, y: 0, z: 0}
+--- !u!114 &4241986859323210503
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1070293361805975258}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 0faea3ebde937f8469cff0fc3409daf5, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::RunodeFace2
+  powerLineType: 7
+  poweredBySource: {fileID: 0}
+  isFacePowered: 0
+  isFaceBlocked: 0
+  upBlocked: 0
+  rightBlocked: 0
+  downBlocked: 0
+  leftBlocked: 0
+  lineRenderer: {fileID: 38620357310167318}
+  activePorts: []
 --- !u!1 &4333444885415444036
 GameObject:
   m_ObjectHideFlags: 0
@@ -23557,6 +24134,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 4150791447664136617}
+  - component: {fileID: 5240559529396541017}
   m_Layer: 0
   m_Name: West Face
   m_TagString: Untagged
@@ -23564,6 +24142,28 @@ GameObject:
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
   m_IsActive: 1
+--- !u!114 &5240559529396541017
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 5240559529396541016}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 0faea3ebde937f8469cff0fc3409daf5, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::RunodeFace2
+  powerLineType: 7
+  poweredBySource: {fileID: 0}
+  isFacePowered: 0
+  isFaceBlocked: 0
+  upBlocked: 0
+  rightBlocked: 0
+  downBlocked: 0
+  leftBlocked: 0
+  lineRenderer: {fileID: 229041182001190782}
+  activePorts: []
 --- !u!1 &5258833213194825546
 GameObject:
   m_ObjectHideFlags: 0
@@ -23589,7 +24189,7 @@ Transform:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 3599117859767087583}
   serializedVersion: 2
-  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalRotation: {x: 0, y: 0, z: 0.7071068, w: 0.7071068}
   m_LocalPosition: {x: 0, y: 0, z: -0.002}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
@@ -23650,7 +24250,7 @@ Transform:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1713508300587365007}
   serializedVersion: 2
-  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalRotation: {x: 0, y: 0, z: 0.7071068, w: 0.7071068}
   m_LocalPosition: {x: 0, y: 0, z: -0.002}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
@@ -23669,12 +24269,12 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 5c903f28f5274c94ba62ada9a7a9a24d, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::RunodePower
-  topFace: 4
-  bottomFace: 4
-  northFace: 4
-  southFace: 4
-  eastFace: 4
-  westFace: 4
+  topFace: 7
+  bottomFace: 7
+  northFace: 7
+  southFace: 7
+  eastFace: 7
+  westFace: 7
   topFaceTransform: {fileID: 4110883256100478740}
   bottomFaceTransform: {fileID: 4241986859323210502}
   northFaceTransform: {fileID: 945967600262334095}
@@ -23928,7 +24528,7 @@ Transform:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 89872720070888212}
   serializedVersion: 2
-  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalRotation: {x: 0, y: 0, z: 0.7071068, w: 0.7071068}
   m_LocalPosition: {x: 0, y: 0, z: -0.002}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
@@ -24134,6 +24734,28 @@ Transform:
   - {fileID: 1990927693}
   m_Father: {fileID: 7857640728555318650}
   m_LocalEulerAnglesHint: {x: 0, y: 270, z: 0}
+--- !u!114 &6865805264148462819
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1094527478816771362}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 0faea3ebde937f8469cff0fc3409daf5, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::RunodeFace2
+  powerLineType: 7
+  poweredBySource: {fileID: 0}
+  isFacePowered: 0
+  isFaceBlocked: 0
+  upBlocked: 0
+  rightBlocked: 0
+  downBlocked: 0
+  leftBlocked: 0
+  lineRenderer: {fileID: 4072647268914758265}
+  activePorts: []
 --- !u!33 &6883548142670218058
 MeshFilter:
   m_ObjectHideFlags: 0
@@ -24304,7 +24926,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 0faea3ebde937f8469cff0fc3409daf5, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::RunodeFace2
-  powerLineType: 4
+  powerLineType: 7
   poweredBySource: {fileID: 0}
   isFacePowered: 0
   isFaceBlocked: 0
@@ -24385,7 +25007,7 @@ Transform:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 5258833213194825546}
   serializedVersion: 2
-  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalRotation: {x: 0, y: 0, z: 0.7071068, w: 0.7071068}
   m_LocalPosition: {x: 0, y: 0, z: -0.002}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
@@ -24749,7 +25371,7 @@ Transform:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 6512034697033929055}
   serializedVersion: 2
-  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalRotation: {x: 0, y: 0, z: 0.7071068, w: 0.7071068}
   m_LocalPosition: {x: 0, y: 0, z: -0.002}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
@@ -24822,3 +25444,4 @@ SceneRoots:
   - {fileID: 1642399905}
   - {fileID: 4453437047869964181}
   - {fileID: 1290518538}
+  - {fileID: 1584310765}

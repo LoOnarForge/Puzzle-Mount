@@ -13,7 +13,7 @@ public class PortTrigger : MonoBehaviour
         if (((1 << other.gameObject.layer) & obstructionMask) != 0)
         {
             if (portName == PortID.Main)
-                parentFace.SetFaceBlocked(true);
+                parentFace.SetFaceState(true);
             else
                 parentFace.SetInternalPortBlocked(portName, true);
         }
@@ -24,7 +24,7 @@ public class PortTrigger : MonoBehaviour
         if (((1 << other.gameObject.layer) & obstructionMask) != 0)
         {
             if (portName == PortID.Main)
-                parentFace.SetFaceBlocked(false);
+                parentFace.SetFaceState(false);
             else
                 parentFace.SetInternalPortBlocked(portName, false);
         }
