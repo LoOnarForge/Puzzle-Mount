@@ -280,14 +280,19 @@ public class RunodeMovement : MonoBehaviour
     public bool IsVisibleFrom(Transform observer, Vector3 targetPoint, LayerMask layerMask)
     {
         Vector3 cubeCenter = transform.position;
+        Vector3 right = observer.right;
 
         Vector3[] origins = new Vector3[]
         {
             observer.position + Vector3.up * 1.7f,
             observer.position + Vector3.up * 1.0f,
-            observer.position + Vector3.up * 1.0f + observer.right * 0.25f,
-            observer.position + Vector3.up * 1.0f - observer.right * 0.25f
+            observer.position + Vector3.up * 1.0f + right * 0.35f,
+            observer.position + Vector3.up * 1.0f - right * 0.35f,
+            observer.position + Vector3.up * 1.35f + right * 0.35f,
+            observer.position + Vector3.up * 0.75f - right * 0.35f,
         };
+
+        int hitCount = 0;
 
         foreach (Vector3 origin in origins)
         {
@@ -313,7 +318,11 @@ public class RunodeMovement : MonoBehaviour
                 }
 
                 RunodeMovement hitCube = hit.collider.GetComponentInParent<RunodeMovement>();
-                if (hitCube == this) return true;
+                if (hitCube == this)
+                {
+                    hitCount++;
+                    break;
+                }
 
                 if (hitCube != null && IsSameStackBelow(hitCube))
                 {
@@ -324,8 +333,11 @@ public class RunodeMovement : MonoBehaviour
 
                 break;
             }
+
+            if (hitCount >= 2) return true;
         }
-        return false;
+
+        return hitCount >= 2;
     }
 
     private bool IsSameStackBelow(RunodeMovement other)

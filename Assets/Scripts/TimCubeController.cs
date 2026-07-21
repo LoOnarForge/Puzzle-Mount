@@ -59,6 +59,7 @@ public class TimCubeController : MonoBehaviour
     // Mouse rotation state
     private bool isMouseRotating = false;
     private bool hasTriggeredMouseRotation = false;
+    private bool hasMouseMovedDuringDrag = false;
     private RunodeMovement mouseRotTarget = null;
     private Vector2 lastMousePosition;
     private Vector3 mouseHitNormal;
@@ -358,6 +359,7 @@ public class TimCubeController : MonoBehaviour
                     {
                         isMouseRotating = true;
                         hasTriggeredMouseRotation = false;
+                        hasMouseMovedDuringDrag = false;
                         mouseRotTarget = mouseHitCube;
                         mouseHitNormal = visualNormal;
                         lastMousePosition = Mouse.current.position.ReadValue();
@@ -386,6 +388,8 @@ public class TimCubeController : MonoBehaviour
 
                 if (totalDelta.magnitude < mouseTwitchDeadzone) return;
 
+                hasMouseMovedDuringDrag = true;
+
                 float absX = Mathf.Abs(totalDelta.x);
                 float absY = Mathf.Abs(totalDelta.y);
                 float maxAxis = Mathf.Max(absX, absY);
@@ -410,7 +414,7 @@ public class TimCubeController : MonoBehaviour
             }
             else
             {
-                if (!hasTriggeredMouseRotation && mouseRotTarget != null)
+                if (!hasTriggeredMouseRotation && !hasMouseMovedDuringDrag && mouseRotTarget != null)
                 {
                     if (!isRotating && !mouseRotTarget.isRotating)
                     {
@@ -421,6 +425,7 @@ public class TimCubeController : MonoBehaviour
 
                 isMouseRotating = false;
                 hasTriggeredMouseRotation = false;
+                hasMouseMovedDuringDrag = false;
                 mouseRotTarget = null;
                 if (characterMovement != null) characterMovement.SetMovementEnabled(true);
             }
