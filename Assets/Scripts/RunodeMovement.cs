@@ -291,15 +291,48 @@ public class RunodeMovement : MonoBehaviour
         {
             Vector3 dir = (targetPoint - origin);
             float maxDist = dir.magnitude;
+            Vector3 rayDir = dir.normalized;
 
-            if (Physics.Raycast(origin, dir.normalized, out RaycastHit hit, maxDist + 0.1f, layerMask))
+            Vector3 currentOrigin = origin;
+            float remainingDist = maxDist + 0.1f;
+
+            for (int i = 0; i < 3; i++)
             {
-                if (hit.collider.transform.IsChildOf(observer)) continue;
+                if (remainingDist <= 0f) break;
+
+                if (!Physics.Raycast(currentOrigin, rayDir, out RaycastHit hit, remainingDist, layerMask))
+                    break;
+
+                if (hit.collider.transform.IsChildOf(observer))
+                {
+                    remainingDist -= hit.distance;
+                    currentOrigin = hit.point + rayDir * 0.01f;
+                    continue;
+                }
+
                 RunodeMovement hitCube = hit.collider.GetComponentInParent<RunodeMovement>();
                 if (hitCube == this) return true;
+
+                if (hitCube != null && IsSameStackBelow(hitCube))
+                {
+                    remainingDist -= hit.distance;
+                    currentOrigin = hit.point + rayDir * 0.01f;
+                    continue;
+                }
+
+                break;
             }
         }
         return false;
+    }
+
+    private bool IsSameStackBelow(RunodeMovement other)
+    {
+        Vector3 myPos = transform.position;
+        Vector3 otherPos = other.transform.position;
+        bool isAligned = Mathf.Abs(otherPos.x - myPos.x) < 0.1f && Mathf.Abs(otherPos.z - myPos.z) < 0.1f;
+        bool isBelow = otherPos.y < myPos.y;
+        return isAligned && isBelow;
     }
 
     public static Vector3 GetCardinalAxis(Vector3 v)
