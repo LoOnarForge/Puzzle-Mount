@@ -9,6 +9,8 @@ public class RunodeHighlighter : MonoBehaviour
     public Color inRangeColor = new Color(1.5f, 1.5f, 1.5f, 1.0f);
     [ColorUsage(true, true)]
     public Color outOfRangeColor = new Color(1.2f, 1.2f, 1.2f, 1.0f);
+    [ColorUsage(true, true)]
+    public Color pushableColor = new Color(0.8f, 1.5f, 0.8f, 1.0f);
     public float transitionSpeed = 15f;
     
     [Header("POWER LINE DARKENING:")]
@@ -32,6 +34,7 @@ public class RunodeHighlighter : MonoBehaviour
     
     private bool isHovered = false;
     private bool isInRange = false;
+    private bool isPushable = false;
     private int activeDecalIndex = -1;
     private bool colorNeedsUpdate = false;
     private bool lineColorNeedsUpdate = false;
@@ -70,7 +73,7 @@ public class RunodeHighlighter : MonoBehaviour
         if (colorNeedsUpdate)
         {
             Color target;
-            if (!isHovered) target = Color.white;
+            if (!isHovered) target = isPushable ? pushableColor : Color.white;
             else target = isInRange ? inRangeColor : outOfRangeColor;
 
             currentColor = Color.Lerp(currentColor, target, Time.deltaTime * transitionSpeed);
@@ -170,6 +173,7 @@ public class RunodeHighlighter : MonoBehaviour
         if (controller == null)
         {
             if (isHovered) ClearHighlight();
+            if (isPushable) { isPushable = false; colorNeedsUpdate = true; }
             return;
         }
 
@@ -193,6 +197,11 @@ public class RunodeHighlighter : MonoBehaviour
             if (isHovered) ClearHighlight();
             if (currentHovered == this) currentHovered = null;
         }
+
+        RunodeMovement pushable = controller.PushableRunode;
+        bool wasPushable = isPushable;
+        isPushable = pushable != null && pushable.gameObject == gameObject;
+        if (isPushable != wasPushable) colorNeedsUpdate = true;
     }
 
     private void ClearAllDecals()

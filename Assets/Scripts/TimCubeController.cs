@@ -243,6 +243,8 @@ public class TimCubeController : MonoBehaviour
         }
     }
 
+    public RunodeMovement PushableRunode => pushableRunode;
+
     public RunodeMovement CurrentTargetCube => currentTargetCube;
     public Vector3 CurrentPushDirection => currentPushDirection;
     public float PushDelayTimer => pushDelayTimer;

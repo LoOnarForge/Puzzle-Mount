@@ -1,0 +1,28 @@
+---
+description: Unity C# conventions for Puzzle Mount
+globs: Assets/Scripts/**/*.cs
+alwaysApply: false
+---
+
+# Unity C# Conventions
+
+## Patterns in this project
+- `MonoBehaviour` with serialized public fields and `[Header]` groups
+- Singletons: `public static X Instance { get; private set; }` set in `Awake`
+- Input: New Input System — `PlayerInput` actions on Tim; `Keyboard.current` for camera keys
+- Find references: `FindFirstObjectByType<T>()` (not deprecated `FindObjectOfType`)
+
+## Do
+- Match naming/style of the file you're editing
+- Use `[DefaultExecutionOrder]` only when power-system ordering requires it
+- Keep editor scripts in `Assets/Scripts/Editor/`
+- Comment non-obvious logic (power BFS, face invalidation, camera angle mapping)
+
+## Don't
+- Revive or copy from `Assets/Legacy/*.txt`
+- Rename Runode/Power types without explicit user request
+- Add assembly definitions, heavy abstractions, or error handling for impossible states
+- Edit `.unity`/`.prefab` YAML unless user confirms — prefer telling them Inspector wiring
+
+## After changes
+Tell user what to test in Play mode. If errors occur, ask for full Unity Console output.

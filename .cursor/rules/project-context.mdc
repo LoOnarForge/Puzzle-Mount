@@ -1,0 +1,29 @@
+---
+description: Puzzle Mount game context, characters, and architecture
+alwaysApply: true
+---
+
+# Puzzle Mount — Project Context
+
+3D puzzle-adventure (Unity 6, URP, New Input System). Player: **Tim Jones**. Companion camera: **Leya** (Inspection Mode via Tab).
+
+## Active code only
+- Game logic: `Assets/Scripts/`
+- Main scenes: `Assets/Scenes/00.unity`, `SampleScene.unity`
+- **Ignore** `Assets/Legacy/` (deprecated `.txt` archives) and asset-pack demo scenes (`ISOMETRIC 3D RUINS/`, `DevTex/`, `Blink/`)
+
+## Key systems
+| System | Entry points |
+|--------|-------------|
+| Movement | `CharacterMovement`, `CameraFollow` |
+| Inspection cam | `LeyasCamera`, toggled from `CameraFollow` |
+| Cube interaction | `TimCubeController`, `RunodeMovement` |
+| Power flow | `PowerManager` → `PowerSource` BFS → `RunodeFace` → `PowerDisplayManager` |
+| Puzzle outputs | `PowerReceiver`, `LeverReceiver`, `ForgottenGate`, `PowerSocket` |
+
+## Rules for the agent
+- Read `AGENTS.md` for full architecture before large changes
+- Minimal diffs; no unrelated refactors
+- "Runode" is intentional spelling — do not rename to "Rune"
+- Managers are **manually placed in scenes** — don't auto-spawn them
+- User verifies in Unity Play mode; ask for Console errors if compile fails
