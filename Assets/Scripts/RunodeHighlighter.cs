@@ -1,4 +1,5 @@
 using UnityEngine;
+using UnityEngine.InputSystem;
 using System.Collections.Generic;
 
 /// Manages visual feedback for Runode cubes with smooth transitions for both in-range and out-of-range states.
@@ -11,8 +12,9 @@ public class RunodeHighlighter : MonoBehaviour
     public Color outOfRangeColor = new Color(1.2f, 1.2f, 1.2f, 1.0f);
     [ColorUsage(true, true)]
     public Color pushableColor = new Color(0.8f, 1.5f, 0.8f, 1.0f);
-    public float transitionSpeed = 15f;
-    
+    public float highlightUpSpeed = 15f;
+    public float highlightDownSpeed = 5f;
+
     [Header("POWER LINE DARKENING:")]
     public bool darkenLinesOnHighlight = true;
     public Color lineDarkenedColor = new Color(0.2f, 0.2f, 0.2f, 1.0f);
@@ -25,7 +27,10 @@ public class RunodeHighlighter : MonoBehaviour
     [Header("FACE DECALS")]
     public GameObject[] faceDecals; // Order: 0:Top, 1:Bottom, 2:North, 3:South, 4:East, 5:West
 
-    private RunodePower powerSystem;
+    [Header("LINE SPRITES")]
+    public SpriteRenderer[] lineSprites; // Order: 0:Top, 1:Bottom, 2:North, 3:South, 4:East, 5:West
+
+    private RunodeCube cube;
     private MaterialPropertyBlock cubePropBlock;
     private MaterialPropertyBlock linePropBlock;
 
@@ -42,8 +47,6 @@ public class RunodeHighlighter : MonoBehaviour
     private static RunodeHighlighter currentHovered;
 
     private static readonly int BaseColorId = Shader.PropertyToID("_BaseColor");
-
-    private List<SpriteRenderer> cachedLineRenderers = new List<SpriteRenderer>();
     private static readonly int ColorId = Shader.PropertyToID("_Color");
 
     private void Awake()
@@ -51,20 +54,12 @@ public class RunodeHighlighter : MonoBehaviour
         cubePropBlock = new MaterialPropertyBlock();
         linePropBlock = new MaterialPropertyBlock();
         
-        powerSystem = GetComponent<RunodePower>();
+        cube = GetComponent<RunodeCube>();
         if (cubeRenderer == null) cubeRenderer = GetComponentInChildren<MeshRenderer>();
         if (selectionFrame != null) selectionFrame.SetActive(false);
 
         // Ensure all decals are off initially
         ClearAllDecals();
-
-        // Cache the line renderers once
-        SpriteRenderer[] allSprites = GetComponentsInChildren<SpriteRenderer>(true);
-        foreach (var sr in allSprites)
-        {
-            if (sr.name.StartsWith("Power Line Sprite"))
-                cachedLineRenderers.Add(sr);
-        }
     }
 
     private void Update()
@@ -76,7 +71,9 @@ public class RunodeHighlighter : MonoBehaviour
             if (!isHovered) target = isPushable ? pushableColor : Color.white;
             else target = isInRange ? inRangeColor : outOfRangeColor;
 
-            currentColor = Color.Lerp(currentColor, target, Time.deltaTime * transitionSpeed);
+            bool lightingUp = isHovered && isInRange;
+            float speed = lightingUp ? highlightUpSpeed : highlightDownSpeed;
+            currentColor = Color.Lerp(currentColor, target, Time.deltaTime * speed);
         
             if (cubeRenderer != null)
             {
@@ -113,12 +110,12 @@ public class RunodeHighlighter : MonoBehaviour
         }
 
         // 4. Power Line Darkening Logic (Layered)
-        if (darkenLinesOnHighlight && powerSystem != null)
+        if (darkenLinesOnHighlight && cube != null)
         {
             bool shouldDarken = isHovered && isInRange;
             if (shouldDarken && lineColorNeedsUpdate)
             {
-                currentLineColor = Color.Lerp(currentLineColor, lineDarkenedColor, Time.deltaTime * transitionSpeed);
+                currentLineColor = Color.Lerp(currentLineColor, lineDarkenedColor, Time.deltaTime * highlightUpSpeed);
                 UpdateHighlightLayerOnFaces(currentLineColor);
 
                 if (ColorsApproximatelyEqual(currentLineColor, lineDarkenedColor))
@@ -129,18 +126,24 @@ public class RunodeHighlighter : MonoBehaviour
             }
             else if (!shouldDarken && currentLineColor != Color.white)
             {
-                currentLineColor = Color.white;
-                UpdateHighlightLayerOnFaces(Color.white);
+                currentLineColor = Color.Lerp(currentLineColor, Color.white, Time.deltaTime * highlightDownSpeed);
+                UpdateHighlightLayerOnFaces(currentLineColor);
+
+                if (ColorsApproximatelyEqual(currentLineColor, Color.white))
+                {
+                    currentLineColor = Color.white;
+                    UpdateHighlightLayerOnFaces(Color.white);
+                }
             }
         }
     }
 
     private void UpdateHighlightLayerOnFaces(Color highlightColor)
     {
-        foreach (var face in GetComponentsInChildren<RunodeFace>())
+        if (lineSprites == null) return;
+        foreach (var sr in lineSprites)
         {
-            face.highlightColorLayer = highlightColor;
-            face.UpdateSpriteVisuals();
+            if (sr != null) sr.color = highlightColor;
         }
     }
 
@@ -186,8 +189,11 @@ public class RunodeHighlighter : MonoBehaviour
             bool rotatable = controller.IsCubeRotatable(hitCube, controller.MouseHitPoint);
 
             int faceIndex = -1;
-            if (powerSystem != null)
-                faceIndex = powerSystem.GetFaceIndexFromPoint(controller.MouseHitPoint);
+            bool mousePressed = Mouse.current != null && Mouse.current.leftButton.isPressed;
+            if (cube != null && !mousePressed)
+                faceIndex = cube.GetFaceIndexFromPoint(controller.MouseHitPoint);
+            else if (isHovered)
+                faceIndex = activeDecalIndex;
 
             SetHighlight(rotatable, faceIndex);
             currentHovered = this;
