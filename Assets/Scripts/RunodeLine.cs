@@ -95,7 +95,7 @@ public class RunodeLine : MonoBehaviour
 
         foreach (LinePort port in ports)
         {
-            if (port != null)
+            if (port != null && port.isActiveAndEnabled)
                 port.RefreshPortState();
         }
     }

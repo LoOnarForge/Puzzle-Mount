@@ -54,6 +54,45 @@ public class RunodeCube : MonoBehaviour
     public Sprite cornerSprite;
     public Sprite tSectionSprite;
     public Sprite crossSprite;
+    // Refreshes every active line on this cube.
+    public void RefreshAllPortsOnCube()
+    {
+        RunodeLine[] lines = GetComponentsInChildren<RunodeLine>();
+
+        foreach (RunodeLine line in lines)
+        {
+            line.CheckPortConnections();
+        }
+    }
+
+    // Refreshes this cube and every face- or edge-adjacent cube.
+    public void AdjecentCubesRefresh()
+    {
+        RunodeCube[] cubes = FindObjectsByType<RunodeCube>(FindObjectsSortMode.None);
+
+        foreach (RunodeCube cube in cubes)
+        {
+            if (cube == this)
+                continue;
+
+            Vector3 offset = cube.transform.position - transform.position;
+            int nonZeroAxes = 0;
+
+            if (Mathf.Abs(Mathf.Round(offset.x)) > 0.1f) nonZeroAxes++;
+            if (Mathf.Abs(Mathf.Round(offset.y)) > 0.1f) nonZeroAxes++;
+            if (Mathf.Abs(Mathf.Round(offset.z)) > 0.1f) nonZeroAxes++;
+
+            if (nonZeroAxes > 0 && nonZeroAxes <= 2
+                && Mathf.Abs(offset.x) <= 1.1f
+                && Mathf.Abs(offset.y) <= 1.1f
+                && Mathf.Abs(offset.z) <= 1.1f)
+            {
+                cube.RefreshAllPortsOnCube();
+            }
+        }
+    }
+
+
 
 
     // Returns the face index (0:Top, 1:Bottom, 2:North, 3:South, 4:East, 5:West)

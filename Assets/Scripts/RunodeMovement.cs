@@ -24,6 +24,8 @@ public class RunodeMovement : MonoBehaviour
 
     private Rigidbody rb;
     private Transform visualParent;
+    private RunodeCube runodeCube;
+    private bool wasGrounded;
 
     // Stores the rotation as it was set in the Editor
     private Quaternion baseRotation;
@@ -40,6 +42,7 @@ public class RunodeMovement : MonoBehaviour
         }
 
         rb = GetComponent<Rigidbody>();
+        runodeCube = GetComponent<RunodeCube>();
         rb.isKinematic = false;
         rb.useGravity = true;
         rb.constraints = RigidbodyConstraints.FreezePositionX | RigidbodyConstraints.FreezePositionZ | RigidbodyConstraints.FreezeRotation;
@@ -52,6 +55,19 @@ public class RunodeMovement : MonoBehaviour
         }
 
         SnapToGrid();
+    }
+
+    private void FixedUpdate()
+    {
+        bool isGrounded = IsGrounded();
+
+        if (!wasGrounded && isGrounded && runodeCube != null)
+        {
+            runodeCube.RefreshAllPortsOnCube();
+            runodeCube.AdjecentCubesRefresh();
+        }
+
+        wasGrounded = isGrounded;
     }
 
     public void SetKinematic(bool kinematic)
@@ -205,9 +221,8 @@ public class RunodeMovement : MonoBehaviour
         transform.position = new Vector3(targetPosition.x, startPos.y, targetPosition.z);
 
         Physics.SyncTransforms();
-        RefreshLineConnections();
-
-
+        runodeCube.RefreshAllPortsOnCube();
+        runodeCube.AdjecentCubesRefresh();
 
         rb.constraints = RigidbodyConstraints.FreezePositionX | RigidbodyConstraints.FreezePositionZ | RigidbodyConstraints.FreezeRotation;
 
@@ -430,7 +445,8 @@ public class RunodeMovement : MonoBehaviour
         targetTransform.localScale = originalScale;
 
         Physics.SyncTransforms();
-        RefreshLineConnections();
+        runodeCube.RefreshAllPortsOnCube();
+        runodeCube.AdjecentCubesRefresh();
         isRotating = false;
 
         RunodePower p = GetComponent<RunodePower>();
