@@ -63,8 +63,8 @@ public class RunodeMovement : MonoBehaviour
 
         if (!wasGrounded && isGrounded && runodeCube != null)
         {
-            runodeCube.RefreshAllPortsOnCube();
-            runodeCube.AdjecentCubesRefresh();
+            runodeCube.RefreshAllActiveLinesOnCube();
+            runodeCube.RefreshAllAdjecentCubes();
         }
 
         wasGrounded = isGrounded;
@@ -221,8 +221,8 @@ public class RunodeMovement : MonoBehaviour
         transform.position = new Vector3(targetPosition.x, startPos.y, targetPosition.z);
 
         Physics.SyncTransforms();
-        runodeCube.RefreshAllPortsOnCube();
-        runodeCube.AdjecentCubesRefresh();
+        runodeCube.RefreshAllActiveLinesOnCube();
+        runodeCube.RefreshAllAdjecentCubes();
 
         rb.constraints = RigidbodyConstraints.FreezePositionX | RigidbodyConstraints.FreezePositionZ | RigidbodyConstraints.FreezeRotation;
 
@@ -445,8 +445,8 @@ public class RunodeMovement : MonoBehaviour
         targetTransform.localScale = originalScale;
 
         Physics.SyncTransforms();
-        runodeCube.RefreshAllPortsOnCube();
-        runodeCube.AdjecentCubesRefresh();
+        runodeCube.RefreshAllActiveLinesOnCube();
+        runodeCube.RefreshAllAdjecentCubes();
         isRotating = false;
 
         RunodePower p = GetComponent<RunodePower>();

@@ -55,7 +55,7 @@ public class RunodeCube : MonoBehaviour
     public Sprite tSectionSprite;
     public Sprite crossSprite;
     // Refreshes every active line on this cube.
-    public void RefreshAllPortsOnCube()
+    public void RefreshAllActiveLinesOnCube()
     {
         RunodeLine[] lines = GetComponentsInChildren<RunodeLine>();
 
@@ -66,7 +66,7 @@ public class RunodeCube : MonoBehaviour
     }
 
     // Refreshes this cube and every face- or edge-adjacent cube.
-    public void AdjecentCubesRefresh()
+    public void RefreshAllAdjecentCubes()
     {
         RunodeCube[] cubes = FindObjectsByType<RunodeCube>(FindObjectsSortMode.None);
 
@@ -87,7 +87,7 @@ public class RunodeCube : MonoBehaviour
                 && Mathf.Abs(offset.y) <= 1.1f
                 && Mathf.Abs(offset.z) <= 1.1f)
             {
-                cube.RefreshAllPortsOnCube();
+                cube.RefreshAllActiveLinesOnCube();
             }
         }
     }
