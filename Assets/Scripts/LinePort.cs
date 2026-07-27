@@ -34,6 +34,7 @@ public class LinePort : MonoBehaviour
     private BoxCollider portTrigger;
     private readonly Collider[] overlapResults = new Collider[16];
     private int overlapCount;
+    private LinePort previouslySelectedPort;
 
     private void Awake()
     {
@@ -60,6 +61,10 @@ public class LinePort : MonoBehaviour
     // Refreshes obstruction and connection information from the current overlap state.
     public void RefreshPortState()
     {
+        Debug.Log(
+            $"PORT REFRESH START | cube={parentCube.name} | line={parentLine.name} | port={name} | blockedBefore={isBlocked} | previousConnection={(previouslySelectedPort != null ? previouslySelectedPort.name : "none")}",
+            this);
+
         connectedPorts.Clear();
         obstructions.Clear();
         isBlocked = false;
@@ -68,9 +73,12 @@ public class LinePort : MonoBehaviour
         CheckForPortObstructions();
 
         LinePort validPort = ChooseValidPort();
+
         Debug.Log(
-            $"LinePort refresh: {name} | blocked={isBlocked} | obstructions={GetObstructionNames()} | overlaps={overlapCount} | selected={(validPort != null ? validPort.name : "none")}",
+            $"PORT REFRESH RESULT | cube={parentCube.name} | line={parentLine.name} | port={name} | blockedAfter={isBlocked} | obstructions={GetObstructionNames()} | overlapCount={overlapCount} | selected={(validPort != null ? validPort.name : "none")} | selectedOtherBlocked={(validPort != null ? validPort.isBlocked.ToString() : "n/a")}",
             this);
+
+        previouslySelectedPort = validPort;
         if (validPort == null)
             return;
 
@@ -146,23 +154,14 @@ public class LinePort : MonoBehaviour
             Collider overlap = overlapResults[i];
             LinePort otherPort = overlap.GetComponent<LinePort>();
 
-            if (otherPort == null)
-            {
-                Debug.Log($"LinePort candidate: {name} -> {overlap.name} | rejected=not a LinePort", this);
+            if (otherPort == null || otherPort == this)
                 continue;
-            }
 
-            if (otherPort == this)
-            {
-                Debug.Log($"LinePort candidate: {name} -> self | rejected=self", this);
-                continue;
-            }
-
-            bool isInternal = parentCube == otherPort.parentCube;
             bool isValid = CanConnectTo(otherPort);
+            bool isInternal = parentCube == otherPort.parentCube;
 
             Debug.Log(
-                $"LinePort candidate: {name} -> {otherPort.name} | internal={isInternal} | selfBlocked={isBlocked} | otherBlocked={otherPort.isBlocked} | valid={isValid}",
+                $"PORT CANDIDATE | cube={parentCube.name} | line={parentLine.name} | port={name} -> {otherPort.name} | internal={isInternal} | selfBlocked={isBlocked} | otherBlocked={otherPort.isBlocked} | valid={isValid}",
                 this);
 
             if (!isValid)

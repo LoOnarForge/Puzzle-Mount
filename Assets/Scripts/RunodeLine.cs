@@ -96,11 +96,13 @@ public class RunodeLine : MonoBehaviour
 
         obstructionPort.RefreshObstructionState();
 
-        Debug.Log(
-            $"RunodeLine obstruction refresh: {name} | previous={isObstructed} | current={obstructionPort.IsObstructed}",
-            this);
-
         bool obstructionStateChanged = isObstructed != obstructionPort.IsObstructed;
+        if (obstructionStateChanged)
+        {
+            Debug.Log(
+                $"Face obstruction changed: {name} | previous={isObstructed} | current={obstructionPort.IsObstructed}",
+                this);
+        }
         if (!obstructionStateChanged)
             return;
 
@@ -112,6 +114,7 @@ public class RunodeLine : MonoBehaviour
     // Refreshes the face obstruction first, then refreshes every active port.
     public void CheckPortConnections()
     {
+        Debug.Log($"LINE REFRESH | cube={transform.root.name} | line={name}", this);
         RefreshFaceObstructionState();
 
         if (isObstructed)
