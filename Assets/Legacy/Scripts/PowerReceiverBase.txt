@@ -9,7 +9,7 @@ using UnityEngine;
 public class PowerReceiverBase : MonoBehaviour
 {
     [Header("FINAL RECEIVERS - assign only one")]
-    public LeverReceiver lever;
+    //public LeverReceiver lever;
 
     [Header("DEBUG")]
     [SerializeField] private bool isPowered = false;
@@ -23,18 +23,19 @@ public class PowerReceiverBase : MonoBehaviour
         currentColor = incomingColor;
         currentPower = incomingPower;
 
-        lever?.PassColorAndPower(incomingColor, incomingPower);
+        //lever?.PassColorAndPower(incomingColor, incomingPower);
     }
 
     /// <summary>Called by PowerReceiverTrigger when the powered face exits.</summary>
     public void OnPowerDisconnected()
     {
         if (!isPowered) return;
+       
 
         isPowered = false;
         currentColor = Color.clear;
         currentPower = 0;
 
-        lever?.OnPowerLost();
+      //  lever?.OnPowerLost();
     }
 }
