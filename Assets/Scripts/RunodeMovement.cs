@@ -205,6 +205,9 @@ public class RunodeMovement : MonoBehaviour
         transform.position = new Vector3(targetPosition.x, startPos.y, targetPosition.z);
 
         Physics.SyncTransforms();
+        RefreshLineConnections();
+
+
 
         rb.constraints = RigidbodyConstraints.FreezePositionX | RigidbodyConstraints.FreezePositionZ | RigidbodyConstraints.FreezeRotation;
 
@@ -220,6 +223,18 @@ public class RunodeMovement : MonoBehaviour
             PowerManager.Instance.RequestPowerFlowCheck(transform);
         }
     }
+
+    // Refreshes all power lines belonging to this cube after movement or rotation.
+    private void RefreshLineConnections()
+    {
+        RunodeLine[] lines = GetComponentsInChildren<RunodeLine>();
+
+        foreach (RunodeLine line in lines)
+        {
+            line.CheckPortConnections();
+        }
+    }
+
 
     private void ApplyRandomRotation()
     {
@@ -415,6 +430,7 @@ public class RunodeMovement : MonoBehaviour
         targetTransform.localScale = originalScale;
 
         Physics.SyncTransforms();
+        RefreshLineConnections();
         isRotating = false;
 
         RunodePower p = GetComponent<RunodePower>();

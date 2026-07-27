@@ -16,68 +16,139 @@ public enum PortLocation
     Left
 }
 
+[RequireComponent(typeof(BoxCollider))]
 public class LinePort : MonoBehaviour
 {
     [SerializeField] private RunodeLine parentLine;
-    [SerializeField] private PortLocation location;
+    [SerializeField] private RunodeCube parentCube;
 
-    [Header("State (Read-Only)")]
-    [SerializeField] private List<LinePort> connectedPorts = new List<LinePort>();
-    [SerializeField] private List<GameObject> obstructions = new List<GameObject>();
-
-    public PortType Type { get; private set; } = PortType.Neutral;
-    public PortLocation Location => location;
-    public RunodeLine ParentLine => parentLine;
-    public List<LinePort> ConnectedPorts => connectedPorts;
-    public List<GameObject> Obstructions => obstructions;
-    public bool IsConnected => connectedPorts.Count > 0;
-    public bool IsObstructed => obstructions.Count > 0;
+    [Header("DEBUGGING:")]
+    [SerializeField] private PortType type = PortType.Neutral;
+    [SerializeField] private bool isBlocked;
 
     [SerializeField] private LayerMask portTriggerLayers;
+    [SerializeField] private List<LinePort> connectedPorts = new List<LinePort>();
+    [SerializeField] private List<GameObject> obstructions = new List<GameObject>();
+    [SerializeField] private PortLocation location;
 
-    public void SetRole(PortType newType)
+    private BoxCollider portTrigger;
+    private readonly Collider[] overlapResults = new Collider[16];
+    private int overlapCount;
+
+    private void Awake()
     {
-        Type = newType;
-    }
+        portTrigger = GetComponent<BoxCollider>();
 
-    public void ResetType()
-    {
-        Type = PortType.Neutral;
-    }
-
-    private void OnTriggerEnter(Collider other)
-    {
-        if (parentLine == null) return;
-
-        if ((portTriggerLayers & (1 << other.gameObject.layer)) == 0) return;
-
-        LinePort otherPort = other.GetComponent<LinePort>();
-        if (otherPort != null && otherPort.parentLine != null)
+        if (portTrigger == null)
         {
-            if (!connectedPorts.Contains(otherPort))
-                connectedPorts.Add(otherPort);
-        }
-        else
-        {
-            if (!obstructions.Contains(other.gameObject))
-                obstructions.Add(other.gameObject);
+            Debug.LogError(
+                $"{nameof(LinePort)} on {name} requires a {nameof(BoxCollider)}.",
+                this);
         }
     }
 
-    private void OnTriggerExit(Collider other)
+    public void SetPortType(PortType newType)
     {
-        if (parentLine == null) return;
+        type = newType;
+    }
 
-        if ((portTriggerLayers & (1 << other.gameObject.layer)) == 0) return;
+    public void SetPortIsblocked(bool blocked)
+    {
+        isBlocked = blocked;
+    }
 
-        LinePort otherPort = other.GetComponent<LinePort>();
-        if (otherPort != null)
+    // Refreshes obstruction and connection information from the current overlap state.
+    public void RefreshPortState()
+    {
+        connectedPorts.Clear();
+        obstructions.Clear();
+        isBlocked = false;
+
+        OverlapBox();
+        CheckForPortObstructions();
+
+        LinePort validPort = ChooseValidPort();
+        if (validPort == null)
+            return;
+
+        connectedPorts.Add(validPort);
+        ReportConnection(validPort);
+    }
+
+    // Fills the overlap buffer with colliders inside this port's BoxCollider.
+    private void OverlapBox()
+    {
+        if (portTrigger == null)
         {
-            connectedPorts.Remove(otherPort);
+            Debug.LogError(
+                $"{nameof(LinePort)} on {name} cannot refresh because its {nameof(BoxCollider)} is missing.",
+                this);
+            overlapCount = 0;
+            return;
         }
-        else
+
+        Vector3 center = portTrigger.transform.TransformPoint(portTrigger.center);
+        Vector3 halfExtents = Vector3.Scale(
+            portTrigger.size,
+            portTrigger.transform.lossyScale) * 0.5f;
+
+        overlapCount = Physics.OverlapBoxNonAlloc(
+            center,
+            halfExtents,
+            overlapResults,
+            portTrigger.transform.rotation,
+            portTriggerLayers,
+            QueryTriggerInteraction.Collide);
+    }
+
+    // Records every overlapping non-port object and updates the blocked state.
+    private void CheckForPortObstructions()
+    {
+        for (int i = 0; i < overlapCount; i++)
         {
-            obstructions.Remove(other.gameObject);
+            Collider overlap = overlapResults[i];
+            LinePort otherPort = overlap.GetComponent<LinePort>();
+
+            if (otherPort != null)
+                continue;
+
+            if (!obstructions.Contains(overlap.gameObject))
+                obstructions.Add(overlap.gameObject);
         }
+
+        isBlocked = obstructions.Count > 0;
+    }
+
+    // Finds the first overlapping port that can connect to this port.
+    private LinePort ChooseValidPort()
+    {
+        for (int i = 0; i < overlapCount; i++)
+        {
+            LinePort otherPort = overlapResults[i].GetComponent<LinePort>();
+
+            if (CanConnectTo(otherPort))
+                return otherPort;
+        }
+
+        return null;
+    }
+
+    // Determines whether the overlapping port is a valid connection candidate.
+    private bool CanConnectTo(LinePort otherPort)
+    {
+        if (otherPort == null || otherPort == this)
+            return false;
+
+        bool isInternal = parentCube == otherPort.parentCube;
+        return !isInternal || !isBlocked;
+    }
+
+    // Sends the accepted connection to this port's parent line.
+    private void ReportConnection(LinePort otherPort)
+    {
+        if (parentLine == null)
+            return;
+
+        parentLine.OnPortConnected(this, otherPort);
     }
 }
