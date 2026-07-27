@@ -2,7 +2,7 @@ using System.Collections.Generic;
 using UnityEngine;
 
 [DefaultExecutionOrder(-50)]
-public class PowerSource : MonoBehaviour
+public class PowerSourceLEGACY : MonoBehaviour
 {
     public int colorIndex;
     [HideInInspector] public Color powerColor;

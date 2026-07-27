@@ -1,16 +1,16 @@
 using UnityEngine;
 using UnityEditor;
 
-[CustomEditor(typeof(PowerSource))]
+[CustomEditor(typeof(PowerSourceLEGACY))]
 public class PowerSourceEditor : Editor
 {
-    private PowerSource powerSource;
+    private PowerSourceLEGACY powerSource;
     private PowerLineType lastTopFace;
     private bool initialized = false;
 
     private void OnEnable()
     {
-        powerSource = (PowerSource)target;
+        powerSource = (PowerSourceLEGACY)target;
         if (powerSource != null)
         {
             lastTopFace = powerSource.topFace;

@@ -20,7 +20,7 @@ public class PowerDisplayManager : MonoBehaviour
     {
         public RunodeFace face;
         public Color color;
-        public PowerSource source;
+        public PowerSourceLEGACY source;
         public bool isObstructed;
         public int distanceFromSource;
         // Unique, monotonically-increasing per-source claim order recorded at the moment this
@@ -45,13 +45,13 @@ public class PowerDisplayManager : MonoBehaviour
     // its own coroutine over its own list. Multiple pulses for the same source behave like
     // independent trains on the same track: same pace, never colliding, never overtaking, because
     // each one only ever advances through the exact distances it was given at creation time.
-    private Dictionary<PowerSource, List<Pulse>> activePulses = new Dictionary<PowerSource, List<Pulse>>();
+    private Dictionary<PowerSourceLEGACY, List<Pulse>> activePulses = new Dictionary<PowerSourceLEGACY, List<Pulse>>();
 
     // Tracks which source is currently rendered on each non-white face, in real time, as pulses
     // actually paint them — independent of any logical claim. This is what a genuine short
     // circuit means visually: a face already showing one source's color is about to be painted a
     // different source's color. Set on every non-white paint, cleared on every depower (white) paint.
-    private Dictionary<RunodeFace, PowerSource> currentVisualOwner = new Dictionary<RunodeFace, PowerSource>();
+    private Dictionary<RunodeFace, PowerSourceLEGACY> currentVisualOwner = new Dictionary<RunodeFace, PowerSourceLEGACY>();
 
     // True once a real short circuit has been visually confirmed (a face already held by a
     // different source was about to be colored). Coloring stops permanently at that point.
@@ -80,12 +80,12 @@ public class PowerDisplayManager : MonoBehaviour
         foreach (var u in batch)
         {
             if (u.source != null && u.source.name != "Power Source (001)") continue;
-            currentVisualOwner.TryGetValue(u.face, out PowerSource ownerNow);
+            currentVisualOwner.TryGetValue(u.face, out PowerSourceLEGACY ownerNow);
             string cubeName = u.face != null ? u.face.transform.root.name : "null";
         }
 
-        Dictionary<PowerSource, List<FaceVisualUpdate>> groupedPower = new Dictionary<PowerSource, List<FaceVisualUpdate>>();
-        Dictionary<PowerSource, List<FaceVisualUpdate>> groupedDepower = new Dictionary<PowerSource, List<FaceVisualUpdate>>();
+        Dictionary<PowerSourceLEGACY, List<FaceVisualUpdate>> groupedPower = new Dictionary<PowerSourceLEGACY, List<FaceVisualUpdate>>();
+        Dictionary<PowerSourceLEGACY, List<FaceVisualUpdate>> groupedDepower = new Dictionary<PowerSourceLEGACY, List<FaceVisualUpdate>>();
         List<FaceVisualUpdate> immediate = new List<FaceVisualUpdate>();
 
         foreach (var update in batch)
@@ -101,7 +101,7 @@ public class PowerDisplayManager : MonoBehaviour
             }
 
             bool isDepower = update.color == Color.white;
-            Dictionary<PowerSource, List<FaceVisualUpdate>> targetGroup = isDepower ? groupedDepower : groupedPower;
+            Dictionary<PowerSourceLEGACY, List<FaceVisualUpdate>> targetGroup = isDepower ? groupedDepower : groupedPower;
 
             if (!targetGroup.TryGetValue(update.source, out List<FaceVisualUpdate> list))
             {
@@ -123,11 +123,11 @@ public class PowerDisplayManager : MonoBehaviour
     // Spins up exactly one new pulse per source for this direction's group, sorted strictly
     // downstream by distance, and starts it running immediately alongside whatever pulses are
     // already active for that source.
-    private void StartPulses(Dictionary<PowerSource, List<FaceVisualUpdate>> groupedBySource, bool isDepowerPulse)
+    private void StartPulses(Dictionary<PowerSourceLEGACY, List<FaceVisualUpdate>> groupedBySource, bool isDepowerPulse)
     {
         foreach (var pair in groupedBySource)
         {
-            PowerSource source = pair.Key;
+            PowerSourceLEGACY source = pair.Key;
             List<FaceVisualUpdate> steps = pair.Value;
             steps.Sort((a, b) => a.order.CompareTo(b.order));
 
@@ -149,7 +149,7 @@ public class PowerDisplayManager : MonoBehaviour
     // the opposite direction — that independence is what guarantees a power pulse and a depower
     // pulse can run over the same faces without ever fighting, as long as they were started at
     // different times (which a real rotation always is).
-    private IEnumerator RunPulse(PowerSource source, Pulse pulse, bool isDepowerPulse)
+    private IEnumerator RunPulse(PowerSourceLEGACY source, Pulse pulse, bool isDepowerPulse)
     {
         float delay = isDepowerPulse ? depowerDelay : powerUpDelay;
 
@@ -191,7 +191,7 @@ public class PowerDisplayManager : MonoBehaviour
 
         if (!isDepowering)
         {
-            if (currentVisualOwner.TryGetValue(update.face, out PowerSource owner) && owner != null && owner != update.source)
+            if (currentVisualOwner.TryGetValue(update.face, out PowerSourceLEGACY owner) && owner != null && owner != update.source)
             {
                 TriggerGameOver(update.face, update.source);
                 return false;
@@ -208,7 +208,7 @@ public class PowerDisplayManager : MonoBehaviour
         return true;
     }
 
-    private void TriggerGameOver(RunodeFace face, PowerSource incomingSource)
+    private void TriggerGameOver(RunodeFace face, PowerSourceLEGACY incomingSource)
     {
         if (IsGameOver) return;
         IsGameOver = true;

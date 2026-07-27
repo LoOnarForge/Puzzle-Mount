@@ -6,7 +6,7 @@ public class PowerManager : MonoBehaviour
 {
     public static PowerManager Instance { get; private set; }
 
-    private List<PowerSource> sources = new List<PowerSource>();
+    private List<PowerSourceLEGACY> sources = new List<PowerSourceLEGACY>();
     private List<RunodeFace> registeredFaces = new List<RunodeFace>();
     private bool recalculationRequested = false;
     private Transform lastAlteredTransform;
@@ -31,7 +31,7 @@ public class PowerManager : MonoBehaviour
     }
 
     // Called by PowerSources on Start to register themselves.
-    public void RegisterSource(PowerSource source)
+    public void RegisterSource(PowerSourceLEGACY source)
     {
         if (!sources.Contains(source))
             sources.Add(source);
@@ -58,7 +58,7 @@ public class PowerManager : MonoBehaviour
 
     // Buffers a single face's visual update. Sent to PowerDisplayManager as one batch via FlushVisualUpdates.
     // distanceFromSource/order are forwarded so PowerDisplayManager can order its animation strictly downstream from the source, regardless of the order updates are queued in here.
-    public void QueueVisualUpdate(RunodeFace face, Color color, PowerSource source, bool isObstructed, int distanceFromSource, int order, bool instant = false)
+    public void QueueVisualUpdate(RunodeFace face, Color color, PowerSourceLEGACY source, bool isObstructed, int distanceFromSource, int order, bool instant = false)
     {
         if (face == null) return;
 
@@ -125,7 +125,7 @@ public class PowerManager : MonoBehaviour
         }
 
         // Clear source-specific tracking lists.
-        foreach (PowerSource source in sources)
+        foreach (PowerSourceLEGACY source in sources)
         {
             source.poweredFaces.Clear();
             source.currentFacesPowered = 0;
@@ -136,7 +136,7 @@ public class PowerManager : MonoBehaviour
             ClearSubtreeState(lastAlteredTransform, true);
 
         // 4. Seed all BFS queues.
-        foreach (PowerSource source in sources)
+        foreach (PowerSourceLEGACY source in sources)
         {
             source.InitBFS();
         }
@@ -147,7 +147,7 @@ public class PowerManager : MonoBehaviour
         while (anyActive)
         {
             anyActive = false;
-            foreach (PowerSource source in sources)
+            foreach (PowerSourceLEGACY source in sources)
             {
                 if (!source.HasPendingSteps) continue;
                 anyActive = true;

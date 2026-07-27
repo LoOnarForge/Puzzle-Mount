@@ -12,12 +12,12 @@ public class RunodeFace : MonoBehaviour
     [Header("LOGIC STATE")]
     public bool isFacePowered;
     public Color faceColor = Color.white;
-    public PowerSource poweredBySource;
+    public PowerSourceLEGACY poweredBySource;
 
     // Persists across recalculations. Only cleared when this face genuinely loses power
     // (PowerManager's final pass). PowerDisplayManager compares against this to detect a real
     // short circuit at the moment of coloring, regardless of what BFS wiped and recomputed this pass.
-    public PowerSource lastPoweredBySource;
+    public PowerSourceLEGACY lastPoweredBySource;
 
     // Persists alongside lastPoweredBySource for the same reason: PowerManager's Global Logic
     // Clear zeroes distanceFromSource every recalculation before depower visuals are queued, so
@@ -138,7 +138,7 @@ public class RunodeFace : MonoBehaviour
     // Claims this face for the given source. BFS never blocks or short-circuits here — every
     // source is free to walk through a face another source already claimed this pass. The one
     // and only game-over check happens later, in PowerDisplayManager, at the moment of coloring.
-    public void MarkPowered(Color color, RunodeFace sourceFace, PowerSource source, int distance)
+    public void MarkPowered(Color color, RunodeFace sourceFace, PowerSourceLEGACY source, int distance)
     {
         if (sourceFace != null && this == sourceFace) return;
 
@@ -168,7 +168,7 @@ public class RunodeFace : MonoBehaviour
         // source used to own this face and how far downstream it was, for correct grouping/ordering.
         // lastDistanceFromSource is used instead of distanceFromSource because PowerManager's
         // Global Logic Clear already zeroes distanceFromSource earlier in the same recalculation.
-        PowerSource previousSource = lastPoweredBySource;
+        PowerSourceLEGACY previousSource = lastPoweredBySource;
         int previousDistance = lastDistanceFromSource;
         int previousOrder = lastPowerOrder;
 
@@ -192,7 +192,7 @@ public class RunodeFace : MonoBehaviour
 
     // Buffers this face's visual update with PowerManager. PowerManager hands the full batch to PowerDisplayManager once per recalculation.
     // distanceOverride/orderOverride let callers (e.g. Clear) supply the distance/order this face had before it was reset; otherwise the face's current values are used.
-    public void ApplyColor(Color color, PowerSource source = null, bool instant = false, int? distanceOverride = null, int? orderOverride = null)
+    public void ApplyColor(Color color, PowerSourceLEGACY source = null, bool instant = false, int? distanceOverride = null, int? orderOverride = null)
     {
         bool isObstructed = obstructionController != null && obstructionController.IsFaceObstructed(faceZone);
         int distance = distanceOverride ?? distanceFromSource;
