@@ -1,6 +1,5 @@
 using UnityEngine;
 using UnityEngine.InputSystem;
-using System.Collections.Generic;
 
 /// Manages visual feedback for Runode cubes with smooth transitions for both in-range and out-of-range states.
 public class RunodeHighlighter : MonoBehaviour
@@ -32,7 +31,6 @@ public class RunodeHighlighter : MonoBehaviour
 
     private RunodeCube cube;
     private MaterialPropertyBlock cubePropBlock;
-    private MaterialPropertyBlock linePropBlock;
 
     private Color currentColor = Color.white;
     private Color currentLineColor = Color.white;
@@ -47,18 +45,15 @@ public class RunodeHighlighter : MonoBehaviour
     private static RunodeHighlighter currentHovered;
 
     private static readonly int BaseColorId = Shader.PropertyToID("_BaseColor");
-    private static readonly int ColorId = Shader.PropertyToID("_Color");
 
     private void Awake()
     {
         cubePropBlock = new MaterialPropertyBlock();
-        linePropBlock = new MaterialPropertyBlock();
         
         cube = GetComponent<RunodeCube>();
         if (cubeRenderer == null) cubeRenderer = GetComponentInChildren<MeshRenderer>();
         if (selectionFrame != null) selectionFrame.SetActive(false);
 
-        // Ensure all decals are off initially
         ClearAllDecals();
     }
 
@@ -68,10 +63,19 @@ public class RunodeHighlighter : MonoBehaviour
         if (colorNeedsUpdate)
         {
             Color target;
-            if (!isHovered) target = isPushable ? pushableColor : Color.white;
-            else target = isInRange ? inRangeColor : outOfRangeColor;
+            bool lightingUp;
 
-            bool lightingUp = isHovered && isInRange;
+            if (!isHovered)
+            {
+                target = isPushable ? pushableColor : Color.white;
+                lightingUp = isPushable;
+            }
+            else
+            {
+                target = isInRange ? inRangeColor : outOfRangeColor;
+                lightingUp = isInRange;
+            }
+
             float speed = lightingUp ? highlightUpSpeed : highlightDownSpeed;
             currentColor = Color.Lerp(currentColor, target, Time.deltaTime * speed);
         
@@ -110,7 +114,7 @@ public class RunodeHighlighter : MonoBehaviour
         }
 
         // 4. Power Line Darkening Logic (Layered)
-        if (darkenLinesOnHighlight && cube != null)
+        if (darkenLinesOnHighlight)
         {
             bool shouldDarken = isHovered && isInRange;
             if (shouldDarken && lineColorNeedsUpdate)
@@ -130,10 +134,7 @@ public class RunodeHighlighter : MonoBehaviour
                 UpdateHighlightLayerOnFaces(currentLineColor);
 
                 if (ColorsApproximatelyEqual(currentLineColor, Color.white))
-                {
                     currentLineColor = Color.white;
-                    UpdateHighlightLayerOnFaces(Color.white);
-                }
             }
         }
     }
