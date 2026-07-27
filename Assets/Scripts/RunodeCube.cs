@@ -55,10 +55,10 @@ public class RunodeCube : MonoBehaviour
     public Sprite tSectionSprite;
     public Sprite crossSprite;
 
-    /// <summary>
-    /// Returns the face index (0:Top, 1:Bottom, 2:North, 3:South, 4:East, 5:West)
-    /// for the given world point relative to the cube's visual parent.
-    /// </summary>
+
+    // Returns the face index (0:Top, 1:Bottom, 2:North, 3:South, 4:East, 5:West)
+    // for the given world point relative to the cube's visual parent. Used for the Highlighter script
+
     public int GetFaceIndexFromPoint(Vector3 worldPoint)
     {
         Transform vParent = transform.GetChild(0);
