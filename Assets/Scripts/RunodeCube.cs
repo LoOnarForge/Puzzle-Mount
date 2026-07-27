@@ -83,9 +83,9 @@ public class RunodeCube : MonoBehaviour
             if (Mathf.Abs(Mathf.Round(offset.z)) > 0.1f) nonZeroAxes++;
 
             if (nonZeroAxes > 0 && nonZeroAxes <= 2
-                && Mathf.Abs(offset.x) <= 1.1f
-                && Mathf.Abs(offset.y) <= 1.1f
-                && Mathf.Abs(offset.z) <= 1.1f)
+                && Mathf.Abs(offset.x) <= 2.1f
+                && Mathf.Abs(offset.y) <= 2.1f
+                && Mathf.Abs(offset.z) <= 2.1f)
             {
                 cube.RefreshAllActiveLinesOnCube();
             }

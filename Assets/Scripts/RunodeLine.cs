@@ -88,10 +88,37 @@ public class RunodeLine : MonoBehaviour
         }
     }
 
-    // Checks every assigned port after the line finishes moving.
+    // Checks the face obstruction before refreshing any line ports.
+    private void RefreshFaceObstructionState()
+    {
+        if (obstructionPort == null || !obstructionPort.isActiveAndEnabled)
+            return;
+
+        obstructionPort.RefreshObstructionState();
+
+        Debug.Log(
+            $"RunodeLine obstruction refresh: {name} | previous={isObstructed} | current={obstructionPort.IsObstructed}",
+            this);
+
+        bool obstructionStateChanged = isObstructed != obstructionPort.IsObstructed;
+        if (!obstructionStateChanged)
+            return;
+
+        if (obstructionPort.IsObstructed)
+            FaceObstructed();
+        else
+            FaceCleared();
+    }
+    // Refreshes the face obstruction first, then refreshes every active port.
     public void CheckPortConnections()
     {
-        if (ports == null) return;
+        RefreshFaceObstructionState();
+
+        if (isObstructed)
+            return;
+
+        if (ports == null)
+            return;
 
         foreach (LinePort port in ports)
         {
@@ -99,6 +126,10 @@ public class RunodeLine : MonoBehaviour
                 port.RefreshPortState();
         }
     }
+
+
+
+
 
 
     public void OnPortConnected(LinePort selfPort, LinePort otherPort)

@@ -68,6 +68,9 @@ public class LinePort : MonoBehaviour
         CheckForPortObstructions();
 
         LinePort validPort = ChooseValidPort();
+        Debug.Log(
+            $"LinePort refresh: {name} | blocked={isBlocked} | obstructions={GetObstructionNames()} | overlaps={overlapCount} | selected={(validPort != null ? validPort.name : "none")}",
+            this);
         if (validPort == null)
             return;
 
@@ -115,22 +118,68 @@ public class LinePort : MonoBehaviour
             if (!obstructions.Contains(overlap.gameObject))
                 obstructions.Add(overlap.gameObject);
         }
-
         isBlocked = obstructions.Count > 0;
     }
 
-    // Finds the first overlapping port that can connect to this port.
+    // Returns the names of all objects currently blocking this port.
+    private string GetObstructionNames()
+    {
+        if (obstructions.Count == 0)
+            return "none";
+
+        string names = obstructions[0].name;
+
+        for (int i = 1; i < obstructions.Count; i++)
+            names += $", {obstructions[i].name}";
+
+        return names;
+    }
+
+    // Finds the first valid port and reports how many valid candidates were found.
     private LinePort ChooseValidPort()
     {
+        LinePort firstValidPort = null;
+        int validPortCount = 0;
+
         for (int i = 0; i < overlapCount; i++)
         {
-            LinePort otherPort = overlapResults[i].GetComponent<LinePort>();
+            Collider overlap = overlapResults[i];
+            LinePort otherPort = overlap.GetComponent<LinePort>();
 
-            if (CanConnectTo(otherPort))
-                return otherPort;
+            if (otherPort == null)
+            {
+                Debug.Log($"LinePort candidate: {name} -> {overlap.name} | rejected=not a LinePort", this);
+                continue;
+            }
+
+            if (otherPort == this)
+            {
+                Debug.Log($"LinePort candidate: {name} -> self | rejected=self", this);
+                continue;
+            }
+
+            bool isInternal = parentCube == otherPort.parentCube;
+            bool isValid = CanConnectTo(otherPort);
+
+            Debug.Log(
+                $"LinePort candidate: {name} -> {otherPort.name} | internal={isInternal} | selfBlocked={isBlocked} | otherBlocked={otherPort.isBlocked} | valid={isValid}",
+                this);
+
+            if (!isValid)
+                continue;
+
+            validPortCount++;
+            firstValidPort ??= otherPort;
         }
 
-        return null;
+        if (validPortCount > 1)
+        {
+            Debug.LogWarning(
+                $"LinePort found {validPortCount} valid candidates: {name}",
+                this);
+        }
+
+        return firstValidPort;
     }
 
     // Determines whether the overlapping port is a valid connection candidate.
@@ -140,7 +189,7 @@ public class LinePort : MonoBehaviour
             return false;
 
         bool isInternal = parentCube == otherPort.parentCube;
-        return !isInternal || !isBlocked;
+        return !isInternal || (!isBlocked && !otherPort.isBlocked);
     }
 
     // Sends the accepted connection to this port's parent line.
