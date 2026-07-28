@@ -167,10 +167,20 @@ public class RunodeCubeEditor : Editor
             string n = child.name.ToLower();
             if (n.Contains("port") && !n.Contains("obstruction"))
             {
-                if (n.Contains("up"))         child.gameObject.SetActive(enableStates[0]);
-                else if (n.Contains("right")) child.gameObject.SetActive(enableStates[1]);
-                else if (n.Contains("down"))  child.gameObject.SetActive(enableStates[2]);
-                else if (n.Contains("left"))  child.gameObject.SetActive(enableStates[3]);
+                bool included = false;
+                if (n.Contains("up")) included = enableStates[0];
+                else if (n.Contains("right")) included = enableStates[1];
+                else if (n.Contains("down")) included = enableStates[2];
+                else if (n.Contains("left")) included = enableStates[3];
+
+                LinePort linePort = child.GetComponent<LinePort>();
+                if (linePort != null)
+                {
+                    linePort.SetIncluded(included);
+                    EditorUtility.SetDirty(linePort);
+                }
+
+                child.gameObject.SetActive(included);
             }
         }
     }

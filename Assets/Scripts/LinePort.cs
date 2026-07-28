@@ -24,6 +24,8 @@ public class LinePort : MonoBehaviour
 
     [Header("DEBUGGING:")]
     [SerializeField] private PortType type = PortType.Neutral;
+    [SerializeField] private bool isIncluded;
+    public bool IsIncluded => isIncluded;
     [SerializeField] private bool isBlocked;
     private bool faceBlocked;
     private bool directlyBlocked;
@@ -52,6 +54,11 @@ public class LinePort : MonoBehaviour
     public void SetPortType(PortType newType)
     {
         type = newType;
+    }
+
+    public void SetIncluded(bool included)
+    {
+        isIncluded = included;
     }
 
     public void SetFaceBlocked(bool blocked)
