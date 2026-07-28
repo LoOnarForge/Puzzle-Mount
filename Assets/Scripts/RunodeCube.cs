@@ -117,7 +117,7 @@ public class RunodeCube : MonoBehaviour
             RunodeLine[] lines = cube.GetComponentsInChildren<RunodeLine>();
 
             foreach (RunodeLine line in lines)
-                line.RefreshAllActivePortObstructions();
+                line.RefreshPortObstructions();
         }
     }
 
@@ -130,7 +130,7 @@ public class RunodeCube : MonoBehaviour
 
             foreach (RunodeLine line in lines)
             {
-                line.RefreshAllActivePortConnections();
+                line.RefreshPortConnections();
             }
         }
     }

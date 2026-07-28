@@ -426,7 +426,8 @@ public class RunodeMovement : MonoBehaviour
         }
         targetTransform.localScale = originalScale;
 
-        Physics.SyncTransforms();
+        isRotating = false;
+
         runodeCube.RefreshCubeAndAdjacentConnections();
 
         RunodePower p = GetComponent<RunodePower>();

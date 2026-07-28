@@ -61,6 +61,15 @@ public class LinePort : MonoBehaviour
         isIncluded = included;
     }
 
+    public void SetFaceColliderEnabled(bool enabled)
+    {
+        if (portTrigger == null)
+            portTrigger = GetComponent<BoxCollider>();
+
+        if (portTrigger != null)
+            portTrigger.enabled = isIncluded && enabled;
+    }
+
     public void SetFaceBlocked(bool blocked)
     {
         faceBlocked = blocked;
@@ -207,8 +216,5 @@ public class LinePort : MonoBehaviour
     {
         if (parentLine == null)
             return;
-
-
-        parentLine.OnPortConnected(this, otherPort);
     }
 }
