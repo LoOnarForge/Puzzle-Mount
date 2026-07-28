@@ -31,7 +31,7 @@ public class ObstructionPort : MonoBehaviour
     // Refreshes the complete obstruction state from the current overlap state.
     public void RefreshObstructionState()
     {
-        Debug.Log($"Refresh {RunodeCube.CurrentRefreshId} obstruction start | port={name} | position={transform.position} | layer={gameObject.layer}");
+
 
         obstructions.Clear();
         OverlapBox();
@@ -63,12 +63,7 @@ public class ObstructionPort : MonoBehaviour
             obstructionLayers,
             QueryTriggerInteraction.Collide);
 
-        Debug.Log($"Refresh {RunodeCube.CurrentRefreshId} ObstructionPort query | port={name} | center={center} | halfExtents={halfExtents} | rotation={obstructionTrigger.transform.rotation} | count={overlapCount}");
-        for (int i = 0; i < overlapCount; i++)
-        {
-            Collider collider = overlapResults[i];
-            Debug.Log($"Refresh {RunodeCube.CurrentRefreshId} ObstructionPort hit | port={name} | collider={collider.name} | instanceId={collider.GetInstanceID()} | root={collider.transform.root.name} | layer={collider.gameObject.layer} | isTrigger={collider.isTrigger} | boundsCenter={collider.bounds.center} | boundsSize={collider.bounds.size}");
-        }
+
     }
 
     // Records every overlapping object that belongs to the obstruction layer mask.
@@ -81,10 +76,9 @@ public class ObstructionPort : MonoBehaviour
             if (!obstructions.Contains(obstruction))
             {
                 obstructions.Add(obstruction);
-                Collider collider = overlapResults[i];
-                Debug.Log($"Refresh {RunodeCube.CurrentRefreshId} obstruction recorded | port={name} | collider={collider.name} | root={collider.transform.root.name} | instanceId={collider.GetInstanceID()}");
+
             }
         }
-        Debug.Log($"Refresh {RunodeCube.CurrentRefreshId} obstruction state | port={name} | obstructed={IsObstructed} | objects={obstructions.Count}");
+
     }
 }

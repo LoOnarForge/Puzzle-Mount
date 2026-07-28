@@ -56,17 +56,11 @@ public class RunodeCube : MonoBehaviour
     public Sprite tSectionSprite;
     public Sprite crossSprite;
 
-    private static int refreshSequence;
-    public static int CurrentRefreshId { get; private set; }
 
     // Refreshes obstruction state and then connections on this cube and its neighbours.
     public void RefreshCubeAndAdjacentConnections()
     {
-        CurrentRefreshId = ++refreshSequence;
-        Debug.Log($"Refresh {CurrentRefreshId} start | cube={name} | position={transform.position}");
-
         RunodeCube[] affectedCubes = FindAffectedCubes();
-        Debug.Log($"Refresh {CurrentRefreshId} affected cubes | {string.Join(", ", System.Array.ConvertAll(affectedCubes, cube => cube.name))}");
 
         RefreshObstructionsOnAffectedCubes(affectedCubes);
         RefreshPortObstructionsOnAffectedCubes(affectedCubes);
@@ -117,7 +111,6 @@ public class RunodeCube : MonoBehaviour
 
     private void RefreshPortObstructionsOnAffectedCubes(RunodeCube[] affectedCubes)
     {
-        Debug.Log($"Refresh {CurrentRefreshId} all port obstruction states");
 
         foreach (RunodeCube cube in affectedCubes)
         {

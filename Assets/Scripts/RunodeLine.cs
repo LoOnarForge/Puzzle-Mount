@@ -14,9 +14,7 @@ public class RunodeLine : MonoBehaviour
 
     [SerializeField] private bool isObstructed;
 
-    [Header("Visuals")]
-    public float darkenSpeed = 10f;
-    public float brightenSpeed = 10f;
+    private float darkenSpeed = 15f;
 
 
     private bool isDarkening;
@@ -64,7 +62,7 @@ public class RunodeLine : MonoBehaviour
     {
         if (lineSprite == null) return;
 
-        lineSprite.color = Color.Lerp(lineSprite.color, Color.white, Time.deltaTime * brightenSpeed);
+        lineSprite.color = Color.Lerp(lineSprite.color, Color.white, Time.deltaTime * darkenSpeed);
 
         if (ColorsApproximatelyEqual(lineSprite.color, Color.white))
         {
@@ -94,7 +92,6 @@ public class RunodeLine : MonoBehaviour
     // Refreshes the current face obstruction state.
     public void RefreshFaceObstructionState()
     {
-        Debug.Log($"Refresh {RunodeCube.CurrentRefreshId} face refresh | line={name} | root={transform.root.name} | obstructedBefore={isObstructed}");
 
         if (obstructionPort == null || !obstructionPort.isActiveAndEnabled)
             return;
@@ -112,7 +109,7 @@ public class RunodeLine : MonoBehaviour
 
     public void RefreshAllActivePortObstructions()
     {
-        Debug.Log($"Refresh {RunodeCube.CurrentRefreshId} port obstruction refresh | line={name} | root={transform.root.name} | portCount={(ports == null ? 0 : ports.Length)}");
+
 
         if (ports == null)
             return;
@@ -127,7 +124,6 @@ public class RunodeLine : MonoBehaviour
     // Refreshes every active port on this face using already refreshed obstruction state.
     public void RefreshAllActivePortConnections()
     {
-        Debug.Log($"Refresh {RunodeCube.CurrentRefreshId} connection refresh | line={name} | root={transform.root.name} | obstructed={isObstructed} | portCount={(ports == null ? 0 : ports.Length)}");
 
         if (ports == null)
             return;
