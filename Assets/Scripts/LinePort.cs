@@ -77,12 +77,6 @@ public class LinePort : MonoBehaviour
 
         connectedPorts.Clear();
 
-        if (isBlocked)
-        {
-
-            return;
-        }
-
         LinePort validPort = ChooseValidPort();
         if (validPort == null)
             return;
@@ -153,7 +147,7 @@ public class LinePort : MonoBehaviour
         LinePort firstValidPort = null;
 
         List<LinePort> viablePorts = new List<LinePort>();
-        List<string> viablePortNames = new List<string>();
+        List<string> viablePortDescriptions = new List<string>();
 
         for (int i = 0; i < overlapCount; i++)
         {
@@ -163,6 +157,7 @@ public class LinePort : MonoBehaviour
             if (otherPort == null || otherPort == this)
                 continue;
 
+            bool isInternal = parentCube == otherPort.parentCube;
             bool canConnect = CanConnectTo(otherPort);
 
 
@@ -170,7 +165,7 @@ public class LinePort : MonoBehaviour
                 continue;
 
             viablePorts.Add(otherPort);
-            viablePortNames.Add(otherPort.name);
+            viablePortDescriptions.Add($"{otherPort.name} ({(isInternal ? "internal" : "external")})");
 
             if (firstValidPort == null)
                 firstValidPort = otherPort;
@@ -180,7 +175,7 @@ public class LinePort : MonoBehaviour
         if (viablePorts.Count > 1)
         {
             Debug.LogWarning(
-                $"LinePort '{name}' found {viablePorts.Count} viable connections: {string.Join(", ", viablePortNames)}.",
+                $"LinePort '{name}' found {viablePorts.Count} viable connections: {string.Join(", ", viablePortDescriptions)}.",
                 this);
         }
 
@@ -192,6 +187,10 @@ public class LinePort : MonoBehaviour
     {
         if (otherPort == null || otherPort == this)
             return false;
+
+        bool isInternal = parentCube == otherPort.parentCube;
+        if (!isInternal)
+            return true;
 
         return !isBlocked && !otherPort.isBlocked;
     }
