@@ -89,9 +89,10 @@ public class LinePort : MonoBehaviour
 
     public void RefreshPortConnection()
     {
-
-
         connectedPorts.Clear();
+
+        if (faceBlocked)
+            return;
 
         LinePort validPort = ChooseValidPort();
         if (validPort == null)
