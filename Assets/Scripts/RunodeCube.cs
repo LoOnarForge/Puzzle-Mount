@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using UnityEngine;
 
 public enum RunodeLineType
@@ -54,20 +55,28 @@ public class RunodeCube : MonoBehaviour
     public Sprite cornerSprite;
     public Sprite tSectionSprite;
     public Sprite crossSprite;
-    // Refreshes every active line on this cube.
-    public void RefreshAllActiveLinesOnCube()
-    {
-        RunodeLine[] lines = GetComponentsInChildren<RunodeLine>();
 
-        foreach (RunodeLine line in lines)
-        {
-            line.CheckPortConnections();
-        }
+    private static int refreshSequence;
+    public static int CurrentRefreshId { get; private set; }
+
+    // Refreshes obstruction state and then connections on this cube and its neighbours.
+    public void RefreshCubeAndAdjacentConnections()
+    {
+        CurrentRefreshId = ++refreshSequence;
+        Debug.Log($"Refresh {CurrentRefreshId} start | cube={name} | position={transform.position}");
+
+        RunodeCube[] affectedCubes = FindAffectedCubes();
+        Debug.Log($"Refresh {CurrentRefreshId} affected cubes | {string.Join(", ", System.Array.ConvertAll(affectedCubes, cube => cube.name))}");
+
+        RefreshObstructionsOnAffectedCubes(affectedCubes);
+        RefreshPortObstructionsOnAffectedCubes(affectedCubes);
+        RefreshConnectionsOnAffectedCubes(affectedCubes);
     }
 
-    // Refreshes this cube and every face- or edge-adjacent cube.
-    public void RefreshAllAdjecentCubes()
+    // Finds this cube plus every face- or edge-adjacent cube within the refresh radius.
+    private RunodeCube[] FindAffectedCubes()
     {
+        List<RunodeCube> affectedCubes = new List<RunodeCube> { this };
         RunodeCube[] cubes = FindObjectsByType<RunodeCube>(FindObjectsSortMode.None);
 
         foreach (RunodeCube cube in cubes)
@@ -87,17 +96,54 @@ public class RunodeCube : MonoBehaviour
                 && Mathf.Abs(offset.y) <= 2.1f
                 && Mathf.Abs(offset.z) <= 2.1f)
             {
-                cube.RefreshAllActiveLinesOnCube();
+                affectedCubes.Add(cube);
+            }
+        }
+
+        return affectedCubes.ToArray();
+    }
+
+    // Refreshes obstruction state on every active line in the affected cubes.
+    private void RefreshObstructionsOnAffectedCubes(RunodeCube[] affectedCubes)
+    {
+        foreach (RunodeCube cube in affectedCubes)
+        {
+            RunodeLine[] lines = cube.GetComponentsInChildren<RunodeLine>();
+
+            foreach (RunodeLine line in lines)
+                line.RefreshFaceObstructionState();
+        }
+    }
+
+    private void RefreshPortObstructionsOnAffectedCubes(RunodeCube[] affectedCubes)
+    {
+        Debug.Log($"Refresh {CurrentRefreshId} all port obstruction states");
+
+        foreach (RunodeCube cube in affectedCubes)
+        {
+            RunodeLine[] lines = cube.GetComponentsInChildren<RunodeLine>();
+
+            foreach (RunodeLine line in lines)
+                line.RefreshAllActivePortObstructions();
+        }
+    }
+
+    // Refreshes connections on every unobstructed active line in the affected cubes.
+    private void RefreshConnectionsOnAffectedCubes(RunodeCube[] affectedCubes)
+    {
+        foreach (RunodeCube cube in affectedCubes)
+        {
+            RunodeLine[] lines = cube.GetComponentsInChildren<RunodeLine>();
+
+            foreach (RunodeLine line in lines)
+            {
+                line.RefreshAllActivePortConnections();
             }
         }
     }
 
-
-
-
     // Returns the face index (0:Top, 1:Bottom, 2:North, 3:South, 4:East, 5:West)
     // for the given world point relative to the cube's visual parent. Used for the Highlighter script
-
     public int GetFaceIndexFromPoint(Vector3 worldPoint)
     {
         Transform vParent = transform.GetChild(0);

@@ -25,6 +25,8 @@ public class LinePort : MonoBehaviour
     [Header("DEBUGGING:")]
     [SerializeField] private PortType type = PortType.Neutral;
     [SerializeField] private bool isBlocked;
+    private bool faceBlocked;
+    private bool directlyBlocked;
 
     [SerializeField] private LayerMask portTriggerLayers;
     [SerializeField] private List<LinePort> connectedPorts = new List<LinePort>();
@@ -34,7 +36,6 @@ public class LinePort : MonoBehaviour
     private BoxCollider portTrigger;
     private readonly Collider[] overlapResults = new Collider[16];
     private int overlapCount;
-    private LinePort previouslySelectedPort;
 
     private void Awake()
     {
@@ -53,32 +54,42 @@ public class LinePort : MonoBehaviour
         type = newType;
     }
 
-    public void SetPortIsblocked(bool blocked)
+    public void SetFaceBlocked(bool blocked)
     {
-        isBlocked = blocked;
+        faceBlocked = blocked;
+        ApplyBlockedState();
     }
 
-    // Refreshes obstruction and connection information from the current overlap state.
     public void RefreshPortState()
     {
-        Debug.Log(
-            $"PORT REFRESH START | cube={parentCube.name} | line={parentLine.name} | port={name} | blockedBefore={isBlocked} | previousConnection={(previouslySelectedPort != null ? previouslySelectedPort.name : "none")}",
-            this);
+        RefreshPortObstructionState();
+        RefreshPortConnection();
+    }
 
-        connectedPorts.Clear();
+    public void RefreshPortObstructionState()
+    {
+        Debug.Log($"Refresh {RunodeCube.CurrentRefreshId} port obstruction pass | port={name} | parentCube={(parentCube == null ? "None" : parentCube.name)} | portPosition={transform.position} | portLayer={gameObject.layer}");
+
         obstructions.Clear();
-        isBlocked = false;
+        directlyBlocked = false;
 
         OverlapBox();
         CheckForPortObstructions();
+    }
+
+    public void RefreshPortConnection()
+    {
+        Debug.Log($"Refresh {RunodeCube.CurrentRefreshId} port connection pass | port={name} | parentCube={(parentCube == null ? "None" : parentCube.name)} | blocked={isBlocked}");
+
+        connectedPorts.Clear();
+
+        if (isBlocked)
+        {
+            Debug.Log($"Refresh {RunodeCube.CurrentRefreshId} LinePort connection skipped | port={name} | blocked=True");
+            return;
+        }
 
         LinePort validPort = ChooseValidPort();
-
-        Debug.Log(
-            $"PORT REFRESH RESULT | cube={parentCube.name} | line={parentLine.name} | port={name} | blockedAfter={isBlocked} | obstructions={GetObstructionNames()} | overlapCount={overlapCount} | selected={(validPort != null ? validPort.name : "none")} | selectedOtherBlocked={(validPort != null ? validPort.isBlocked.ToString() : "n/a")}",
-            this);
-
-        previouslySelectedPort = validPort;
         if (validPort == null)
             return;
 
@@ -110,6 +121,13 @@ public class LinePort : MonoBehaviour
             portTrigger.transform.rotation,
             portTriggerLayers,
             QueryTriggerInteraction.Collide);
+
+        Debug.Log($"Refresh {RunodeCube.CurrentRefreshId} LinePort query | port={name} | center={center} | halfExtents={halfExtents} | rotation={portTrigger.transform.rotation} | count={overlapCount}");
+        for (int i = 0; i < overlapCount; i++)
+        {
+            Collider collider = overlapResults[i];
+            Debug.Log($"Refresh {RunodeCube.CurrentRefreshId} LinePort hit | port={name} | collider={collider.name} | instanceId={collider.GetInstanceID()} | root={collider.transform.root.name} | layer={collider.gameObject.layer} | isTrigger={collider.isTrigger} | boundsCenter={collider.bounds.center} | boundsSize={collider.bounds.size}");
+        }
     }
 
     // Records every overlapping non-port object and updates the blocked state.
@@ -124,30 +142,26 @@ public class LinePort : MonoBehaviour
                 continue;
 
             if (!obstructions.Contains(overlap.gameObject))
+            {
                 obstructions.Add(overlap.gameObject);
+                Debug.Log($"Refresh {RunodeCube.CurrentRefreshId} LinePort obstruction | port={name} | parentCube={(parentCube == null ? "None" : parentCube.name)} | collider={overlap.name} | root={overlap.transform.root.name} | instanceId={overlap.GetInstanceID()}");
+            }
         }
-        isBlocked = obstructions.Count > 0;
+        directlyBlocked = obstructions.Count > 0;
+        ApplyBlockedState();
+        Debug.Log($"Refresh {RunodeCube.CurrentRefreshId} LinePort obstruction state | port={name} | parentCube={(parentCube == null ? "None" : parentCube.name)} | faceBlocked={faceBlocked} | directlyBlocked={directlyBlocked} | blocked={isBlocked} | objects={obstructions.Count}");
     }
 
-    // Returns the names of all objects currently blocking this port.
-    private string GetObstructionNames()
+    private void ApplyBlockedState()
     {
-        if (obstructions.Count == 0)
-            return "none";
-
-        string names = obstructions[0].name;
-
-        for (int i = 1; i < obstructions.Count; i++)
-            names += $", {obstructions[i].name}";
-
-        return names;
+        isBlocked = faceBlocked || directlyBlocked;
     }
+
 
     // Finds the first valid port and reports how many valid candidates were found.
     private LinePort ChooseValidPort()
     {
         LinePort firstValidPort = null;
-        int validPortCount = 0;
 
         for (int i = 0; i < overlapCount; i++)
         {
@@ -157,27 +171,16 @@ public class LinePort : MonoBehaviour
             if (otherPort == null || otherPort == this)
                 continue;
 
-            bool isValid = CanConnectTo(otherPort);
-            bool isInternal = parentCube == otherPort.parentCube;
+            bool canConnect = CanConnectTo(otherPort);
+            Debug.Log($"Refresh {RunodeCube.CurrentRefreshId} LinePort candidate | port={name} | parentCube={(parentCube == null ? "None" : parentCube.name)} | candidate={otherPort.name} | candidateParentCube={(otherPort.parentCube == null ? "None" : otherPort.parentCube.name)} | sameCube={parentCube == otherPort.parentCube} | selfBlocked={isBlocked} | otherBlocked={otherPort.isBlocked} | accepted={canConnect}");
 
-            Debug.Log(
-                $"PORT CANDIDATE | cube={parentCube.name} | line={parentLine.name} | port={name} -> {otherPort.name} | internal={isInternal} | selfBlocked={isBlocked} | otherBlocked={otherPort.isBlocked} | valid={isValid}",
-                this);
-
-            if (!isValid)
+            if (!canConnect)
                 continue;
 
-            validPortCount++;
             firstValidPort ??= otherPort;
         }
 
-        if (validPortCount > 1)
-        {
-            Debug.LogWarning(
-                $"LinePort found {validPortCount} valid candidates: {name}",
-                this);
-        }
-
+        Debug.Log($"Refresh {RunodeCube.CurrentRefreshId} LinePort selected | port={name} | selected={(firstValidPort == null ? "None" : firstValidPort.name)}");
         return firstValidPort;
     }
 
@@ -187,8 +190,7 @@ public class LinePort : MonoBehaviour
         if (otherPort == null || otherPort == this)
             return false;
 
-        bool isInternal = parentCube == otherPort.parentCube;
-        return !isInternal || (!isBlocked && !otherPort.isBlocked);
+        return !isBlocked && !otherPort.isBlocked;
     }
 
     // Sends the accepted connection to this port's parent line.
@@ -197,6 +199,7 @@ public class LinePort : MonoBehaviour
         if (parentLine == null)
             return;
 
+        Debug.Log($"Refresh {RunodeCube.CurrentRefreshId} LinePort report | {name} -> {otherPort.name}");
         parentLine.OnPortConnected(this, otherPort);
     }
 }

@@ -9,6 +9,9 @@ public class RunodeLine : MonoBehaviour
 
     [Header("State (Read-Only)")]
     [SerializeField] private bool isPowered;
+    public bool IsFaceObstructed => isObstructed;
+
+
     [SerializeField] private bool isObstructed;
 
     [Header("Visuals")]
@@ -75,7 +78,7 @@ public class RunodeLine : MonoBehaviour
         if (ports == null) return;
         foreach (var port in ports)
         {
-            if (port != null) port.SetPortIsblocked(true);
+            if (port != null) port.SetFaceBlocked(true);
         }
     }
 
@@ -84,26 +87,21 @@ public class RunodeLine : MonoBehaviour
         if (ports == null) return;
         foreach (var port in ports)
         {
-            if (port != null) port.SetPortIsblocked(false);
+            if (port != null) port.SetFaceBlocked(false);
         }
     }
 
-    // Checks the face obstruction before refreshing any line ports.
-    private void RefreshFaceObstructionState()
+    // Refreshes the current face obstruction state.
+    public void RefreshFaceObstructionState()
     {
+        Debug.Log($"Refresh {RunodeCube.CurrentRefreshId} face refresh | line={name} | root={transform.root.name} | obstructedBefore={isObstructed}");
+
         if (obstructionPort == null || !obstructionPort.isActiveAndEnabled)
             return;
 
         obstructionPort.RefreshObstructionState();
 
-        bool obstructionStateChanged = isObstructed != obstructionPort.IsObstructed;
-        if (obstructionStateChanged)
-        {
-            Debug.Log(
-                $"Face obstruction changed: {name} | previous={isObstructed} | current={obstructionPort.IsObstructed}",
-                this);
-        }
-        if (!obstructionStateChanged)
+        if (isObstructed == obstructionPort.IsObstructed)
             return;
 
         if (obstructionPort.IsObstructed)
@@ -111,14 +109,10 @@ public class RunodeLine : MonoBehaviour
         else
             FaceCleared();
     }
-    // Refreshes the face obstruction first, then refreshes every active port.
-    public void CheckPortConnections()
-    {
-        Debug.Log($"LINE REFRESH | cube={transform.root.name} | line={name}", this);
-        RefreshFaceObstructionState();
 
-        if (isObstructed)
-            return;
+    public void RefreshAllActivePortObstructions()
+    {
+        Debug.Log($"Refresh {RunodeCube.CurrentRefreshId} port obstruction refresh | line={name} | root={transform.root.name} | portCount={(ports == null ? 0 : ports.Length)}");
 
         if (ports == null)
             return;
@@ -126,8 +120,32 @@ public class RunodeLine : MonoBehaviour
         foreach (LinePort port in ports)
         {
             if (port != null && port.isActiveAndEnabled)
-                port.RefreshPortState();
+                port.RefreshPortObstructionState();
         }
+    }
+
+    // Refreshes every active port on this face using already refreshed obstruction state.
+    public void RefreshAllActivePortConnections()
+    {
+        Debug.Log($"Refresh {RunodeCube.CurrentRefreshId} connection refresh | line={name} | root={transform.root.name} | obstructed={isObstructed} | portCount={(ports == null ? 0 : ports.Length)}");
+
+        if (ports == null)
+            return;
+
+        foreach (LinePort port in ports)
+        {
+            if (port != null && port.isActiveAndEnabled)
+                port.RefreshPortConnection();
+        }
+    }
+
+    // Refreshes the face obstruction and then all active port connections.
+    public void CheckPortConnections()
+    {
+        RefreshFaceObstructionState();
+
+        RefreshAllActivePortObstructions();
+        RefreshAllActivePortConnections();
     }
 
 

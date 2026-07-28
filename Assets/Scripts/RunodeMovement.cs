@@ -63,8 +63,7 @@ public class RunodeMovement : MonoBehaviour
 
         if (!wasGrounded && isGrounded && runodeCube != null)
         {
-            runodeCube.RefreshAllActiveLinesOnCube();
-            runodeCube.RefreshAllAdjecentCubes();
+            runodeCube.RefreshCubeAndAdjacentConnections();
         }
 
         wasGrounded = isGrounded;
@@ -218,13 +217,8 @@ public class RunodeMovement : MonoBehaviour
             yield return null;
         }
 
-        transform.position = new Vector3(targetPosition.x, startPos.y, targetPosition.z);
-
         Physics.SyncTransforms();
-        runodeCube.RefreshAllActiveLinesOnCube();
-        runodeCube.RefreshAllAdjecentCubes();
-
-        rb.constraints = RigidbodyConstraints.FreezePositionX | RigidbodyConstraints.FreezePositionZ | RigidbodyConstraints.FreezeRotation;
+        runodeCube.RefreshCubeAndAdjacentConnections();
 
         isMovingPos = false;
         PowerManager.Instance.RequestPowerFlowCheck(transform);
@@ -238,18 +232,6 @@ public class RunodeMovement : MonoBehaviour
             PowerManager.Instance.RequestPowerFlowCheck(transform);
         }
     }
-
-    // Refreshes all power lines belonging to this cube after movement or rotation.
-    private void RefreshLineConnections()
-    {
-        RunodeLine[] lines = GetComponentsInChildren<RunodeLine>();
-
-        foreach (RunodeLine line in lines)
-        {
-            line.CheckPortConnections();
-        }
-    }
-
 
     private void ApplyRandomRotation()
     {
@@ -445,9 +427,7 @@ public class RunodeMovement : MonoBehaviour
         targetTransform.localScale = originalScale;
 
         Physics.SyncTransforms();
-        runodeCube.RefreshAllActiveLinesOnCube();
-        runodeCube.RefreshAllAdjecentCubes();
-        isRotating = false;
+        runodeCube.RefreshCubeAndAdjacentConnections();
 
         RunodePower p = GetComponent<RunodePower>();
         if (PowerManager.Instance != null) PowerManager.Instance.RequestPowerFlowCheck(p);
