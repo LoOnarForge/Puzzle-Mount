@@ -31,8 +31,6 @@ public class ObstructionPort : MonoBehaviour
     // Refreshes the complete obstruction state from the current overlap state.
     public void RefreshObstructionState()
     {
-
-
         obstructions.Clear();
         OverlapBox();
         RecordObstructions();
@@ -51,6 +49,7 @@ public class ObstructionPort : MonoBehaviour
         }
 
         Vector3 center = obstructionTrigger.transform.TransformPoint(obstructionTrigger.center);
+        
         Vector3 halfExtents = Vector3.Scale(
             obstructionTrigger.size,
             obstructionTrigger.transform.lossyScale) * 0.5f;
@@ -62,8 +61,6 @@ public class ObstructionPort : MonoBehaviour
             obstructionTrigger.transform.rotation,
             obstructionLayers,
             QueryTriggerInteraction.Collide);
-
-
     }
 
     // Records every overlapping object that belongs to the obstruction layer mask.
@@ -74,11 +71,7 @@ public class ObstructionPort : MonoBehaviour
             GameObject obstruction = overlapResults[i].gameObject;
 
             if (!obstructions.Contains(obstruction))
-            {
                 obstructions.Add(obstruction);
-
-            }
         }
-
     }
 }
