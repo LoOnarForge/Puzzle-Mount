@@ -12,6 +12,7 @@ public enum PortType
 [RequireComponent(typeof(BoxCollider))]
 public class LinePort : MonoBehaviour
 {
+    [Header("STATE:")]
     [SerializeField] private RunodeLine parentLine;
     [SerializeField] private RunodeCube parentCube;
 
@@ -209,13 +210,16 @@ public class LinePort : MonoBehaviour
             parentLine.NewValidConnection(connectedPort.parentLine, connectedPort);
     }
 
-    public void ReportConnectedReceivers()
+    public void ReportPowerLossToConnectedPorts()
     {
         foreach (LinePort connectedPort in connectedPorts)
-        {
-            if (connectedPort.type == PortType.Receiver)
-                parentLine.PowerDownConnectedLine(connectedPort.parentLine);
-        }
+            connectedPort.ReportPowerLost();
+    }
+
+    private void ReportPowerLost()
+    {
+        if (type == PortType.Receiver)
+            parentLine.PowerDownLine();
     }
 
 
