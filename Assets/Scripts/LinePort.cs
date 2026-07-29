@@ -22,6 +22,8 @@ public class LinePort : MonoBehaviour
     [SerializeField] private RunodeLine parentLine;
     [SerializeField] private RunodeCube parentCube;
 
+    [SerializeField] private PowerSource parentPowerSource;
+
     [Header("DEBUGGING:")]
     [SerializeField] private PortType type = PortType.Neutral;
     [SerializeField] private bool isIncluded;
@@ -117,59 +119,77 @@ public class LinePort : MonoBehaviour
     }
     public void RefreshPortConnection()
     {
-        connectedPorts.Clear();
-
         if (faceBlocked)
+        {
+            RemoveAllConnections();
             return;
+        }
 
-        LinePort validPort = ChooseValidPort();
-        if (validPort == null)
-            return;
-
-        connectedPorts.Add(validPort);
-        ReportConnectionToPowerLine(validPort);
+        RemoveConnectionsThatNoLongerExist();
+        AddNewConnections();
     }
    
-    private bool CanConnectTo(LinePort otherPort)
+    private void RemoveAllConnections()
     {
-        if (otherPort == this)
-            return false;
-
-        bool isInternal = parentCube == otherPort.parentCube;
-        if (!isInternal)
-            return true;
-
-        return !isBlocked && !otherPort.isBlocked;
+        for (int i = connectedPorts.Count - 1; i >= 0; i--)
+        {
+            connectedPorts.RemoveAt(i);
+            ReportLostConnection();
+        }
     }
-    private LinePort ChooseValidPort()
-    {
-        LinePort firstValidPort = null;
 
+    private void RemoveConnectionsThatNoLongerExist()
+    {
+        for (int i = connectedPorts.Count - 1; i >= 0; i--)
+        {
+            LinePort connectedPort = connectedPorts[i];
+
+            if (IsPortStillConnected(connectedPort))
+                continue;
+
+            connectedPorts.RemoveAt(i);
+            ReportLostConnection();
+        }
+    }
+
+    private bool IsPortStillConnected(LinePort connectedPort)
+    {
+        for (int i = 0; i < overlapCount; i++)
+        {
+            LinePort overlappingPort = overlapResults[i].GetComponent<LinePort>();
+
+            if (overlappingPort == connectedPort && CanConnectTo(overlappingPort))
+                return true;
+        }
+
+        return false;
+    }
+
+    private void AddNewConnections()
+    {
         List<LinePort> viablePorts = new List<LinePort>();
         List<string> viablePortDescriptions = new List<string>();
 
         for (int i = 0; i < overlapCount; i++)
         {
-            Collider overlap = overlapResults[i];
-            LinePort otherPort = overlap.GetComponent<LinePort>();
+            LinePort otherPort = overlapResults[i].GetComponent<LinePort>();
 
             if (otherPort == null || otherPort == this)
                 continue;
 
-            bool isInternal = parentCube == otherPort.parentCube;
-            bool canConnect = CanConnectTo(otherPort);
-
-
-            if (!canConnect)
+            if (!CanConnectTo(otherPort))
                 continue;
 
+            bool isInternal = parentCube == otherPort.parentCube;
             viablePorts.Add(otherPort);
             viablePortDescriptions.Add($"{otherPort.name} ({(isInternal ? "internal" : "external")})");
 
-            if (firstValidPort == null)
-                firstValidPort = otherPort;
-        }
+            if (connectedPorts.Contains(otherPort))
+                continue;
 
+            connectedPorts.Add(otherPort);
+            ReportNewConnection(otherPort);
+        }
 
         if (viablePorts.Count > 1)
         {
@@ -177,14 +197,31 @@ public class LinePort : MonoBehaviour
                 $"LinePort '{name}' found {viablePorts.Count} viable connections: {string.Join(", ", viablePortDescriptions)}.",
                 this);
         }
-
-        return firstValidPort;
     }
 
-    private void ReportConnectionToPowerLine(LinePort otherPort)
+    private bool CanConnectTo(LinePort otherPort)
     {
-        if (parentLine == null)
+        bool isInternal = parentCube == otherPort.parentCube;
+        if (!isInternal)
+            return true;
+
+        return !isBlocked && !otherPort.isBlocked;
+    }
+
+    private void ReportNewConnection(LinePort otherPort)
+    {
+        if (parentLine == null || otherPort.parentPowerSource == null)
             return;
+
+        otherPort.parentPowerSource.PowerRunodeLine(parentLine, this);
+    }
+
+    private void ReportLostConnection()
+    {
+        if (parentLine == null || type != PortType.Receiver)
+            return;
+
+        parentLine.ReceiverConnectionLost();
     }
 
 

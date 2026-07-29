@@ -15,20 +15,78 @@ public class RunodeLine : MonoBehaviour
     [SerializeField] private bool isFaceBlocked;
 
     [SerializeField] private PowerSource powerSource;
+    [SerializeField] private LinePort receiverPort;
     [SerializeField] private Color powerColor;
     [SerializeField] private int powerIndex;
 
+    private const float PowerColorDuration = 0.2f;
     private float darkeningSpeed = 15f;
 
 
     // Powers this line from a Power Source.
-    public void PowerUp(PowerSource source, Color color, int index)
+    public void PowerUp(PowerSource source, LinePort receivingPort, Color color, int index)
     {
         isPowered = true;
         powerSource = source;
+        receiverPort = receivingPort;
         powerColor = color;
         powerIndex = index;
-        lineSprite.color = color;
+        SetPortRoles(receivingPort);
+        StopAllCoroutines();
+        StartCoroutine(ColorPowerLine(color));
+    }
+
+    // Depowers this line after its Receiver connection is lost.
+    public void ReceiverConnectionLost()
+    {
+        isPowered = false;
+        powerSource.ReturnMW();
+        powerSource.RemoveCircuitMember(this);
+        ResetPortRoles();
+        powerSource = null;
+        receiverPort = null;
+        powerColor = Color.white;
+        powerIndex = 0;
+        StopAllCoroutines();
+        StartCoroutine(BrightenSpriteLine());
+    }
+
+    private void SetPortRoles(LinePort receivingPort)
+    {
+        foreach (LinePort port in ports)
+        {
+            if (!port.IsIncluded)
+                continue;
+
+            if (port == receivingPort)
+                port.SetPortType(PortType.Receiver);
+            else
+                port.SetPortType(PortType.Giver);
+        }
+    }
+
+    private void ResetPortRoles()
+    {
+        foreach (LinePort port in ports)
+        {
+            if (port.IsIncluded)
+                port.SetPortType(PortType.Neutral);
+        }
+    }
+
+    private IEnumerator ColorPowerLine(Color targetColor)
+    {
+        Color startingColor = lineSprite.color;
+        float elapsedTime = 0f;
+
+        while (elapsedTime < PowerColorDuration)
+        {
+            elapsedTime += Time.deltaTime;
+            lineSprite.color = Color.Lerp(startingColor, targetColor, elapsedTime / PowerColorDuration);
+            yield return null;
+        }
+
+        lineSprite.color = targetColor;
     }
 
     public void FaceObstructed()

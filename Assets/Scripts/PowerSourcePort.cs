@@ -15,6 +15,6 @@ public class PowerSourcePort : MonoBehaviour
             return;
 
         RunodeLine line = linePort.GetComponentInParent<RunodeLine>();
-        parentPowerSource.PowerRunodeLine(line);
+        parentPowerSource.PowerRunodeLine(line, linePort);
     }
 }

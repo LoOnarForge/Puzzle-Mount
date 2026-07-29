@@ -14,10 +14,10 @@ public class PowerSource : MonoBehaviour
 
     [Space(20)]
     [Header("POWER SOURCE PORTS:")]
-    [SerializeField] private PowerSourcePort upPort;
-    [SerializeField] private PowerSourcePort rightPort;
-    [SerializeField] private PowerSourcePort downPort;
-    [SerializeField] private PowerSourcePort leftPort;
+    [SerializeField] private LinePort upPort;
+    [SerializeField] private LinePort rightPort;
+    [SerializeField] private LinePort downPort;
+    [SerializeField] private LinePort leftPort;
 
     [Space(20)]
     [Header("VISUAL ELEMENTS:")]
@@ -35,12 +35,12 @@ public class PowerSource : MonoBehaviour
     }
 
  
-    public void PowerRunodeLine(RunodeLine line)
+    public void PowerRunodeLine(RunodeLine line, LinePort receivingPort)
     {
         if (!TakeMW())
             return;
 
-        line.PowerUp(this, circuitColor, 1);
+        line.PowerUp(this, receivingPort, circuitColor, 1);
         AddCircuitMember(line);
     }
 
