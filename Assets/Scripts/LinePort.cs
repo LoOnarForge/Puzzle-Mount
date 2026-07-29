@@ -239,6 +239,18 @@ public class LinePort : MonoBehaviour
         }
     }
 
+    // Stops this port from providing power to connected lines.
+    public void StopGivingPower()
+    {
+        foreach (LinePort receivingPort in connectedPorts)
+        {
+            if (receivingPort.parentLine == null || receivingPort.type != PortType.Receiver)
+                continue;
+
+            receivingPort.parentLine.ReceiverConnectionLost();
+        }
+    }
+
     public void SetIncluded(bool included)
     {
         isIncluded = included;

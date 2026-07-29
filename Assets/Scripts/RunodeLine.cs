@@ -45,12 +45,15 @@ public class RunodeLine : MonoBehaviour
         powerSource.PowerRunodeLine(receivingLine, receivingPort, this, powerIndex + 1);
     }
 
+    // Depowers this line after its Receiver connection is lost.
     public void ReceiverConnectionLost()
     {
+        PowerSource lostPowerSource = powerSource;
+
         isPowered = false;
-        powerSource.ReturnMW();
-        powerSource.RemoveCircuitMember(this);
-        ResetPortRoles();
+        lostPowerSource.ReturnMW();
+        lostPowerSource.RemoveCircuitMember(this);
+        receiverPort.SetPortType(PortType.Neutral);
         powerSource = null;
         poweredByLine = null;
         receiverPort = null;
@@ -58,6 +61,7 @@ public class RunodeLine : MonoBehaviour
         powerIndex = 0;
         StopAllCoroutines();
         StartCoroutine(BrightenSpriteLine());
+        StartCoroutine(DepowerSequence());
     }
 
     private void SetPortRoles(LinePort receivingPort)
@@ -110,6 +114,22 @@ public class RunodeLine : MonoBehaviour
         {
             if (port.IsIncluded)
                 port.TryToGivePower();
+        }
+    }
+
+    private IEnumerator DepowerSequence()
+    {
+        yield return new WaitForSeconds(PowerColorDuration);
+        StopGiverConnections();
+        ResetPortRoles();
+    }
+
+    private void StopGiverConnections()
+    {
+        foreach (LinePort port in ports)
+        {
+            if (port.IsIncluded)
+                port.StopGivingPower();
         }
     }
 
