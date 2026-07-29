@@ -77,8 +77,8 @@ public class RunodeLine : MonoBehaviour
         {
             if (port != null)
             {
-                port.SetFaceBlocked(true);
-                port.SetFaceColliderEnabled(false);
+                port.SetParentFaceBlockedState(true);
+                port.SetPortColliderEnabled(false);
             }
         }
     }
@@ -89,8 +89,8 @@ public class RunodeLine : MonoBehaviour
         {
             if (port != null)
             {
-                port.SetFaceBlocked(false);
-                port.SetFaceColliderEnabled(true);
+                port.SetParentFaceBlockedState(false);
+                port.SetPortColliderEnabled(true);
             }
         }
     }

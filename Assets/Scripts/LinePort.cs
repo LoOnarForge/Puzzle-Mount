@@ -61,16 +61,13 @@ public class LinePort : MonoBehaviour
         isIncluded = included;
     }
 
-    public void SetFaceColliderEnabled(bool enabled)
+    public void SetPortColliderEnabled(bool enabled)
     {
-        if (portTrigger == null)
-            portTrigger = GetComponent<BoxCollider>();
-
         if (portTrigger != null)
             portTrigger.enabled = isIncluded && enabled;
     }
 
-    public void SetFaceBlocked(bool blocked)
+    public void SetParentFaceBlockedState(bool blocked)
     {
         faceBlocked = blocked;
         ApplyBlockedState();
@@ -130,7 +127,6 @@ public class LinePort : MonoBehaviour
 
     }
 
-    // Records every overlapping non-port object and updates the blocked state.
     private void CheckForPortObstructions()
     {
         for (int i = 0; i < overlapCount; i++)
