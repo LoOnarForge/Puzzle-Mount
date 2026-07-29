@@ -22,6 +22,10 @@ public class RunodeLine : MonoBehaviour
 
     private const float PowerColorDuration = 0.2f;
     private float darkeningSpeed = 15f;
+    private bool isReadyToGivePower;
+
+
+    public bool IsReadyToGivePower => isReadyToGivePower;
 
 
     // Powers this line from a Power Source.
@@ -29,6 +33,7 @@ public class RunodeLine : MonoBehaviour
     {
         isPowered = true;
         powerSource = source;
+        isReadyToGivePower = false;
         poweredByLine = givingLine;
         receiverPort = receivingPort;
         powerColor = color;
@@ -50,6 +55,7 @@ public class RunodeLine : MonoBehaviour
     {
         PowerSource lostPowerSource = powerSource;
 
+        isReadyToGivePower = false;
         isPowered = false;
         lostPowerSource.ReturnMW();
         lostPowerSource.RemoveCircuitMember(this);
@@ -105,6 +111,7 @@ public class RunodeLine : MonoBehaviour
     private IEnumerator PowerUpSequence()
     {
         yield return new WaitForSeconds(PowerColorDuration);
+        isReadyToGivePower = true;
         TryGiverConnections();
     }
 

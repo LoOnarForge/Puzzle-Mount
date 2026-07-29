@@ -31,6 +31,7 @@ public class RunodeHighlighter : MonoBehaviour
 
     private RunodeCube cube;
     private MaterialPropertyBlock cubePropBlock;
+    private MaterialPropertyBlock linePropBlock;
 
     private Color currentColor = Color.white;
     private Color currentLineColor = Color.white;
@@ -49,6 +50,7 @@ public class RunodeHighlighter : MonoBehaviour
     private void Awake()
     {
         cubePropBlock = new MaterialPropertyBlock();
+        linePropBlock = new MaterialPropertyBlock();
         
         cube = GetComponent<RunodeCube>();
         if (cubeRenderer == null) cubeRenderer = GetComponentInChildren<MeshRenderer>();
@@ -130,11 +132,9 @@ public class RunodeHighlighter : MonoBehaviour
             }
             else if (!shouldDarken && currentLineColor != Color.white)
             {
-                currentLineColor = Color.Lerp(currentLineColor, Color.white, Time.deltaTime * highlightDownSpeed);
-                UpdateHighlightLayerOnFaces(currentLineColor);
-
-                if (ColorsApproximatelyEqual(currentLineColor, Color.white))
-                    currentLineColor = Color.white;
+                currentLineColor = Color.white;
+                lineColorNeedsUpdate = true;
+                ClearHighlightLayerOnFaces();
             }
         }
     }
@@ -142,9 +142,23 @@ public class RunodeHighlighter : MonoBehaviour
     private void UpdateHighlightLayerOnFaces(Color highlightColor)
     {
         if (lineSprites == null) return;
+
+        linePropBlock.Clear();
+        linePropBlock.SetColor("_Color", highlightColor);
+
         foreach (var sr in lineSprites)
         {
-            if (sr != null) sr.color = highlightColor;
+            if (sr != null) sr.SetPropertyBlock(linePropBlock);
+        }
+    }
+
+    private void ClearHighlightLayerOnFaces()
+    {
+        if (lineSprites == null) return;
+
+        foreach (var sr in lineSprites)
+        {
+            if (sr != null) sr.SetPropertyBlock(null);
         }
     }
 
@@ -168,6 +182,9 @@ public class RunodeHighlighter : MonoBehaviour
         isHovered = false;
         activeDecalIndex = -1;
         ClearAllDecals();
+        ClearHighlightLayerOnFaces();
+        currentLineColor = Color.white;
+        lineColorNeedsUpdate = true;
         colorNeedsUpdate = true;
     }
 

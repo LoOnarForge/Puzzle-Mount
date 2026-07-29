@@ -210,6 +210,12 @@ public class LinePort : MonoBehaviour
 
     private void ReportNewConnection(LinePort otherPort)
     {
+        if (parentLine != null && type == PortType.Giver && parentLine.IsReadyToGivePower)
+        {
+            parentLine.GivePowerTo(otherPort.parentLine, otherPort);
+            return;
+        }
+
         if (parentLine == null || otherPort.parentPowerSource == null)
             return;
 
