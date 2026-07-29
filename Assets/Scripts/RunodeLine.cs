@@ -52,7 +52,7 @@ public class RunodeLine : MonoBehaviour
         foreach (LinePort port in linePorts)
             port.SetCanReportConnections(false);
 
-        SetAllPortsType(targetPort, PortType.Receiver);
+        SetInitialReceiverAndGiverPorts(targetPort);
         StopAllCoroutines();
         StartCoroutine(ColorPowerLine(color));
         StartCoroutine(PowerUpSequence());
@@ -88,20 +88,23 @@ public class RunodeLine : MonoBehaviour
         targetLine.PowerDownLine();
     }
 
-    private void SetAllPortsType(LinePort targetPort, PortType newType)
+    private void SetInitialReceiverAndGiverPorts(LinePort targetPort)
     {
         foreach (LinePort port in linePorts)
         {
             if (!port.IsIncluded)
                 continue;
 
-            if (newType == PortType.Neutral)
-            {
-                port.SetPortType(PortType.Neutral);
-                continue;
-            }
-
             port.SetPortType(port == targetPort ? PortType.Receiver : PortType.Giver);
+        }
+    }
+
+    private void SetAllPortsNeutral()
+    {
+        foreach (LinePort port in linePorts)
+        {
+            if (port.IsIncluded)
+                port.SetPortType(PortType.Neutral);
         }
     }
 
@@ -147,7 +150,7 @@ public class RunodeLine : MonoBehaviour
             }
         }
 
-        SetAllPortsType(null, PortType.Neutral);
+        SetAllPortsNeutral();
     }
 
     public void FaceObstructed()
