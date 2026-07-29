@@ -23,6 +23,7 @@ public class LinePort : MonoBehaviour
     public bool IsIncluded => isIncluded;
     [SerializeField] private bool isBlocked;
     private bool faceBlocked;
+    private bool canReportConnections;
 
     [SerializeField] private LayerMask portTriggerLayers;
     [SerializeField] private List<LinePort> connectedPorts = new List<LinePort>();
@@ -194,11 +195,35 @@ public class LinePort : MonoBehaviour
         return !isBlocked && !otherPort.isBlocked;
     }
 
+    public void SetCanReportConnections(bool canReport)
+    {
+        canReportConnections = canReport;
+    }
+
+    public void ReportValidConnections()
+    {
+        if (type != PortType.Giver)
+            return;
+
+        foreach (LinePort connectedPort in connectedPorts)
+            parentLine.NewValidConnection(connectedPort.parentLine, connectedPort);
+    }
+
+    public void ReportConnectedReceivers()
+    {
+        foreach (LinePort connectedPort in connectedPorts)
+        {
+            if (connectedPort.type == PortType.Receiver)
+                parentLine.PowerDownConnectedLine(connectedPort.parentLine);
+        }
+    }
+
+
     private void ReportNewConnection(LinePort otherPort)
     {
-        if (type == PortType.Giver)
+        if (canReportConnections && type == PortType.Giver)
         {
-            parentLine.TryToGivePower();
+            parentLine.NewValidConnection(otherPort.parentLine, otherPort);
             return;
         }
 
@@ -210,26 +235,6 @@ public class LinePort : MonoBehaviour
     {
         if (type == PortType.Receiver)
             parentLine.PowerDownLine();
-    }
-
-    // Tries to give power through this port's connected ports.
-    public void TryToGivePower()
-    {
-        if (type != PortType.Giver)
-            return;
-
-        foreach (LinePort receivingPort in connectedPorts)
-            parentLine.GivePowerTo(receivingPort.parentLine, receivingPort);
-    }
-
-    // Stops this port from providing power to connected lines.
-    public void StopGivingPower()
-    {
-        foreach (LinePort receivingPort in connectedPorts)
-        {
-            if (receivingPort.type == PortType.Receiver)
-                receivingPort.parentLine.PowerDownLine();
-        }
     }
 
     public void SetIncluded(bool included)

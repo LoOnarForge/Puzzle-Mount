@@ -27,7 +27,6 @@ public class RunodeLine : MonoBehaviour
     private readonly List<LinePort> linePorts = new List<LinePort>();
     private const float PowerColorDuration = 0.05f;
     private float darkeningSpeed = 15f;
-    private bool isReadyToGivePower;
 
     private void Awake()
     {
@@ -46,11 +45,13 @@ public class RunodeLine : MonoBehaviour
     {
         isPowered = true;
         powerSource = source;
-        isReadyToGivePower = false;
         poweredByLine = givingLine;
         receiverPort = targetPort;
         powerColor = color;
         powerIndex = index;
+        foreach (LinePort port in linePorts)
+            port.SetCanReportConnections(false);
+
         SetAllPortsType(targetPort, PortType.Receiver);
         StopAllCoroutines();
         StartCoroutine(ColorPowerLine(color));
@@ -58,8 +59,10 @@ public class RunodeLine : MonoBehaviour
     }
     public void PowerDownLine()
     {
-        isReadyToGivePower = false;
         isPowered = false;
+        foreach (LinePort port in linePorts)
+            port.SetCanReportConnections(false);
+
         powerSource.ReturnMW();
         powerSource.RemoveCircuitMember(this);
         receiverPort.SetPortType(PortType.Neutral);
@@ -72,12 +75,19 @@ public class RunodeLine : MonoBehaviour
         StartCoroutine(BrightenSpriteLine());
         StartCoroutine(DepowerSequence());
     }
-
-
-    public void GivePowerTo(RunodeLine receivingLine, LinePort receivingPort)
+    public void NewValidConnection(RunodeLine targetLine, LinePort targetPort)
     {
-        powerSource.PowerRunodeLine(receivingLine, receivingPort, this, powerIndex + 1);
+        if (!powerSource.TakeMW())
+            return;
+
+        targetLine.PowerUpLine(powerSource, this, targetPort, powerColor, powerIndex + 1);
+        powerSource.AddCircuitMember(targetLine);
     }
+    public void PowerDownConnectedLine(RunodeLine targetLine)
+    {
+        targetLine.PowerDownLine();
+    }
+
     private void SetAllPortsType(LinePort targetPort, PortType newType)
     {
         foreach (LinePort port in linePorts)
@@ -113,19 +123,14 @@ public class RunodeLine : MonoBehaviour
     private IEnumerator PowerUpSequence()
     {
         yield return new WaitForSeconds(PowerColorDuration);
-        isReadyToGivePower = true;
-        TryToGivePower();
-    }
-
-    public void TryToGivePower()
-    {
-        if (!isReadyToGivePower)
-            return;
 
         foreach (LinePort port in linePorts)
         {
             if (port.IsIncluded)
-                port.TryToGivePower();
+            {
+                port.SetCanReportConnections(true);
+                port.ReportValidConnections();
+            }
         }
     }
 
@@ -136,7 +141,10 @@ public class RunodeLine : MonoBehaviour
         foreach (LinePort port in linePorts)
         {
             if (port.IsIncluded)
-                port.StopGivingPower();
+            {
+                port.SetCanReportConnections(false);
+                port.ReportConnectedReceivers();
+            }
         }
 
         SetAllPortsType(null, PortType.Neutral);
