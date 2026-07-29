@@ -28,7 +28,6 @@ public class LinePort : MonoBehaviour
     public bool IsIncluded => isIncluded;
     [SerializeField] private bool isBlocked;
     private bool faceBlocked;
-    private bool directlyBlocked;
 
     [SerializeField] private LayerMask portTriggerLayers;
     [SerializeField] private List<LinePort> connectedPorts = new List<LinePort>();
@@ -38,6 +37,7 @@ public class LinePort : MonoBehaviour
     private BoxCollider portTrigger;
     private readonly Collider[] overlapResults = new Collider[16];
     private int overlapCount;
+
 
     private void Awake()
     {
@@ -56,65 +56,28 @@ public class LinePort : MonoBehaviour
         type = newType;
     }
 
-    public void SetIncluded(bool included)
-    {
-        isIncluded = included;
-    }
-
     public void SetPortColliderEnabled(bool enabled)
     {
-        if (portTrigger != null)
-            portTrigger.enabled = isIncluded && enabled;
+        if (portTrigger != null && isIncluded)
+            portTrigger.enabled = enabled;
     }
 
     public void SetParentFaceBlockedState(bool blocked)
     {
         faceBlocked = blocked;
-        ApplyBlockedState();
+        SetBlockedPortState();
+    }
+    private void SetBlockedPortState()
+    {
+        isBlocked = faceBlocked || obstructions.Count > 0;
     }
 
-
-    public void RefreshPortObstructionState()
+    private void OverlapBoxCheck()
     {
-
-        obstructions.Clear();
-        directlyBlocked = false;
-
-        OverlapBox();
-        CheckForPortObstructions();
-    }
-
-    public void RefreshPortConnection()
-    {
-        connectedPorts.Clear();
-
-        if (faceBlocked)
-            return;
-
-        LinePort validPort = ChooseValidPort();
-        if (validPort == null)
-            return;
-
-        connectedPorts.Add(validPort);
-        ReportConnection(validPort);
-    }
-
-    // Fills the overlap buffer with colliders inside this port's BoxCollider.
-    private void OverlapBox()
-    {
-        if (portTrigger == null)
-        {
-            Debug.LogError(
-                $"{nameof(LinePort)} on {name} cannot refresh because its {nameof(BoxCollider)} is missing.",
-                this);
-            overlapCount = 0;
-            return;
-        }
-
         Vector3 center = portTrigger.transform.TransformPoint(portTrigger.center);
         Vector3 halfExtents = Vector3.Scale(
-            portTrigger.size,
-            portTrigger.transform.lossyScale) * 0.5f;
+        portTrigger.size,
+        portTrigger.transform.lossyScale) * 0.5f;
 
         overlapCount = Physics.OverlapBoxNonAlloc(
             center,
@@ -123,11 +86,9 @@ public class LinePort : MonoBehaviour
             portTrigger.transform.rotation,
             portTriggerLayers,
             QueryTriggerInteraction.Collide);
-
-
     }
 
-    private void CheckForPortObstructions()
+    private void CheckPortObstructions()
     {
         for (int i = 0; i < overlapCount; i++)
         {
@@ -143,18 +104,43 @@ public class LinePort : MonoBehaviour
 
             }
         }
-        directlyBlocked = obstructions.Count > 0;
-        ApplyBlockedState();
+        SetBlockedPortState();
 
     }
-
-    private void ApplyBlockedState()
+    public void RefreshPortObstructionState()
     {
-        isBlocked = faceBlocked || directlyBlocked;
+
+        obstructions.Clear();
+
+        OverlapBoxCheck();
+        CheckPortObstructions();
     }
+    public void RefreshPortConnection()
+    {
+        connectedPorts.Clear();
 
+        if (faceBlocked)
+            return;
 
-    // Finds the first valid port and reports how many valid candidates were found.
+        LinePort validPort = ChooseValidPort();
+        if (validPort == null)
+            return;
+
+        connectedPorts.Add(validPort);
+        ReportConnectionToPowerLine(validPort);
+    }
+   
+    private bool CanConnectTo(LinePort otherPort)
+    {
+        if (otherPort == this)
+            return false;
+
+        bool isInternal = parentCube == otherPort.parentCube;
+        if (!isInternal)
+            return true;
+
+        return !isBlocked && !otherPort.isBlocked;
+    }
     private LinePort ChooseValidPort()
     {
         LinePort firstValidPort = null;
@@ -195,23 +181,15 @@ public class LinePort : MonoBehaviour
         return firstValidPort;
     }
 
-    // Determines whether the overlapping port is a valid connection candidate.
-    private bool CanConnectTo(LinePort otherPort)
-    {
-        if (otherPort == null || otherPort == this)
-            return false;
-
-        bool isInternal = parentCube == otherPort.parentCube;
-        if (!isInternal)
-            return true;
-
-        return !isBlocked && !otherPort.isBlocked;
-    }
-
-    // Sends the accepted connection to this port's parent line.
-    private void ReportConnection(LinePort otherPort)
+    private void ReportConnectionToPowerLine(LinePort otherPort)
     {
         if (parentLine == null)
             return;
+    }
+
+
+    public void SetIncluded(bool included)
+    {
+        isIncluded = included;
     }
 }
