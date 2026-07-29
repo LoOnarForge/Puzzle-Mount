@@ -15,6 +15,7 @@ public class RunodeLine : MonoBehaviour
     [SerializeField] private bool isFaceBlocked;
 
     [SerializeField] private PowerSource powerSource;
+    [SerializeField] private RunodeLine poweredByLine;
     [SerializeField] private LinePort receiverPort;
     [SerializeField] private Color powerColor;
     [SerializeField] private int powerIndex;
@@ -24,19 +25,26 @@ public class RunodeLine : MonoBehaviour
 
 
     // Powers this line from a Power Source.
-    public void PowerUp(PowerSource source, LinePort receivingPort, Color color, int index)
+    public void PowerUp(PowerSource source, RunodeLine givingLine, LinePort receivingPort, Color color, int index)
     {
         isPowered = true;
         powerSource = source;
+        poweredByLine = givingLine;
         receiverPort = receivingPort;
         powerColor = color;
         powerIndex = index;
         SetPortRoles(receivingPort);
         StopAllCoroutines();
         StartCoroutine(ColorPowerLine(color));
+        StartCoroutine(PowerUpSequence());
     }
 
-    // Depowers this line after its Receiver connection is lost.
+    // Powers this line from another powered line.
+    public void GivePowerTo(RunodeLine receivingLine, LinePort receivingPort)
+    {
+        powerSource.PowerRunodeLine(receivingLine, receivingPort, this, powerIndex + 1);
+    }
+
     public void ReceiverConnectionLost()
     {
         isPowered = false;
@@ -44,6 +52,7 @@ public class RunodeLine : MonoBehaviour
         powerSource.RemoveCircuitMember(this);
         ResetPortRoles();
         powerSource = null;
+        poweredByLine = null;
         receiverPort = null;
         powerColor = Color.white;
         powerIndex = 0;
@@ -87,6 +96,21 @@ public class RunodeLine : MonoBehaviour
         }
 
         lineSprite.color = targetColor;
+    }
+
+    private IEnumerator PowerUpSequence()
+    {
+        yield return new WaitForSeconds(PowerColorDuration);
+        TryGiverConnections();
+    }
+
+    private void TryGiverConnections()
+    {
+        foreach (LinePort port in ports)
+        {
+            if (port.IsIncluded)
+                port.TryToGivePower();
+        }
     }
 
     public void FaceObstructed()

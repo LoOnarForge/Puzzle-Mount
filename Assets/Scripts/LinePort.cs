@@ -224,6 +224,20 @@ public class LinePort : MonoBehaviour
         parentLine.ReceiverConnectionLost();
     }
 
+    // Tries to give power through this port's connected ports.
+    public void TryToGivePower()
+    {
+        if (type != PortType.Giver || parentLine == null)
+            return;
+
+        foreach (LinePort receivingPort in connectedPorts)
+        {
+            if (receivingPort.parentLine == null)
+                continue;
+
+            parentLine.GivePowerTo(receivingPort.parentLine, receivingPort);
+        }
+    }
 
     public void SetIncluded(bool included)
     {
