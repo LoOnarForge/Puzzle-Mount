@@ -46,7 +46,7 @@ public class PowerSource : MonoBehaviour
         if (!TakeMW())
             return;
 
-        line.PowerUp(this, givingLine, receivingPort, circuitColor, index);
+        line.PowerUpLine(this, givingLine, receivingPort, circuitColor, index);
         AddCircuitMember(line);
     }
 

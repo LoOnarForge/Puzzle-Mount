@@ -8,13 +8,6 @@ public enum PortType
     Giver
 }
 
-public enum PortLocation
-{
-    Up,
-    Right,
-    Down,
-    Left
-}
 
 [RequireComponent(typeof(BoxCollider))]
 public class LinePort : MonoBehaviour
@@ -34,7 +27,7 @@ public class LinePort : MonoBehaviour
     [SerializeField] private LayerMask portTriggerLayers;
     [SerializeField] private List<LinePort> connectedPorts = new List<LinePort>();
     [SerializeField] private List<GameObject> obstructions = new List<GameObject>();
-    [SerializeField] private PortLocation location;
+
 
     private BoxCollider portTrigger;
     private readonly Collider[] overlapResults = new Collider[16];
@@ -44,13 +37,6 @@ public class LinePort : MonoBehaviour
     private void Awake()
     {
         portTrigger = GetComponent<BoxCollider>();
-
-        if (portTrigger == null)
-        {
-            Debug.LogError(
-                $"{nameof(LinePort)} on {name} requires a {nameof(BoxCollider)}.",
-                this);
-        }
     }
 
     public void SetPortType(PortType newType)
@@ -60,7 +46,7 @@ public class LinePort : MonoBehaviour
 
     public void SetPortColliderEnabled(bool enabled)
     {
-        if (portTrigger != null && isIncluded)
+        if (isIncluded)
             portTrigger.enabled = enabled;
     }
 
@@ -210,39 +196,30 @@ public class LinePort : MonoBehaviour
 
     private void ReportNewConnection(LinePort otherPort)
     {
-        if (parentLine != null && type == PortType.Giver && parentLine.IsReadyToGivePower)
+        if (type == PortType.Giver)
         {
-            parentLine.GivePowerTo(otherPort.parentLine, otherPort);
+            parentLine.TryToGivePower();
             return;
         }
 
-        if (parentLine == null || otherPort.parentPowerSource == null)
-            return;
-
-        otherPort.parentPowerSource.PowerRunodeLine(parentLine, this);
+        if (otherPort.parentPowerSource != null)
+            otherPort.parentPowerSource.PowerRunodeLine(parentLine, this);
     }
 
     private void ReportLostConnection()
     {
-        if (parentLine == null || type != PortType.Receiver)
-            return;
-
-        parentLine.ReceiverConnectionLost();
+        if (type == PortType.Receiver)
+            parentLine.PowerDownLine();
     }
 
     // Tries to give power through this port's connected ports.
     public void TryToGivePower()
     {
-        if (type != PortType.Giver || parentLine == null)
+        if (type != PortType.Giver)
             return;
 
         foreach (LinePort receivingPort in connectedPorts)
-        {
-            if (receivingPort.parentLine == null)
-                continue;
-
             parentLine.GivePowerTo(receivingPort.parentLine, receivingPort);
-        }
     }
 
     // Stops this port from providing power to connected lines.
@@ -250,10 +227,8 @@ public class LinePort : MonoBehaviour
     {
         foreach (LinePort receivingPort in connectedPorts)
         {
-            if (receivingPort.parentLine == null || receivingPort.type != PortType.Receiver)
-                continue;
-
-            receivingPort.parentLine.ReceiverConnectionLost();
+            if (receivingPort.type == PortType.Receiver)
+                receivingPort.parentLine.PowerDownLine();
         }
     }
 
