@@ -34,19 +34,13 @@ public class PowerSource : MonoBehaviour
         circuitColor = ColorManager.Instance.GetColor(colorIndex);
     }
 
-    // Powers one RunodeLine from this source.
+    // Powers the first RunodeLine connected to this source.
     public void PowerRunodeLine(RunodeLine line, LinePort receivingPort)
-    {
-        PowerRunodeLine(line, receivingPort, null, 1);
-    }
-
-    // Powers one RunodeLine from this source.
-    public void PowerRunodeLine(RunodeLine line, LinePort receivingPort, RunodeLine givingLine, int index)
     {
         if (!TakeMW())
             return;
 
-        line.PowerUpLine(this, givingLine, receivingPort, circuitColor, index);
+        line.PowerUpLine(this, null, receivingPort, circuitColor, 1);
         AddCircuitMember(line);
     }
 
