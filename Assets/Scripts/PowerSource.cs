@@ -81,6 +81,10 @@ public class PowerSource : MonoBehaviour
     }
 
 
+    private void OnValidate()
+    {
+        SetStartingColorsOnPSObject();
+    }
     private void SetStartingColorsOnPSObject()
     {
         ColorManager colorManager = FindAnyObjectByType<ColorManager>();
@@ -109,9 +113,5 @@ public class PowerSource : MonoBehaviour
 
             spriteRenderer.color = selectedColor;
         }
-    }
-    private void OnValidate()
-    {
-        SetStartingColorsOnPSObject();
     }
 }

@@ -46,11 +46,7 @@ public class LinePort : MonoBehaviour
         type = newType;
     }
 
-    public void SetPortColliderEnabled(bool enabled)
-    {
-        if (isIncluded)
-            portTrigger.enabled = enabled;
-    }
+ 
 
     public void SetParentFaceBlockedState(bool blocked)
     {
@@ -60,8 +56,8 @@ public class LinePort : MonoBehaviour
     private void SetBlockedPortState()
     {
         isBlocked = faceBlocked || obstructions.Count > 0;
+        // to be changed later from a list , only matters if there is 0 or 1 obstructions 
     }
-
     private void OverlapBoxCheck()
     {
         Vector3 center = portTrigger.transform.TransformPoint(portTrigger.center);
@@ -99,7 +95,6 @@ public class LinePort : MonoBehaviour
     }
     public void RefreshPortObstructionState()
     {
-
         obstructions.Clear();
 
         OverlapBoxCheck();
@@ -244,5 +239,11 @@ public class LinePort : MonoBehaviour
     public void SetIncluded(bool included)
     {
         isIncluded = included;
+    }
+
+    public void SetPortColliderEnabled(bool enabled)
+    {
+        if (isIncluded)
+            portTrigger.enabled = enabled;
     }
 }
