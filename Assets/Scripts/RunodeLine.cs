@@ -14,8 +14,22 @@ public class RunodeLine : MonoBehaviour
     [SerializeField] private bool isPowered;
     [SerializeField] private bool isFaceBlocked;
 
+    [SerializeField] private PowerSource powerSource;
+    [SerializeField] private Color powerColor;
+    [SerializeField] private int powerIndex;
+
     private float darkeningSpeed = 15f;
 
+
+    // Powers this line from a Power Source.
+    public void PowerUp(PowerSource source, Color color, int index)
+    {
+        isPowered = true;
+        powerSource = source;
+        powerColor = color;
+        powerIndex = index;
+        lineSprite.color = color;
+    }
 
     public void FaceObstructed()
     {
