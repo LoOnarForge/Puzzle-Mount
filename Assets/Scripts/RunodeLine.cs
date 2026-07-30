@@ -26,6 +26,7 @@ public class RunodeLine : MonoBehaviour
 
     private readonly List<LinePort> linePorts = new List<LinePort>();
     private const float powerColorDuration = 0.05f;
+    private const float powerDecolorDuration = 0.025f;
     private float darkeningSpeed = 15f;
 
     private void Awake()
@@ -73,7 +74,7 @@ public class RunodeLine : MonoBehaviour
         powerColor = Color.white;
         powerIndex = -1;
         StopAllCoroutines();
-        StartCoroutine(BrightenSpriteLine());
+        StartCoroutine(DecolorPowerLine());
         StartCoroutine(DepowerSequence());
     }
 
@@ -122,7 +123,7 @@ public class RunodeLine : MonoBehaviour
     }
     private IEnumerator DepowerSequence()
     {
-        yield return new WaitForSeconds(powerColorDuration);
+        yield return new WaitForSeconds(powerDecolorDuration);
 
         foreach (LinePort port in linePorts)
         {
@@ -151,6 +152,20 @@ public class RunodeLine : MonoBehaviour
         lineSprite.color = targetColor;
     }
 
+    private IEnumerator DecolorPowerLine()
+    {
+        Color startingColor = lineSprite.color;
+        float elapsedTime = 0f;
+
+        while (elapsedTime < powerDecolorDuration)
+        {
+            elapsedTime += Time.deltaTime;
+            lineSprite.color = Color.Lerp(startingColor, Color.white, elapsedTime / powerDecolorDuration);
+            yield return null;
+        }
+
+        lineSprite.color = Color.white;
+    }
 
     public void FaceObstructed()
     {
