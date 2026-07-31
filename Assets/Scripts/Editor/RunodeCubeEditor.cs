@@ -32,12 +32,12 @@ public class RunodeCubeEditor : Editor
 
         if (GUILayout.Button("RESET ALL FACES"))
         {
-            cube.topFace    = RunodeLineType.Empty;
-            cube.bottomFace = RunodeLineType.Empty;
-            cube.northFace  = RunodeLineType.Empty;
-            cube.southFace  = RunodeLineType.Empty;
-            cube.eastFace   = RunodeLineType.Empty;
-            cube.westFace   = RunodeLineType.Empty;
+            serializedObject.FindProperty("topFace").intValue = (int)RunodeLineType.Empty;
+            serializedObject.FindProperty("bottomFace").intValue = (int)RunodeLineType.Empty;
+            serializedObject.FindProperty("northFace").intValue = (int)RunodeLineType.Empty;
+            serializedObject.FindProperty("southFace").intValue = (int)RunodeLineType.Empty;
+            serializedObject.FindProperty("eastFace").intValue = (int)RunodeLineType.Empty;
+            serializedObject.FindProperty("westFace").intValue = (int)RunodeLineType.Empty;
 
             serializedObject.ApplyModifiedProperties();
             serializedObject.Update();
