@@ -3,6 +3,16 @@ using UnityEngine;
 
 public class PowerSource : MonoBehaviour
 {
+    [System.Serializable]
+    private class WaitingEntry
+    {
+        public RunodeLine givingLine;
+        public RunodeLine receivingLine;
+        public LinePort receivingPort;
+        public LinePort sourcePort;
+        public int powerIndex;
+    }
+
     [Header("POWER SOURCE:")]
     [SerializeField] private int colorIndex;
     [SerializeField] private int maxMW = 10;
@@ -11,6 +21,7 @@ public class PowerSource : MonoBehaviour
     [Header("STATE:")]
     [SerializeField] private int availableMW;
     [SerializeField] private List<RunodeLine> circuitMembers = new List<RunodeLine>();
+    [SerializeField] private List<WaitingEntry> waitingEntries = new List<WaitingEntry>();
 
     [Space(20)]
     [Header("POWER SOURCE PORTS:")]
@@ -34,21 +45,29 @@ public class PowerSource : MonoBehaviour
         circuitColor = ColorManager.Instance.GetColor(colorIndex);
     }
 
-    // Powers the first RunodeLine connected to this source.
-    public void PowerRunodeLine(RunodeLine line, LinePort receivingPort)
+    // Attempts to power the first RunodeLine connected to this source.
+    public void PowerRunodeLine(RunodeLine line, LinePort receivingPort, LinePort sourcePort)
     {
-        if (!TakeMW())
+        if (TakeMW())
+        {
+            line.PowerUpLine(this, null, receivingPort, circuitColor, 1);
+            AddCircuitMember(line);
+            RemoveWaitingEntriesForPoweredLine(line);
             return;
+        }
 
-        line.PowerUpLine(this, null, receivingPort, circuitColor, 1);
-        AddCircuitMember(line);
+        AddWaitingEntry(null, line, receivingPort, sourcePort, 1);
     }
 
+    // Returns one MW to the shared Power Source pool.
     public void ReturnMW()
     {
         if (availableMW < maxMW)
             availableMW++;
+
+        EvaluateWaitingList();
     }
+
     public bool TakeMW()
     {
         if (availableMW <= 0)
@@ -58,6 +77,151 @@ public class PowerSource : MonoBehaviour
         return true;
     }
 
+    // Adds a failed transfer and immediately attempts arbitration.
+    public void AddWaitingEntry(RunodeLine givingLine, RunodeLine receivingLine, LinePort receivingPort, LinePort sourcePort, int powerIndex)
+    {
+        if (HasWaitingEntry(givingLine, receivingLine))
+            return;
+
+        WaitingEntry entry = new WaitingEntry
+        {
+            givingLine = givingLine,
+            receivingLine = receivingLine,
+            receivingPort = receivingPort,
+            sourcePort = sourcePort,
+            powerIndex = powerIndex
+        };
+
+        waitingEntries.Add(entry);
+        TryArbitrate(entry);
+    }
+
+    public void RemoveWaitingEntry(RunodeLine givingLine, RunodeLine receivingLine)
+    {
+        for (int i = waitingEntries.Count - 1; i >= 0; i--)
+        {
+            WaitingEntry entry = waitingEntries[i];
+
+            if (entry.givingLine == givingLine && entry.receivingLine == receivingLine)
+                waitingEntries.RemoveAt(i);
+        }
+    }
+
+    public void RemoveWaitingEntriesForLine(RunodeLine line)
+
+    {
+        for (int i = waitingEntries.Count - 1; i >= 0; i--)
+        {
+            WaitingEntry entry = waitingEntries[i];
+
+            if (entry.givingLine == line || entry.receivingLine == line)
+                waitingEntries.RemoveAt(i);
+        }
+    }
+
+    private void TryArbitrate(WaitingEntry waitingEntry)
+    {
+        RunodeLine lowestPriorityLine = FindLowestPriorityPoweredLine();
+
+        if (lowestPriorityLine == null || lowestPriorityLine.PowerIndex <= waitingEntry.powerIndex)
+            return;
+
+        RunodeLine poweringLine = lowestPriorityLine.PoweredByLine;
+        lowestPriorityLine.PowerDownLine();
+        poweringLine?.RefreshFaceAndPortsStates();
+    }
+
+    private RunodeLine FindLowestPriorityPoweredLine()
+    {
+        RunodeLine selectedLine = null;
+
+        foreach (RunodeLine line in circuitMembers)
+        {
+            if (line == null || !line.IsPowered)
+                continue;
+
+            if (selectedLine == null || line.PowerIndex > selectedLine.PowerIndex)
+            {
+                selectedLine = line;
+                continue;
+            }
+
+            if (line.PowerIndex == selectedLine.PowerIndex
+                && circuitMembers.IndexOf(line) > circuitMembers.IndexOf(selectedLine))
+            {
+                selectedLine = line;
+            }
+        }
+
+        return selectedLine;
+    }
+
+    private void EvaluateWaitingList()
+    {
+        WaitingEntry entry = FindHighestPriorityWaitingEntry();
+
+        if (entry == null)
+            return;
+
+        waitingEntries.Remove(entry);
+
+        if (!IsWaitingEntryValid(entry))
+        {
+            EvaluateWaitingList();
+            return;
+        }
+
+        if (entry.givingLine == null)
+        {
+            PowerRunodeLine(entry.receivingLine, entry.receivingPort, entry.sourcePort);
+            return;
+        }
+
+        entry.sourcePort.ReportValidConnections();
+    }
+
+    private WaitingEntry FindHighestPriorityWaitingEntry()
+    {
+        WaitingEntry selectedEntry = null;
+
+        foreach (WaitingEntry entry in waitingEntries)
+        {
+            if (selectedEntry == null || entry.powerIndex < selectedEntry.powerIndex)
+                selectedEntry = entry;
+        }
+
+        return selectedEntry;
+    }
+
+    private bool IsWaitingEntryValid(WaitingEntry entry)
+    {
+        if (entry.receivingLine == null || entry.receivingLine.IsPowered)
+            return false;
+
+        if (entry.givingLine == null)
+            return entry.sourcePort != null && entry.sourcePort.IsConnectedTo(entry.receivingPort);
+
+        return entry.givingLine.IsPowered
+            && entry.givingLine.PowerSource == this
+            && entry.sourcePort != null
+            && entry.sourcePort.IsConnectedTo(entry.receivingPort);
+    }
+
+    private bool HasWaitingEntry(RunodeLine givingLine, RunodeLine receivingLine)
+    {
+        foreach (WaitingEntry entry in waitingEntries)
+        {
+            if (entry.givingLine == givingLine && entry.receivingLine == receivingLine)
+                return true;
+        }
+
+        return false;
+    }
+
+    private void RemoveWaitingEntriesForPoweredLine(RunodeLine line)
+    {
+        RemoveWaitingEntriesForLine(line);
+    }
 
     public void AddCircuitMember(RunodeLine line)
     {
@@ -66,6 +230,7 @@ public class PowerSource : MonoBehaviour
 
         circuitMembers.Add(line);
     }
+
     public void RemoveCircuitMember(RunodeLine line)
     {
         if (line == null)
@@ -74,11 +239,11 @@ public class PowerSource : MonoBehaviour
         circuitMembers.Remove(line);
     }
 
-
     private void OnValidate()
     {
         SetStartingColorsOnPSObject();
     }
+
     private void SetStartingColorsOnPSObject()
     {
         ColorManager colorManager = FindAnyObjectByType<ColorManager>();

@@ -41,12 +41,17 @@ public class LinePort : MonoBehaviour
         portTrigger = GetComponent<BoxCollider>();
     }
 
+    public bool IsConnectedTo(LinePort otherPort)
+    {
+        return connectedPorts.Contains(otherPort);
+    }
+
     public void SetPortType(PortType newType)
     {
         type = newType;
     }
 
- 
+
 
     public void SetParentFaceBlockedState(bool blocked)
     {
@@ -116,8 +121,9 @@ public class LinePort : MonoBehaviour
     {
         for (int i = connectedPorts.Count - 1; i >= 0; i--)
         {
+            LinePort connectedPort = connectedPorts[i];
             connectedPorts.RemoveAt(i);
-            ReportLostConnection();
+            ReportLostConnection(connectedPort);
         }
     }
 
@@ -131,7 +137,7 @@ public class LinePort : MonoBehaviour
                 continue;
 
             connectedPorts.RemoveAt(i);
-            ReportLostConnection();
+            ReportLostConnection(connectedPort);
         }
     }
 
@@ -202,7 +208,10 @@ public class LinePort : MonoBehaviour
             return;
 
         foreach (LinePort connectedPort in connectedPorts)
-            parentLine.NewValidConnection(connectedPort.parentLine, connectedPort);
+        {
+            if (!parentLine.NewValidConnection(connectedPort.parentLine, connectedPort, this))
+                break;
+        }
     }
 
     public void ReportPowerLossToConnectedPorts()
@@ -222,18 +231,24 @@ public class LinePort : MonoBehaviour
     {
         if (canReportConnections && type == PortType.Giver)
         {
-            parentLine.NewValidConnection(otherPort.parentLine, otherPort);
+            parentLine.NewValidConnection(otherPort.parentLine, otherPort, this);
             return;
         }
 
         if (otherPort.parentPowerSource != null)
-            otherPort.parentPowerSource.PowerRunodeLine(parentLine, this);
+            otherPort.parentPowerSource.PowerRunodeLine(parentLine, this, otherPort);
     }
 
-    private void ReportLostConnection()
+    private void ReportLostConnection(LinePort connectedPort)
     {
         if (type == PortType.Receiver)
+        {
             parentLine.PowerDownLine();
+            return;
+        }
+
+        if (type == PortType.Giver && parentLine.PowerSource != null)
+            parentLine.PowerSource.RemoveWaitingEntry(parentLine, connectedPort.parentLine);
     }
 
     public void SetIncluded(bool included)

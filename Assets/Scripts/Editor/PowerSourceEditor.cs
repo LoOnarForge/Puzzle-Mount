@@ -67,5 +67,6 @@ public class PowerSourceEditor : Editor
         EditorGUILayout.LabelField("STATE:", EditorStyles.boldLabel);
         EditorGUILayout.PropertyField(serializedObject.FindProperty("availableMW"));
         EditorGUILayout.PropertyField(serializedObject.FindProperty("circuitMembers"));
+        EditorGUILayout.PropertyField(serializedObject.FindProperty("waitingEntries"), true);
     }
 }

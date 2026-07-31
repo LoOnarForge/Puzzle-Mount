@@ -24,9 +24,14 @@ public class RunodeLine : MonoBehaviour
     [SerializeField] private LinePort leftPort;
     [SerializeField] private ObstructionPort obstructionPort;
 
+    public bool IsPowered => isPowered;
+    public int PowerIndex => powerIndex;
+    public PowerSource PowerSource => powerSource;
+    public RunodeLine PoweredByLine => poweredByLine;
+
     private readonly List<LinePort> linePorts = new List<LinePort>();
-    private const float powerColorDuration = 0.05f;
-    private const float powerDecolorDuration = 0.025f;
+    private const float powerColorDuration = 0.1f;
+    private const float powerDecolorDuration = 0.1f;
     private float darkeningSpeed = 15f;
 
     private void Awake()
@@ -65,8 +70,10 @@ public class RunodeLine : MonoBehaviour
         foreach (LinePort port in linePorts)
             port.SetCanReportConnections(false);
 
-        powerSource.ReturnMW();
+        powerSource.RemoveWaitingEntriesForLine(this);
         powerSource.RemoveCircuitMember(this);
+        powerSource.ReturnMW();
+
         receiverPort.SetPortType(PortType.Neutral);
         powerSource = null;
         poweredByLine = null;
@@ -90,14 +97,24 @@ public class RunodeLine : MonoBehaviour
     }
 
 
-    public void NewValidConnection(RunodeLine targetLine, LinePort targetPort)
+    public bool NewValidConnection(RunodeLine targetLine, LinePort targetPort, LinePort sourcePort)
     {
+        if (powerSource == null)
+            return false;
+
         if (!powerSource.TakeMW())
-            return;
+        {
+            powerSource.AddWaitingEntry(this, targetLine, targetPort, sourcePort, powerIndex + 1);
+            return false;
+        }
 
         targetLine.PowerUpLine(powerSource, this, targetPort, powerColor, powerIndex + 1);
         powerSource.AddCircuitMember(targetLine);
+        return true;
     }
+
+    
+    
     private void SetAllPortsNeutral()
     {
         foreach (LinePort port in linePorts)
@@ -219,6 +236,12 @@ public class RunodeLine : MonoBehaviour
         RefreshFaceObstructionState();
         RefreshPortObstructions();
         RefreshPortConnections();
+
+        foreach (LinePort port in linePorts)
+        {
+            if (port.isActiveAndEnabled)
+                port.ReportValidConnections();
+        }
     }
 
     public void RefreshFaceObstructionState()
