@@ -183,6 +183,13 @@ public class RunodeMovement : MonoBehaviour
 
     private System.Collections.IEnumerator MoveTo(Vector3 targetPosition, Vector3 direction)
     {
+        RunodeLine[] lines = GetComponentsInChildren<RunodeLine>();
+        foreach (RunodeLine line in lines)
+        {
+            if (line.IsPowered)
+                line.PowerDownLine();
+        }
+
         // Instant visual wipe for the affected circuit
         if (PowerManager.Instance != null)
             PowerManager.Instance.InvalidateSubtree(transform, true);
@@ -375,6 +382,13 @@ public class RunodeMovement : MonoBehaviour
 
     public IEnumerator RotateVisualSmooth(float degrees, Vector3 worldAxis, float duration, float squashAmount)
     {
+        RunodeLine[] lines = GetComponentsInChildren<RunodeLine>();
+        foreach (RunodeLine line in lines)
+        {
+            if (line.IsPowered)
+                line.PowerDownLine();
+        }
+
         if (visualParent == null) yield break;
 
         if (PowerManager.Instance != null)
