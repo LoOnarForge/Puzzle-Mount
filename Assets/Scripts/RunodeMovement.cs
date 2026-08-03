@@ -183,7 +183,7 @@ public class RunodeMovement : MonoBehaviour
 
     private System.Collections.IEnumerator MoveTo(Vector3 targetPosition, Vector3 direction)
     {
-        RunodeLine[] lines = GetComponentsInChildren<RunodeLine>();
+        RunodeLine[] lines = runodeCube.GetLines();
         foreach (RunodeLine line in lines)
         {
             if (line.IsPowered)
@@ -368,7 +368,7 @@ public class RunodeMovement : MonoBehaviour
 
     public IEnumerator RotateVisualSmooth(float degrees, Vector3 worldAxis, float duration, float squashAmount)
     {
-        RunodeLine[] lines = GetComponentsInChildren<RunodeLine>();
+        RunodeLine[] lines = runodeCube.GetLines();
         foreach (RunodeLine line in lines)
         {
             if (line.IsPowered)

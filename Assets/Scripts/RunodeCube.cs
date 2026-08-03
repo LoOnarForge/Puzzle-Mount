@@ -56,6 +56,15 @@ public class RunodeCube : MonoBehaviour
     public Sprite tSectionSprite;
     public Sprite crossSprite;
 
+    private RunodeLine[] lines;
+
+    private void Awake()
+    {
+        lines = GetComponentsInChildren<RunodeLine>();
+    }
+
+    public RunodeLine[] GetLines() => lines;
+
 
     // Refreshes obstruction state and then connections on this cube and its neighbours.
     public void RefreshCubeAndAdjacentConnections()
@@ -124,7 +133,7 @@ public class RunodeCube : MonoBehaviour
     {
         foreach (RunodeCube cube in affectedCubes)
         {
-            RunodeLine[] lines = cube.GetComponentsInChildren<RunodeLine>();
+            RunodeLine[] lines = cube.GetLines();
 
             foreach (RunodeLine line in lines)
                 line.RefreshFaceObstructionState();
@@ -136,7 +145,7 @@ public class RunodeCube : MonoBehaviour
 
         foreach (RunodeCube cube in affectedCubes)
         {
-            RunodeLine[] lines = cube.GetComponentsInChildren<RunodeLine>();
+            RunodeLine[] lines = cube.GetLines();
 
             foreach (RunodeLine line in lines)
                 line.RefreshPortObstructions();
@@ -148,7 +157,7 @@ public class RunodeCube : MonoBehaviour
     {
         foreach (RunodeCube cube in affectedCubes)
         {
-            RunodeLine[] lines = cube.GetComponentsInChildren<RunodeLine>();
+            RunodeLine[] lines = cube.GetLines();
 
             foreach (RunodeLine line in lines)
             {
