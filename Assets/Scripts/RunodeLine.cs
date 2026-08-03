@@ -29,16 +29,18 @@ public class RunodeLine : MonoBehaviour
     public PowerSource PowerSource => powerSource;
     public RunodeLine PoweredByLine => poweredByLine;
 
+    private const float powerColorDuration = 0.07f;
+    private const float powerDecolorDuration = 0.07f;
+    private float darkeningSpeed = 20f;
+
     private readonly List<LinePort> linePorts = new List<LinePort>();
-    private const float powerColorDuration = 0.05f;
-    private const float powerDecolorDuration = 0.05f;
+
     private Coroutine colorPowerLineCoroutine;
     private Coroutine powerUpSequenceCoroutine;
     private Coroutine decolorPowerLineCoroutine;
     private Coroutine depowerSequenceCoroutine;
     private Coroutine darkenSpriteLineCoroutine;
     private Coroutine brightenSpriteLineCoroutine;
-    private float darkeningSpeed = 15f;
 
     private void Awake()
     {
@@ -62,6 +64,7 @@ public class RunodeLine : MonoBehaviour
         receiverPort = targetPort;
         powerColor = color;
         powerIndex = index;
+        
         foreach (LinePort port in linePorts)
             port.SetCanReportConnections(false);
 
@@ -74,6 +77,7 @@ public class RunodeLine : MonoBehaviour
     public void PowerDownLine()
     {
         isPowered = false;
+        
         foreach (LinePort port in linePorts)
             port.SetCanReportConnections(false);
 
