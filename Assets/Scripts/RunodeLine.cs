@@ -30,6 +30,13 @@ public class RunodeLine : MonoBehaviour
     public PowerSource PowerSource => powerSource;
     public RunodeLine PoweredByLine => poweredByLine;
 
+    // Set false to log short circuits without halting propagation (testing).
+    private const bool HaltAllPropagationOnShortCircuit = false;
+
+    private static bool propagationHalted;
+
+    public static bool IsPropagationHalted => propagationHalted;
+
     private const float powerColorDuration = 0.07f;
     private const float powerDecolorDuration = 0.07f;
     private float darkeningSpeed = 20f;
@@ -45,6 +52,8 @@ public class RunodeLine : MonoBehaviour
 
     private void Awake()
     {
+        propagationHalted = false;
+
         Debug.Assert(lineSprite != null, $"{nameof(RunodeLine)} on {name} requires a line sprite.", this);
         Debug.Assert(obstructionPort != null, $"{nameof(RunodeLine)} on {name} requires an obstruction port.", this);
         Debug.Assert(upPort != null && rightPort != null && downPort != null && leftPort != null,
@@ -65,6 +74,20 @@ public class RunodeLine : MonoBehaviour
 
     public void PowerUpLine(PowerSource source, RunodeLine givingLine, LinePort targetPort, Color color, int index)
     {
+        if (propagationHalted)
+            return;
+
+        if (isPowered)
+        {
+            RunodeCube cube = GetComponentInParent<RunodeCube>();
+            string cubeName = cube != null ? cube.gameObject.name.ToUpper() : name.ToUpper();
+            string existingSourceName = powerSource != null ? powerSource.gameObject.name.ToUpper() : "UNKNOWN";
+            string incomingSourceName = source != null ? source.gameObject.name.ToUpper() : "UNKNOWN";
+
+            ReportShortCircuit(existingSourceName, incomingSourceName, cubeName);
+            return;
+        }
+
         isPowered = true;
         isConnected = true;
         powerSource = source;
@@ -105,6 +128,18 @@ public class RunodeLine : MonoBehaviour
         depowerSequenceCoroutine = StartCoroutine(DepowerSequence());
     }
 
+    private void ReportShortCircuit(string existingSourceName, string incomingSourceName, string cubeName)
+    {
+        Debug.Log(
+            $"SHORT CIRCUIT DETECTED BETWEEN {existingSourceName} AND {incomingSourceName} ON {cubeName}.",
+            this);
+
+        if (HaltAllPropagationOnShortCircuit)
+            propagationHalted = true;
+
+        // TriggerShortCircuitFinalEvent();
+    }
+
     private void SetInitialReceiverAndGiverPorts(LinePort targetPort)
     {
         foreach (LinePort port in linePorts)
@@ -119,6 +154,9 @@ public class RunodeLine : MonoBehaviour
 
     public bool NewValidConnection(RunodeLine targetLine, LinePort targetPort, LinePort sourcePort)
     {
+        if (propagationHalted)
+            return false;
+
         if (powerSource == null || !isConnected)
             return false;
 
