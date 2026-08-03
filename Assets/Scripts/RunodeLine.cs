@@ -32,6 +32,12 @@ public class RunodeLine : MonoBehaviour
     private readonly List<LinePort> linePorts = new List<LinePort>();
     private const float powerColorDuration = 0.05f;
     private const float powerDecolorDuration = 0.05f;
+    private Coroutine colorPowerLineCoroutine;
+    private Coroutine powerUpSequenceCoroutine;
+    private Coroutine decolorPowerLineCoroutine;
+    private Coroutine depowerSequenceCoroutine;
+    private Coroutine darkenSpriteLineCoroutine;
+    private Coroutine brightenSpriteLineCoroutine;
     private float darkeningSpeed = 15f;
 
     private void Awake()
@@ -60,9 +66,10 @@ public class RunodeLine : MonoBehaviour
             port.SetCanReportConnections(false);
 
         SetInitialReceiverAndGiverPorts(targetPort);
-        StopAllCoroutines();
-        StartCoroutine(ColorPowerLine(color));
-        StartCoroutine(PowerUpSequence());
+        StopBrightenSpriteLineCoroutine();
+        StopPowerCoroutines();
+        colorPowerLineCoroutine = StartCoroutine(ColorPowerLine(color));
+        powerUpSequenceCoroutine = StartCoroutine(PowerUpSequence());
     }
     public void PowerDownLine()
     {
@@ -80,9 +87,9 @@ public class RunodeLine : MonoBehaviour
         receiverPort = null;
         powerColor = Color.white;
         powerIndex = -1;
-        StopAllCoroutines();
-        StartCoroutine(DecolorPowerLine());
-        StartCoroutine(DepowerSequence());
+        StopPowerCoroutines();
+        decolorPowerLineCoroutine = StartCoroutine(DecolorPowerLine());
+        depowerSequenceCoroutine = StartCoroutine(DepowerSequence());
     }
 
     private void SetInitialReceiverAndGiverPorts(LinePort targetPort)
@@ -137,7 +144,10 @@ public class RunodeLine : MonoBehaviour
                 port.ReportValidConnections();
             }
         }
+
+        powerUpSequenceCoroutine = null;
     }
+
     private IEnumerator DepowerSequence()
     {
         yield return new WaitForSeconds(powerDecolorDuration);
@@ -152,6 +162,7 @@ public class RunodeLine : MonoBehaviour
         }
 
         SetAllPortsNeutral();
+        depowerSequenceCoroutine = null;
     }
 
     private IEnumerator ColorPowerLine(Color targetColor)
@@ -166,7 +177,8 @@ public class RunodeLine : MonoBehaviour
             yield return null;
         }
 
-        lineSprite.color = targetColor;
+        lineSprite.color = isFaceBlocked ? Color.black : targetColor;
+        colorPowerLineCoroutine = null;
     }
 
     private IEnumerator DecolorPowerLine()
@@ -177,28 +189,29 @@ public class RunodeLine : MonoBehaviour
         while (elapsedTime < powerDecolorDuration)
         {
             elapsedTime += Time.deltaTime;
-            lineSprite.color = Color.Lerp(startingColor, Color.white, elapsedTime / powerDecolorDuration);
+            lineSprite.color = Color.Lerp(startingColor, isFaceBlocked ? Color.black : Color.white, elapsedTime / powerDecolorDuration);
             yield return null;
         }
 
-        lineSprite.color = Color.white;
+        lineSprite.color = isFaceBlocked ? Color.black : Color.white;
+        decolorPowerLineCoroutine = null;
     }
 
     public void FaceObstructed()
     {
         isFaceBlocked = true;
-        StopAllCoroutines();
-        StartCoroutine(DarkenSpriteLine());
+        StopBrightenSpriteLineCoroutine();
+        darkenSpriteLineCoroutine = StartCoroutine(DarkenSpriteLine());
         SetPortBlockedState(true);
     }
+
     public void FaceCleared()
     {
         isFaceBlocked = false;
-        StopAllCoroutines();
-        StartCoroutine(BrightenSpriteLine());
+        StopDarkenSpriteLineCoroutine();
+        brightenSpriteLineCoroutine = StartCoroutine(BrightenSpriteLine());
         SetPortBlockedState(false);
     }
-
 
     private IEnumerator DarkenSpriteLine()
     {
@@ -209,7 +222,9 @@ public class RunodeLine : MonoBehaviour
         }
 
         lineSprite.color = Color.black;
+        darkenSpriteLineCoroutine = null;
     }
+
     private IEnumerator BrightenSpriteLine()
     {
         while (lineSprite.color != Color.white)
@@ -219,8 +234,53 @@ public class RunodeLine : MonoBehaviour
         }
 
         lineSprite.color = Color.white;
+        brightenSpriteLineCoroutine = null;
     }
 
+    private void StopPowerCoroutines()
+    {
+        if (colorPowerLineCoroutine != null)
+        {
+            StopCoroutine(colorPowerLineCoroutine);
+            colorPowerLineCoroutine = null;
+        }
+
+        if (powerUpSequenceCoroutine != null)
+        {
+            StopCoroutine(powerUpSequenceCoroutine);
+            powerUpSequenceCoroutine = null;
+        }
+
+        if (decolorPowerLineCoroutine != null)
+        {
+            StopCoroutine(decolorPowerLineCoroutine);
+            decolorPowerLineCoroutine = null;
+        }
+
+        if (depowerSequenceCoroutine != null)
+        {
+            StopCoroutine(depowerSequenceCoroutine);
+            depowerSequenceCoroutine = null;
+        }
+    }
+
+    private void StopDarkenSpriteLineCoroutine()
+    {
+        if (darkenSpriteLineCoroutine == null)
+            return;
+
+        StopCoroutine(darkenSpriteLineCoroutine);
+        darkenSpriteLineCoroutine = null;
+    }
+
+    private void StopBrightenSpriteLineCoroutine()
+    {
+        if (brightenSpriteLineCoroutine == null)
+            return;
+
+        StopCoroutine(brightenSpriteLineCoroutine);
+        brightenSpriteLineCoroutine = null;
+    }
 
     private void SetPortBlockedState(bool blocked)
     {
