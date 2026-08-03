@@ -190,10 +190,6 @@ public class RunodeMovement : MonoBehaviour
                 line.PowerDownLine();
         }
 
-        // Instant visual wipe for the affected circuit
-        if (PowerManager.Instance != null)
-            PowerManager.Instance.InvalidateSubtree(transform, true);
-
         isMovingPos = true;
         Vector3 startPos = transform.position;
 
@@ -228,16 +224,6 @@ public class RunodeMovement : MonoBehaviour
         runodeCube.RefreshCubeAndAdjacentConnections();
 
         isMovingPos = false;
-        PowerManager.Instance.RequestPowerFlowCheck(transform);
-    }
-
-    private void OnCollisionEnter(Collision collision)
-    {
-        // If we hit something while falling/moving physically, refresh power
-        if (!isMovingPos && !isRotating)
-        {
-            PowerManager.Instance.RequestPowerFlowCheck(transform);
-        }
     }
 
     private void ApplyRandomRotation()
@@ -391,9 +377,6 @@ public class RunodeMovement : MonoBehaviour
 
         if (visualParent == null) yield break;
 
-        if (PowerManager.Instance != null)
-            PowerManager.Instance.InvalidateSubtree(transform, true);
-
         isRotating = true;
 
         Transform targetTransform = visualParent;
@@ -443,8 +426,5 @@ public class RunodeMovement : MonoBehaviour
         isRotating = false;
 
         runodeCube.RefreshCubeAndAdjacentConnections();
-
-        RunodePower p = GetComponent<RunodePower>();
-        if (PowerManager.Instance != null) PowerManager.Instance.RequestPowerFlowCheck(p);
     }
 }

@@ -350,9 +350,7 @@ public class TimCubeController : MonoBehaviour
             {
                 if (IsActuallyRotatable(mouseHitCube, mouseHit.point))
                 {
-                    RunodePower power = mouseHitCube.GetComponent<RunodePower>();
-                    int faceIndex = power != null ? power.GetFaceIndexFromPoint(mouseHit.point) : -1;
-                    Vector3 visualNormal = (power != null && faceIndex != -1) ? power.GetFaceNormal(faceIndex) : mouseHit.normal;
+                    Vector3 visualNormal = mouseHit.normal;
 
                     if (isLeftClick)
                     {
