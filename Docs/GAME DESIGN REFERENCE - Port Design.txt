@@ -1,0 +1,540 @@
+MOUNT PUZZLE - GAME DESIGN REFERENCE
+1. Game Description
+Single-player 3D puzzle game. 
+Platform: Windows PC / Steam. 
+Third-person perspective. 
+Main game play focus: 
+Environmental puzzles. 
+Spatial reasoning. 
+Grid-based object manipulation. 
+Power routing systems. 
+Game Premise
+Tim Jones, an explorer, falls into an ancient Mayan-like temple. 
+To escape, Tim must explore the temple, solve increasingly complex environmental puzzles, restore ancient mechanisms and open Forgotten Gates that allow him to progress deeper and eventually escape.
+The game is focused on solving game play systems rather than narrative.
+Player Character
+The player controls Tim Jones.
+Tim can:
+Move through the environment. 
+Jump. 
+Sprint. 
+Manipulate Runodes. 
+Operate powered devices. 
+Interact with level mechanisms. 
+The player progresses by solving puzzles and opening Forgotten Gates.
+2. Main Game play
+Core Game play Loop
+The player progresses through levels by restoring power systems and opening Forgotten Gates.
+Game play sequence: 
+1. Analyze available Power Sources, Runodes, devices and environmental conditions. 
+2. Move and rotate Runodes. 
+3. Align Power Lines to create valid power circuits. 
+4. Route power from Power Sources to required Receivers. 
+5. Activate devices required for progression. 
+6. Fulfill Forgotten Gate requirements to activate it.  
+7. Physically reach the opened Forgotten Gate to finish the level.
+
+3. Grid System
+The game uses a precise grid-based system. Each cell/unit/ is 1x1m always
+Purpose
+The grid system provides:
+Exact object positioning. 
+Predictable movement. 
+Reliable puzzle solutions. 
+Grid Rules
+Runodes always align to the grid. 
+Runodes cannot EVER occupy invalid positions- they always have to finish precisely on a integer coordinate 
+if a cube stops on a Y position that isn't a full number, this is considered a design failure
+Movement happens between valid grid positions. 
+Rotation occurs in fixed increments. 
+Movement Rules
+Runode movement is controlled according to grid rules.
+Horizontal movement:
+Programmatic. 
+Precise. 
+Grid aligned. 
+Falling:
+Uses physics. 
+Physics-based falling is the intended system. 
+Physics can be changed in the future only if it creates a game play, logic or system interaction problem where another solution is required. 
+4. Power System
+The Power System is the core game play system.
+Purpose:
+Transfer power from Power Sources. 
+Route power through Power Lines. 
+Activate Receivers. 
+Open Forgotten Gate. 
+The player manipulates Runodes to create valid power circuits.
+Power exists only through connected Power Lines.
+Runodes themselves do not carry power.
+4.1 Terminology
+This section defines the names and abbreviations used throughout the project.
+Power Source (PS)
+Fixed game object where all power originates and propagates from.
+Runode (Cube)
+Player movable cube with faces that may contain Power Lines. Each cube has 6 faces: Top, Bottom, North, South, East, West.
+
+Obstruction Port (OP)
+Component on a face that has a power line on it. Responsible for detection if the entire face is blocked. 
+
+Line port (LP)
+Component on a face that has a power line on it. Responsible for connections with other faces and propagation of power. 
+Power Index
+Distance (in faces) from the originating PS, used for MW priority.
+Runode Face (RF / Face)
+One side of a Runode.
+Face Edge (Edge)
+Each Runode Face has four edges: Up, Right, Down, Left.
+Each edge is shared between two faces. Face Edges are relevant for internal Power Line connections.
+Power Line (PL / Line)
+A power-carrying path located on a Runode Face.
+A face can contain one Power Line, but doesn't have to.
+Internal Connection
+A valid connection between two Power Lines located on the same Runode.
+The connection occurs through shared Face Edges.
+External Connection
+A valid connection between two Power Lines located on two adjacent Runodes.
+Power Circuit (Circuit)
+A connected group of Power Lines carrying power from a Power Source.
+
+Color Mixer
+A unique device that allows mixing of the colors inside of it, and outputs new color. Does not require power to work. It does act as a Power source that requires an input firs to work. 
+Receiver
+An object that performs specific actions and requires a power of certain color and minimum MW to operate.
+Types:
+Device Receiver. 
+Forgotten Gate Receiver. 
+Receiver (Device)
+Powered object that performs an environmental action.
+Examples:
+Door. 
+Elevator. 
+Piston. 
+Trap Door. 
+Activators
+Control object used to oprate/control connected Devices. May or may not require power to work
+Examples:
+Lever
+Button
+Pressure Plate
+Forgotten Gate (FG)
+Final progression object requiring power before Tim can pass through.
+MW
+Unit representing available power capacity for each PS, set manually during the level design. 
+
+ITA
+Illegal Tim area- collider marked areas in the level that will kill Tim and force reset of the level (lava, water, abyss)
+IRA
+Illegal Runode area- collider marked areas in the level that will destroy cube(lava, water, abyss)
+4.2 Power Sources (PS)
+Power Sources are static objects placed in levels. There can be multiple PS in a level, with different maxPower and different colors. A PS has a single color and maxPower that never change during the game play. 
+Properties:
+Cannot be moved. 
+Have predefined colour. 
+Have maximum MW capacity. 
+Have fixed connection points. 
+distributes MW to the faces connected to it according to the Power Index
+tracks the maxPower and remainingPower 
+tracks which faces are currently connected to it
+
+Runode Power Lines must align with specific PS connection points.
+A Runode does not receive power simply because it is near a Power Source.
+Power Source Branching
+A single PS can create multiple branches.
+Current design:
+Up to 4 branches can origin from the PS. After that branch can split multiple times using power lines . 
+Further splitting depends on available Power Line layouts. 
+Branching occurs through Power Line configurations.
+There are no dedicated splitter objects.
+4.3 Runodes and Power Lines
+Runode Rules
+Runodes are movable cube objects and it is only the physical object holding Faces/Power Lines. They are always 1x1x1m in size and must ALWAYS align with the grid system when movement is finished.
+
+Some runodes will be marked as crucial (isCrucial) during level design, it will be impossible to finish the level if crucial runode is destroyed.
+Properties:
+Always have six faces. 
+Exist on the grid. 
+Can be pushed and rotated. 
+Can contain up to 6 independent Power Lines. 
+Can contain multiple colours on different faces. 
+
+Runode Faces
+Each face:
+Is independent. 
+Can contain one Power Line or none. 
+Can belong to a separate circuit or none.
+Can contain a different colour from other faces. 
+Multiple circuits can exist on the same Runode.
+Ports
+Obstruction port is only responsible for detection if the whole face is blocked (by Environment, Ground or Runode objects). If it is, the line cannot pass power or connect to other lines until the obstacle is removed. 
+Line Ports are key component of the power system, they pass power between faces based on their relations and contact, power availability and power index. They work with PS to maintain order.
+ 
+Line Ports represent the individual power line's exit and entry points 
+Line ports detect:
+obstructions and block internal connections, if obstruction has been detected
+connections between the faces, both internal and external connections
+
+A Line Port can be in one of three states:
+Neutral - no power is currently connected/flowing through it or its face.
+Receiver - a port that received power from a giver port from another face 
+Giver – the port that can give power to another face 
+Rules:
+a powered face must ALWAYS have least one receiver and one giver
+a powered face CANNOT have only givers
+a powered face NEVER has any neutral ports
+when a neutral port on the face turns into a receiver, all remaining ports MUST become givers (1-3 ports)
+receiver/giver relation determines which way power flows
+power always flows from receiver to a giver on a face and from giver to a receiver between faces
+the only allowed combination of ports between powered faces is receiver- giver
+Power Line Types
+Current line types:
+Straight. 
+Corner. 
+T connection. 
+Cross connection. 
+
+Creating Connections
+The player creates connections by moving and rotating Runodes. 
+Power Lines must align correctly.
+Connections occur when compatible Power Lines connect ( their Line Ports overlap).
+
+
+4.4 Runode Movement and Manipulation
+Runode Rotation
+Tim can rotate a runode by hovering mouse over it, and clicking or click and drag.
+Rules:
+LMB rotates a cube clockwise depending on over which face the cursor is (limited to 2 axis only)
+RMB rotates a cube counter-clockwise depending on over which face the cursor is (limited to 2 axis only)
+LMB hold and drag rotates a cube, depending on over which face the cursor is (full 3 axis rotation possible)
+Rotation changes:
+The orientation of the Runode. 
+The position of Power Lines. 
+Possible Power Line connections. 
+Runode Pushing
+The player pushes Runodes by walking into them.
+Rules:
+Player must physically approach the Runode. 
+If a Runode gets pushed into a corner of the terrain, or 4 runodes are in a 2x2 setup on a flat surface they will be permanently stuck, Tim can rotate them but can't move them anymore
+Runode Stacking Rules
+Rules:
+A stack of 1, 2 or 3 Runodes can be pushed. 
+A stack of 4 or more Runodes cannot be pushed. 
+The player can rotate any of the three accessible Runodes in the stack. 
+Runodes above Tim's accessible level cannot be rotated directly. 
+Runodes in a stack are not permanently joined.
+
+If a stack contains 4 or more Runodes:
+The stack cannot be pushed. 
+Up to 3 Runodes from the stack can still be interacted with(rotated)  from Tim’s  level. 
+Runodes higher in the stack cannot be rotated from ground level. 
+If the player removes enough Runodes and the stack becomes 3 or fewer, it becomes pushable again. 
+Runode Selection
+A runode becomes selected when player hovers a mouse cursor over it , and the runode is is within the range. 
+Rules:
+One Runode can be selected for rotation at a time. 
+Selected runode can be roatted.
+Fixed Runodes
+Some Runodes are permanently placed.
+Rules:
+Cannot be moved or rotated
+Can contain Power Lines. 
+Are part of the designed puzzle solution. 
+4.5 Power Flow and MW System
+Power Propagation
+Power propagates one Runode Face at a time.
+Each newly powered face:
+consumes 1 MW from its originating Power Source.
+becomes powered after the global propagation delay.
+assigns one Receiver Port and any required Giver Ports.
+continues propagation through its Giver Ports.
+Power always propagates away from the originating Power Source.
+Powering multiple branches occurs naturally as propagation reaches branch points.
+Depower Propagation
+When a Receiver Port loses its incoming connection, the face immediately starts its depowering transition.
+After the global depowering delay finishes, its Giver Ports notify their connected faces that power has been lost.
+This produces a depowering wave that travels through the circuit in the same direction as power originally propagated.
+Powering and depowering may exists on a single circuit in different places, creating visible power pulses.
+When a face is depowered it returns the MW used to the pool of the PS it drew it from.
+Waiting Connections
+A physically connected face may remain unpowered when no MW is available on the PS.
+Such faces remain connected and wait for available MW.
+Whenever MW becomes available, the Power Source calls out to its connected and powered faces that more MW is available now and they attempt to power up adjacent unpowered faces. -  SYSTEM TBD
+Power Splitting
+Power can split through any connected branching Power Line configuration.
+Examples:
+T connection can split power into 2 new branches. 
+Cross connection can distribute power through 3 new branches. 
+MW System
+MW represents available power capacity.
+Rules:
+Each Power Source has a maximum MW value. 
+Each powered Runode Face consumes 1 MW. 
+Consumption continues while that face remains powered. 
+Insufficient MW
+If connected Power Lines require more MW than the Power Source can provide:
+Power is supplied to faces, starting from the faces with the lowest Power Index first. 
+Remaining Power Lines are not powered. 
+The entire circuit does not shut down. 
+If two faces share the same index first processed wins.
+
+The player must redesign the power layout if it doesn't reach the desired receiver
+Power Recalculation
+Physical state updates instantly after movement/rotation.
+Visual power propagation then executes over time.
+
+4.6 Receivers & Activators
+Receivers are powered objects that affect the environment, they require an Activator except of Color Mixers and forgotten Gate) to be used. 
+Do not transmit power. 
+Do not create power connections. 
+Require specific color power (up to 2) and minimum amount of free MW on the PS to be activated.
+
+If requirements are not fulfilled:
+The receiver remains inactive. 
+Partial power does not activate the receiver. 
+Examples:
+Doors. 
+Pistons. 
+Elevators. 
+Trap Doors. 
+Color Mixer
+
+Color Mixer is a unique device, it does not require an activator or power itself, it takes as an input 2 colors and outputs new  color with the sum of MW from two inputs.
+
+Activators are used to operate Receivers. Most of them operate without power requirement, a lever is an exception, it needs to be connected to power and it will consume it like a receiver. Often it will be deemed unnecessary from the level design perspective, in that case there will be a hardwired PS next to the lever, or a simple/short circuit requirement that will fulfill its need for power. 
+Forgotten Gate Receiver
+The Forgotten Gate is the final progression receiver.
+Requirements:
+Up to 4 different power colours. 
+Specific minimum MW requirements. 
+The gate opens only when all required conditions are fulfilled.
+Level completion:
+Tim reaches the opened Forgotten Gate physically. 
+4.7 Power Colours and Mixing
+Power Colours
+Rules:
+Power colours on PSs and Devices are predefined. 
+Different colours represent different power types. 
+Multiple colours can exist in the same puzzle. 
+Different colours can exist on different faces of the same Runode. 
+Colour Mixing
+Direct colour mixing inside circuits is illegal.
+Colour conversion is only possible through mixing devices.
+Example:
+	Input:
+Red. 
+Yellow. 
+	Output:
+Orange. 
+Mixing MW Rules
+The output colour receives the remaining MW from the input colours after mixing.
+4.8 Illegal Power States / Game Over Conditions
+Creating a closed loop on a circuit of the same colour.
+Direct mixing of different colours on a circuit.
+Same colour from two different Power Sources mixing on a circuit.
+Two Giver Ports directly connecting creates a Short Circuit. 
+Result:
+Immediate Game Over - see section 8.
+5. Devices
+Pistons
+Purpose:
+Move Runodes horizontally. 
+Rules:
+Require lever activation. 
+Push whatever is placed in front of them. 
+Move objects a number of grid units. 
+Pistons will move Tim. 
+Elevators
+Purpose:
+Transport Runodes vertically and horizontally. 
+Rules: 
+Requires activator. 
+Transport Runodes only. 
+Do not transport Tim. 
+Elevators can have:
+Multiple positions- each lever movement will make elevator move to the next stop. 
+Doors
+Purpose:
+Allow or block access. 
+Rules:
+Controlled by activators.
+Trap Doors
+Purpose:
+Allow vertical movement through floor openings. 
+Rules:
+Controlled by levers. 
+Uses:
+Allow Tim to jump down. 
+Allow Runodes to fall through. 
+
+Power Extender (To be decided if in scope)
+
+Purpose: 
+it allows connection of 2 same color power lines and outputs single line of the same color withthe sum of remaining MW from the input 
+
+6. Activators
+Lever 
+Rules:
+A lever requires power to operate.  
+A lever controls connected Devices. 
+A lever is activated by clicking with a mouse on it , the range is the same as cube rotation range from Tim.
+
+Connections between levers and devices:
+Are defined during level design. 
+Are visually represented to the player. 
+
+A single lever can control multiple devices.
+
+Example:
+	Lever state A: Door A closed/Door B open/Light A off/Light B on
+	Lever state B: Door A open/Door B closed/Light A on/Light B off. 
+
+
+Button (To be decided if in scope)
+
+Purpose: 
+acts like a lever, but once pressed it can't be undone.
+
+Can control multiple devices. 
+It does not require power to work.
+
+Pressure Plate (To be decided if in scope)
+
+Purpose: 
+floor that responds to weight (Tim or a cube) 
+
+Control connected devices- ON/OFF 
+Can control multiple devices. 
+Can't control an elevator
+It does not require power to work.
+
+Connections between levers and devices are defined during level design and are visually represented
+7. Environment
+Environment Structure
+The environment is mainly built from cubical elements. Environment is mostly static, with exception of some moving platforms or death devices (To be decided if in scope) that Tim has to watch out for .
+Features:
+Different elevations. 
+Slopes – Tim can walk on slopes but can't push runodes up or down on them.
+Gaps. 
+Nooks. 
+Restricted spaces. 
+Limited movement areas. 
+Environment affects:
+Player movement. 
+Runode movement. 
+Puzzle solutions. 
+Surface Types
+Slippery Surface
+Rules:
+When a Runode is pushed onto a slippery surface, it continues moving. 
+Movement continues until: 
+The slippery surface ends. 
+The Runode hits an obstacle. 
+Hard / Rough Surface
+Rules:
+Reduces the number of Runodes that can be pushed as a stack. Exact limits are defined during level design.
+
+Shark Skin Surface
+Rules:
+A runode can be pushed, onto it or from it, only in one direction
+Fragile Surface Type 1 (To be decided if in scope)
+Weight-based fragile surface.
+Rules:
+A stack of 2 or more Runodes breaks the surface. 
+Runodes fall through. 
+The floor is destroyed. 
+Fragile Surface Type 2 (To be decided if in scope)
+Runode crossed-based fragile surface.
+Rules:
+Surface has a predefined number of Runodes that can pass over it. 
+Every Runode movement contributes toward the limit. 
+Limit is updated as soon as runode(s) enter its area.
+Example:
+Limit:
+3 Runodes. 
+Behaviour:
+Push 3 separate Runodes over the surface. 
+After reaching the limit, the surface breaks. 
+Alternative:
+Push a stack of 3 Runodes. 
+The surface reaches the limit and breaks. 
+Lighting
+Lighting is game play relevant.
+Types:
+1. Fixed lighting. 
+2. Deliberately dark areas. 
+3. Switchable lighting. 
+Switchable Lighting
+Rules:
+Controlled by levers. 
+Can turn lights on and off. 
+Purpose:
+Affect visibility. 
+Change what the player can see. 
+8. Camera System
+Main Camera
+Camera type:
+Third-person camera. 
+Rules:
+Camera follows Tim. 
+Tim remains centered. 
+Player changes viewing angle around Tim. 
+Camera movement:
+Cardinal directions. 
+Controls:
+Middle Mouse Button + drag left/right. 
+Q and E keys. 
+Leya Inspection Camera
+Leya is a helper bird used for inspection. Use Tab to switch between Tim and Leya. 
+Purpose:
+Provide additional viewpoints. 
+Allow the player to inspect puzzle areas. 
+Camera type:
+First-person free camera. 
+Rules:
+Leya can fly around Tim. 
+Leya has a limited range from Tim. 
+Leya is for observation only. 
+While Leya is active Tim cannot perform any actions and just stands still.
+Cursor is disabled when Leya is active.
+Leya can't:
+Move objects. 
+Activate devices. 
+Solve puzzles. 
+
+9. Failure Conditions
+Tim falls into an illegal/deadly area (those will have triggers that detect Tim and trigger Game Over when he is detected) 
+Tim is hit by moving elevator mechanisms. 
+Tim falls into traps. 
+Illegal colour mixing occurs = runode explosion = Tim dies.
+Same-colour power loop is created  = runode explosion = Tim dies.
+Tim falls from a greater height – to be confirmed if I will implement it 
+Destroying a crucial Runode (marked isCrucial during level design) makes the level impossible to complete.
+
+
+Game over results in Tim's Death most of the time ( Tim Ragdolls in a violent way for the effect and fun)
+
+On Tim's death , camera will focus on the event briefly, with all the controls disabled already and the restart menu will show up. No state is preserved upon death, the level must be played from the beginning as new.
+
+A level can be quickly restarted from the menu as well if player deems it necessary.
+10. Victory Conditions
+there is always one forgotten Gate in a level, it must fully powered to become operational.
+Tim has to physically reach the gate.
+any other devices and runodes in the level are there to facilitate activation of the FG and reaching it.
+
+11. Player Controls
+Character Movement
+Controls:
+WASD - Move Tim through the environment. 
+Shift - Sprint. Not restricted by stamina or anything else, it is there to traverse longer distances quickly.
+Space - Jump. Jump height is over 1m , can jump on a cube but not on a double cube
+Ctrl – switch between precise (slower)  and fast cube pushing. Precise pushing has longer delay between each position change in the grid for a better control of runode's position. 
+
+Tim can: 
+walk and jump over any runodes, ground and terrain futures - if he can get on something it is allowed.
+Stack runodes if he has an ability to push a runode on top another one from a higher elevetion.
+Push runodes while sprinting, how fast runodes move is determined by the Ctrl function mainly.
+Can push off runodes from a cliff, if it lands on abyss,lava, water (illegal runode area- IRA), cube will get detected and destroyed, if the area is legal cube just lands on the terrain/ground or another runode.
+Tim can't:
+lift runodes.
+pull runodes.
+Walk/swim on water/lava(illegal Tim area- ITA) death and game over trigger.

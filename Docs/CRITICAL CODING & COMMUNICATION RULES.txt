@@ -1,0 +1,153 @@
+now check  this against original for any changes in the wording 
+
+# CODING GUIDELINES
+
+## !!!MAIN RULE!!!
+
+**ALWAYS CHECK AND FOLLOW THESE RULES BEFORE EVERY TASK.**
+
+The fastest way to finish correctly is controlled, minimal changes. Shortcuts and unnecessary changes create bugs and require rewrites.
+
+---
+
+## Critical Rules
+
+### 1. CRITICAL: IMPLEMENT ONLY THE EXPLICITLY REQUESTED LOGIC
+
+Any unauthorized code, optimizations, refactoring, safeguards, or features are a TOTAL FAILURE of the task.
+
+If something is unclear, ask for clarification or suggest a solution before making changes.
+
+---
+
+### 2. CRITICAL: NEVER CREATE CODE IN ASK MODE
+
+If it is Ask Mode, we are only discussing and analysing.
+
+**NO CODE, CODE SNIPPETS, PATCHES, OR MODIFICATIONS.**
+
+Only provide explanations and answers.
+
+---
+
+### 3. CRITICAL: PRIORITIZE DEBUGGING OVER GUESSING WHEN LOOKING FOR SOLUTIONS
+
+Always investigate the actual cause of a problem before applying fixes.
+
+Do not add random changes or patches based on assumptions.
+
+---
+
+### 4. CRITICAL: NEVER MODIFY CODE OUTSIDE THE CURRENT TASK SCOPE
+
+Only change files, methods, systems, and logic directly related to the requested issue.
+
+If you notice another possible problem, mention it separately and wait for approval.
+
+Do not "improve", optimize, clean up, or refactor unrelated code.
+
+---
+
+### 5. CRITICAL: ASK QUESTIONS WHEN INFORMATION IS MISSING OR UNCLEAR
+
+Do not assume requirements, intended behaviour, or missing details.
+
+Incorrect assumptions create unnecessary rewrites and wasted time.
+
+---
+
+### 6. ALWAYS IDENTIFY AND FIX THE ROOT CAUSE
+
+Do not patch symptoms by adding more code on top of existing problems.
+
+Understand why the issue happens before changing the code.
+
+---
+
+### 7. RESPECT DISCUSSION VS EXECUTION
+
+Questions, ideas, hypothetical scenarios, and requests for explanation do NOT mean permission to modify code.
+
+Only make changes when implementation is explicitly requested.
+
+---
+
+### 8. PRESERVE EXISTING ARCHITECTURE
+
+Do not rewrite, reorganize, rename, or restructure working systems unless explicitly requested.
+
+Maintain existing design patterns, dependencies, and project structure.
+
+---
+
+### 9. CLEAR NAMING
+
+Use clear, self-explanatory names for all variables, methods, classes, and types.
+
+---
+
+### 10. PUBLIC METHOD COMMENTS
+
+Add short, direct `//` comments explaining the purpose of all public methods.
+
+---
+
+### 11. CONSTANT FIELDS
+
+Use constant fields for repeated fixed values.
+
+Avoid unexplained literal values ("magic numbers") inside code.
+
+---
+
+### 12. MINIMAL AND TRACEABLE SOLUTIONS
+
+Every solution must be minimal, understandable, and traceable.
+
+Make the smallest possible change required to solve the problem.
+
+The cause of the issue and the applied fix should be easy to follow.
+
+---
+
+### 13. COMMUNICATION STYLE
+
+Use simple and direct explanations.
+
+Avoid unnecessary technical terminology.
+
+If an advanced term is useful, explain it briefly in brackets.
+
+---
+
+### 14. RESPONSE LENGTH
+
+Keep responses concise.
+
+Do not provide long explanations unless requested.
+
+Focus on the problem, solution, and next step.
+
+---
+
+### 15. CODE CHANGE VERIFICATION
+
+After ANY code changes, recompile the scripts and verify the result.
+
+Never claim an action was completed unless it was actually performed.
+
+---
+
+### 16. CODE OUTPUT AFTER CHANGES
+
+After applying changes, do not show code snippets.
+
+Provide only a VERY SHORT summary of what changed.
+
+---
+
+### 17. NO VISUAL EXPLANATIONS
+
+Do not generate visual images, screenshots, or diagrams.
+
+Use Unity editor information, logs, and code analysis instead.

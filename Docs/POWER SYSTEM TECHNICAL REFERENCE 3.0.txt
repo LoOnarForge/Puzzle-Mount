@@ -1,0 +1,507 @@
+1. Power Source (PS)
+A. Description:
+The Power Source is the origin of a single Power Circuit.
+A Power Source provides MW to connected Runode Faces and manages MW allocation for its own circuit.
+Each Power Source has one predefined Power Colour and one fixed maximum MW value defined during level design.
+The Power Source is the authority responsible for MW accounting and MW arbitration.
+B. Rules:
+A Power Source has a fixed maximum MW.
+The Power Source keeps track of all Faces currently consuming its MW.
+The Power Source keeps a waiting list of Faces that have a valid connection but could not receive MW.
+Waiting priority is determined by Power Index.
+There can be many PSs in a single level.
+PS is static and never moves or rotates.
+It can have up to 4 connections on the top face always.
+PS's ports are always Givers with powerIndex 0.
+Different Power Sources operate independently, even if they have the same colour.
+C. Communicates with:
+Powered Runode Faces consuming its MW.
+Waiting Runode Faces.
+
+D. What it doesn't do
+It does not determine physical connections.
+It does not communicate with Line Ports.
+It does not directly power Faces.
+2. Runode (Cube)
+A. Description:
+It is the player's primary interaction object used to build and modify Power Circuits by changing the position and orientation of its Faces.
+B. Rules:
+A Runode always occupies exactly one grid cell.
+A Runode always contains six Faces.
+Each Face is independent but “lives” on the same cube.
+A Runode stores the layout of active faces and possible internal connections. If the Line Port is blocked currently by an obstacle, the internal connection is blocked until obstacle is gone.
+A Runode may contain between 0 to 6 Power Lines, if a face has an active Power Line,it is then an Active Face.
+A Runode can contain faces powered by different Power Sources.
+A Runode can be moved, rotated, stacked or even destroyed.
+A Fixed Runode cannot be moved or rotated.
+A Crucial Runode cannot be destroyed without making the level impossible to complete.
+Rotating a Runode changes the orientation of all six Faces simultaneously.
+Moving a Runode changes the position of all six Faces simultaneously.
+Every movement or rotation may create or remove multiple internal and external connections.
+A Runode may have no Power Lines at all and still exist as a physical puzzle object.
+A destroyed Runode immediately removes all Faces it contains from every active Power Circuit.
+The number of active circuits passing through a Runode is limited only by the configuration of its Faces.
+The Runode is responsible only for maintaining the physical relationship of its Faces; all power logic is handled by the Faces themselves.
+C. Communicates with:
+Its faces, if they have an active power line.
+Tim (player interaction).
+Environment.
+Other Runodes.
+D. It doesn't:
+It does not store power.
+It does not make propagation decisions.
+
+3. Runode Face (Face / RF)
+A. Description:
+A Runode Face is an individual side of a Runode and the primary logical unit of the Power System.
+An Active Face always contains the Power Line, Line Ports and one Obstruction Port. A face without a power line has no active role whatsoever. Power lines are predefined during the design and never change during the game.
+A Face controls the power state and power flow behavior of its own Power Line. It gathers information from the ports (Line and Obstruction Ports) and is the center of local information control.
+B. Rules:
+A Face with an active Power Line is an Active Face.
+Each Face operates independently of any other faces in the level.
+An active face can be isPowered or !isPowered.
+A Face can belong to one Power Circuit only.
+A powered Face consumes 1 MW from its originating Power Source.
+A powered Face ALWAYS has one Receiver Line Port.
+A powered Face ALWAYS has 1-3 Giver Line Ports.
+A powered Face CANNOT have any neutral Line Ports.
+When a connected neutral Line Port receives power from a Giver Port, it becomes the Receiver Port of that Face, all other Line Ports on that Face become Giver Ports.
+A Face receives power from another Face; it never pulls power itself.
+A Face propagates power through its Giver Ports.
+A Face receives its Power Index from the Face that powered it.
+Power Index is inherited as : Giving Face Power Index + 1.
+A Face loses power when it loses its Receiver connection.
+When a Face loses power, its MW is returned to the originating Power Source immediately.
+A Face can enter a waiting condition when a valid connection exists but MW is unavailable.
+Visuals of the face do not determine its state in any way. Visuals are a result of the state change. Not the other way.
+Line Ports provide information; the Face makes decisions based on that information.
+A Face owns the logical state of its Power Line.
+The visual Power Line is only a representation of the Face configuration.
+A Face can create multiple propagation branches through multiple Giver Ports.
+T or Cross connection allows a Face to have multiple Giver Ports.
+A Face only knows its own connections and current power information.
+C. Communicates with:
+Its parent Runode.
+Its Line Ports.
+Its Obstruction Port.
+Its originating Power Source.
+Connected neighboring Faces through Line Ports, if there are any.
+D. It doesn't:
+It does not physically detect connections itself.
+It does not directly communicate with Line Ports on other Faces.
+It does not move or rotate.
+
+
+4. Line Port (LP)
+A. Description:
+A Line Port is a connection (box collider as trigger) point belonging to a Power Line on an Active Face. Depending on the type of the Power Line, there can be 2–4 Line Ports on a Face. Line Ports are located at the endpoints of a Power Line's extremities. Line Ports provide the Face with information about power connections and obstructions.
+B. Rules:
+A Line Port exists only as part of a Power Line.
+A Line Port can be only 1 of the three types:
+Neutral - all ports are neutral or none on a face, it means the face is not powered.
+Receiver - a port that received power from another face.
+Giver – any other port on a powered face that did not receive power first.
+The Face determines the type of the Line Port.
+A Line Port stores its current role.
+When two Line Ports overlap, they form a connection.
+Internal connection can be blocked by obstruction, external connection is always valid.
+Line Ports detect whether a connection is blocked by an obstruction.
+A Line Port provides connection information to its parent Face.
+The Face is the authority; Line Ports only provide information.
+Whenever a Face loses power, even briefly, all Line Ports are reset to Neutral, their default state.
+A Line Port becomes a Receiver when its Face receives power through that connection.
+Line Ports on the same Face can create internal propagation paths through the Runode.
+Power Flows: from Receiver to the Giver(s) on the same face, and from Giver to Receiver between the faces.
+C. Communicates with:
+Its parent Face.
+Connected Line Ports from another face.
+D. It doesn't:
+It does not decide power flow direction.
+It does not assign itself Receiver or Giver state.
+It does not communicate with the Power Source.
+
+5. Obstruction Port (OP)
+A. Description:
+An Obstruction Port is a detection component belonging to an Active Face.
+Its only purpose is to detect whether the entire Face is blocked by an external object, preventing the Power Line on that Face from functioning.
+B. Rules:
+Each Active Face has always one Obstruction Port.
+An Obstruction Port covers most of the face, it doesn't overlap ever with Line Ports.
+An Obstruction Port detects whether the complete Face is blocked.
+If the Face is blocked, the Power Line on that Face cannot transfer power.
+A blocked Face has no valid connections, until the obstruction is removed.
+The Face decides how the obstruction affects its own power behaviour.
+C. Communicates with:
+Its parent Face.
+Objects occupying or blocking the Face area.
+D. It doesn't:
+It does not do anything else other than detection of obstacles to the face.
+E. Additional Information:
+The Obstruction Port only provides information; the Face remains the authority deciding the consequence.
+Removing an obstruction may allow an existing connection to become usable again.
+An obstruction does not destroy the connection; it temporarily deactivates ALL ports on that face until obstruction is removed.
+Moving or rotating Runodes can change obstruction states.
+
+
+
+
+
+1. Power Propagation
+Flow:
+1. A Runode is moved or rotated into a position where Line Ports overlap.
+2. A powered Face's Giver Line Port detects overlap with another Line Port that is Neutral.
+3. The Giver Line Port reports the detected connection information to its parent Face.
+4. The Face evaluates the connection:
+Determines if the connection is internal or external.
+Internal connection: both Line Ports belong to Faces on the same Runode.
+External connection: Line Ports belong to Faces on different Runodes.
+5. If the connection is internal:
+The Face checks if the internal connection is blocked by an obstruction.
+If the connection is blocked, power cannot pass through this connection.
+If the connection is valid, propagation continues.
+6. If the connection is external:
+The connection is valid when Line Ports overlap correctly.
+7. After the connection is validated, the powered Face gives power to the connected Neutral Face.
+8. The giving Face requests 1 MW allocation from its originating Power Source for the connected Face.
+9. If MW is available:
+The Power Source removes 1 MW from its available pool.
+The giving Face passes power information to the connected Face:
+originating Power Source reference.
+Power Colour.
+Power Index = giving Face Power Index + 1.
+The connected Neutral Face becomes powered.
+10. If MW is unavailable:
+The connected Face remains unpowered.
+The connected Face is added to the Power Source waiting list.
+The waiting entry contains:
+Face reference.
+Power Index.
+Propagation point (the giving Face).
+11. When a Face becomes powered:
+The Face receives the allocated 1 MW.
+The Face stores:
+originating Power Source.
+Power Colour.
+Power Index.
+The Line Port that received power becomes the Receiver.
+All remaining Line Ports on that Face become Givers.
+12. The visual power-up animation starts.
+13. After a fixed propagation delay (code timer), the Face's Giver Ports attempt further propagation. The visual animation plays independently during this delay.
+14. Each Giver Port repeats the same process:
+Detect valid connected Neutral Line Ports.
+Report connection information to the Face.
+Validate the connection.
+Attempt to give power.
+15. Propagation continues until:
+No valid connected Neutral Faces remain.
+Or no available MW remains and remaining valid connections are placed on the waiting list.
+Additional Rules:
+Power state changes and MW accounting execute instantly.
+Visual power propagation is only a cosmetic delay and never controls logical power state.
+Power is always given from a powered Face through a Giver Port.
+A Neutral Face never requests power by itself.
+Power Index is assigned during powering and inherited only from the Face that provided power.
+The Power Source is only responsible for MW allocation and waiting list management. It does not control propagation.
+2. Depower Propagation
+Flow:
+1. A Runode is moved or rotated and an existing Line Port connection is removed or becomes invalid.
+2. A Line Port detects that the previous connection no longer exists or is no longer valid.
+3. The Line Port reports the connection change information to its parent Face.
+4. The Face evaluates the connection loss:
+Determines if the lost connection was its Receiver connection.
+A Face loses power only when its Receiver connection is removed or becomes invalid.
+Losing a Giver connection does not remove power from the Face.
+5. If the lost connection was not the Receiver connection:
+The Face remains powered.
+No depower process starts.
+6. If the lost connection was the Receiver connection:
+The Face immediately loses its power state.
+The Face returns its allocated 1 MW to its originating Power Source.
+The Face clears its current power information:
+originating Power Source.
+Power Colour.
+Power Index.
+The Receiver Port is immediately reset to Neutral.
+The Face keeps its current Giver Port states during the depower delay.
+7. The Face starts its visual depower animation.
+8. After a fixed depower delay (code timer):
+The Face's Giver Ports stop providing power.
+The remaining Giver Ports are reset to Neutral.
+Any connected Face receiving power through those Giver Ports loses its Receiver connection.
+Those Faces start their own depower process.
+9. Multiple Faces can start depowering at the same time if they directly lose their Receiver connection during the same connection change event.
+Example:
+In a circuit PS → A → B → C → D → E, rotating C causes:
+C to lose its Receiver connection and start depowering immediately.
+D to lose its Receiver connection from C and start depowering immediately.
+E does not start depowering until D completes its depower delay and stops providing power.
+10. Depower continues through the circuit until:
+All Faces that lost their Receiver connection have completed their depower process.
+No further Faces lose their incoming power connection.
+11. When MW becomes available through depower:
+The Power Source updates its available MW pool.
+If waiting Faces exist, the Power Source evaluates the waiting list according to Power Index priority.
+Additional Rules:
+Power state changes and MW accounting execute instantly.
+Visual depower propagation is only a cosmetic delay and never controls logical power state.
+A Face only depowers because its own Receiver connection becomes invalid.
+Faces do not track downstream Faces and do not manage their depower.
+Depower propagates through actual connection loss, not stored circuit relationships.
+Receiver Ports reset immediately when power is lost.
+Giver Ports remain active during the depower delay to allow timed depower propagation.
+Physical Runode movement or rotation overrides the depower delay and forces immediate connection reevaluation.
+
+
+3. MW Allocation and Arbitration
+Flow:
+1. A powered Face attempts to give power to a connected Neutral Face.
+2. The giving Face requests 1 MW availability from its originating Power Source.
+3. The Power Source checks its available MW pool.
+4. If MW is available:
+The Power Source removes 1 MW from its available pool.
+The giving Face powers the connected Neutral Face.
+The giving Face passes power information to the new Face:
+originating Power Source reference.
+Power Colour.
+Power Index = giving Face Power Index + 1.
+5. If MW is unavailable:
+The Power Source checks if MW can be recovered by depowering lower priority powered Faces.
+6. If forced MW recovery is required:
+The Power Source selects powered Faces with the lowest priority.
+Priority is determined by Power Index.
+Faces with the highest Power Index are selected first.
+Selected Faces start the normal depower process.
+7. When forced depower returns enough MW:
+The original power request continues through the normal Power Propagation process.
+8. If MW cannot be recovered immediately:
+The connected Face remains Neutral.
+A waiting entry is created for this failed power transfer attempt.
+The waiting entry contains:
+Receiving Face reference.
+Giving Face reference (propagation point).
+Power Source reference.
+Power Index of the receiving Face if powered through this connection.
+9. A powered Face can create multiple waiting entries through different Giver Ports.
+Example:
+A powered Cross Face has three Giver Ports.
+Each Giver Port attempts to power a different connected Neutral Face.
+If no MW is available, each failed power transfer creates its own waiting entry.
+10. When MW becomes available:
+The Power Source evaluates its waiting list.
+Waiting priority is determined by Power Index.
+The highest priority waiting entry is selected.
+11. The Power Source notifies the propagation point from the selected waiting entry that MW is available.
+12. The propagation point repeats the normal power propagation process:
+Checks that the connection is still valid.
+Attempts to give power to the waiting Face.
+13. If the connection is no longer valid:
+The waiting entry is removed.
+No power is given.
+14. If the connection is valid:
+The normal Power Propagation process continues.
+4. Internal Connections
+Flow:
+1. A Face attempts to give power through a Line Port.
+2. The Face determines whether the target Line Port belongs to:
+The same Runode → internal connection.
+A different Runode → external connection.
+3. If the connection is internal:
+The parent Runode validates the connection.
+The Runode checks whether the two Line Ports can connect in the current Runode rotation.
+The Runode checks whether an Obstruction Port blocks the connection.
+4. If the internal connection is valid:
+The Face gives power through the connection.
+The receiving Face follows the normal Power Propagation process.
+5. If the internal connection is invalid:
+Power cannot pass through this connection.
+No propagation occurs.
+6. When a Runode rotates:
+The Runode recalculates its possible internal connections.
+Affected Faces receive updated connection information.
+7. When an obstruction state changes:
+The Obstruction Port reports the change to its Face.
+The Face informs the Runode.
+The Runode re-evaluates affected internal connections.
+Additional Rules:
+Internal connections are not detected using physics triggers.
+Internal connections are determined from the Runode's current geometry and rotation.
+Internal connections are not permanent links; they are evaluated from the current Runode state.
+Internal connections use the same power propagation rules as external connections after validation.
+An obstruction disables an internal connection but does not destroy it.
+External connections continue to use Line Port trigger overlap detection.
+5. External Connections
+Flow:
+1. A Runode is moved or rotated into a position where Line Ports from different Runodes overlap.
+2. The Line Ports detect the overlap through their trigger system.
+3. The Line Ports report the detected connection information to their parent Faces.
+4. The Faces identify the connection as external because the Line Ports belong to different Runodes.
+5. The external connection remains valid while:
+The Line Ports continue to overlap correctly.
+The connection is not otherwise invalidated.
+6. When Runodes move or rotate and Line Port overlap is removed:
+The Line Ports detect that the connection no longer exists.
+The Line Ports report the connection loss to their parent Faces.
+Additional Rules:
+External connections are detected through Line Port trigger overlap.
+External connections are not stored permanently.
+External connections are created and removed by physical Runode movement and rotation.
+External connections do not require Runode internal validation.
+A valid connection only provides a possible path for power transfer; power flow is handled by the Power Propagation system.
+Line Ports only provide connection information; Faces decide how that information affects power behaviour.
+6. Waiting List
+Flow:
+1. A powered Face attempts to give power to a connected Neutral Face.
+2. The Power Source has no available MW and forced MW recovery cannot immediately provide available power.
+3. The receiving Face remains Neutral.
+4. The failed power transfer attempt is added to the originating Power Source waiting list.
+5. The waiting entry stores:
+Receiving Face reference.
+Giving Face reference (propagation point).
+Power Source reference.
+Power Index that the receiving Face would inherit from this connection.
+6. Multiple waiting entries can exist for the same Face if different powered Faces attempt to provide power through different valid connections.
+Example:
+A powered Cross Face has three Giver Ports.
+Each Giver Port attempts to power a different Neutral Face.
+If MW is unavailable, each failed attempt creates a separate waiting entry.
+7. When MW becomes available:
+The Power Source evaluates its waiting list.
+Waiting priority is determined by Power Index.
+
+The highest priority waiting entry is selected.
+8. The Power Source notifies the propagation point stored in the selected waiting entry.
+9. The propagation point retries the original power transfer:
+Checks if the connection still exists.
+Attempts to give power through the same connection.
+10. If the connection is no longer valid:
+The waiting entry is removed.
+No power is given.
+11. If the connection is valid:
+The normal Power Propagation process continues.
+Additional Rules:
+A waiting entry represents a failed power transfer attempt, not a powered state.
+A Neutral Face on the waiting list does not request power and does not perform any propagation.
+The Power Source only manages waiting entries for its own Power Circuit.
+The Power Source does not determine whether waiting connections are valid.
+Connection validation is always performed by the propagation point and Faces.
+A Face can have multiple waiting entries if multiple valid connections are waiting for MW.
+Duplicate waiting entries are prevented only for the same:
+Power Source.
+Giving Face.
+Receiving Face.
+If the same transfer attempt creates another waiting request, the existing waiting entry is updated instead of creating a duplicate.
+A waiting entry can become invalid at any time due to Runode movement, rotation, destruction, or obstruction changes.
+Invalid waiting entries are removed when they are evaluated.
+
+7. Power Index
+A. Description:
+Power Index is a value assigned to powered Faces that represents their propagation order from their originating Power Source.
+It is used to determine priority when multiple Faces compete for limited MW.
+B. Rules:
+The Power Source has Power Index 0.
+A Face receives its Power Index when it becomes powered.
+A Face receives its Power Index from the Face that gives it power.
+Power Index is inherited as:
+Giving Face Power Index + 1
+Power Index is not calculated by the Power Source.
+Power Index is not calculated by searching the circuit.
+Power Index is stored by the Face as part of its current powered state.
+When a Face loses power, its Power Index is cleared.
+When a Face becomes powered again, it receives a new Power Index from the Face that powers it.
+C. Used by:
+Waiting list priority.
+MW deficiency arbitration.
+D. It does not:
+Determine connection validity.
+Determine power flow direction.
+Represent physical distance.
+8. Power Colour Rules
+A. Description:
+Power Colour identifies the Power Circuit provided by a Power Source.
+A Face receives its Power Colour from the Face that powers it, originating from the Power Source.
+B. Rules:
+Each Power Source has one predefined Power Colour.
+A Power Circuit contains only one Power Colour.
+A Face can belong to only one Power Circuit at a time.
+Power Colour is assigned when a Face becomes powered.
+Power Colour is cleared when a Face loses power.
+Different Power Sources can have the same Power Colour.
+Different Power Sources with the same colour remain separate Power Circuits.
+C. Colour Transition:
+Power Colour changes are handled through Face power state changes.
+When a Neutral Face becomes powered:
+Its Power Colour changes from Neutral to the incoming Power Colour.
+During depowering:
+The Face can visually transition from its current Power Colour back to Neutral.
+If a Face receives a new power state while visually transitioning:
+The colour transition starts from the current displayed colour.
+It does not instantly reset to the previous state.
+D. It does not:
+Determine whether a physical connection exists.
+Determine propagation direction.
+Replace Power Source identity.
+9. Illegal Power States
+A. Description:
+Illegal Power States occur when the Power System attempts to create a power configuration that violates circuit rules. 
+B. Rules:
+Short Circuit:
+A short circuit occurs when a Face that is already powered attempts to receive power again.
+The second power attempt is illegal regardless of:
+whether it comes from the same Power Source.
+whether it comes from a different Power Source.
+whether the Power Colour is the same or different.
+Power Loops:
+A loop occurs when propagation attempts to give power to an already powered Face.
+An existing powered Face cannot be powered again.
+Any attempted loop that creates a second power input is treated as a short circuit.
+A power transfer attempt that fails due to insufficient MW does not create a short circuit. The short circuit occurs only when a Face receives an actual second power-up while already powered.
+Different Power Sources:
+Different Power Sources always remain independent circuits.
+Same Power Colour does not merge circuits.
+A Face cannot be powered by multiple Power Sources simultaneously.
+C. Results:
+Illegal Power States trigger the defined failure condition.
+The system detects illegal states when power transfer is attempted.
+Physical connections alone do not create an illegal state.
+D. It does not:
+Prevent normal branching.
+Prevent multiple Giver Ports.
+Prevent valid propagation through unpowered Faces.
+10. Obstruction Detection
+Flow:
+1. An object enters or leaves the detection area of an Active Face's Obstruction Port.
+2. The Obstruction Port detects the obstruction state change:
+Blocked.
+Cleared.
+3. The Obstruction Port reports the new obstruction state to its parent Face.
+4. The Face updates the logical availability of its Line Ports:
+If the Face is blocked, its Line Ports become logically disabled.
+If the Face is cleared, its Line Ports become logically enabled.
+Line Port colliders remain physically active at all times to preserve trigger detection and connection tracking.
+5. Logically disabled Line Ports:
+Cannot provide power.
+Cannot receive power.
+Cannot have their connection reports processed by the Face.
+Continue tracking physical overlaps through their active colliders.
+6. Existing connections involving logically disabled Line Ports are handled through the normal connection loss and validation rules when evaluated by the Face.
+7. When the obstruction is removed:
+The Face enables its Line Ports logically again.
+The Face requests current overlap information from its Line Ports.
+Existing physical overlaps are re-evaluated as valid connections.
+Power propagation follows the normal propagation rules.
+Additional Rules:
+An obstruction does not remove or modify the Face configuration.
+An obstruction does not destroy physical Line Port overlaps.
+An obstruction only changes whether the Face can use Line Port connection information.
+Line Port colliders remain active regardless of obstruction state.
+The Face remains the authority deciding whether Line Port information can affect power behaviour.
+11. Multiple Line Port Overlaps
+Additional Rules:
+Multiple Line Ports may physically overlap due to level geometry or object placement.
+The existing connection rules guarantee that only one Line Port pair can be a valid connection at any connection point.
+Any additional overlapping Line Ports will be invalid because they are either:
+obstructed,
+inactive,
+or otherwise unable to form a valid connection.
+Only the two active, unobstructed Line Ports form the valid connection used by the Power System.
+Invalid overlapping Line Ports do not affect power propagation.
