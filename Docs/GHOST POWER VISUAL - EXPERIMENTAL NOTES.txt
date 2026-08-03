@@ -1,0 +1,187 @@
+GHOST POWER VISUAL — EXPERIMENTAL IMPLEMENTATION NOTES
+(Puzzle Mount — power system, Aug 2026)
+
+Status: PROMISING PROTOTYPE — reverted from code for now; re-implement when ready.
+Related: works together with isConnected (circuit-path flag). Keep both designs aligned.
+
+================================================================================
+1. PROBLEMS THIS ADDRESSED
+================================================================================
+
+A) Logic pulse (fixed by isConnected — keep this even without ghost)
+   Long chain, limited MW (e.g. 10). Break or rotate upstream → downstream depowers
+   one face at a time, each returns MW → waiting list immediately powers the next
+   neutral face further down the physical chain. Depower and re-power run at the
+   same speed → lit segment slides down the whole line forever (conveyor belt).
+
+B) Visual echo (ghost — cosmetic only)
+   After A) was fixed, real power no longer runs ahead — but the player also lost
+   the “pulse travelling down the line” feel. Goal: show a weakening colour wave
+   on neutral faces ahead of the real circuit, without MW, isPowered, devices,
+   or waiting-list side effects.
+
+================================================================================
+2. CORE IDEA (TWO LAYERS)
+================================================================================
+
+Layer 1 — isConnected (LOGIC, keep)
+   Separate bool from isPowered.
+   - true  = this face is on a live path to PS; may use MW and really propagate.
+   - false = not on live path; must NOT power neutrals or spend MW via waiting list.
+
+   On upstream break: RevokeConnection() runs INSTANTLY line-to-line via giver→
+   receiver links (same path as power). Depower animation stays delayed as today.
+
+   NewValidConnection gate: requires isConnected + MW (not isPowered alone).
+
+   PowerSource waiting list: giving line must CanPropagatePower() (= isConnected).
+
+   PowerUpLine sets isConnected = true. PowerDownLine calls RevokeConnection first.
+
+   Revoke must use a visited HashSet when walking givers — internal cube loops
+   otherwise freeze Unity (infinite recursion).
+
+Layer 2 — Ghost visual (COSMETIC ONLY)
+   When real propagation would happen but giver has isConnected == false, call a
+   separate GhostVisualPowerUp instead of PowerUpLine.
+
+   Ghost never sets: isPowered, isConnected, powerSource, powerIndex, port types,
+   circuit membership, MW. Only changes lineSprite.color + private isGhostVisual.
+
+================================================================================
+3. HOW GHOST PROPAGATION STARTS
+================================================================================
+
+Two triggers (both needed):
+
+1) RevokeConnectionVisited — when a face is revoked but still isPowered (tail of
+   dying segment, e.g. G), call TryGhostPropagateFromGivers() → ghost on neutral
+   neighbours (H). This is the main trigger on break/rotate.
+
+2) NewValidConnection — when !isConnected, call TryGhostVisualInstead(target)
+   before return false. Catches late propagation attempts from still-powered
+   givers during depower delay.
+
+TryGhostVisualInstead rules:
+   - Giver must be isPowered
+   - Target must NOT be isPowered
+   - Target must NOT be isConnected
+   → skip real powered faces and live branches
+
+================================================================================
+4. GHOST COLOUR AND TIMING
+================================================================================
+
+Constants (tune in Unity):
+   ghostFirstIntensity = 0.9f   (90% circuit colour, 10% white)
+   ghostIntensityStep  = 0.1f   (each hop: 0.9, 0.8, 0.7 … stop at <= 0)
+
+   Use existing powerColorDuration (0.07s) for ghost colour lerp AND step delay.
+   IMPORTANT: do NOT add an extra WaitForSeconds after the lerp — that doubled
+   the hop time and made timing feel uneven vs real power.
+
+   Ghost colour: Color.Lerp(Color.white, circuitColor, intensity)
+
+Real power reference:
+   PowerUpLine runs ColorPowerLine + PowerUpSequence in parallel (~0.07s then
+   propagate). Ghost should match: lerp over 0.07s, then propagate next ghost.
+
+================================================================================
+5. GHOST DECOLOR (WAS BROKEN INITIALLY — FIX DOCUMENTED)
+================================================================================
+
+Problem: only the first ghost (H) got ReportPowerLost from real upstream depower.
+   Neutral ghosts (I, J, …) never become Receiver, so DepowerSequence never
+   touches them — they stayed coloured.
+
+Solution: chain clear like ghost power-up.
+   - LinePort.ReportPowerLost: always call parentLine.ClearGhostVisual() first
+     (then PowerDownLine only if port is Receiver).
+   - ClearGhostVisual: run GhostDecolorSequence (same duration as DecolorPowerLine),
+     then PropagateGhostClear() to connected lines that are still ghosts.
+
+Result: real depower hits H → H fades → triggers I → I fades → etc.
+
+================================================================================
+6. SAFETY — NO GAMEPLAY IMPACT
+================================================================================
+
+Ghost faces cannot affect logic if implemented as documented:
+   - IsPowered stays false → devices/receivers ignore them
+   - isConnected stays false → no MW, no waiting list propagation
+   - Powered or isConnected targets reject GhostVisualPowerUp
+   - Real PowerUpLine calls ClearGhostVisual() before applying power
+
+Only visual edge case: face just lost power (sprite still coloured, isPowered
+already false) may get a brief ghost tint during overlap — cosmetic only.
+
+Different-colour powered face: ghost skips it (IsPowered / isConnected checks).
+
+================================================================================
+7. FILES TOUCHED (when prototype was in code)
+================================================================================
+
+RunodeLine.cs
+   - isConnected field + RevokeConnection / RevokeConnectionVisited
+   - NewValidConnection gate + TryGhostVisualInstead branch
+   - CanPropagatePower() for PowerSource
+   - PowerUpLine: ClearGhostVisual + isConnected = true
+   - PowerDownLine: RevokeConnection at start
+   - RevokeConnectionVisited: TryGhostPropagateFromGivers when still isPowered
+   - EXPERIMENTAL block at file bottom: all ghost coroutines and helpers
+
+LinePort.cs
+   - PropagateRevokeToFedLines(HashSet<RunodeLine> visited)
+   - ReportPowerLost: ClearGhostVisual before receiver depower
+   - EXPERIMENTAL: AppendConnectedRunodeLines (walk connections for ghost;
+     does not require Giver port type — neutrals have Neutral ports)
+
+PowerSource.cs
+   - IsWaitingEntryValid: givingLine.CanPropagatePower()
+
+Keep experimental code in a marked block at bottom of each script:
+   // ----------- EXPERIMENTAL - GHOST POWER VISUAL -----------
+
+================================================================================
+8. APPROACHES THAT FAILED (DO NOT REPEAT)
+================================================================================
+
+- Deferring entire waiting list until all depowers finish: blocks other branches
+  from getting MW immediately — rejected.
+
+- Separate timer/count system at break (N faces × 0.07s): huge code, fragile on
+  forks, caused freezes when walking graphs without cycle guards.
+
+- Notify-on-rotate + standalone phantom coroutines (~200+ lines): same visual goal,
+  much heavier; timing and cleanup were worse than hooking isConnected gate.
+
+- Power Index alone to limit ghost/logic range: fails on branches (same index,
+  different paths). Use isConnected + poweredByLine path, not PI.
+
+================================================================================
+9. RE-IMPLEMENTATION CHECKLIST
+================================================================================
+
+[ ] isConnected + instant RevokeConnection with visited set
+[ ] NewValidConnection: !isConnected → ghost attempt, never MW / real power
+[ ] Waiting list + CanPropagatePower
+[ ] GhostVisualPowerUp: sprite only, intensity chain
+[ ] Revoke on still-powered tail → TryGhostPropagateFromGivers
+[ ] Ghost decolor chain: ClearGhostVisual → GhostDecolorSequence → PropagateGhostClear
+[ ] ReportPowerLost clears ghost on all connected ports (not Receiver-only)
+[ ] PowerUpLine clears ghost before real power
+[ ] Single 0.07s hop (no double wait)
+[ ] Test: long chain, rotate PS cube, break mid-fork, MW-limited line
+[ ] Test: ghost must not tint real powered faces
+
+================================================================================
+10. KNOWN TUNING LEFT
+================================================================================
+
+- Ghost hop timing still felt slightly uneven in playtest — compare side-by-side
+  with real PowerUpSequence and match coroutine structure if needed.
+- Forks: ghost follows first connected neutral per hop (straight-line bias).
+  Multi-tail revoke may need one ghost chain per powered tail if fork polish needed.
+- Obstructed faces: ghost uses black when isFaceBlocked (same as real power visuals).
+
+End of notes.
