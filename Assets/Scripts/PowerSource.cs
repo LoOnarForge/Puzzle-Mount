@@ -220,6 +220,7 @@ public class PowerSource : MonoBehaviour
             return entry.sourcePort != null && entry.sourcePort.IsConnectedTo(entry.receivingPort);
 
         return entry.givingLine.IsPowered
+            && entry.givingLine.CanPropagatePower()
             && entry.givingLine.PowerSource == this
             && entry.sourcePort != null
             && entry.sourcePort.IsConnectedTo(entry.receivingPort);

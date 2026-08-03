@@ -241,6 +241,16 @@ public class LinePort : MonoBehaviour
         canReportConnections = canReport;
     }
 
+    // Sends a circuit-path revoke to lines this giver port feeds.
+    public void PropagateRevokeToFedLines()
+    {
+        if (type != PortType.Giver)
+            return;
+
+        foreach (LinePort connectedPort in connectedPorts)
+            connectedPort.parentLine.RevokeConnection();
+    }
+
     public void ReportValidConnections()
     {
         if (type != PortType.Giver)

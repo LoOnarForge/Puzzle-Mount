@@ -9,6 +9,7 @@ public class RunodeLine : MonoBehaviour
     [Space(20)]
     [Header("STATE:")]
     [SerializeField] private bool isPowered;
+    [SerializeField] private bool isConnected;
     [SerializeField] private bool isFaceBlocked;
     [SerializeField] private PowerSource powerSource;
     [SerializeField] private RunodeLine poweredByLine;
@@ -56,9 +57,16 @@ public class RunodeLine : MonoBehaviour
     }
 
 
+    // True when this line may propagate power downstream on its circuit path.
+    public bool CanPropagatePower()
+    {
+        return isConnected;
+    }
+
     public void PowerUpLine(PowerSource source, RunodeLine givingLine, LinePort targetPort, Color color, int index)
     {
         isPowered = true;
+        isConnected = true;
         powerSource = source;
         poweredByLine = givingLine;
         receiverPort = targetPort;
@@ -76,6 +84,7 @@ public class RunodeLine : MonoBehaviour
     }
     public void PowerDownLine()
     {
+        RevokeConnection();
         isPowered = false;
         
         foreach (LinePort port in linePorts)
@@ -110,7 +119,7 @@ public class RunodeLine : MonoBehaviour
 
     public bool NewValidConnection(RunodeLine targetLine, LinePort targetPort, LinePort sourcePort)
     {
-        if (powerSource == null)
+        if (powerSource == null || !isConnected)
             return false;
 
         if (!powerSource.TakeMW())
@@ -124,8 +133,21 @@ public class RunodeLine : MonoBehaviour
         return true;
     }
 
-    
-    
+    // Instantly marks this line and downstream faces as disconnected from the live circuit path.
+    public void RevokeConnection()
+    {
+        if (!isConnected)
+            return;
+
+        isConnected = false;
+
+        foreach (LinePort port in linePorts)
+        {
+            if (port.IsIncluded)
+                port.PropagateRevokeToFedLines();
+        }
+    }
+
     private void SetAllPortsNeutral()
     {
         foreach (LinePort port in linePorts)
