@@ -45,6 +45,24 @@ public class PowerSource : MonoBehaviour
         circuitColor = ColorManager.Instance.GetColor(colorIndex);
     }
 
+
+    public void RefreshGiverPorts()
+    {
+        RefreshPort(upPort);
+        RefreshPort(rightPort);
+        RefreshPort(downPort);
+        RefreshPort(leftPort);
+    }
+
+    private void RefreshPort(LinePort port)
+    {
+        if (port == null)
+            return;
+
+        port.RefreshPortObstructionState();
+        port.RefreshPortConnection();
+    }
+
     // Attempts to power the first RunodeLine connected to this source.
     public void PowerRunodeLine(RunodeLine line, LinePort receivingPort, LinePort sourcePort)
     {

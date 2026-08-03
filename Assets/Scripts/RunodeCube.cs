@@ -62,8 +62,11 @@ public class RunodeCube : MonoBehaviour
     {
         RunodeCube[] affectedCubes = FindAffectedCubes();
 
+        PowerSource[] affectedPowerSources = FindAffectedPowerSources();
+
         RefreshObstructionsOnAffectedCubes(affectedCubes);
         RefreshPortObstructionsOnAffectedCubes(affectedCubes);
+        RefreshPowerSourceConnections(affectedPowerSources);
         RefreshConnectionsOnAffectedCubes(affectedCubes);
     }
 
@@ -91,7 +94,32 @@ public class RunodeCube : MonoBehaviour
         return affectedCubes.ToArray();
     }
 
-    // Refreshes obstruction state on every active line in the affected cubes.
+    private PowerSource[] FindAffectedPowerSources()
+    {
+        List<PowerSource> affectedPowerSources = new List<PowerSource>();
+        PowerSource[] powerSources = FindObjectsByType<PowerSource>(FindObjectsSortMode.None);
+
+        foreach (PowerSource powerSource in powerSources)
+        {
+            Vector3 offset = powerSource.transform.position - transform.position;
+
+            if (Mathf.Abs(offset.x) <= 2.1f
+                && Mathf.Abs(offset.y) <= 2.1f
+                && Mathf.Abs(offset.z) <= 2.1f)
+            {
+                affectedPowerSources.Add(powerSource);
+            }
+        }
+
+        return affectedPowerSources.ToArray();
+    }
+
+    private void RefreshPowerSourceConnections(PowerSource[] affectedPowerSources)
+    {
+        foreach (PowerSource powerSource in affectedPowerSources)
+            powerSource.RefreshGiverPorts();
+    }
+
     private void RefreshObstructionsOnAffectedCubes(RunodeCube[] affectedCubes)
     {
         foreach (RunodeCube cube in affectedCubes)

@@ -286,7 +286,7 @@ public class LinePort : MonoBehaviour
             return;
         }
 
-        if (type == PortType.Giver && parentLine.PowerSource != null)
+        if (type == PortType.Giver && parentLine != null && parentLine.PowerSource != null)
             parentLine.PowerSource.RemoveWaitingEntry(parentLine, connectedPort.parentLine);
     }
 
