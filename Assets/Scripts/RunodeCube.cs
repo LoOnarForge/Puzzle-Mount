@@ -79,14 +79,8 @@ public class RunodeCube : MonoBehaviour
                 continue;
 
             Vector3 offset = cube.transform.position - transform.position;
-            int nonZeroAxes = 0;
 
-            if (Mathf.Abs(Mathf.Round(offset.x)) > 0.1f) nonZeroAxes++;
-            if (Mathf.Abs(Mathf.Round(offset.y)) > 0.1f) nonZeroAxes++;
-            if (Mathf.Abs(Mathf.Round(offset.z)) > 0.1f) nonZeroAxes++;
-
-            if (nonZeroAxes > 0 && nonZeroAxes <= 2
-                && Mathf.Abs(offset.x) <= 2.1f
+            if (Mathf.Abs(offset.x) <= 2.1f
                 && Mathf.Abs(offset.y) <= 2.1f
                 && Mathf.Abs(offset.z) <= 2.1f)
             {

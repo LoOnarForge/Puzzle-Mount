@@ -1,3 +1,4 @@
+using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 
@@ -32,6 +33,9 @@ public class LinePort : MonoBehaviour
 
 
     private BoxCollider portTrigger;
+    private Coroutine multipleConnectionWarningCoroutine;
+    private bool multipleConnectionWarningIssued;
+
     private readonly Collider[] overlapResults = new Collider[16];
     private int overlapCount;
 
@@ -125,6 +129,8 @@ public class LinePort : MonoBehaviour
             connectedPorts.RemoveAt(i);
             ReportLostConnection(connectedPort);
         }
+
+        ResetMultipleConnectionWarningIfResolved();
     }
 
     private void RemoveConnectionsThatNoLongerExist()
@@ -139,6 +145,8 @@ public class LinePort : MonoBehaviour
             connectedPorts.RemoveAt(i);
             ReportLostConnection(connectedPort);
         }
+
+        ResetMultipleConnectionWarningIfResolved();
     }
 
     private bool IsPortStillConnected(LinePort connectedPort)
@@ -156,9 +164,6 @@ public class LinePort : MonoBehaviour
 
     private void AddNewConnections()
     {
-        List<LinePort> viablePorts = new List<LinePort>();
-        List<string> viablePortDescriptions = new List<string>();
-
         for (int i = 0; i < overlapCount; i++)
         {
             LinePort otherPort = overlapResults[i].GetComponent<LinePort>();
@@ -169,10 +174,6 @@ public class LinePort : MonoBehaviour
             if (!CanConnectTo(otherPort))
                 continue;
 
-            bool isInternal = parentCube == otherPort.parentCube;
-            viablePorts.Add(otherPort);
-            viablePortDescriptions.Add($"{otherPort.name} ({(isInternal ? "internal" : "external")})");
-
             if (connectedPorts.Contains(otherPort))
                 continue;
 
@@ -180,12 +181,50 @@ public class LinePort : MonoBehaviour
             ReportNewConnection(otherPort);
         }
 
-        if (viablePorts.Count > 1)
+        if (connectedPorts.Count > 1
+            && multipleConnectionWarningCoroutine == null
+            && !multipleConnectionWarningIssued)
         {
-            Debug.LogWarning(
-                $"LinePort '{name}' found {viablePorts.Count} viable connections: {string.Join(", ", viablePortDescriptions)}.",
-                this);
+            multipleConnectionWarningCoroutine = StartCoroutine(WarnIfMultipleConnectionsPersist());
         }
+    }
+
+    private IEnumerator WarnIfMultipleConnectionsPersist()
+    {
+        yield return null;
+
+        multipleConnectionWarningCoroutine = null;
+
+        if (connectedPorts.Count <= 1 || multipleConnectionWarningIssued)
+            yield break;
+
+        multipleConnectionWarningIssued = true;
+
+        List<string> connectedPortDescriptions = new List<string>();
+
+        foreach (LinePort connectedPort in connectedPorts)
+        {
+            bool isInternal = parentCube == connectedPort.parentCube;
+            connectedPortDescriptions.Add($"{connectedPort.name} ({(isInternal ? "internal" : "external")})");
+        }
+
+        Debug.LogWarning(
+            $"LinePort '{name}' retained {connectedPorts.Count} connections: {string.Join(", ", connectedPortDescriptions)}.",
+            this);
+    }
+
+    private void ResetMultipleConnectionWarningIfResolved()
+    {
+        if (connectedPorts.Count > 1)
+            return;
+
+        multipleConnectionWarningIssued = false;
+
+        if (multipleConnectionWarningCoroutine == null)
+            return;
+
+        StopCoroutine(multipleConnectionWarningCoroutine);
+        multipleConnectionWarningCoroutine = null;
     }
 
     private bool CanConnectTo(LinePort otherPort)

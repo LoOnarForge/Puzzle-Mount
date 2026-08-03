@@ -30,8 +30,8 @@ public class RunodeLine : MonoBehaviour
     public RunodeLine PoweredByLine => poweredByLine;
 
     private readonly List<LinePort> linePorts = new List<LinePort>();
-    private const float powerColorDuration = 0.1f;
-    private const float powerDecolorDuration = 0.1f;
+    private const float powerColorDuration = 0.05f;
+    private const float powerDecolorDuration = 0.05f;
     private float darkeningSpeed = 15f;
 
     private void Awake()

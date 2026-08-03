@@ -54,6 +54,8 @@ public class RunodeHighlighter : MonoBehaviour
         
         cube = GetComponent<RunodeCube>();
         if (cubeRenderer == null) cubeRenderer = GetComponentInChildren<MeshRenderer>();
+        if (timCubeController == null)
+            timCubeController = FindAnyObjectByType<TimCubeController>();
         if (selectionFrame != null) selectionFrame.SetActive(false);
 
         ClearAllDecals();
