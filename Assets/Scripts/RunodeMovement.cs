@@ -249,7 +249,7 @@ public class RunodeMovement : MonoBehaviour
         float currentTime = Time.time;
         if (allCubesCache == null || currentTime - lastCubesCacheTime > CACHE_REFRESH_INTERVAL)
         {
-            allCubesCache = Object.FindObjectsByType<RunodeMovement>(FindObjectsSortMode.None);
+            allCubesCache = Object.FindObjectsByType<RunodeMovement>();
             lastCubesCacheTime = currentTime;
         }
         return allCubesCache;

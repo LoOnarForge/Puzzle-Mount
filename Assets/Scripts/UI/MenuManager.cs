@@ -41,12 +41,12 @@ public class MenuManager : MonoBehaviour
         root.Q<Button>("ConfirmNo").clicked += () => _confirmDialog.style.display = DisplayStyle.None;
 
         // Initialize Vignette sprite if available
-        var leya = Object.FindFirstObjectByType<LeyasCamera>(FindObjectsInactive.Include);
+        var leya = Object.FindAnyObjectByType<LeyasCamera>(FindObjectsInactive.Include);
         // Vignette is now handled by Post Processing, dependency removed.
 
 
         // Initialize HUD icon state
-        var interaction = Object.FindFirstObjectByType<TimCubeController>();
+        var interaction = Object.FindAnyObjectByType<TimCubeController>();
         if (interaction != null)
         {
             // Direct field access check since we are in the same project

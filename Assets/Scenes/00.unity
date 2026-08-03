@@ -4515,12 +4515,6 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: f82a9401bdbf9654bb990fbf7dc24ccb, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::PowerSocket
-  isActive: 1
-  requiredColorIndex: 3
-  requiredMW: 1
-  isSatisfied: 0
-  incomingColor: {r: 0, g: 0, b: 0, a: 0}
-  availableMW: 0
 --- !u!1001 &119513741
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -21519,12 +21513,6 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: f82a9401bdbf9654bb990fbf7dc24ccb, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::PowerSocket
-  isActive: 1
-  requiredColorIndex: 2
-  requiredMW: 1
-  isSatisfied: 0
-  incomingColor: {r: 0, g: 0, b: 0, a: 0}
-  availableMW: 0
 --- !u!1 &726469658
 GameObject:
   m_ObjectHideFlags: 0
@@ -26045,9 +26033,57 @@ PrefabInstance:
     serializedVersion: 3
     m_TransformParent: {fileID: 0}
     m_Modifications:
+    - target: {fileID: 4460313820050188, guid: 8da7422f8a46691459aee665e4434ed5, type: 3}
+      propertyPath: m_IsActive
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 25966025434785994, guid: 8da7422f8a46691459aee665e4434ed5, type: 3}
+      propertyPath: isIncluded
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 90651461636369835, guid: 8da7422f8a46691459aee665e4434ed5, type: 3}
+      propertyPath: m_IsActive
+      value: 1
+      objectReference: {fileID: 0}
     - target: {fileID: 552749621463026214, guid: 8da7422f8a46691459aee665e4434ed5, type: 3}
       propertyPath: topFace
       value: 2
+      objectReference: {fileID: 0}
+    - target: {fileID: 552749621463026214, guid: 8da7422f8a46691459aee665e4434ed5, type: 3}
+      propertyPath: eastFace
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 552749621463026214, guid: 8da7422f8a46691459aee665e4434ed5, type: 3}
+      propertyPath: westFace
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 552749621463026214, guid: 8da7422f8a46691459aee665e4434ed5, type: 3}
+      propertyPath: bottomFace
+      value: 2
+      objectReference: {fileID: 0}
+    - target: {fileID: 812971541554150987, guid: 8da7422f8a46691459aee665e4434ed5, type: 3}
+      propertyPath: m_Sprite
+      value: 
+      objectReference: {fileID: -621088084, guid: 88b338f3ac0dba24cb9aafaafa9397da, type: 3}
+    - target: {fileID: 1001427561908126156, guid: 8da7422f8a46691459aee665e4434ed5, type: 3}
+      propertyPath: m_IsActive
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 1137430812384712937, guid: 8da7422f8a46691459aee665e4434ed5, type: 3}
+      propertyPath: m_LocalRotation.w
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 1137430812384712937, guid: 8da7422f8a46691459aee665e4434ed5, type: 3}
+      propertyPath: m_LocalRotation.z
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 1307704670506559556, guid: 8da7422f8a46691459aee665e4434ed5, type: 3}
+      propertyPath: m_IsActive
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 2088619858463007316, guid: 8da7422f8a46691459aee665e4434ed5, type: 3}
+      propertyPath: m_IsActive
+      value: 1
       objectReference: {fileID: 0}
     - target: {fileID: 2168787158476516098, guid: 8da7422f8a46691459aee665e4434ed5, type: 3}
       propertyPath: isIncluded
@@ -26097,7 +26133,31 @@ PrefabInstance:
       propertyPath: timCubeController
       value: 
       objectReference: {fileID: 1097024155}
+    - target: {fileID: 2829743322101962823, guid: 8da7422f8a46691459aee665e4434ed5, type: 3}
+      propertyPath: m_IsActive
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 3756597695155602671, guid: 8da7422f8a46691459aee665e4434ed5, type: 3}
+      propertyPath: m_IsActive
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 4113470646651267073, guid: 8da7422f8a46691459aee665e4434ed5, type: 3}
+      propertyPath: isIncluded
+      value: 1
+      objectReference: {fileID: 0}
     - target: {fileID: 4115689339825309835, guid: 8da7422f8a46691459aee665e4434ed5, type: 3}
+      propertyPath: m_IsActive
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 4322761090729788448, guid: 8da7422f8a46691459aee665e4434ed5, type: 3}
+      propertyPath: m_LocalRotation.w
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 4322761090729788448, guid: 8da7422f8a46691459aee665e4434ed5, type: 3}
+      propertyPath: m_LocalRotation.z
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 4823531137438430420, guid: 8da7422f8a46691459aee665e4434ed5, type: 3}
       propertyPath: m_IsActive
       value: 1
       objectReference: {fileID: 0}
@@ -26105,8 +26165,32 @@ PrefabInstance:
       propertyPath: m_IsActive
       value: 1
       objectReference: {fileID: 0}
+    - target: {fileID: 5918982321288194944, guid: 8da7422f8a46691459aee665e4434ed5, type: 3}
+      propertyPath: isIncluded
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 6513066122090101677, guid: 8da7422f8a46691459aee665e4434ed5, type: 3}
+      propertyPath: m_Sprite
+      value: 
+      objectReference: {fileID: -621088084, guid: 88b338f3ac0dba24cb9aafaafa9397da, type: 3}
     - target: {fileID: 6540126571986741390, guid: 8da7422f8a46691459aee665e4434ed5, type: 3}
       propertyPath: isIncluded
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 6694594804844136794, guid: 8da7422f8a46691459aee665e4434ed5, type: 3}
+      propertyPath: m_IsActive
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 6761479026467514894, guid: 8da7422f8a46691459aee665e4434ed5, type: 3}
+      propertyPath: isIncluded
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 6880626696031864695, guid: 8da7422f8a46691459aee665e4434ed5, type: 3}
+      propertyPath: m_IsActive
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 6948685156536171675, guid: 8da7422f8a46691459aee665e4434ed5, type: 3}
+      propertyPath: m_IsActive
       value: 1
       objectReference: {fileID: 0}
     - target: {fileID: 7603746729409790017, guid: 8da7422f8a46691459aee665e4434ed5, type: 3}
@@ -26117,6 +26201,10 @@ PrefabInstance:
       propertyPath: m_Sprite
       value: 
       objectReference: {fileID: 1066172363, guid: 88b338f3ac0dba24cb9aafaafa9397da, type: 3}
+    - target: {fileID: 7889570847190979975, guid: 8da7422f8a46691459aee665e4434ed5, type: 3}
+      propertyPath: isIncluded
+      value: 1
+      objectReference: {fileID: 0}
     - target: {fileID: 8215218650495973193, guid: 8da7422f8a46691459aee665e4434ed5, type: 3}
       propertyPath: m_IsActive
       value: 1
@@ -26125,6 +26213,18 @@ PrefabInstance:
       propertyPath: m_IsActive
       value: 1
       objectReference: {fileID: 0}
+    - target: {fileID: 8288275694186124002, guid: 8da7422f8a46691459aee665e4434ed5, type: 3}
+      propertyPath: isIncluded
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 8405154539314203650, guid: 8da7422f8a46691459aee665e4434ed5, type: 3}
+      propertyPath: m_IsActive
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 8698879850506680210, guid: 8da7422f8a46691459aee665e4434ed5, type: 3}
+      propertyPath: m_Sprite
+      value: 
+      objectReference: {fileID: 1066172363, guid: 88b338f3ac0dba24cb9aafaafa9397da, type: 3}
     m_RemovedComponents: []
     m_RemovedGameObjects: []
     m_AddedGameObjects: []
@@ -34996,12 +35096,6 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: f82a9401bdbf9654bb990fbf7dc24ccb, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::PowerSocket
-  isActive: 1
-  requiredColorIndex: 1
-  requiredMW: 1
-  isSatisfied: 0
-  incomingColor: {r: 0, g: 0, b: 0, a: 0}
-  availableMW: 0
 --- !u!1001 &1174301178
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -41993,44 +42087,6 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 0f76e2748cc402e4591f6f9e2ac579f8, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::ForgottenGate
-  socketConfigs:
-  - isActive: 1
-    requiredColorIndex: 0
-    requiredMW: 1
-    socketCrystals:
-    - {fileID: 1673105684}
-    - {fileID: 1642740652}
-    - {fileID: 678855177}
-    - {fileID: 971381845}
-    - {fileID: 0}
-  - isActive: 1
-    requiredColorIndex: 1
-    requiredMW: 1
-    socketCrystals:
-    - {fileID: 1674774129}
-    - {fileID: 863833063}
-    - {fileID: 94308327}
-    - {fileID: 714873682}
-    - {fileID: 0}
-  - isActive: 1
-    requiredColorIndex: 2
-    requiredMW: 1
-    socketCrystals:
-    - {fileID: 1521031274}
-    - {fileID: 2049926689}
-    - {fileID: 1371806245}
-    - {fileID: 467447559}
-    - {fileID: 0}
-  - isActive: 1
-    requiredColorIndex: 3
-    requiredMW: 1
-    socketCrystals:
-    - {fileID: 956693186}
-    - {fileID: 1616564004}
-    - {fileID: 734287125}
-    - {fileID: 1598391868}
-    - {fileID: 0}
-  isSatisfied: 0
 --- !u!4 &1464528064
 Transform:
   m_ObjectHideFlags: 0
@@ -43600,8 +43656,6 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 2df6ec5bbb32d3e4782c93122783932e, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::PowerDisplayManager
-  powerUpDelay: 0.02
-  depowerDelay: 0.02
 --- !u!4 &1515250805
 Transform:
   m_ObjectHideFlags: 0
@@ -52485,11 +52539,55 @@ PrefabInstance:
     serializedVersion: 3
     m_TransformParent: {fileID: 0}
     m_Modifications:
+    - target: {fileID: 106691692236735582, guid: 8da7422f8a46691459aee665e4434ed5, type: 3}
+      propertyPath: isIncluded
+      value: 1
+      objectReference: {fileID: 0}
     - target: {fileID: 552749621463026214, guid: 8da7422f8a46691459aee665e4434ed5, type: 3}
       propertyPath: topFace
       value: 2
       objectReference: {fileID: 0}
+    - target: {fileID: 552749621463026214, guid: 8da7422f8a46691459aee665e4434ed5, type: 3}
+      propertyPath: northFace
+      value: 2
+      objectReference: {fileID: 0}
+    - target: {fileID: 552749621463026214, guid: 8da7422f8a46691459aee665e4434ed5, type: 3}
+      propertyPath: southFace
+      value: 2
+      objectReference: {fileID: 0}
+    - target: {fileID: 629922031685791960, guid: 8da7422f8a46691459aee665e4434ed5, type: 3}
+      propertyPath: isIncluded
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 994651715854424825, guid: 8da7422f8a46691459aee665e4434ed5, type: 3}
+      propertyPath: m_IsActive
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 1162837989423954080, guid: 8da7422f8a46691459aee665e4434ed5, type: 3}
+      propertyPath: m_IsActive
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 1234284949214208436, guid: 8da7422f8a46691459aee665e4434ed5, type: 3}
+      propertyPath: m_LocalRotation.w
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 1234284949214208436, guid: 8da7422f8a46691459aee665e4434ed5, type: 3}
+      propertyPath: m_LocalRotation.z
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 1342779466184929273, guid: 8da7422f8a46691459aee665e4434ed5, type: 3}
+      propertyPath: m_Sprite
+      value: 
+      objectReference: {fileID: 1066172363, guid: 88b338f3ac0dba24cb9aafaafa9397da, type: 3}
+    - target: {fileID: 1791766061547564125, guid: 8da7422f8a46691459aee665e4434ed5, type: 3}
+      propertyPath: isIncluded
+      value: 1
+      objectReference: {fileID: 0}
     - target: {fileID: 2168787158476516098, guid: 8da7422f8a46691459aee665e4434ed5, type: 3}
+      propertyPath: isIncluded
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 2188555493224020658, guid: 8da7422f8a46691459aee665e4434ed5, type: 3}
       propertyPath: isIncluded
       value: 1
       objectReference: {fileID: 0}
@@ -52533,6 +52631,10 @@ PrefabInstance:
       propertyPath: m_LocalEulerAnglesHint.z
       value: 0
       objectReference: {fileID: 0}
+    - target: {fileID: 2561211346742285002, guid: 8da7422f8a46691459aee665e4434ed5, type: 3}
+      propertyPath: m_IsActive
+      value: 1
+      objectReference: {fileID: 0}
     - target: {fileID: 2649101482560198983, guid: 8da7422f8a46691459aee665e4434ed5, type: 3}
       propertyPath: timCubeController
       value: 
@@ -52545,9 +52647,37 @@ PrefabInstance:
       propertyPath: m_IsActive
       value: 1
       objectReference: {fileID: 0}
+    - target: {fileID: 5774017099668130549, guid: 8da7422f8a46691459aee665e4434ed5, type: 3}
+      propertyPath: m_Sprite
+      value: 
+      objectReference: {fileID: 1066172363, guid: 88b338f3ac0dba24cb9aafaafa9397da, type: 3}
+    - target: {fileID: 6144321539922560128, guid: 8da7422f8a46691459aee665e4434ed5, type: 3}
+      propertyPath: m_IsActive
+      value: 1
+      objectReference: {fileID: 0}
     - target: {fileID: 6540126571986741390, guid: 8da7422f8a46691459aee665e4434ed5, type: 3}
       propertyPath: isIncluded
       value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 6706923946047493464, guid: 8da7422f8a46691459aee665e4434ed5, type: 3}
+      propertyPath: m_IsActive
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 7078793268351217196, guid: 8da7422f8a46691459aee665e4434ed5, type: 3}
+      propertyPath: m_IsActive
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 7302210749063515143, guid: 8da7422f8a46691459aee665e4434ed5, type: 3}
+      propertyPath: m_IsActive
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 7576440909625878500, guid: 8da7422f8a46691459aee665e4434ed5, type: 3}
+      propertyPath: m_LocalRotation.w
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 7576440909625878500, guid: 8da7422f8a46691459aee665e4434ed5, type: 3}
+      propertyPath: m_LocalRotation.z
+      value: 0
       objectReference: {fileID: 0}
     - target: {fileID: 7603746729409790017, guid: 8da7422f8a46691459aee665e4434ed5, type: 3}
       propertyPath: m_Name
@@ -52562,6 +52692,10 @@ PrefabInstance:
       value: 1
       objectReference: {fileID: 0}
     - target: {fileID: 8274611283386651795, guid: 8da7422f8a46691459aee665e4434ed5, type: 3}
+      propertyPath: m_IsActive
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 8694807854716872453, guid: 8da7422f8a46691459aee665e4434ed5, type: 3}
       propertyPath: m_IsActive
       value: 1
       objectReference: {fileID: 0}
@@ -66825,12 +66959,6 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: f82a9401bdbf9654bb990fbf7dc24ccb, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::PowerSocket
-  isActive: 1
-  requiredColorIndex: 0
-  requiredMW: 1
-  isSatisfied: 0
-  incomingColor: {r: 0, g: 0, b: 0, a: 0}
-  availableMW: 0
 --- !u!4 &2923705576134186682
 Transform:
   m_ObjectHideFlags: 0

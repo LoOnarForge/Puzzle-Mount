@@ -51,7 +51,6 @@ public class TimCubeController : MonoBehaviour
     private float pushDelayTimer;
     private bool isDelayActive;
     private bool isFirstPush = true;
-    private bool isPushingThisFrame;
 
     // Mouse rotation state
     private bool isMouseRotating = false;
@@ -72,14 +71,12 @@ public class TimCubeController : MonoBehaviour
         characterMovement = GetComponent<CharacterMovement>();
         controller = GetComponent<CharacterController>();
         playerAnimator = GetComponent<PlayerAnimator>();
-        cameraFollow = FindFirstObjectByType<CameraFollow>();
-        _menuManager = Object.FindFirstObjectByType<MenuManager>();
+        cameraFollow = FindAnyObjectByType<CameraFollow>();
+        _menuManager = Object.FindAnyObjectByType<MenuManager>();
     }
 
     private void Update()
     {
-        isPushingThisFrame = false;
-
         // Single mouse raycast shared by gaze and rotation
         bool mouseHitValid = false;
         RaycastHit mouseHit = default;
@@ -154,7 +151,6 @@ public class TimCubeController : MonoBehaviour
             RunodeMovement[] stackFromTimLevel = hitCube.GetStack();
             if (stackFromTimLevel.Length > 3) return;
 
-            isPushingThisFrame = true;
             Vector3 pushDirection = hitCube.GetRelativePushDirection(timTransform);
 
             if (currentTargetCube != hitCube)

@@ -8,10 +8,9 @@ public class NamedColor
     public Color color = Color.white;
 }
 
-/// <summary>
-/// Place in the scene. Defines the shared color palette for all power sources and receivers.
-/// Runs before all other scripts to ensure colors are ready in Awake.
-/// </summary>
+// Place in the scene. Defines the shared color palette for all power sources and receivers.
+// Runs before all other scripts to ensure colors are ready in Awake.
+
 [DefaultExecutionOrder(-100)]
 public class ColorManager : MonoBehaviour
 {

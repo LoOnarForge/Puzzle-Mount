@@ -66,7 +66,7 @@ public class CameraFollow : MonoBehaviour
     
     private void Start()
     {
-        tim = FindFirstObjectByType<CharacterMovement>();
+        tim = FindAnyObjectByType<CharacterMovement>();
         if (findPlayerAutomatically && target == null && tim != null) target = tim.transform;
     }
     

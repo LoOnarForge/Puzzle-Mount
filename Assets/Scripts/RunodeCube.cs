@@ -74,7 +74,7 @@ public class RunodeCube : MonoBehaviour
     private RunodeCube[] FindAffectedCubes()
     {
         List<RunodeCube> affectedCubes = new List<RunodeCube> { this };
-        RunodeCube[] cubes = FindObjectsByType<RunodeCube>(FindObjectsSortMode.None);
+        RunodeCube[] cubes = FindObjectsByType<RunodeCube>();
 
         foreach (RunodeCube cube in cubes)
         {
@@ -97,7 +97,7 @@ public class RunodeCube : MonoBehaviour
     private PowerSource[] FindAffectedPowerSources()
     {
         List<PowerSource> affectedPowerSources = new List<PowerSource>();
-        PowerSource[] powerSources = FindObjectsByType<PowerSource>(FindObjectsSortMode.None);
+        PowerSource[] powerSources = FindObjectsByType<PowerSource>();
 
         foreach (PowerSource powerSource in powerSources)
         {

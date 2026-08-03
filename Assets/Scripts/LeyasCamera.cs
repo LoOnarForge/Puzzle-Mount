@@ -66,7 +66,7 @@ public class LeyasCamera : MonoBehaviour
         volume = GetComponent<Volume>();
         humSource = GetComponent<AudioSource>();
         leyaListener = GetComponent<AudioListener>();
-        menuManager = FindFirstObjectByType<MenuManager>(FindObjectsInactive.Include);
+        menuManager = FindAnyObjectByType<MenuManager>(FindObjectsInactive.Include);
         mainCam = Camera.main;
 
         if (mainCam != null) mainListener = mainCam.GetComponent<AudioListener>();

@@ -46,8 +46,7 @@ public class CharacterMovement : MonoBehaviour
     
     // Speed buildup variables
     private float currentSpeedBuildup;
-    private bool wasMovingLastFrame;
-    
+
     public bool IsGrounded => isGrounded;
     public float CurrentSpeed => currentSpeed;
     public bool IsStationary => moveInput.magnitude < 0.1f;
@@ -61,7 +60,7 @@ public class CharacterMovement : MonoBehaviour
         playerInput = GetComponent<PlayerInput>();
         playerAnimator = GetComponent<PlayerAnimator>();
         cubeInteraction = GetComponent<TimCubeController>();
-        cameraFollow = FindFirstObjectByType<CameraFollow>();
+        cameraFollow = FindAnyObjectByType<CameraFollow>();
         
         // Fix PlayerInput notification behavior
         if (playerInput != null)
@@ -221,7 +220,6 @@ public class CharacterMovement : MonoBehaviour
     {
         if (moveInput.magnitude < 0.1f)
         {
-            wasMovingLastFrame = false;
             currentSpeedBuildup = 0f;
             return 0f;
         }
@@ -235,8 +233,7 @@ public class CharacterMovement : MonoBehaviour
         float exponentialRate = 5f;
         float lerpRate = Time.deltaTime / accelerationTime * exponentialRate;
         currentSpeedBuildup = Mathf.Lerp(currentSpeedBuildup, targetSpeed, lerpRate);
-        
-        wasMovingLastFrame = true;
+
         return currentSpeedBuildup;
     }
     

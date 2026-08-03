@@ -16,8 +16,7 @@ public class PlayerAnimator : MonoBehaviour
     
     [Header("Debug - Fall Timer Visualization")]
     [SerializeField] private float fallTimerVisual;
-    [SerializeField] private bool isCurrentlyFalling;
-    
+
     [Header("Look At Settings")]
     [SerializeField] private float lookWeightSpeed = 2.0f;
     [SerializeField] private float headWeight = 0.5f;
@@ -170,25 +169,19 @@ public class PlayerAnimator : MonoBehaviour
             
             if (longEnoughAirtime && fallingFastEnough)
             {
-                isCurrentlyFalling = true;
                 animator.SetBool(fallingParameter, true);
-                
+
                 // Reset jumping when falling starts
                 if (HasParameter(jumpingParameter))
                 {
                     animator.SetBool(jumpingParameter, false);
                 }
             }
-            else
-            {
-                isCurrentlyFalling = false;
-            }
         }
         else
         {
             // Reset everything when grounded
             fallTimerVisual = 0f;
-            isCurrentlyFalling = false;
             animator.SetBool(fallingParameter, false);
             fallTimer = 0f;
         }
