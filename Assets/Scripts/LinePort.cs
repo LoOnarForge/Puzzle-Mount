@@ -18,11 +18,18 @@ public class LinePort : MonoBehaviour
     [SerializeField] private RunodeCube parentCube;
 
     [SerializeField] private PowerSource parentPowerSource;
+    [SerializeField] private DevicePowerSocket parentDevicePowerSocket;
 
     [Header("DEBUGGING:")]
     [SerializeField] private PortType type = PortType.Neutral;
     [SerializeField] private bool isIncluded;
     public bool IsIncluded => isIncluded;
+    public RunodeLine ParentLine => parentLine;
+    public DevicePowerSocket ParentDevicePowerSocket
+    {
+        get => parentDevicePowerSocket;
+        set => parentDevicePowerSocket = value;
+    }
     [SerializeField] private bool isBlocked;
     private bool faceBlocked;
     private bool canReportConnections;
@@ -241,14 +248,19 @@ public class LinePort : MonoBehaviour
         canReportConnections = canReport;
     }
 
-    // Sends a circuit-path revoke to lines this giver port feeds.
-    public void PropagateRevokeToFedLines()
+    // Tells fed faces they are no longer connected to the Power Source path.
+    public void PropagateDisconnectFromPowerSource()
     {
         if (type != PortType.Giver)
             return;
 
         foreach (LinePort connectedPort in connectedPorts)
-            connectedPort.parentLine.RevokeConnection();
+        {
+            if (connectedPort.parentDevicePowerSocket != null)
+                continue;
+
+            connectedPort.parentLine.DisconnectFromPowerSource();
+        }
     }
 
     public void ReportValidConnections()
@@ -258,7 +270,7 @@ public class LinePort : MonoBehaviour
 
         foreach (LinePort connectedPort in connectedPorts)
         {
-            if (!parentLine.TryPowerNewlyConnectedLine(connectedPort.parentLine, connectedPort, this))
+            if (!parentLine.TryPowerConnectedPort(connectedPort, this))
                 break;
         }
     }
@@ -271,6 +283,12 @@ public class LinePort : MonoBehaviour
 
     private void ReportPowerLost()
     {
+        if (parentDevicePowerSocket != null)
+        {
+            parentDevicePowerSocket.ClearPower();
+            return;
+        }
+
         if (type == PortType.Receiver)
             parentLine.PowerDownLine();
     }
@@ -280,24 +298,52 @@ public class LinePort : MonoBehaviour
     {
         if (canReportConnections && type == PortType.Giver)
         {
-            parentLine.TryPowerNewlyConnectedLine(otherPort.parentLine, otherPort, this);
+            parentLine.TryPowerConnectedPort(otherPort, this);
+            return;
+        }
+
+        if (parentPowerSource != null && type == PortType.Giver && otherPort.ParentDevicePowerSocket != null)
+        {
+            parentPowerSource.PowerSocketFromPS(otherPort.ParentDevicePowerSocket, otherPort, this);
             return;
         }
 
         if (otherPort.parentPowerSource != null)
-            otherPort.parentPowerSource.PowerRunodeLine(parentLine, this, otherPort);
+        {
+            if (parentDevicePowerSocket != null)
+            {
+                otherPort.parentPowerSource.PowerSocketFromPS(parentDevicePowerSocket, this, otherPort);
+                return;
+            }
+
+            otherPort.parentPowerSource.PowerLineFromPS(parentLine, this, otherPort);
+        }
     }
 
     private void ReportLostConnection(LinePort connectedPort)
     {
         if (type == PortType.Receiver)
         {
+            if (parentDevicePowerSocket != null)
+            {
+                parentDevicePowerSocket.ClearPower();
+                return;
+            }
+
             parentLine.PowerDownLine();
             return;
         }
 
         if (type == PortType.Giver && parentLine != null && parentLine.PowerSource != null)
+        {
+            if (connectedPort.parentDevicePowerSocket != null)
+            {
+                parentLine.PowerSource.RemoveWaitingEntry(parentLine, connectedPort.parentDevicePowerSocket);
+                return;
+            }
+
             parentLine.PowerSource.RemoveWaitingEntry(parentLine, connectedPort.parentLine);
+        }
     }
 
     public void SetIncluded(bool included)

@@ -110,7 +110,7 @@ public class RunodeLine : MonoBehaviour
 
     public void PowerDownLine()
     {
-        RevokeConnection();
+        DisconnectFromPowerSource();
         isPowered = false;
 
         foreach (LinePort port in linePorts)
@@ -145,13 +145,42 @@ public class RunodeLine : MonoBehaviour
         }
     }
 
-    public bool TryPowerNewlyConnectedLine(RunodeLine targetLine, LinePort targetPort, LinePort sourcePort)
+    // Gives power into whatever owns the target port (face or device socket).
+    public bool TryPowerConnectedPort(LinePort targetPort, LinePort sourcePort)
     {
         if (propagationHalted)
             return false;
 
         if (powerSource == null || !isConnected)
             return false;
+
+        DevicePowerSocket targetSocket = targetPort.ParentDevicePowerSocket;
+        if (targetSocket != null)
+        {
+            if (powerSource.ColorIndex != targetSocket.ColorIndex)
+                return true;
+
+            bool fullyPowered = targetSocket.TryReceivePower(this, sourcePort, powerSource, powerColor, powerIndex + 1);
+
+            if (fullyPowered)
+            {
+                powerSource.RemoveWaitingEntry(this, targetSocket);
+                return true;
+            }
+
+            if (targetSocket.PoweredByLine != null && targetSocket.PoweredByLine != this)
+                return true;
+
+            if (targetSocket.RemainingMwNeeded > 0)
+            {
+                powerSource.AddWaitingEntry(this, targetSocket, targetPort, sourcePort, powerIndex + 1, targetSocket.RemainingMwNeeded);
+                return false;
+            }
+
+            return true;
+        }
+
+        RunodeLine targetLine = targetPort.ParentLine;
 
         if (!powerSource.TakeMW())
         {
@@ -164,7 +193,8 @@ public class RunodeLine : MonoBehaviour
         return true;
     }
 
-    public void RevokeConnection()
+    // Clears isConnected and tells downstream faces they lost the Power Source path.
+    public void DisconnectFromPowerSource()
     {
         if (!isConnected)
             return;
@@ -174,7 +204,7 @@ public class RunodeLine : MonoBehaviour
         foreach (LinePort port in linePorts)
         {
             if (port.IsIncluded)
-                port.PropagateRevokeToFedLines();
+                port.PropagateDisconnectFromPowerSource();
         }
     }
 

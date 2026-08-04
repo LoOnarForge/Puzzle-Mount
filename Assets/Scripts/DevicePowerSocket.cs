@@ -13,13 +13,14 @@ public class DevicePowerSocket : MonoBehaviour
     [SerializeField] private int allocatedMw;
     [SerializeField] private PowerSource powerSource;
     [SerializeField] private RunodeLine poweredByLine;
-    [SerializeField] private LinePort sourcePort;
+    [SerializeField] private LinePort linePort;
     [SerializeField] private int powerIndex = -1;
     [SerializeField] private Color powerColor;
 
     private float powerPropagationDelay;
     private Coroutine clearPowerCoroutine;
 
+    public int ColorIndex => colorIndex;
     public int RequiredMw => requiredMw;
     public int AllocatedMw => allocatedMw;
     public int RemainingMwNeeded => requiredMw - allocatedMw;
@@ -33,6 +34,7 @@ public class DevicePowerSocket : MonoBehaviour
         Debug.Assert(GameConfig.Instance != null, $"{nameof(DevicePowerSocket)} on {name} requires a {nameof(GameConfig)} in the scene.", this);
 
         powerPropagationDelay = GameConfig.Instance.PowerPropagationDelay;
+        port.ParentDevicePowerSocket = this;
         port.SetPortType(PortType.Receiver);
     }
 
@@ -45,7 +47,7 @@ public class DevicePowerSocket : MonoBehaviour
             clearPowerCoroutine = null;
         }
 
-        if (givingLine == null || givingPort == null || source == null)
+        if (givingPort == null || source == null)
             return false;
 
         if (source.ColorIndex != colorIndex)
@@ -57,18 +59,21 @@ public class DevicePowerSocket : MonoBehaviour
         if (allocatedMw >= requiredMw)
             return true;
 
-        poweredByLine = givingLine;
-        powerSource = source;
-        sourcePort = givingPort;
-        powerColor = color;
-        powerIndex = index;
-
         while (allocatedMw < requiredMw)
         {
             if (!source.TakeMW())
                 break;
 
             allocatedMw++;
+
+            if (allocatedMw == 1)
+            {
+                poweredByLine = givingLine;
+                powerSource = source;
+                linePort = givingPort;
+                powerColor = color;
+                powerIndex = index;
+            }
         }
 
         if (allocatedMw > 0)
@@ -93,7 +98,7 @@ public class DevicePowerSocket : MonoBehaviour
         source.RemoveCircuitMember(this);
         powerSource = null;
         poweredByLine = null;
-        sourcePort = null;
+        linePort = null;
         powerColor = Color.white;
         powerIndex = -1;
     }
@@ -111,22 +116,26 @@ public class DevicePowerSocket : MonoBehaviour
         {
             if (powerSource != null)
             {
+                powerSource.RemoveWaitingEntriesForSocket(this);
                 powerSource.RemoveCircuitMember(this);
                 powerSource = null;
             }
 
             poweredByLine = null;
-            sourcePort = null;
+            linePort = null;
             powerColor = Color.white;
             powerIndex = -1;
             return;
         }
 
         poweredByLine = null;
-        sourcePort = null;
+        linePort = null;
 
         if (powerSource != null)
+        {
+            powerSource.RemoveWaitingEntriesForSocket(this);
             powerSource.RemoveCircuitMember(this);
+        }
 
         clearPowerCoroutine = StartCoroutine(ClearPowerSequence());
     }
