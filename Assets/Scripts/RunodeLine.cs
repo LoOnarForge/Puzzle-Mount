@@ -383,6 +383,9 @@ public class RunodeLine : MonoBehaviour
     }
     public void RefreshPortConnections()
     {
+        if (isFaceBlocked && isConnected)
+            DisconnectFromPowerSource();
+
         foreach (LinePort port in linePorts)
         {
             if (port.isActiveAndEnabled)
