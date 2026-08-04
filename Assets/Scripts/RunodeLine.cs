@@ -27,11 +27,13 @@ public class RunodeLine : MonoBehaviour
 
 
     private const bool HaltAllPropagationOnShortCircuit = false;
+    private const int RequiredMwAmount = 1;
 
     private readonly List<LinePort> linePorts = new List<LinePort>();
 
     public bool IsPowered => isPowered;
     public int PowerIndex => powerIndex;
+    public int RequiredMw => RequiredMwAmount;
     public PowerSource PowerSource => powerSource;
     public RunodeLine PoweredByLine => poweredByLine;
 
@@ -151,7 +153,7 @@ public class RunodeLine : MonoBehaviour
 
         if (!powerSource.TakeMW())
         {
-            powerSource.AddWaitingEntry(this, targetLine, targetPort, sourcePort, powerIndex + 1);
+            powerSource.AddWaitingEntry(this, targetLine, targetPort, sourcePort, powerIndex + 1, targetLine.RequiredMw);
             return false;
         }
 

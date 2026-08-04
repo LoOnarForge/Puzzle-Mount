@@ -4,13 +4,22 @@ using UnityEngine;
 public class PowerSource : MonoBehaviour
 {
     [System.Serializable]
+    private class CircuitMember
+    {
+        public RunodeLine line;
+        public DeviceReceiver receiver;
+    }
+
+    [System.Serializable]
     private class WaitingEntry
     {
         public RunodeLine givingLine;
         public RunodeLine receivingLine;
+        public DeviceReceiver receivingReceiver;
         public LinePort receivingPort;
         public LinePort sourcePort;
         public int powerIndex;
+        public int mwNeeded;
     }
 
     [Header("POWER SOURCE:")]
@@ -20,7 +29,7 @@ public class PowerSource : MonoBehaviour
     [Space(20)]
     [Header("STATE:")]
     [SerializeField] private int availableMW;
-    [SerializeField] private List<RunodeLine> circuitMembers = new List<RunodeLine>();
+    [SerializeField] private List<CircuitMember> circuitMembers = new List<CircuitMember>();
     [SerializeField] private List<WaitingEntry> waitingEntries = new List<WaitingEntry>();
 
     [Space(20)]
@@ -74,7 +83,7 @@ public class PowerSource : MonoBehaviour
             return;
         }
 
-        AddWaitingEntry(null, line, receivingPort, sourcePort, 1);
+        AddWaitingEntry(null, line, receivingPort, sourcePort, 1, line.RequiredMw);
     }
 
     // Returns one MW to the shared Power Source pool.
@@ -96,7 +105,7 @@ public class PowerSource : MonoBehaviour
     }
 
     // Adds a failed transfer and immediately attempts arbitration.
-    public void AddWaitingEntry(RunodeLine givingLine, RunodeLine receivingLine, LinePort receivingPort, LinePort sourcePort, int powerIndex)
+    public void AddWaitingEntry(RunodeLine givingLine, RunodeLine receivingLine, LinePort receivingPort, LinePort sourcePort, int powerIndex, int mwNeeded)
     {
         if (HasWaitingEntry(givingLine, receivingLine))
             return;
@@ -107,7 +116,8 @@ public class PowerSource : MonoBehaviour
             receivingLine = receivingLine,
             receivingPort = receivingPort,
             sourcePort = sourcePort,
-            powerIndex = powerIndex
+            powerIndex = powerIndex,
+            mwNeeded = mwNeeded
         };
 
         waitingEntries.Add(entry);
@@ -152,22 +162,26 @@ public class PowerSource : MonoBehaviour
     private RunodeLine FindLowestPriorityPoweredLine()
     {
         RunodeLine selectedLine = null;
+        int selectedIndex = -1;
 
-        foreach (RunodeLine line in circuitMembers)
+        for (int i = 0; i < circuitMembers.Count; i++)
         {
+            RunodeLine line = circuitMembers[i].line;
+
             if (line == null || !line.IsPowered)
                 continue;
 
             if (selectedLine == null || line.PowerIndex > selectedLine.PowerIndex)
             {
                 selectedLine = line;
+                selectedIndex = i;
                 continue;
             }
 
-            if (line.PowerIndex == selectedLine.PowerIndex
-                && circuitMembers.IndexOf(line) > circuitMembers.IndexOf(selectedLine))
+            if (line.PowerIndex == selectedLine.PowerIndex && i > selectedIndex)
             {
                 selectedLine = line;
+                selectedIndex = i;
             }
         }
 
@@ -239,10 +253,10 @@ public class PowerSource : MonoBehaviour
 
     public void AddCircuitMember(RunodeLine line)
     {
-        if (line == null || circuitMembers.Contains(line))
+        if (line == null || HasCircuitMember(line))
             return;
 
-        circuitMembers.Add(line);
+        circuitMembers.Add(new CircuitMember { line = line });
     }
 
     public void RemoveCircuitMember(RunodeLine line)
@@ -250,7 +264,53 @@ public class PowerSource : MonoBehaviour
         if (line == null)
             return;
 
-        circuitMembers.Remove(line);
+        for (int i = circuitMembers.Count - 1; i >= 0; i--)
+        {
+            if (circuitMembers[i].line == line)
+                circuitMembers.RemoveAt(i);
+        }
+    }
+
+    public void AddCircuitMember(DeviceReceiver receiver)
+    {
+        if (receiver == null || HasCircuitMember(receiver))
+            return;
+
+        circuitMembers.Add(new CircuitMember { receiver = receiver });
+    }
+
+    public void RemoveCircuitMember(DeviceReceiver receiver)
+    {
+        if (receiver == null)
+            return;
+
+        for (int i = circuitMembers.Count - 1; i >= 0; i--)
+        {
+            if (circuitMembers[i].receiver == receiver)
+                circuitMembers.RemoveAt(i);
+        }
+    }
+
+    private bool HasCircuitMember(RunodeLine line)
+    {
+        foreach (CircuitMember member in circuitMembers)
+        {
+            if (member.line == line)
+                return true;
+        }
+
+        return false;
+    }
+
+    private bool HasCircuitMember(DeviceReceiver receiver)
+    {
+        foreach (CircuitMember member in circuitMembers)
+        {
+            if (member.receiver == receiver)
+                return true;
+        }
+
+        return false;
     }
 
     private void OnValidate()
