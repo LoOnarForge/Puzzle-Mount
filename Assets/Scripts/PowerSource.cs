@@ -7,7 +7,7 @@ public class PowerSource : MonoBehaviour
     private class CircuitMember
     {
         public RunodeLine line;
-        public DeviceReceiver receiver;
+        public DevicePowerSocket socket;
     }
 
     [System.Serializable]
@@ -15,7 +15,7 @@ public class PowerSource : MonoBehaviour
     {
         public RunodeLine givingLine;
         public RunodeLine receivingLine;
-        public DeviceReceiver receivingReceiver;
+        public DevicePowerSocket receivingSocket;
         public LinePort receivingPort;
         public LinePort sourcePort;
         public int powerIndex;
@@ -48,10 +48,17 @@ public class PowerSource : MonoBehaviour
     private MaterialPropertyBlock propertyBlock;
     private Color circuitColor;
 
+    public int ColorIndex => colorIndex;
+
     private void Awake()
     {
         availableMW = maxMW;
         circuitColor = ColorManager.Instance.GetColor(colorIndex);
+
+        upPort.SetPortType(PortType.Giver);
+        rightPort.SetPortType(PortType.Giver);
+        downPort.SetPortType(PortType.Giver);
+        leftPort.SetPortType(PortType.Giver);
     }
 
 
@@ -271,22 +278,22 @@ public class PowerSource : MonoBehaviour
         }
     }
 
-    public void AddCircuitMember(DeviceReceiver receiver)
+    public void AddCircuitMember(DevicePowerSocket socket)
     {
-        if (receiver == null || HasCircuitMember(receiver))
+        if (socket == null || HasCircuitMember(socket))
             return;
 
-        circuitMembers.Add(new CircuitMember { receiver = receiver });
+        circuitMembers.Add(new CircuitMember { socket = socket });
     }
 
-    public void RemoveCircuitMember(DeviceReceiver receiver)
+    public void RemoveCircuitMember(DevicePowerSocket socket)
     {
-        if (receiver == null)
+        if (socket == null)
             return;
 
         for (int i = circuitMembers.Count - 1; i >= 0; i--)
         {
-            if (circuitMembers[i].receiver == receiver)
+            if (circuitMembers[i].socket == socket)
                 circuitMembers.RemoveAt(i);
         }
     }
@@ -302,11 +309,11 @@ public class PowerSource : MonoBehaviour
         return false;
     }
 
-    private bool HasCircuitMember(DeviceReceiver receiver)
+    private bool HasCircuitMember(DevicePowerSocket socket)
     {
         foreach (CircuitMember member in circuitMembers)
         {
-            if (member.receiver == receiver)
+            if (member.socket == socket)
                 return true;
         }
 

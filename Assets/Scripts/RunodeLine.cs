@@ -41,8 +41,7 @@ public class RunodeLine : MonoBehaviour
     private static bool propagationHalted;
     public static bool IsPropagationHalted => propagationHalted;
 
-    private const float PowerColorDuration = 0.07f;
-    private const float PowerDecolorDuration = 0.07f;
+    private float powerPropagationDelay;
     private const float DarkeningSpeed = 20f;
 
 
@@ -61,6 +60,9 @@ public class RunodeLine : MonoBehaviour
         Debug.Assert(obstructionPort != null, $"{nameof(RunodeLine)} on {name} requires an obstruction port.", this);
         Debug.Assert(upPort != null && rightPort != null && downPort != null && leftPort != null,
             $"{nameof(RunodeLine)} on {name} requires all four line ports.", this);
+        Debug.Assert(GameConfig.Instance != null, $"{nameof(RunodeLine)} on {name} requires a {nameof(GameConfig)} in the scene.", this);
+
+        powerPropagationDelay = GameConfig.Instance.PowerPropagationDelay;
 
         linePorts.Add(upPort);
         linePorts.Add(rightPort);
@@ -188,7 +190,7 @@ public class RunodeLine : MonoBehaviour
 
     private IEnumerator PowerUpSequence()
     {
-        yield return new WaitForSeconds(PowerColorDuration);
+        yield return new WaitForSeconds(powerPropagationDelay);
 
         foreach (LinePort port in linePorts)
         {
@@ -203,7 +205,7 @@ public class RunodeLine : MonoBehaviour
     }
     private IEnumerator DepowerSequence()
     {
-        yield return new WaitForSeconds(PowerDecolorDuration);
+        yield return new WaitForSeconds(powerPropagationDelay);
 
         foreach (LinePort port in linePorts)
         {
@@ -222,10 +224,10 @@ public class RunodeLine : MonoBehaviour
         Color startingColor = lineSprite.color;
         float elapsedTime = 0f;
 
-        while (elapsedTime < PowerColorDuration)
+        while (elapsedTime < powerPropagationDelay)
         {
             elapsedTime += Time.deltaTime;
-            lineSprite.color = Color.Lerp(startingColor, targetColor, elapsedTime / PowerColorDuration);
+            lineSprite.color = Color.Lerp(startingColor, targetColor, elapsedTime / powerPropagationDelay);
             yield return null;
         }
 
@@ -237,10 +239,10 @@ public class RunodeLine : MonoBehaviour
         Color startingColor = lineSprite.color;
         float elapsedTime = 0f;
 
-        while (elapsedTime < PowerDecolorDuration)
+        while (elapsedTime < powerPropagationDelay)
         {
             elapsedTime += Time.deltaTime;
-            lineSprite.color = Color.Lerp(startingColor, isFaceBlocked ? Color.black : Color.white, elapsedTime / PowerDecolorDuration);
+            lineSprite.color = Color.Lerp(startingColor, isFaceBlocked ? Color.black : Color.white, elapsedTime / powerPropagationDelay);
             yield return null;
         }
 
