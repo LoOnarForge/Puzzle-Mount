@@ -76,25 +76,29 @@ public class DevicePowerSocket : MonoBehaviour
         return allocatedMw >= requiredMw;
     }
 
-    // Returns one held MW. Used by arbitration and by staggered full clear.
+    // Returns one held MW, then lets the giving face re-evaluate propagation. Used by arbitration and by staggered full clear.
     public void ReleaseOneMw()
     {
         if (allocatedMw <= 0 || powerSource == null)
             return;
 
+        RunodeLine givingLine = poweredByLine;
+
         allocatedMw--;
         PowerSource source = powerSource;
         source.ReturnMW();
 
-        if (allocatedMw > 0)
-            return;
+        if (allocatedMw <= 0)
+        {
+            source.RemoveCircuitMember(this);
+            powerSource = null;
+            poweredByLine = null;
+            linePort = null;
+            powerColor = Color.white;
+            powerIndex = -1;
+        }
 
-        source.RemoveCircuitMember(this);
-        powerSource = null;
-        poweredByLine = null;
-        linePort = null;
-        powerColor = Color.white;
-        powerIndex = -1;
+        givingLine?.RefreshFaceAndPortsStates();
     }
 
     // Returns all held MW one at a time, waiting PowerPropagationDelay between each.

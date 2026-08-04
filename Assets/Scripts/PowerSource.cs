@@ -19,7 +19,6 @@ public class PowerSource : MonoBehaviour
         public LinePort receivingPort;
         public LinePort sourcePort;
         public int powerIndex;
-        public int mwNeeded;
     }
 
     [Header("POWER SOURCE:")]
@@ -120,7 +119,7 @@ public class PowerSource : MonoBehaviour
 
         if (mwStillNeeded > 0)
         {
-            AddWaitingEntry(givingLine, targetPort, sourcePort, receiverPowerIndex, mwStillNeeded);
+            AddWaitingEntry(givingLine, targetPort, sourcePort, receiverPowerIndex);
             return false;
         }
 
@@ -147,7 +146,7 @@ public class PowerSource : MonoBehaviour
     }
 
     // Adds a failed transfer for the owner of the receiving port and immediately attempts arbitration.
-    private void AddWaitingEntry(RunodeLine givingLine, LinePort receivingPort, LinePort sourcePort, int powerIndex, int mwNeeded)
+    private void AddWaitingEntry(RunodeLine givingLine, LinePort receivingPort, LinePort sourcePort, int powerIndex)
     {
         DevicePowerSocket receivingSocket = receivingPort.ParentDevicePowerSocket;
         RunodeLine receivingLine = receivingSocket != null ? null : receivingPort.ParentLine;
@@ -162,8 +161,7 @@ public class PowerSource : MonoBehaviour
             receivingSocket = receivingSocket,
             receivingPort = receivingPort,
             sourcePort = sourcePort,
-            powerIndex = powerIndex,
-            mwNeeded = mwNeeded
+            powerIndex = powerIndex
         };
 
         waitingEntries.Add(entry);
