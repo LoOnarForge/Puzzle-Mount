@@ -28,7 +28,6 @@ public class ObstructionPort : MonoBehaviour
         }
     }
 
-    // Refreshes the complete obstruction state from the current overlap state.
     public void RefreshObstructionState()
     {
         obstructions.Clear();

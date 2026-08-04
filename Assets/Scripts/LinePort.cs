@@ -258,7 +258,7 @@ public class LinePort : MonoBehaviour
 
         foreach (LinePort connectedPort in connectedPorts)
         {
-            if (!parentLine.NewValidConnection(connectedPort.parentLine, connectedPort, this))
+            if (!parentLine.TryPowerNewlyConnectedLine(connectedPort.parentLine, connectedPort, this))
                 break;
         }
     }
@@ -280,7 +280,7 @@ public class LinePort : MonoBehaviour
     {
         if (canReportConnections && type == PortType.Giver)
         {
-            parentLine.NewValidConnection(otherPort.parentLine, otherPort, this);
+            parentLine.TryPowerNewlyConnectedLine(otherPort.parentLine, otherPort, this);
             return;
         }
 

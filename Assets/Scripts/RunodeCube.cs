@@ -56,6 +56,8 @@ public class RunodeCube : MonoBehaviour
     public Sprite tSectionSprite;
     public Sprite crossSprite;
 
+    private const float RefreshRadius = 2.1f;
+
     private RunodeLine[] lines;
 
     private void Awake()
@@ -90,19 +92,12 @@ public class RunodeCube : MonoBehaviour
             if (cube == this)
                 continue;
 
-            Vector3 offset = cube.transform.position - transform.position;
-
-            if (Mathf.Abs(offset.x) <= 2.1f
-                && Mathf.Abs(offset.y) <= 2.1f
-                && Mathf.Abs(offset.z) <= 2.1f)
-            {
+            if (IsWithinRefreshRange(cube.transform.position))
                 affectedCubes.Add(cube);
-            }
         }
 
         return affectedCubes.ToArray();
     }
-
     private PowerSource[] FindAffectedPowerSources()
     {
         List<PowerSource> affectedPowerSources = new List<PowerSource>();
@@ -110,17 +105,19 @@ public class RunodeCube : MonoBehaviour
 
         foreach (PowerSource powerSource in powerSources)
         {
-            Vector3 offset = powerSource.transform.position - transform.position;
-
-            if (Mathf.Abs(offset.x) <= 2.1f
-                && Mathf.Abs(offset.y) <= 2.1f
-                && Mathf.Abs(offset.z) <= 2.1f)
-            {
+            if (IsWithinRefreshRange(powerSource.transform.position))
                 affectedPowerSources.Add(powerSource);
-            }
         }
 
         return affectedPowerSources.ToArray();
+    }
+    private bool IsWithinRefreshRange(Vector3 otherPosition)
+    {
+        Vector3 offset = otherPosition - transform.position;
+
+        return Mathf.Abs(offset.x) <= RefreshRadius
+            && Mathf.Abs(offset.y) <= RefreshRadius
+            && Mathf.Abs(offset.z) <= RefreshRadius;
     }
 
     private void RefreshPowerSourceConnections(PowerSource[] affectedPowerSources)
@@ -167,7 +164,7 @@ public class RunodeCube : MonoBehaviour
     }
 
     // Returns the face index (0:Top, 1:Bottom, 2:North, 3:South, 4:East, 5:West)
-    // for the given world point relative to the cube's visual parent. Used for the Highlighter script
+    // for the given world point relative to the cube's visual parent. Used for the Highlighter script 
     public int GetFaceIndexFromPoint(Vector3 worldPoint)
     {
         Transform vParent = transform.GetChild(0);

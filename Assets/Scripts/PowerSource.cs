@@ -70,7 +70,7 @@ public class PowerSource : MonoBehaviour
         {
             line.PowerUpLine(this, null, receivingPort, circuitColor, 1);
             AddCircuitMember(line);
-            RemoveWaitingEntriesForPoweredLine(line);
+            RemoveWaitingEntriesForLine(line);
             return;
         }
 
@@ -111,7 +111,7 @@ public class PowerSource : MonoBehaviour
         };
 
         waitingEntries.Add(entry);
-        TryArbitrate(entry);
+        ArbitrateBetweenMembersAndWaiters(entry);
     }
 
     public void RemoveWaitingEntry(RunodeLine givingLine, RunodeLine receivingLine)
@@ -137,7 +137,7 @@ public class PowerSource : MonoBehaviour
         }
     }
 
-    private void TryArbitrate(WaitingEntry waitingEntry)
+    private void ArbitrateBetweenMembersAndWaiters(WaitingEntry waitingEntry)
     {
         RunodeLine lowestPriorityLine = FindLowestPriorityPoweredLine();
 
@@ -220,7 +220,7 @@ public class PowerSource : MonoBehaviour
             return entry.sourcePort != null && entry.sourcePort.IsConnectedTo(entry.receivingPort);
 
         return entry.givingLine.IsPowered
-            && entry.givingLine.CanPropagatePower()
+            && entry.givingLine.IsConnectedToPowerSource()
             && entry.givingLine.PowerSource == this
             && entry.sourcePort != null
             && entry.sourcePort.IsConnectedTo(entry.receivingPort);
@@ -235,11 +235,6 @@ public class PowerSource : MonoBehaviour
         }
 
         return false;
-    }
-
-    private void RemoveWaitingEntriesForPoweredLine(RunodeLine line)
-    {
-        RemoveWaitingEntriesForLine(line);
     }
 
     public void AddCircuitMember(RunodeLine line)

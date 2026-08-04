@@ -25,23 +25,24 @@ public class RunodeLine : MonoBehaviour
     [SerializeField] private LinePort leftPort;
     [SerializeField] private ObstructionPort obstructionPort;
 
+
+    private const bool HaltAllPropagationOnShortCircuit = false;
+
+    private readonly List<LinePort> linePorts = new List<LinePort>();
+
     public bool IsPowered => isPowered;
     public int PowerIndex => powerIndex;
     public PowerSource PowerSource => powerSource;
     public RunodeLine PoweredByLine => poweredByLine;
 
-    // Set false to log short circuits without halting propagation (testing).
-    private const bool HaltAllPropagationOnShortCircuit = false;
 
     private static bool propagationHalted;
-
     public static bool IsPropagationHalted => propagationHalted;
 
-    private const float powerColorDuration = 0.07f;
-    private const float powerDecolorDuration = 0.07f;
-    private float darkeningSpeed = 20f;
+    private const float PowerColorDuration = 0.07f;
+    private const float PowerDecolorDuration = 0.07f;
+    private const float DarkeningSpeed = 20f;
 
-    private readonly List<LinePort> linePorts = new List<LinePort>();
 
     private Coroutine colorPowerLineCoroutine;
     private Coroutine powerUpSequenceCoroutine;
@@ -66,8 +67,7 @@ public class RunodeLine : MonoBehaviour
     }
 
 
-    // True when this line may propagate power downstream on its circuit path.
-    public bool CanPropagatePower()
+    public bool IsConnectedToPowerSource()
     {
         return isConnected;
     }
@@ -79,12 +79,7 @@ public class RunodeLine : MonoBehaviour
 
         if (isPowered)
         {
-            RunodeCube cube = GetComponentInParent<RunodeCube>();
-            string cubeName = cube != null ? cube.gameObject.name.ToUpper() : name.ToUpper();
-            string existingSourceName = powerSource != null ? powerSource.gameObject.name.ToUpper() : "UNKNOWN";
-            string incomingSourceName = source != null ? source.gameObject.name.ToUpper() : "UNKNOWN";
-
-            ReportShortCircuit(existingSourceName, incomingSourceName, cubeName);
+            ReportShortCircuit(source);
             return;
         }
 
@@ -95,23 +90,29 @@ public class RunodeLine : MonoBehaviour
         receiverPort = targetPort;
         powerColor = color;
         powerIndex = index;
-        
+
         foreach (LinePort port in linePorts)
+        {
             port.SetCanReportConnections(false);
+        }
 
         SetInitialReceiverAndGiverPorts(targetPort);
         StopBrightenSpriteLineCoroutine();
         StopPowerCoroutines();
+
         colorPowerLineCoroutine = StartCoroutine(ColorPowerLine(color));
         powerUpSequenceCoroutine = StartCoroutine(PowerUpSequence());
     }
+
     public void PowerDownLine()
     {
         RevokeConnection();
         isPowered = false;
-        
+
         foreach (LinePort port in linePorts)
+        {
             port.SetCanReportConnections(false);
+        }
 
         powerSource.RemoveWaitingEntriesForLine(this);
         powerSource.RemoveCircuitMember(this);
@@ -128,17 +129,6 @@ public class RunodeLine : MonoBehaviour
         depowerSequenceCoroutine = StartCoroutine(DepowerSequence());
     }
 
-    private void ReportShortCircuit(string existingSourceName, string incomingSourceName, string cubeName)
-    {
-        Debug.Log(
-            $"SHORT CIRCUIT DETECTED BETWEEN {existingSourceName} AND {incomingSourceName} ON {cubeName}.",
-            this);
-
-        if (HaltAllPropagationOnShortCircuit)
-            propagationHalted = true;
-
-        // TriggerShortCircuitFinalEvent();
-    }
 
     private void SetInitialReceiverAndGiverPorts(LinePort targetPort)
     {
@@ -151,8 +141,7 @@ public class RunodeLine : MonoBehaviour
         }
     }
 
-
-    public bool NewValidConnection(RunodeLine targetLine, LinePort targetPort, LinePort sourcePort)
+    public bool TryPowerNewlyConnectedLine(RunodeLine targetLine, LinePort targetPort, LinePort sourcePort)
     {
         if (propagationHalted)
             return false;
@@ -171,7 +160,6 @@ public class RunodeLine : MonoBehaviour
         return true;
     }
 
-    // Instantly marks this line and downstream faces as disconnected from the live circuit path.
     public void RevokeConnection()
     {
         if (!isConnected)
@@ -198,7 +186,7 @@ public class RunodeLine : MonoBehaviour
 
     private IEnumerator PowerUpSequence()
     {
-        yield return new WaitForSeconds(powerColorDuration);
+        yield return new WaitForSeconds(PowerColorDuration);
 
         foreach (LinePort port in linePorts)
         {
@@ -211,10 +199,9 @@ public class RunodeLine : MonoBehaviour
 
         powerUpSequenceCoroutine = null;
     }
-
     private IEnumerator DepowerSequence()
     {
-        yield return new WaitForSeconds(powerDecolorDuration);
+        yield return new WaitForSeconds(PowerDecolorDuration);
 
         foreach (LinePort port in linePorts)
         {
@@ -228,32 +215,30 @@ public class RunodeLine : MonoBehaviour
         SetAllPortsNeutral();
         depowerSequenceCoroutine = null;
     }
-
     private IEnumerator ColorPowerLine(Color targetColor)
     {
         Color startingColor = lineSprite.color;
         float elapsedTime = 0f;
 
-        while (elapsedTime < powerColorDuration)
+        while (elapsedTime < PowerColorDuration)
         {
             elapsedTime += Time.deltaTime;
-            lineSprite.color = Color.Lerp(startingColor, targetColor, elapsedTime / powerColorDuration);
+            lineSprite.color = Color.Lerp(startingColor, targetColor, elapsedTime / PowerColorDuration);
             yield return null;
         }
 
         lineSprite.color = isFaceBlocked ? Color.black : targetColor;
         colorPowerLineCoroutine = null;
     }
-
     private IEnumerator DecolorPowerLine()
     {
         Color startingColor = lineSprite.color;
         float elapsedTime = 0f;
 
-        while (elapsedTime < powerDecolorDuration)
+        while (elapsedTime < PowerDecolorDuration)
         {
             elapsedTime += Time.deltaTime;
-            lineSprite.color = Color.Lerp(startingColor, isFaceBlocked ? Color.black : Color.white, elapsedTime / powerDecolorDuration);
+            lineSprite.color = Color.Lerp(startingColor, isFaceBlocked ? Color.black : Color.white, elapsedTime / PowerDecolorDuration);
             yield return null;
         }
 
@@ -281,19 +266,18 @@ public class RunodeLine : MonoBehaviour
     {
         while (lineSprite.color != Color.black)
         {
-            lineSprite.color = Color.Lerp(lineSprite.color, Color.black, Time.deltaTime * darkeningSpeed);
+            lineSprite.color = Color.Lerp(lineSprite.color, Color.black, Time.deltaTime * DarkeningSpeed);
             yield return null;
         }
 
         lineSprite.color = Color.black;
         darkenSpriteLineCoroutine = null;
     }
-
     private IEnumerator BrightenSpriteLine()
     {
         while (lineSprite.color != Color.white)
         {
-            lineSprite.color = Color.Lerp(lineSprite.color, Color.white, Time.deltaTime * darkeningSpeed);
+            lineSprite.color = Color.Lerp(lineSprite.color, Color.white, Time.deltaTime * DarkeningSpeed);
             yield return null;
         }
 
@@ -336,7 +320,6 @@ public class RunodeLine : MonoBehaviour
         StopCoroutine(darkenSpriteLineCoroutine);
         darkenSpriteLineCoroutine = null;
     }
-
     private void StopBrightenSpriteLineCoroutine()
     {
         if (brightenSpriteLineCoroutine == null)
@@ -367,7 +350,6 @@ public class RunodeLine : MonoBehaviour
                 port.ReportValidConnections();
         }
     }
-
     public void RefreshFaceObstructionState()
     {
         if (!obstructionPort.isActiveAndEnabled)
@@ -383,7 +365,6 @@ public class RunodeLine : MonoBehaviour
         else
             FaceCleared();
     }
-
     public void RefreshPortObstructions()
     {
         foreach (LinePort port in linePorts)
@@ -392,7 +373,6 @@ public class RunodeLine : MonoBehaviour
                 port.RefreshPortObstructionState();
         }
     }
-
     public void RefreshPortConnections()
     {
         foreach (LinePort port in linePorts)
@@ -401,4 +381,22 @@ public class RunodeLine : MonoBehaviour
                 port.RefreshPortConnection();
         }
     }
+
+    private void ReportShortCircuit(PowerSource incomingSource)
+    {
+        RunodeCube cube = GetComponentInParent<RunodeCube>();
+        string cubeName = cube != null ? cube.gameObject.name.ToUpper() : name.ToUpper();
+        string existingSourceName = powerSource != null ? powerSource.gameObject.name.ToUpper() : "UNKNOWN";
+        string incomingSourceName = incomingSource != null ? incomingSource.gameObject.name.ToUpper() : "UNKNOWN";
+
+        Debug.Log(
+            $"SHORT CIRCUIT DETECTED BETWEEN {existingSourceName} AND {incomingSourceName} ON {cubeName}.",
+            this);
+
+        if (HaltAllPropagationOnShortCircuit)
+            propagationHalted = true;
+
+        // TriggerShortCircuitFinalEvent();
+    }
+
 }
