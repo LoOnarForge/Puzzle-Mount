@@ -38,6 +38,15 @@ public class DevicePowerSocket : MonoBehaviour
         port.SetPortType(PortType.Receiver);
     }
 
+    // True when this socket may take MW from that Power Source and that giver.
+    public bool CanReceivePowerFrom(PowerSource source, RunodeLine givingLine)
+    {
+        if (source == null || source.ColorIndex != colorIndex)
+            return false;
+
+        return poweredByLine == null || poweredByLine == givingLine;
+    }
+
     // Takes MW from the giver's Power Source 1 at a time until full or the pool is empty.
     public bool TryReceivePower(RunodeLine givingLine, LinePort givingPort, PowerSource source, Color color, int index)
     {
@@ -46,18 +55,6 @@ public class DevicePowerSocket : MonoBehaviour
             StopCoroutine(clearPowerCoroutine);
             clearPowerCoroutine = null;
         }
-
-        if (givingPort == null || source == null)
-            return false;
-
-        if (source.ColorIndex != colorIndex)
-            return false;
-
-        if (poweredByLine != null && poweredByLine != givingLine)
-            return false;
-
-        if (allocatedMw >= requiredMw)
-            return true;
 
         while (allocatedMw < requiredMw)
         {
@@ -75,9 +72,6 @@ public class DevicePowerSocket : MonoBehaviour
                 powerIndex = index;
             }
         }
-
-        if (allocatedMw > 0)
-            source.AddCircuitMember(this);
 
         return allocatedMw >= requiredMw;
     }

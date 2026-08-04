@@ -283,14 +283,16 @@ public class LinePort : MonoBehaviour
 
     private void ReportPowerLost()
     {
+        if (type != PortType.Receiver)
+            return;
+
         if (parentDevicePowerSocket != null)
         {
             parentDevicePowerSocket.ClearPower();
             return;
         }
 
-        if (type == PortType.Receiver)
-            parentLine.PowerDownLine();
+        parentLine.PowerDownLine();
     }
 
 
@@ -302,48 +304,27 @@ public class LinePort : MonoBehaviour
             return;
         }
 
-        if (parentPowerSource != null && type == PortType.Giver && otherPort.ParentDevicePowerSocket != null)
+        // Device socket ports never refresh themselves, so the Power Source port reports for them.
+        if (parentPowerSource != null && type == PortType.Giver && otherPort.parentDevicePowerSocket != null)
         {
-            parentPowerSource.PowerSocketFromPS(otherPort.ParentDevicePowerSocket, otherPort, this);
+            parentPowerSource.PowerConnectedPortFromSource(otherPort, this);
             return;
         }
 
         if (otherPort.parentPowerSource != null)
-        {
-            if (parentDevicePowerSocket != null)
-            {
-                otherPort.parentPowerSource.PowerSocketFromPS(parentDevicePowerSocket, this, otherPort);
-                return;
-            }
-
-            otherPort.parentPowerSource.PowerLineFromPS(parentLine, this, otherPort);
-        }
+            otherPort.parentPowerSource.PowerConnectedPortFromSource(this, otherPort);
     }
 
     private void ReportLostConnection(LinePort connectedPort)
     {
         if (type == PortType.Receiver)
         {
-            if (parentDevicePowerSocket != null)
-            {
-                parentDevicePowerSocket.ClearPower();
-                return;
-            }
-
-            parentLine.PowerDownLine();
+            ReportPowerLost();
             return;
         }
 
         if (type == PortType.Giver && parentLine != null && parentLine.PowerSource != null)
-        {
-            if (connectedPort.parentDevicePowerSocket != null)
-            {
-                parentLine.PowerSource.RemoveWaitingEntry(parentLine, connectedPort.parentDevicePowerSocket);
-                return;
-            }
-
-            parentLine.PowerSource.RemoveWaitingEntry(parentLine, connectedPort.parentLine);
-        }
+            parentLine.PowerSource.RemoveWaitingEntry(parentLine, connectedPort);
     }
 
     public void SetIncluded(bool included)

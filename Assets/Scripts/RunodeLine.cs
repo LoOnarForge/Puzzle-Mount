@@ -33,7 +33,8 @@ public class RunodeLine : MonoBehaviour
 
     public bool IsPowered => isPowered;
     public int PowerIndex => powerIndex;
-    public int RequiredMw => RequiredMwAmount;
+    public int AllocatedMw => isPowered ? RequiredMwAmount : 0;
+    public int RemainingMwNeeded => isPowered ? 0 : RequiredMwAmount;
     public PowerSource PowerSource => powerSource;
     public RunodeLine PoweredByLine => poweredByLine;
 
@@ -133,6 +134,15 @@ public class RunodeLine : MonoBehaviour
         depowerSequenceCoroutine = StartCoroutine(DepowerSequence());
     }
 
+    // Returns this face's single MW by depowering, then lets its giver re-evaluate propagation.
+    public void ReleaseOneMw()
+    {
+        RunodeLine poweringLine = poweredByLine;
+
+        PowerDownLine();
+        poweringLine?.RefreshFaceAndPortsStates();
+    }
+
 
     private void SetInitialReceiverAndGiverPorts(LinePort targetPort)
     {
@@ -154,43 +164,7 @@ public class RunodeLine : MonoBehaviour
         if (powerSource == null || !isConnected)
             return false;
 
-        DevicePowerSocket targetSocket = targetPort.ParentDevicePowerSocket;
-        if (targetSocket != null)
-        {
-            if (powerSource.ColorIndex != targetSocket.ColorIndex)
-                return true;
-
-            bool fullyPowered = targetSocket.TryReceivePower(this, sourcePort, powerSource, powerColor, powerIndex + 1);
-
-            if (fullyPowered)
-            {
-                powerSource.RemoveWaitingEntry(this, targetSocket);
-                return true;
-            }
-
-            if (targetSocket.PoweredByLine != null && targetSocket.PoweredByLine != this)
-                return true;
-
-            if (targetSocket.RemainingMwNeeded > 0)
-            {
-                powerSource.AddWaitingEntry(this, targetSocket, targetPort, sourcePort, powerIndex + 1, targetSocket.RemainingMwNeeded);
-                return false;
-            }
-
-            return true;
-        }
-
-        RunodeLine targetLine = targetPort.ParentLine;
-
-        if (!powerSource.TakeMW())
-        {
-            powerSource.AddWaitingEntry(this, targetLine, targetPort, sourcePort, powerIndex + 1, targetLine.RequiredMw);
-            return false;
-        }
-
-        targetLine.PowerUpLine(powerSource, this, targetPort, powerColor, powerIndex + 1);
-        powerSource.AddCircuitMember(targetLine);
-        return true;
+        return powerSource.GivePowerToConnectedPort(this, targetPort, sourcePort, powerIndex + 1);
     }
 
     // Clears isConnected and tells downstream faces they lost the Power Source path.

@@ -43,6 +43,8 @@ public class PowerSource : MonoBehaviour
     [Header("VISUAL ELEMENTS:")]
     [SerializeField] private List<Renderer> colorElements = new List<Renderer>();
 
+    private const int FirstReceiverPowerIndex = 1;
+
     private static readonly int BaseColorProperty = Shader.PropertyToID("_BaseColor");
     private static readonly int EmissionColorProperty = Shader.PropertyToID("_EmissionColor");
     private MaterialPropertyBlock propertyBlock;
@@ -79,36 +81,51 @@ public class PowerSource : MonoBehaviour
         port.RefreshPortConnection();
     }
 
-    // Powers a face directly from this Power Source.
-    public void PowerLineFromPS(RunodeLine line, LinePort receivingPort, LinePort sourcePort)
+    // Powers whatever owns the connected port (face or device socket) directly from this Power Source.
+    public void PowerConnectedPortFromSource(LinePort targetPort, LinePort sourcePort)
     {
-        if (TakeMW())
-        {
-            line.PowerUpLine(this, null, receivingPort, circuitColor, 1);
-            AddCircuitMember(line);
-            RemoveWaitingEntriesForLine(line);
-            return;
-        }
-
-        AddWaitingEntry(null, line, receivingPort, sourcePort, 1, line.RequiredMw);
+        GivePowerToConnectedPort(null, targetPort, sourcePort, FirstReceiverPowerIndex);
     }
 
-    // Powers a device socket directly from this Power Source.
-    public void PowerSocketFromPS(DevicePowerSocket socket, LinePort receivingPort, LinePort sourcePort)
+    // Single give path: allocates MW to the owner of the target port, or creates a waiting entry.
+    public bool GivePowerToConnectedPort(RunodeLine givingLine, LinePort targetPort, LinePort sourcePort, int receiverPowerIndex)
     {
-        if (socket.ColorIndex != colorIndex)
-            return;
+        DevicePowerSocket targetSocket = targetPort.ParentDevicePowerSocket;
+        int mwStillNeeded;
 
-        bool fullyPowered = socket.TryReceivePower(null, sourcePort, this, circuitColor, 1);
-
-        if (fullyPowered)
+        if (targetSocket != null)
         {
-            RemoveWaitingEntriesForSocket(socket);
-            return;
+            if (!targetSocket.CanReceivePowerFrom(this, givingLine))
+                return true;
+
+            targetSocket.TryReceivePower(givingLine, sourcePort, this, circuitColor, receiverPowerIndex);
+
+            if (targetSocket.AllocatedMw > 0)
+                AddCircuitMember(targetSocket);
+
+            mwStillNeeded = targetSocket.RemainingMwNeeded;
+        }
+        else
+        {
+            RunodeLine targetLine = targetPort.ParentLine;
+
+            if (TakeMW())
+            {
+                targetLine.PowerUpLine(this, givingLine, targetPort, circuitColor, receiverPowerIndex);
+                AddCircuitMember(targetLine);
+            }
+
+            mwStillNeeded = targetLine.RemainingMwNeeded;
         }
 
-        if (socket.RemainingMwNeeded > 0)
-            AddWaitingEntry(null, socket, receivingPort, sourcePort, 1, socket.RemainingMwNeeded);
+        if (mwStillNeeded > 0)
+        {
+            AddWaitingEntry(givingLine, targetPort, sourcePort, receiverPowerIndex, mwStillNeeded);
+            return false;
+        }
+
+        RemoveWaitingEntry(givingLine, targetPort);
+        return true;
     }
 
     // Returns one MW to the shared Power Source pool.
@@ -129,34 +146,19 @@ public class PowerSource : MonoBehaviour
         return true;
     }
 
-    // Adds a failed transfer and immediately attempts arbitration.
-    public void AddWaitingEntry(RunodeLine givingLine, RunodeLine receivingLine, LinePort receivingPort, LinePort sourcePort, int powerIndex, int mwNeeded)
+    // Adds a failed transfer for the owner of the receiving port and immediately attempts arbitration.
+    private void AddWaitingEntry(RunodeLine givingLine, LinePort receivingPort, LinePort sourcePort, int powerIndex, int mwNeeded)
     {
-        if (HasWaitingEntry(givingLine, receivingLine))
+        DevicePowerSocket receivingSocket = receivingPort.ParentDevicePowerSocket;
+        RunodeLine receivingLine = receivingSocket != null ? null : receivingPort.ParentLine;
+
+        if (HasWaitingEntry(givingLine, receivingLine, receivingSocket))
             return;
 
         WaitingEntry entry = new WaitingEntry
         {
             givingLine = givingLine,
             receivingLine = receivingLine,
-            receivingPort = receivingPort,
-            sourcePort = sourcePort,
-            powerIndex = powerIndex,
-            mwNeeded = mwNeeded
-        };
-
-        waitingEntries.Add(entry);
-        ArbitrateBetweenMembersAndWaiters(entry);
-    }
-
-    public void AddWaitingEntry(RunodeLine givingLine, DevicePowerSocket receivingSocket, LinePort receivingPort, LinePort sourcePort, int powerIndex, int mwNeeded)
-    {
-        if (HasWaitingEntry(givingLine, receivingSocket))
-            return;
-
-        WaitingEntry entry = new WaitingEntry
-        {
-            givingLine = givingLine,
             receivingSocket = receivingSocket,
             receivingPort = receivingPort,
             sourcePort = sourcePort,
@@ -168,24 +170,19 @@ public class PowerSource : MonoBehaviour
         ArbitrateBetweenMembersAndWaiters(entry);
     }
 
-    public void RemoveWaitingEntry(RunodeLine givingLine, RunodeLine receivingLine)
+    // Removes the waiting entry between this giver and the owner of the receiving port.
+    public void RemoveWaitingEntry(RunodeLine givingLine, LinePort receivingPort)
     {
+        DevicePowerSocket receivingSocket = receivingPort.ParentDevicePowerSocket;
+        RunodeLine receivingLine = receivingSocket != null ? null : receivingPort.ParentLine;
+
         for (int i = waitingEntries.Count - 1; i >= 0; i--)
         {
             WaitingEntry entry = waitingEntries[i];
 
-            if (entry.givingLine == givingLine && entry.receivingLine == receivingLine)
-                waitingEntries.RemoveAt(i);
-        }
-    }
-
-    public void RemoveWaitingEntry(RunodeLine givingLine, DevicePowerSocket receivingSocket)
-    {
-        for (int i = waitingEntries.Count - 1; i >= 0; i--)
-        {
-            WaitingEntry entry = waitingEntries[i];
-
-            if (entry.givingLine == givingLine && entry.receivingSocket == receivingSocket)
+            if (entry.givingLine == givingLine
+                && entry.receivingLine == receivingLine
+                && entry.receivingSocket == receivingSocket)
                 waitingEntries.RemoveAt(i);
         }
     }
@@ -215,60 +212,51 @@ public class PowerSource : MonoBehaviour
 
     private void ArbitrateBetweenMembersAndWaiters(WaitingEntry waitingEntry)
     {
-        RunodeLine victimLine = null;
-        DevicePowerSocket victimSocket = null;
+        CircuitMember victim = null;
         int victimPowerIndex = -1;
-        int victimMemberIndex = -1;
 
-        for (int i = 0; i < circuitMembers.Count; i++)
+        foreach (CircuitMember member in circuitMembers)
         {
-            CircuitMember member = circuitMembers[i];
-
-            if (member.socket != null && member.socket.AllocatedMw > 0)
-            {
-                int socketPowerIndex = member.socket.PowerIndex;
-
-                if (victimPowerIndex < 0
-                    || socketPowerIndex > victimPowerIndex
-                    || (socketPowerIndex == victimPowerIndex && i > victimMemberIndex))
-                {
-                    victimPowerIndex = socketPowerIndex;
-                    victimMemberIndex = i;
-                    victimSocket = member.socket;
-                    victimLine = null;
-                }
-
-                continue;
-            }
-
-            RunodeLine line = member.line;
-
-            if (line == null || !line.IsPowered)
+            if (GetMemberAllocatedMw(member) <= 0)
                 continue;
 
-            if (victimPowerIndex < 0
-                || line.PowerIndex > victimPowerIndex
-                || (line.PowerIndex == victimPowerIndex && i > victimMemberIndex))
+            int memberPowerIndex = GetMemberPowerIndex(member);
+
+            if (victimPowerIndex < 0 || memberPowerIndex >= victimPowerIndex)
             {
-                victimPowerIndex = line.PowerIndex;
-                victimMemberIndex = i;
-                victimLine = line;
-                victimSocket = null;
+                victimPowerIndex = memberPowerIndex;
+                victim = member;
             }
         }
 
-        if (victimPowerIndex < 0 || victimPowerIndex <= waitingEntry.powerIndex)
+        if (victim == null || victimPowerIndex <= waitingEntry.powerIndex)
             return;
 
-        if (victimSocket != null)
+        ReleaseOneMwFromMember(victim);
+    }
+
+    private static int GetMemberAllocatedMw(CircuitMember member)
+    {
+        if (member.socket != null)
+            return member.socket.AllocatedMw;
+
+        return member.line != null ? member.line.AllocatedMw : 0;
+    }
+
+    private static int GetMemberPowerIndex(CircuitMember member)
+    {
+        return member.socket != null ? member.socket.PowerIndex : member.line.PowerIndex;
+    }
+
+    private static void ReleaseOneMwFromMember(CircuitMember member)
+    {
+        if (member.socket != null)
         {
-            victimSocket.ReleaseOneMw();
+            member.socket.ReleaseOneMw();
             return;
         }
 
-        RunodeLine poweringLine = victimLine.PoweredByLine;
-        victimLine.PowerDownLine();
-        poweringLine?.RefreshFaceAndPortsStates();
+        member.line.ReleaseOneMw();
     }
 
     private void EvaluateWaitingList()
@@ -288,13 +276,7 @@ public class PowerSource : MonoBehaviour
 
         if (entry.givingLine == null)
         {
-            if (entry.receivingSocket != null)
-            {
-                PowerSocketFromPS(entry.receivingSocket, entry.receivingPort, entry.sourcePort);
-                return;
-            }
-
-            PowerLineFromPS(entry.receivingLine, entry.receivingPort, entry.sourcePort);
+            PowerConnectedPortFromSource(entry.receivingPort, entry.sourcePort);
             return;
         }
 
@@ -316,112 +298,91 @@ public class PowerSource : MonoBehaviour
 
     private bool IsWaitingEntryValid(WaitingEntry entry)
     {
-        if (entry.receivingSocket != null)
-        {
-            if (entry.receivingSocket.RemainingMwNeeded <= 0)
-                return false;
+        int mwStillNeeded = entry.receivingSocket != null
+            ? entry.receivingSocket.RemainingMwNeeded
+            : (entry.receivingLine != null ? entry.receivingLine.RemainingMwNeeded : 0);
 
-            if (entry.givingLine == null)
-                return entry.sourcePort != null && entry.sourcePort.IsConnectedTo(entry.receivingPort);
+        if (mwStillNeeded <= 0)
+            return false;
 
-            return entry.givingLine.IsPowered
-                && entry.givingLine.IsConnectedToPowerSource()
-                && entry.givingLine.PowerSource == this
-                && entry.sourcePort != null
-                && entry.sourcePort.IsConnectedTo(entry.receivingPort);
-        }
-
-        if (entry.receivingLine == null || entry.receivingLine.IsPowered)
+        if (entry.sourcePort == null || !entry.sourcePort.IsConnectedTo(entry.receivingPort))
             return false;
 
         if (entry.givingLine == null)
-            return entry.sourcePort != null && entry.sourcePort.IsConnectedTo(entry.receivingPort);
+            return true;
 
         return entry.givingLine.IsPowered
             && entry.givingLine.IsConnectedToPowerSource()
-            && entry.givingLine.PowerSource == this
-            && entry.sourcePort != null
-            && entry.sourcePort.IsConnectedTo(entry.receivingPort);
+            && entry.givingLine.PowerSource == this;
     }
 
-    private bool HasWaitingEntry(RunodeLine givingLine, RunodeLine receivingLine)
+    private bool HasWaitingEntry(RunodeLine givingLine, RunodeLine receivingLine, DevicePowerSocket receivingSocket)
     {
         foreach (WaitingEntry entry in waitingEntries)
         {
-            if (entry.givingLine == givingLine && entry.receivingLine == receivingLine)
+            if (entry.givingLine == givingLine
+                && entry.receivingLine == receivingLine
+                && entry.receivingSocket == receivingSocket)
                 return true;
         }
 
         return false;
     }
 
-    private bool HasWaitingEntry(RunodeLine givingLine, DevicePowerSocket receivingSocket)
-    {
-        foreach (WaitingEntry entry in waitingEntries)
-        {
-            if (entry.givingLine == givingLine && entry.receivingSocket == receivingSocket)
-                return true;
-        }
-
-        return false;
-    }
-
+    // Registers a powered face as a consumer of this Power Source.
     public void AddCircuitMember(RunodeLine line)
     {
-        if (line == null || HasCircuitMember(line))
-            return;
-
-        circuitMembers.Add(new CircuitMember { line = line });
+        AddCircuitMember(line, null);
     }
 
-    public void RemoveCircuitMember(RunodeLine line)
-    {
-        if (line == null)
-            return;
-
-        for (int i = circuitMembers.Count - 1; i >= 0; i--)
-        {
-            if (circuitMembers[i].line == line)
-                circuitMembers.RemoveAt(i);
-        }
-    }
-
+    // Registers a device socket holding MW from this Power Source.
     public void AddCircuitMember(DevicePowerSocket socket)
     {
-        if (socket == null || HasCircuitMember(socket))
-            return;
-
-        circuitMembers.Add(new CircuitMember { socket = socket });
+        AddCircuitMember(null, socket);
     }
 
+    // Removes a face that no longer consumes MW from this Power Source.
+    public void RemoveCircuitMember(RunodeLine line)
+    {
+        RemoveCircuitMember(line, null);
+    }
+
+    // Removes a device socket that no longer holds MW from this Power Source.
     public void RemoveCircuitMember(DevicePowerSocket socket)
     {
-        if (socket == null)
+        RemoveCircuitMember(null, socket);
+    }
+
+    private void AddCircuitMember(RunodeLine line, DevicePowerSocket socket)
+    {
+        if (line == null && socket == null)
+            return;
+
+        if (HasCircuitMember(line, socket))
+            return;
+
+        circuitMembers.Add(new CircuitMember { line = line, socket = socket });
+    }
+
+    private void RemoveCircuitMember(RunodeLine line, DevicePowerSocket socket)
+    {
+        if (line == null && socket == null)
             return;
 
         for (int i = circuitMembers.Count - 1; i >= 0; i--)
         {
-            if (circuitMembers[i].socket == socket)
+            CircuitMember member = circuitMembers[i];
+
+            if (member.line == line && member.socket == socket)
                 circuitMembers.RemoveAt(i);
         }
     }
 
-    private bool HasCircuitMember(RunodeLine line)
+    private bool HasCircuitMember(RunodeLine line, DevicePowerSocket socket)
     {
         foreach (CircuitMember member in circuitMembers)
         {
-            if (member.line == line)
-                return true;
-        }
-
-        return false;
-    }
-
-    private bool HasCircuitMember(DevicePowerSocket socket)
-    {
-        foreach (CircuitMember member in circuitMembers)
-        {
-            if (member.socket == socket)
+            if (member.line == line && member.socket == socket)
                 return true;
         }
 
