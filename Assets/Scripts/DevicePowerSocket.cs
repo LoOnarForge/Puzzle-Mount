@@ -27,6 +27,7 @@ public class DevicePowerSocket : MonoBehaviour
 
     [Space (20)]
     [SerializeField] private ForgottenGate ownerForgottenGate;
+    [SerializeField] private Lever ownerLever;
 
 
     private void Awake()
@@ -161,11 +162,17 @@ public class DevicePowerSocket : MonoBehaviour
             ownerForgottenGate.UpdateSocketStateChangeToOwner(ownerIndex, allocatedMw, powerSource);
             return;
         }
+
+        if (ownerLever != null)
+        {
+            ownerLever.UpdateSocketStateChangeToOwner(ownerIndex, allocatedMw, powerSource);
+            return;
+        }
     }
 
     private bool AssignAnOwner()
     {
-        return ownerForgottenGate != null;
+        return ownerForgottenGate != null || ownerLever != null;
     }
 
     private IEnumerator ClearPowerSequence()
