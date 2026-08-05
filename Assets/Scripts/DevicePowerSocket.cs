@@ -19,18 +19,20 @@ public class DevicePowerSocket : MonoBehaviour
 
     private float powerPropagationDelay;
     private Coroutine clearPowerCoroutine;
+    private int ownerIndex = -1;
 
-    public int ColorIndex => colorIndex;
-    public int RequiredMw => requiredMw;
     public int AllocatedMw => allocatedMw;
     public int RemainingMwNeeded => requiredMw - allocatedMw;
     public int PowerIndex => powerIndex;
-    public PowerSource PowerSource => powerSource;
-    public RunodeLine PoweredByLine => poweredByLine;
+
+    [Space (20)]
+    [SerializeField] private ForgottenGate ownerForgottenGate;
+
 
     private void Awake()
     {
         Debug.Assert(port != null, $"{nameof(DevicePowerSocket)} on {name} requires a line port.", this);
+        Debug.Assert(AssignAnOwner(), $"{nameof(DevicePowerSocket)} on {name} requires an owner device.", this);
         Debug.Assert(GameConfig.Instance != null, $"{nameof(DevicePowerSocket)} on {name} requires a {nameof(GameConfig)} in the scene.", this);
 
         powerPropagationDelay = GameConfig.Instance.PowerPropagationDelay;
@@ -38,13 +40,19 @@ public class DevicePowerSocket : MonoBehaviour
         port.SetPortType(PortType.Receiver);
     }
 
-    // True when this socket may take MW from that Power Source and that giver.
-    public bool CanReceivePowerFrom(PowerSource source, RunodeLine givingLine)
+    // Sets socket index, required color, and required MW from the owning device. Called once.
+    public void InitialSocketConfiguration(int index, int color, int mw)
     {
-        if (source == null || source.ColorIndex != colorIndex)
-            return false;
+        ownerIndex = index;
+        colorIndex = color;
+        requiredMw = mw;
+        UpdateSocketStateChangeToOwner();
+    }
 
-        return poweredByLine == null || poweredByLine == givingLine;
+    // True when the Power Source colour matches this socket's required colour.
+    public bool CheckIfCorrectPowerColor(PowerSource source)
+    {
+        return source != null && source.ColorIndex == colorIndex;
     }
 
     // Takes MW from the giver's Power Source 1 at a time until full or the pool is empty.
@@ -73,6 +81,7 @@ public class DevicePowerSocket : MonoBehaviour
             }
         }
 
+        UpdateSocketStateChangeToOwner();
         return allocatedMw >= requiredMw;
     }
 
@@ -99,6 +108,7 @@ public class DevicePowerSocket : MonoBehaviour
         }
 
         givingLine?.RefreshFaceAndPortsStates();
+        UpdateSocketStateChangeToOwner();
     }
 
     // Returns all held MW one at a time, waiting PowerPropagationDelay between each.
@@ -123,11 +133,13 @@ public class DevicePowerSocket : MonoBehaviour
             linePort = null;
             powerColor = Color.white;
             powerIndex = -1;
+            UpdateSocketStateChangeToOwner();
             return;
         }
 
         poweredByLine = null;
         linePort = null;
+        UpdateSocketStateChangeToOwner();
 
         if (powerSource != null)
         {
@@ -136,6 +148,24 @@ public class DevicePowerSocket : MonoBehaviour
         }
 
         clearPowerCoroutine = StartCoroutine(ClearPowerSequence());
+    }
+
+    // Tells the owning device that this socket's power state changed.
+    private void UpdateSocketStateChangeToOwner()
+    {
+        if (ownerIndex < 0)
+            return;
+
+        if (ownerForgottenGate != null)
+        {
+            ownerForgottenGate.UpdateSocketStateChangeToOwner(ownerIndex, allocatedMw, powerSource);
+            return;
+        }
+    }
+
+    private bool AssignAnOwner()
+    {
+        return ownerForgottenGate != null;
     }
 
     private IEnumerator ClearPowerSequence()
