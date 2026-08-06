@@ -259,6 +259,10 @@ public class LinePort : MonoBehaviour
             if (connectedPort.parentDevicePowerSocket != null)
                 continue;
 
+            // Skip faces this line does not power (stale links must not clear isConnected).
+            if (connectedPort.parentLine.PoweredByLine != parentLine)
+                continue;
+
             connectedPort.parentLine.DisconnectFromPowerSource();
         }
     }
