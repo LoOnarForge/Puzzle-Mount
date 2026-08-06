@@ -32,7 +32,7 @@ public class Lever : MonoBehaviour
         InitialSocketConfiguration();
     }
 
-     // Called by a DevicePowerSocket when its power state changes.
+     // Called by a DevicePowerSocket when its power state changes. 
     public void UpdateSocketStateToOwner(int ownerIndex, int allocatedMw, PowerSource poweringSource)
     {
         if (ownerIndex != SocketIndex)
