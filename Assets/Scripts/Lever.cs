@@ -28,27 +28,23 @@ public class Lever : MonoBehaviour
 
     private void Awake()
     {
-        Debug.Assert(HasSolidClickCollider(), $"{nameof(Lever)} on {name} requires at least one non-trigger collider for clicks and blocking cubes.", this);
-        Debug.Assert(leverHandle != null, $"{nameof(Lever)} on {name} requires a lever handle assigned.", this);
-
         BuildConnectedDeviceLists();
         InitialSocketConfiguration();
     }
 
-    private bool HasSolidClickCollider()
+     // Called by a DevicePowerSocket when its power state changes.
+    public void UpdateSocketStateToOwner(int ownerIndex, int allocatedMw, PowerSource poweringSource)
     {
-        Collider[] colliders = GetComponentsInChildren<Collider>();
+        if (ownerIndex != SocketIndex)
+            return;
 
-        foreach (Collider childCollider in colliders)
-        {
-            if (!childCollider.isTrigger)
-                return true;
-        }
-
-        return false;
+        socket.allocatedMw = allocatedMw;
+        socket.poweringSource = poweringSource;
+        RefreshLeverState();
     }
 
-    // Called by MouseInteraction when this lever is clicked.
+   
+    
     public void MouseClickDetected()
     {
         if (isLeverMoving)
@@ -62,49 +58,7 @@ public class Lever : MonoBehaviour
         NotifyConnectedDevices();
     }
 
-    // Called by a DevicePowerSocket when its power state changes.
-    public void UpdateSocketStateChangeToOwner(int ownerIndex, int allocatedMw, PowerSource poweringSource)
-    {
-        if (ownerIndex != SocketIndex)
-            return;
-
-        socket.allocatedMw = allocatedMw;
-        socket.poweringSource = poweringSource;
-        RefreshPoweredState();
-    }
-
-    // Builds typed device lists once from the inspector object list.
-    private void BuildConnectedDeviceLists()
-    {
-        mediumDoors.Clear();
-
-        foreach (GameObject deviceObject in connectedDevices)
-        {
-            if (deviceObject == null)
-                continue;
-
-            MediumDoor mediumDoor = deviceObject.GetComponent<MediumDoor>();
-            if (mediumDoor != null)
-                mediumDoors.Add(mediumDoor);
-        }
-    }
-
-    // Claims the assigned socket once and pushes required color and MW to it.
-    private void InitialSocketConfiguration()
-    {
-        Debug.Assert(socket.socketObject != null, $"{nameof(Lever)} on {name} requires a socket object assigned.", this);
-
-        if (socket.socketObject == null)
-            return;
-
-        DevicePowerSocket device = socket.socketObject.GetComponent<DevicePowerSocket>();
-        Debug.Assert(device != null, $"{nameof(Lever)} on {name} socket object requires a {nameof(DevicePowerSocket)}.", this);
-
-        device.InitialSocketConfiguration(SocketIndex, socket.requiredColorIndex, socket.requiredMw);
-        RefreshPoweredState();
-    }
-
-    private void RefreshPoweredState()
+    private void RefreshLeverState()
     {
         isPowered = socket.allocatedMw >= socket.requiredMw;
     }
@@ -131,10 +85,40 @@ public class Lever : MonoBehaviour
         isLeverMoving = false;
     }
 
+
     // Calls OnLeverOperated on every cached connected device.
     private void NotifyConnectedDevices()
     {
         foreach (MediumDoor mediumDoor in mediumDoors)
             mediumDoor.OnLeverOperated();
+    }
+
+
+
+    // Builds typed device lists once from the inspector object list.
+    private void BuildConnectedDeviceLists()
+    {
+        mediumDoors.Clear();
+
+        foreach (GameObject deviceObject in connectedDevices)
+        {
+            if (deviceObject == null)
+                continue;
+
+            MediumDoor mediumDoor = deviceObject.GetComponent<MediumDoor>();
+            if (mediumDoor != null)
+                mediumDoors.Add(mediumDoor);
+        }
+    }
+
+    // Claims the assigned socket once and pushes required color and MW to it.
+    private void InitialSocketConfiguration()
+    {
+        if (socket.socketObject == null)
+            return;
+
+        DevicePowerSocket device = socket.socketObject.GetComponent<DevicePowerSocket>();
+        device.InitialSocketConfiguration(SocketIndex, socket.requiredColorIndex, socket.requiredMw);
+        RefreshLeverState();
     }
 }

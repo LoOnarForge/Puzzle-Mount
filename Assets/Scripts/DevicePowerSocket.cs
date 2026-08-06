@@ -165,7 +165,7 @@ public class DevicePowerSocket : MonoBehaviour
 
         if (ownerLever != null)
         {
-            ownerLever.UpdateSocketStateChangeToOwner(ownerIndex, allocatedMw, powerSource);
+            ownerLever.UpdateSocketStateToOwner(ownerIndex, allocatedMw, powerSource);
             return;
         }
     }
