@@ -33,6 +33,7 @@ public class RunodeHighlighter : MonoBehaviour
     private MaterialPropertyBlock cubePropBlock;
     private MaterialPropertyBlock linePropBlock;
 
+    private Color restingColor = Color.white;
     private Color currentColor = Color.white;
     private Color currentLineColor = Color.white;
     
@@ -61,6 +62,15 @@ public class RunodeHighlighter : MonoBehaviour
         ClearAllDecals();
     }
 
+    private void Start()
+    {
+        // Read after VisualRandomizer Awake so highlight restores the chosen material tint.
+        if (cubeRenderer != null && cubeRenderer.sharedMaterial != null && cubeRenderer.sharedMaterial.HasProperty(BaseColorId))
+            restingColor = cubeRenderer.sharedMaterial.GetColor(BaseColorId);
+
+        currentColor = restingColor;
+    }
+
     private void Update()
     {
         // 1. Cube Highlight Transition
@@ -71,7 +81,7 @@ public class RunodeHighlighter : MonoBehaviour
 
             if (!isHovered)
             {
-                target = isPushable ? pushableColor : Color.white;
+                target = isPushable ? pushableColor : restingColor;
                 lightingUp = isPushable;
             }
             else
