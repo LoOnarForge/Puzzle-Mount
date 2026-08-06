@@ -159,7 +159,7 @@ public class DevicePowerSocket : MonoBehaviour
 
         if (ownerForgottenGate != null)
         {
-            ownerForgottenGate.UpdateSocketStateChangeToOwner(ownerIndex, allocatedMw, powerSource);
+            ownerForgottenGate.UpdateSocketStateToOwner(ownerIndex, allocatedMw, powerSource);
             return;
         }
 

@@ -1,14 +1,10 @@
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
-using UnityEngine.InputSystem;
 
 public class Lever : MonoBehaviour
 {
     private const int SocketIndex = 0;
-    private const float LeverAnglePositive = 20f;
-    private const float LeverAngleNegative = -20f;
-    private const float LeverMoveDuration = 0.25f;
 
     [System.Serializable]
     private class SocketSlot
@@ -27,19 +23,14 @@ public class Lever : MonoBehaviour
 
     private readonly List<MediumDoor> mediumDoors = new List<MediumDoor>();
 
-    private TimCubeController timCubeController;
-    private Transform timTransform;
     private bool isLeverMoving;
     private bool isAtPositiveAngle = true;
-    private float leverHandleLocalY;
-    private float leverHandleLocalZ;
 
     private void Awake()
     {
         Debug.Assert(HasSolidClickCollider(), $"{nameof(Lever)} on {name} requires at least one non-trigger collider for clicks and blocking cubes.", this);
         Debug.Assert(leverHandle != null, $"{nameof(Lever)} on {name} requires a lever handle assigned.", this);
 
-        CacheLeverHandleRotation();
         BuildConnectedDeviceLists();
         InitialSocketConfiguration();
     }
@@ -57,30 +48,18 @@ public class Lever : MonoBehaviour
         return false;
     }
 
-    private void CacheLeverHandleRotation()
+    // Called by MouseInteraction when this lever is clicked.
+    public void MouseClickDetected()
     {
-        if (leverHandle == null)
+        if (isLeverMoving)
             return;
 
-        Vector3 localEuler = leverHandle.localEulerAngles;
-        leverHandleLocalY = localEuler.y;
-        leverHandleLocalZ = localEuler.z;
-        leverHandle.localRotation = Quaternion.Euler(LeverAnglePositive, leverHandleLocalY, leverHandleLocalZ);
-        isAtPositiveAngle = true;
-    }
+        StartCoroutine(LeverSwitchingMovement());
 
-    private void Start()
-    {
-        timCubeController = FindAnyObjectByType<TimCubeController>();
-        Debug.Assert(timCubeController != null, $"{nameof(Lever)} on {name} requires a {nameof(TimCubeController)} in the scene.", this);
+        if (!isPowered)
+            return;
 
-        if (timCubeController != null)
-            timTransform = timCubeController.transform;
-    }
-
-    private void Update()
-    {
-        TryDetectLeverClick();
+        NotifyConnectedDevices();
     }
 
     // Called by a DevicePowerSocket when its power state changes.
@@ -130,61 +109,24 @@ public class Lever : MonoBehaviour
         isPowered = socket.allocatedMw >= socket.requiredMw;
     }
 
-    private void TryDetectLeverClick()
-    {
-        if (Mouse.current == null || Camera.main == null || timCubeController == null || timTransform == null)
-            return;
-
-        if (!Mouse.current.leftButton.wasPressedThisFrame)
-            return;
-
-        Ray ray = Camera.main.ScreenPointToRay(Mouse.current.position.ReadValue());
-        if (!Physics.Raycast(ray, out RaycastHit hit, 100f, timCubeController.interactionLayer))
-            return;
-
-        Lever hitLever = hit.collider.GetComponentInParent<Lever>();
-        if (hitLever != this)
-            return;
-
-        float distance = Vector3.ProjectOnPlane(transform.position - timTransform.position, Vector3.up).magnitude;
-        if (distance > timCubeController.maxRotationDistance)
-            return;
-
-        OperateLever();
-    }
-
-    // Animates the lever handle. Notifies connected devices only when powered.
-    private void OperateLever()
-    {
-        if (isLeverMoving)
-            return;
-
-        StartCoroutine(AnimateLeverHandle());
-
-        if (!isPowered)
-            return;
-
-        NotifyConnectedDevices();
-    }
-
     // Lerps the lever handle local X between +20 and -20.
-    private IEnumerator AnimateLeverHandle()
+    private IEnumerator LeverSwitchingMovement()
     {
         isLeverMoving = true;
 
-        float startAngle = isAtPositiveAngle ? LeverAnglePositive : LeverAngleNegative;
-        float endAngle = isAtPositiveAngle ? LeverAngleNegative : LeverAnglePositive;
+        float startAngle = isAtPositiveAngle ? 20f : -20f;
+        float endAngle = isAtPositiveAngle ? -20f : 20f;
         float elapsed = 0f;
 
-        while (elapsed < LeverMoveDuration)
+        while (elapsed < 0.25f)
         {
             elapsed += Time.deltaTime;
-            float angleX = Mathf.Lerp(startAngle, endAngle, Mathf.Clamp01(elapsed / LeverMoveDuration));
-            leverHandle.localRotation = Quaternion.Euler(angleX, leverHandleLocalY, leverHandleLocalZ);
+            float angleX = Mathf.Lerp(startAngle, endAngle, Mathf.Clamp01(elapsed / 0.25f));
+            leverHandle.localRotation = Quaternion.Euler(angleX, 0f, 0f);
             yield return null;
         }
 
-        leverHandle.localRotation = Quaternion.Euler(endAngle, leverHandleLocalY, leverHandleLocalZ);
+        leverHandle.localRotation = Quaternion.Euler(endAngle, 0f, 0f);
         isAtPositiveAngle = !isAtPositiveAngle;
         isLeverMoving = false;
     }

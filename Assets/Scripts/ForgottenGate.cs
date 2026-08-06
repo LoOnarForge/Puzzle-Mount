@@ -66,14 +66,14 @@ public class ForgottenGate : MonoBehaviour
     }
 
     // Called by a DevicePowerSocket when its power state changes.
-    public void UpdateSocketStateChangeToOwner(int ownerIndex, int allocatedMw, PowerSource poweringSource)
+    public void UpdateSocketStateToOwner(int ownerIndex, int allocatedMw, PowerSource poweringSource)
     {
         if (ownerIndex < 0 || ownerIndex >= sockets.Length)
             return;
 
         sockets[ownerIndex].allocatedMw = allocatedMw;
         sockets[ownerIndex].poweringSource = poweringSource;
-        RefreshGateActiveState();
+        RefreshGateState();
     }
 
     // Claims assigned sockets once and pushes required color and MW to each.
@@ -104,10 +104,10 @@ public class ForgottenGate : MonoBehaviour
             device.InitialSocketConfiguration(i, slot.requiredColorIndex, slot.requiredMw);
         }
 
-        RefreshGateActiveState();
+        RefreshGateState();
     }
 
-    private void RefreshGateActiveState()
+    private void RefreshGateState()
     {
         bool wasGateActive = isGateActive;
         bool hasEnabledSocket = false;
