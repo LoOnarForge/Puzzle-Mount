@@ -69,6 +69,7 @@ MonoBehaviour:
   parentLine: {fileID: 7721211325919884356}
   parentCube: {fileID: 552749621463026214}
   parentPowerSource: {fileID: 0}
+  parentDevicePowerSocket: {fileID: 0}
   type: 0
   isIncluded: 0
   isBlocked: 0
@@ -146,6 +147,7 @@ MonoBehaviour:
   parentLine: {fileID: 6718197769347375655}
   parentCube: {fileID: 552749621463026214}
   parentPowerSource: {fileID: 0}
+  parentDevicePowerSocket: {fileID: 0}
   type: 0
   isIncluded: 0
   isBlocked: 0
@@ -298,6 +300,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::RunodeLine
   lineSprite: {fileID: 1342779466184929273}
   isPowered: 0
+  isConnected: 0
   isFaceBlocked: 0
   powerSource: {fileID: 0}
   poweredByLine: {fileID: 0}
@@ -469,6 +472,7 @@ MonoBehaviour:
   parentLine: {fileID: 3132759350798874552}
   parentCube: {fileID: 552749621463026214}
   parentPowerSource: {fileID: 0}
+  parentDevicePowerSocket: {fileID: 0}
   type: 0
   isIncluded: 0
   isBlocked: 0
@@ -621,6 +625,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::RunodeLine
   lineSprite: {fileID: 6513066122090101677}
   isPowered: 0
+  isConnected: 0
   isFaceBlocked: 0
   powerSource: {fileID: 0}
   poweredByLine: {fileID: 0}
@@ -701,6 +706,7 @@ MonoBehaviour:
   parentLine: {fileID: 3568495528392509501}
   parentCube: {fileID: 552749621463026214}
   parentPowerSource: {fileID: 0}
+  parentDevicePowerSocket: {fileID: 0}
   type: 0
   isIncluded: 0
   isBlocked: 0
@@ -778,6 +784,7 @@ MonoBehaviour:
   parentLine: {fileID: 6718197769347375655}
   parentCube: {fileID: 552749621463026214}
   parentPowerSource: {fileID: 0}
+  parentDevicePowerSocket: {fileID: 0}
   type: 0
   isIncluded: 0
   isBlocked: 0
@@ -786,6 +793,96 @@ MonoBehaviour:
     m_Bits: 527872
   connectedPorts: []
   obstructions: []
+--- !u!1 &1499678836017547596
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 3860659088543852528}
+  - component: {fileID: 7512525590632029013}
+  - component: {fileID: 1159792274427574457}
+  m_Layer: 0
+  m_Name: Runode Body
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &3860659088543852528
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1499678836017547596}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: -0.5, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 835437057088223901}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!33 &7512525590632029013
+MeshFilter:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1499678836017547596}
+  m_Mesh: {fileID: 7708337578138432172, guid: 641d85d96ebaee945b5ffd20a410ffa7, type: 3}
+--- !u!23 &1159792274427574457
+MeshRenderer:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1499678836017547596}
+  m_Enabled: 1
+  m_CastShadows: 1
+  m_ReceiveShadows: 1
+  m_DynamicOccludee: 1
+  m_StaticShadowCaster: 0
+  m_MotionVectors: 1
+  m_LightProbeUsage: 1
+  m_ReflectionProbeUsage: 1
+  m_RayTracingMode: 2
+  m_RayTraceProcedural: 0
+  m_RayTracingAccelStructBuildFlagsOverride: 0
+  m_RayTracingAccelStructBuildFlags: 1
+  m_SmallMeshCulling: 1
+  m_ForceMeshLod: -1
+  m_MeshLodSelectionBias: 0
+  m_RenderingLayerMask: 1
+  m_RendererPriority: 0
+  m_Materials:
+  - {fileID: 2100000, guid: fdf8d5df88b9bfd41a783e14a091481f, type: 2}
+  m_StaticBatchInfo:
+    firstSubMesh: 0
+    subMeshCount: 0
+  m_StaticBatchRoot: {fileID: 0}
+  m_ProbeAnchor: {fileID: 0}
+  m_LightProbeVolumeOverride: {fileID: 0}
+  m_ScaleInLightmap: 1
+  m_ReceiveGI: 1
+  m_PreserveUVs: 0
+  m_IgnoreNormalsForChartDetection: 0
+  m_ImportantGI: 0
+  m_StitchLightmapSeams: 1
+  m_SelectedEditorRenderState: 3
+  m_MinimumChartSize: 4
+  m_AutoUVMaxDistance: 0.5
+  m_AutoUVMaxAngle: 89
+  m_LightmapParameters: {fileID: 0}
+  m_GlobalIlluminationMeshLod: 0
+  m_SortingLayerID: 0
+  m_SortingLayer: 0
+  m_SortingOrder: 0
+  m_MaskInteraction: 0
+  m_AdditionalVertexStreams: {fileID: 0}
 --- !u!1 &1986862890488688409
 GameObject:
   m_ObjectHideFlags: 0
@@ -898,6 +995,7 @@ MonoBehaviour:
   parentLine: {fileID: 3132759350798874552}
   parentCube: {fileID: 552749621463026214}
   parentPowerSource: {fileID: 0}
+  parentDevicePowerSocket: {fileID: 0}
   type: 0
   isIncluded: 0
   isBlocked: 0
@@ -1046,6 +1144,7 @@ MonoBehaviour:
   parentLine: {fileID: 2512085481284264395}
   parentCube: {fileID: 552749621463026214}
   parentPowerSource: {fileID: 0}
+  parentDevicePowerSocket: {fileID: 0}
   type: 0
   isIncluded: 0
   isBlocked: 0
@@ -1123,6 +1222,7 @@ MonoBehaviour:
   parentLine: {fileID: 3201380440818016219}
   parentCube: {fileID: 552749621463026214}
   parentPowerSource: {fileID: 0}
+  parentDevicePowerSocket: {fileID: 0}
   type: 0
   isIncluded: 0
   isBlocked: 0
@@ -1200,6 +1300,7 @@ MonoBehaviour:
   parentLine: {fileID: 3568495528392509501}
   parentCube: {fileID: 552749621463026214}
   parentPowerSource: {fileID: 0}
+  parentDevicePowerSocket: {fileID: 0}
   type: 0
   isIncluded: 0
   isBlocked: 0
@@ -1239,6 +1340,7 @@ Transform:
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children:
+  - {fileID: 3860659088543852528}
   - {fileID: 8933136795940741772}
   - {fileID: 2615174383923592750}
   - {fileID: 816600194662489829}
@@ -1263,7 +1365,7 @@ MeshRenderer:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 2758134824250418629}
-  m_Enabled: 1
+  m_Enabled: 0
   m_CastShadows: 1
   m_ReceiveShadows: 1
   m_DynamicOccludee: 1
@@ -1673,6 +1775,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::RunodeLine
   lineSprite: {fileID: 812971541554150987}
   isPowered: 0
+  isConnected: 0
   isFaceBlocked: 0
   powerSource: {fileID: 0}
   poweredByLine: {fileID: 0}
@@ -1844,6 +1947,7 @@ MonoBehaviour:
   parentLine: {fileID: 2512085481284264395}
   parentCube: {fileID: 552749621463026214}
   parentPowerSource: {fileID: 0}
+  parentDevicePowerSocket: {fileID: 0}
   type: 0
   isIncluded: 0
   isBlocked: 0
@@ -2129,6 +2233,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::RunodeLine
   lineSprite: {fileID: 8698879850506680210}
   isPowered: 0
+  isConnected: 0
   isFaceBlocked: 0
   powerSource: {fileID: 0}
   poweredByLine: {fileID: 0}
@@ -2209,6 +2314,7 @@ MonoBehaviour:
   parentLine: {fileID: 3201380440818016219}
   parentCube: {fileID: 552749621463026214}
   parentPowerSource: {fileID: 0}
+  parentDevicePowerSocket: {fileID: 0}
   type: 0
   isIncluded: 0
   isBlocked: 0
@@ -2398,6 +2504,7 @@ MonoBehaviour:
   parentLine: {fileID: 6718197769347375655}
   parentCube: {fileID: 552749621463026214}
   parentPowerSource: {fileID: 0}
+  parentDevicePowerSocket: {fileID: 0}
   type: 0
   isIncluded: 0
   isBlocked: 0
@@ -2678,6 +2785,7 @@ MonoBehaviour:
   parentLine: {fileID: 7721211325919884356}
   parentCube: {fileID: 552749621463026214}
   parentPowerSource: {fileID: 0}
+  parentDevicePowerSocket: {fileID: 0}
   type: 0
   isIncluded: 0
   isBlocked: 0
@@ -2867,6 +2975,7 @@ MonoBehaviour:
   parentLine: {fileID: 3132759350798874552}
   parentCube: {fileID: 552749621463026214}
   parentPowerSource: {fileID: 0}
+  parentDevicePowerSocket: {fileID: 0}
   type: 0
   isIncluded: 0
   isBlocked: 0
@@ -3035,6 +3144,7 @@ MonoBehaviour:
   parentLine: {fileID: 2512085481284264395}
   parentCube: {fileID: 552749621463026214}
   parentPowerSource: {fileID: 0}
+  parentDevicePowerSocket: {fileID: 0}
   type: 0
   isIncluded: 0
   isBlocked: 0
@@ -3320,6 +3430,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::RunodeLine
   lineSprite: {fileID: 7810630569320415241}
   isPowered: 0
+  isConnected: 0
   isFaceBlocked: 0
   powerSource: {fileID: 0}
   poweredByLine: {fileID: 0}
@@ -3836,6 +3947,7 @@ MonoBehaviour:
   parentLine: {fileID: 7721211325919884356}
   parentCube: {fileID: 552749621463026214}
   parentPowerSource: {fileID: 0}
+  parentDevicePowerSocket: {fileID: 0}
   type: 0
   isIncluded: 0
   isBlocked: 0
@@ -3913,6 +4025,7 @@ MonoBehaviour:
   parentLine: {fileID: 3201380440818016219}
   parentCube: {fileID: 552749621463026214}
   parentPowerSource: {fileID: 0}
+  parentDevicePowerSocket: {fileID: 0}
   type: 0
   isIncluded: 0
   isBlocked: 0
@@ -4223,6 +4336,7 @@ MonoBehaviour:
   parentLine: {fileID: 3201380440818016219}
   parentCube: {fileID: 552749621463026214}
   parentPowerSource: {fileID: 0}
+  parentDevicePowerSocket: {fileID: 0}
   type: 0
   isIncluded: 0
   isBlocked: 0
@@ -4284,6 +4398,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::RunodeLine
   lineSprite: {fileID: 5774017099668130549}
   isPowered: 0
+  isConnected: 0
   isFaceBlocked: 0
   powerSource: {fileID: 0}
   poweredByLine: {fileID: 0}
@@ -4364,6 +4479,7 @@ MonoBehaviour:
   parentLine: {fileID: 3568495528392509501}
   parentCube: {fileID: 552749621463026214}
   parentPowerSource: {fileID: 0}
+  parentDevicePowerSocket: {fileID: 0}
   type: 0
   isIncluded: 0
   isBlocked: 0
@@ -4477,6 +4593,7 @@ GameObject:
   - component: {fileID: 2649101482560198983}
   - component: {fileID: 7481740804408281709}
   - component: {fileID: 1967884199839550031}
+  - component: {fileID: 4830288551996027856}
   m_Layer: 11
   m_Name: Runode (001)
   m_TagString: Untagged
@@ -4562,14 +4679,14 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 0036b3ca8bebc8c469718b1c3ab9ae1c, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::RunodeHighlighter
-  inRangeColor: {r: 4.005236, g: 0.52983886, b: 0, a: 1}
+  inRangeColor: {r: 16.020945, g: 2.1193554, b: 0, a: 1}
   outOfRangeColor: {r: 2.4, g: 2.4, b: 2.4, a: 1}
   pushableColor: {r: 0.8, g: 1.5, b: 0.8, a: 1}
   highlightUpSpeed: 25
   highlightDownSpeed: 7
   darkenLinesOnHighlight: 1
   lineDarkenedColor: {r: 0.2, g: 0.2, b: 0.2, a: 1}
-  cubeRenderer: {fileID: 0}
+  cubeRenderer: {fileID: 1159792274427574457}
   selectionFrame: {fileID: 1986862890488688409}
   timCubeController: {fileID: 0}
   faceDecals:
@@ -4634,6 +4751,28 @@ BoxCollider:
   serializedVersion: 3
   m_Size: {x: 0.999, y: 0.999, z: 0.999}
   m_Center: {x: 0, y: 0, z: 0}
+--- !u!114 &4830288551996027856
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 7603746729409790017}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: ddf29c40c2cc8be47a289c8e60d93754, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::RunodeCubeVisualRandomizer
+  mesh01: {fileID: 4300000, guid: 02a73121318ad77439693b49cbb55b59, type: 2}
+  mesh02: {fileID: 4300000, guid: 4464f5860ff5bc246b9c1753d9c584b6, type: 2}
+  mesh03: {fileID: 4300000, guid: 6bf68006ae1033c408b80a9f624d8686, type: 2}
+  mesh04: {fileID: 4300000, guid: 1851a3a3366251c479d8a9dc84a1704f, type: 2}
+  mesh05: {fileID: 4300000, guid: 4a210bcf1887fb449a1d5dc28c899a07, type: 2}
+  material01: {fileID: 2100000, guid: 083306651d8a9f246ba58ab6b43f29af, type: 2}
+  material02: {fileID: 2100000, guid: 2761a180deeaf8445ab31845de3f0db1, type: 2}
+  material03: {fileID: 2100000, guid: 7ea2f40ce5bb5f544b4b47866e908624, type: 2}
+  meshFilter: {fileID: 7512525590632029013}
+  meshRenderer: {fileID: 1159792274427574457}
 --- !u!1 &7670618824228153950
 GameObject:
   m_ObjectHideFlags: 0
@@ -5018,6 +5157,7 @@ MonoBehaviour:
   parentLine: {fileID: 6718197769347375655}
   parentCube: {fileID: 552749621463026214}
   parentPowerSource: {fileID: 0}
+  parentDevicePowerSocket: {fileID: 0}
   type: 0
   isIncluded: 0
   isBlocked: 0
@@ -5166,6 +5306,7 @@ MonoBehaviour:
   parentLine: {fileID: 2512085481284264395}
   parentCube: {fileID: 552749621463026214}
   parentPowerSource: {fileID: 0}
+  parentDevicePowerSocket: {fileID: 0}
   type: 0
   isIncluded: 0
   isBlocked: 0
@@ -5243,6 +5384,7 @@ MonoBehaviour:
   parentLine: {fileID: 7721211325919884356}
   parentCube: {fileID: 552749621463026214}
   parentPowerSource: {fileID: 0}
+  parentDevicePowerSocket: {fileID: 0}
   type: 0
   isIncluded: 0
   isBlocked: 0
@@ -5320,6 +5462,7 @@ MonoBehaviour:
   parentLine: {fileID: 3568495528392509501}
   parentCube: {fileID: 552749621463026214}
   parentPowerSource: {fileID: 0}
+  parentDevicePowerSocket: {fileID: 0}
   type: 0
   isIncluded: 0
   isBlocked: 0
@@ -5397,6 +5540,7 @@ MonoBehaviour:
   parentLine: {fileID: 3132759350798874552}
   parentCube: {fileID: 552749621463026214}
   parentPowerSource: {fileID: 0}
+  parentDevicePowerSocket: {fileID: 0}
   type: 0
   isIncluded: 0
   isBlocked: 0
