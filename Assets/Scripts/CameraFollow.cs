@@ -15,7 +15,7 @@ public class CameraFollow : MonoBehaviour
     
     [Header("Follow Settings")]
     public Vector3 offset = new Vector3(0, 5, -8);
-    public bool constrainY = true;
+    public bool constrainY = false;
     public float fixedYPosition = 10f;
     [Tooltip("Offsets the screen position without changing the camera angle")]
     public float screenFramingOffset = 0f;
