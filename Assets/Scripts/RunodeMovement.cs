@@ -14,6 +14,7 @@ public class RunodeMovement : MonoBehaviour
 
     [Header("DEBUG:")]
     public bool isMovingPos = false;
+    [SerializeField] private bool isGrounded;
     public bool isRotating { get; private set; }
 
     public bool IsBusy => isMovingPos || isRotating;
@@ -59,7 +60,7 @@ public class RunodeMovement : MonoBehaviour
 
     private void FixedUpdate()
     {
-        bool isGrounded = IsGrounded();
+        isGrounded = IsGrounded();
 
         if (!wasGrounded && isGrounded && runodeCube != null)
         {
@@ -134,7 +135,7 @@ public class RunodeMovement : MonoBehaviour
     private bool IsGrounded()
     {
         int mask = groundCheckMask == 0 ? ~0 : groundCheckMask;
-        return Physics.Raycast(transform.position + Vector3.up * 0.1f, Vector3.down, 0.6f, mask);
+        return Physics.Raycast(transform.position + Vector3.up * 0.1f, Vector3.down, 0.8f, mask);
     }
 
     private Vector3 GetGridDirection(Vector3 direction)

@@ -22,6 +22,7 @@ public class Lever : MonoBehaviour
     [SerializeField] private bool isPowered;
 
     private readonly List<MediumDoor> mediumDoors = new List<MediumDoor>();
+    private readonly List<Elevator> elevators = new List<Elevator>();
 
     private bool isLeverMoving;
     private bool isAtPositiveAngle = true;
@@ -91,14 +92,16 @@ public class Lever : MonoBehaviour
     {
         foreach (MediumDoor mediumDoor in mediumDoors)
             mediumDoor.OnLeverOperated();
+
+        foreach (Elevator elevator in elevators)
+            elevator.OnLeverOperated();
     }
-
-
 
     // Builds typed device lists once from the inspector object list.
     private void BuildConnectedDeviceLists()
     {
         mediumDoors.Clear();
+        elevators.Clear();
 
         foreach (GameObject deviceObject in connectedDevices)
         {
@@ -108,6 +111,10 @@ public class Lever : MonoBehaviour
             MediumDoor mediumDoor = deviceObject.GetComponent<MediumDoor>();
             if (mediumDoor != null)
                 mediumDoors.Add(mediumDoor);
+
+            Elevator elevator = deviceObject.GetComponent<Elevator>();
+            if (elevator != null)
+                elevators.Add(elevator);
         }
     }
 
