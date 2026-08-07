@@ -21,9 +21,19 @@ public class ElevatorEditor : Editor
 
         EditorGUILayout.Space(20);
         EditorGUILayout.PropertyField(serializedObject.FindProperty("platform"));
-        EditorGUILayout.PropertyField(serializedObject.FindProperty("stops"), true);
+
+        SerializedProperty stops = serializedObject.FindProperty("stops");
+        EditorGUILayout.PropertyField(stops, true);
+
+        using (new EditorGUI.DisabledScope(stops.arraySize == 0))
+        {
+            if (GUILayout.Button("Add Stop"))
+                AddStop((Elevator)target, stops);
+        }
+
         EditorGUILayout.PropertyField(serializedObject.FindProperty("moveSpeed"));
         EditorGUILayout.PropertyField(serializedObject.FindProperty("currentStopIndex"));
+        EditorGUILayout.PropertyField(serializedObject.FindProperty("deathForceMultiplier"));
 
         EditorGUILayout.Space(20);
         using (new EditorGUI.DisabledScope(true))
@@ -35,6 +45,41 @@ public class ElevatorEditor : Editor
 
         if (Application.isPlaying)
             Repaint();
+    }
+
+    private void AddStop(Elevator elevator, SerializedProperty stops)
+    {
+        Transform lastStop = stops.GetArrayElementAtIndex(stops.arraySize - 1).objectReferenceValue as Transform;
+        if (lastStop == null)
+            return;
+
+        Undo.RecordObject(elevator, "Add Elevator Stop");
+
+        GameObject copy = Object.Instantiate(lastStop.gameObject, lastStop.position, lastStop.rotation, lastStop.parent);
+        copy.name = GetNextNumberedName(lastStop.name);
+        Undo.RegisterCreatedObjectUndo(copy, "Add Elevator Stop");
+
+        stops.arraySize++;
+        stops.GetArrayElementAtIndex(stops.arraySize - 1).objectReferenceValue = copy.transform;
+        serializedObject.ApplyModifiedProperties();
+        EditorUtility.SetDirty(elevator);
+    }
+
+    private static string GetNextNumberedName(string sourceName)
+    {
+        int open = sourceName.LastIndexOf('(');
+        int close = sourceName.LastIndexOf(')');
+
+        if (open < 0 || close <= open || close != sourceName.Length - 1)
+            return sourceName;
+
+        string numberPart = sourceName.Substring(open + 1, close - open - 1);
+        if (!int.TryParse(numberPart, out int number))
+            return sourceName;
+
+        string prefix = sourceName.Substring(0, open);
+        string nextNumber = (number + 1).ToString("D" + numberPart.Length);
+        return prefix + "(" + nextNumber + ")";
     }
 
     private void DrawSocket(string sectionLabel, SerializedProperty slot, ColorManager colorManager)

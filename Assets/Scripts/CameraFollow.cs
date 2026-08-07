@@ -127,7 +127,11 @@ public class CameraFollow : MonoBehaviour
 
     private void UpdateActionMode()
     {
-        Vector3 targetPos = target.position + offset;
+        Transform followTarget = tim != null ? tim.CameraFollowTarget : target;
+        if (followTarget == null)
+            return;
+
+        Vector3 targetPos = followTarget.position + offset;
         if (constrainY) targetPos.y = fixedYPosition;
         
         // Add framing offset relative to the camera's right axis to shift the camera position
@@ -136,7 +140,7 @@ public class CameraFollow : MonoBehaviour
         transform.position = Vector3.SmoothDamp(transform.position, targetPos, ref velocity, DampingTime);
 
         // Calculate look target with the same framing offset so the camera doesn't turn back to center Tim
-        Vector3 lookAtPos = (target.position + lookAtOffset) + (transform.right * screenFramingOffset);
+        Vector3 lookAtPos = (followTarget.position + lookAtOffset) + (transform.right * screenFramingOffset);
         Vector3 direction = (lookAtPos - transform.position).normalized;
         if (direction != Vector3.zero)
         {

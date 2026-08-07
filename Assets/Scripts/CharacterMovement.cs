@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.InputSystem;
 
@@ -18,6 +19,12 @@ public class CharacterMovement : MonoBehaviour
     
     [Header("DEBUG - SPEED VISUALIZATION")]
     [SerializeField] private float currentSpeedVisual;
+
+    [Header("DEATH TOSS")]
+    [SerializeField] private float deathForceMultiplier = 1f;
+
+    private const float DeathTossStrength = 8f;
+    private const float DeathTossUpwardRatio = 0.5f;
     
     // Physics settings
     public float gravity = -20f;
@@ -26,7 +33,15 @@ public class CharacterMovement : MonoBehaviour
     private PlayerInput playerInput;
     private PlayerAnimator playerAnimator;
     private TimCubeController cubeInteraction;
+    private Animator animator;
+    private Rigidbody[] ragdollRigidbodies;
+    private Collider[] ragdollColliders;
+    private Rigidbody pelvisRigidbody;
     private bool isMovementEnabled = true;
+    private bool isDead;
+
+    public bool IsDead => isDead;
+    public Transform CameraFollowTarget => isDead && pelvisRigidbody != null ? pelvisRigidbody.transform : transform;
     public void SetMovementEnabled(bool enabled) { isMovementEnabled = enabled; }
 
     private CameraFollow cameraFollow;
@@ -60,7 +75,9 @@ public class CharacterMovement : MonoBehaviour
         playerInput = GetComponent<PlayerInput>();
         playerAnimator = GetComponent<PlayerAnimator>();
         cubeInteraction = GetComponent<TimCubeController>();
+        animator = GetComponent<Animator>();
         cameraFollow = FindAnyObjectByType<CameraFollow>();
+        CacheRagdollParts();
         
         // Fix PlayerInput notification behavior
         if (playerInput != null)
@@ -69,6 +86,54 @@ public class CharacterMovement : MonoBehaviour
         }
         
         SetupInputActions();
+    }
+
+    // Turns Tim into a ragdoll and flings him away from the hit direction.
+    public void ApplyDeathToss(Vector3 hitDirection, float forceMultiplierOverride = 0f)
+    {
+        if (isDead)
+            return;
+
+        isDead = true;
+        SetMovementEnabled(false);
+
+        if (cubeInteraction != null)
+            cubeInteraction.enabled = false;
+
+        if (playerInput != null)
+            playerInput.enabled = false;
+
+        if (controller != null)
+            controller.enabled = false;
+
+        if (animator != null)
+            animator.enabled = false;
+
+        foreach (Rigidbody ragdollBody in ragdollRigidbodies)
+        {
+            ragdollBody.isKinematic = false;
+            ragdollBody.WakeUp();
+        }
+
+        foreach (Collider ragdollCollider in ragdollColliders)
+            ragdollCollider.enabled = true;
+
+        float multiplier = forceMultiplierOverride > 0f ? forceMultiplierOverride : deathForceMultiplier;
+        Vector3 tossDirection = -hitDirection;
+        tossDirection.y = 0f;
+
+        if (tossDirection.sqrMagnitude < 0.01f)
+            tossDirection = -transform.forward;
+
+        tossDirection.Normalize();
+
+        Vector3 velocityChange =
+            tossDirection * DeathTossStrength * multiplier +
+            Vector3.up * DeathTossStrength * DeathTossUpwardRatio * multiplier;
+
+        Rigidbody tossBody = pelvisRigidbody != null ? pelvisRigidbody : GetPelvisFallback();
+        if (tossBody != null)
+            tossBody.linearVelocity = velocityChange;
     }
     
     private void SetupInputActions()
@@ -94,7 +159,8 @@ public class CharacterMovement : MonoBehaviour
     
     private void Update()
     {
-        if (Time.timeScale == 0) return;
+        if (Time.timeScale == 0 || isDead)
+            return;
 
         CheckGroundStatus();
         ReadInput();
@@ -296,5 +362,48 @@ public class CharacterMovement : MonoBehaviour
             float animSpeed = currentSpeed > 0.1f ? (isSprinting ? 1.0f : 0.5f) : 0f;
             playerAnimator.UpdateMovementAnimation(animSpeed, isGrounded, velocity.y);
         }
+    }
+
+    private void CacheRagdollParts()
+    {
+        Rigidbody[] allRigidbodies = GetComponentsInChildren<Rigidbody>();
+        List<Rigidbody> ragdollBodies = new List<Rigidbody>();
+        List<Collider> ragdollBodyColliders = new List<Collider>();
+
+        foreach (Rigidbody body in allRigidbodies)
+        {
+            if (body.gameObject == gameObject)
+                continue;
+
+            ragdollBodies.Add(body);
+
+            Collider bodyCollider = body.GetComponent<Collider>();
+            if (bodyCollider != null)
+            {
+                bodyCollider.enabled = false;
+                ragdollBodyColliders.Add(bodyCollider);
+            }
+        }
+
+        ragdollRigidbodies = ragdollBodies.ToArray();
+        ragdollColliders = ragdollBodyColliders.ToArray();
+
+        Transform pelvis = transform.Find("Armature/Root_M");
+        if (pelvis != null)
+            pelvisRigidbody = pelvis.GetComponent<Rigidbody>();
+    }
+
+    private Rigidbody GetPelvisFallback()
+    {
+        if (ragdollRigidbodies == null || ragdollRigidbodies.Length == 0)
+            return null;
+
+        foreach (Rigidbody body in ragdollRigidbodies)
+        {
+            if (body.name == "Root_M")
+                return body;
+        }
+
+        return ragdollRigidbodies[0];
     }
 }

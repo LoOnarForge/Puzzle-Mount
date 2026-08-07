@@ -234,7 +234,7 @@ GameObject:
   m_Component:
   - component: {fileID: 2124630496601074580}
   - component: {fileID: 8830403057167016645}
-  - component: {fileID: 546811167740978532}
+  - component: {fileID: 2480864083933157686}
   - component: {fileID: 4463603449021434433}
   - component: {fileID: 5579362749289985480}
   - component: {fileID: 3452255651825751993}
@@ -280,11 +280,11 @@ MonoBehaviour:
   runSpeed: 7.5
   jumpHeight: 1
   rotationSpeed: 10
-  startSpeedPercent: 10
   accelerationTime: 0.5
   momentumDecay: 0.3
   currentSpeedVisual: 0
---- !u!114 &546811167740978532
+  gravity: -20
+--- !u!114 &2480864083933157686
 MonoBehaviour:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
@@ -293,15 +293,25 @@ MonoBehaviour:
   m_GameObject: {fileID: 478215984424799453}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: b3036c99325ad6c419c99ad4dd90bbdb, type: 3}
+  m_Script: {fileID: 11500000, guid: 37e82b28fd0e1cd41b1ac069c93346ff, type: 3}
   m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::TimCubeInteraction
-  detectedCube: {fileID: 0}
-  highlightedCube: {fileID: 0}
-  detectionTolerance: 0.6
-  pushRange: 0.7
+  m_EditorClassIdentifier: Assembly-CSharp::TimCubeController
+  pushRange: 0.5
   initialPushDelay: 0.35
-  continuousPushDelay: 0.2
+  fastPushInterval: 0.1
+  precisePushInterval: 0.5
+  pushableRunode: {fileID: 0}
+  detectionTolerance: 0.6
+  interactionLayer:
+    serializedVersion: 2
+    m_Bits: 11264
+  mouseRotationSensitivity: 2
+  mouseRotationDuration: 0.15
+  maxRotationDistance: 3
+  mouseRotationClarity: 1.5
+  mouseTwitchDeadzone: 0.01
+  squashAmount: 0.2
+  isRotating: 0
 --- !u!114 &4463603449021434433
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -322,7 +332,10 @@ MonoBehaviour:
   fallDetectionDelay: 0.27
   minimumFallSpeed: 3
   fallTimerVisual: 0
-  isCurrentlyFalling: 0
+  lookWeightSpeed: 3
+  headWeight: 0.7
+  bodyWeight: 0.1
+  clampWeight: 0.5
 --- !u!143 &5579362749289985480
 CharacterController:
   m_ObjectHideFlags: 0
@@ -342,7 +355,7 @@ CharacterController:
   m_Enabled: 1
   serializedVersion: 3
   m_Height: 1.9
-  m_Radius: 0.3
+  m_Radius: 0.2
   m_SlopeLimit: 45
   m_StepOffset: 0.3
   m_SkinWidth: 0.08
@@ -1430,6 +1443,7 @@ Transform:
   m_ConstrainProportionsScale: 0
   m_Children:
   - {fileID: 5498748277122465643}
+  - {fileID: 6062038600888699302}
   m_Father: {fileID: 2124630496601074580}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &2886145419819190505
@@ -4601,6 +4615,37 @@ SkinnedMeshRenderer:
     m_Center: {x: -0.25519583, y: -0.07867024, z: -0.000073224306}
     m_Extent: {x: 0.32439306, y: 0.2883675, z: 0.8075824}
   m_DirtyAABB: 0
+--- !u!1 &6235147759396356216
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 6062038600888699302}
+  m_Layer: 24
+  m_Name: Leyas Anchor
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &6062038600888699302
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 6235147759396356216}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0.423, y: 2.06, z: -0.378}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 7276313125923345546}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &6352954760507441097
 GameObject:
   m_ObjectHideFlags: 0

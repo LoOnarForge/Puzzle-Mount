@@ -192,7 +192,11 @@ public class RunodeMovement : MonoBehaviour
         }
 
         isMovingPos = true;
-        Vector3 startPos = transform.position;
+        Vector3 startPos = new Vector3(
+            Mathf.Round(transform.position.x),
+            transform.position.y,
+            Mathf.Round(transform.position.z));
+        transform.position = startPos;
 
         if (direction == Vector3.right || direction == Vector3.left)
         {
@@ -221,6 +225,7 @@ public class RunodeMovement : MonoBehaviour
             yield return null;
         }
 
+        transform.position = targetPosition;
         Physics.SyncTransforms();
         runodeCube.RefreshCubeAndAdjacentConnections();
 

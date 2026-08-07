@@ -29,10 +29,14 @@ public class Elevator : MonoBehaviour
     [SerializeField] private List<Transform> stops = new List<Transform>();
     [SerializeField] private float moveSpeed = DefaultMoveSpeed;
     [SerializeField] private int currentStopIndex;
+    [SerializeField] private float deathForceMultiplier = 1.5f;
     [SerializeField] private bool isPowered;
 
     private bool isElevatorMoving;
     private Collider platformCollider;
+    private CharacterMovement tim;
+    private Vector3 currentMoveDirection;
+    private readonly Collider[] crushOverlapResults = new Collider[8];
 
     private void Awake()
     {
@@ -48,6 +52,11 @@ public class Elevator : MonoBehaviour
         }
 
         InitialSocketConfiguration();
+    }
+
+    private void Start()
+    {
+        tim = FindAnyObjectByType<CharacterMovement>();
     }
 
     // Called by a DevicePowerSocket when its power state changes.
@@ -131,6 +140,7 @@ public class Elevator : MonoBehaviour
         Vector3 startPosition = platform.position;
         Vector3 endPosition = stops[nextStopIndex].position;
         float distance = Vector3.Distance(startPosition, endPosition);
+        currentMoveDirection = distance > 0.001f ? (endPosition - startPosition).normalized : Vector3.zero;
 
         List<RunodeMovement> carriedRunodes = GetRunodesOnPlatform();
 
@@ -152,6 +162,7 @@ public class Elevator : MonoBehaviour
 
                 platform.position = newPosition;
                 MoveCarriedRunodes(carriedRunodes, delta);
+                TryCrushTim();
 
                 previousPosition = newPosition;
                 yield return null;
@@ -173,6 +184,35 @@ public class Elevator : MonoBehaviour
 
         currentStopIndex = nextStopIndex;
         isElevatorMoving = false;
+        currentMoveDirection = Vector3.zero;
+    }
+
+    private void TryCrushTim()
+    {
+        if (tim == null || tim.IsDead || platformCollider == null || currentMoveDirection == Vector3.zero)
+            return;
+
+        Bounds killBounds = platformCollider.bounds;
+        Vector3 killExtents = killBounds.extents * 1.2f;
+
+        int hitCount = Physics.OverlapBoxNonAlloc(
+            killBounds.center,
+            killExtents,
+            crushOverlapResults,
+            platformCollider.transform.rotation);
+
+        for (int i = 0; i < hitCount; i++)
+        {
+            CharacterMovement hitTim = crushOverlapResults[i].GetComponent<CharacterMovement>();
+            if (hitTim == null)
+                hitTim = crushOverlapResults[i].GetComponentInParent<CharacterMovement>();
+
+            if (hitTim != tim)
+                continue;
+
+            tim.ApplyDeathToss(-currentMoveDirection, deathForceMultiplier);
+            return;
+        }
     }
 
     private void MoveCarriedRunodes(List<RunodeMovement> carriedRunodes, Vector3 delta)
