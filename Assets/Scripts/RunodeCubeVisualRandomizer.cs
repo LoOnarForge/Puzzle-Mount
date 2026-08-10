@@ -16,6 +16,8 @@ public class RunodeCubeVisualRandomizer : MonoBehaviour
     [SerializeField] private MeshRenderer meshRenderer;
     [SerializeField] private RunodeLineSpriteLibrary lineSpriteLibrary;
 
+    public RunodeLineSpriteLibrary LineSpriteLibrary => lineSpriteLibrary;
+
     private void Awake()
     {
         Mesh[] meshes = { mesh01, mesh02, mesh03, mesh04, mesh05 };

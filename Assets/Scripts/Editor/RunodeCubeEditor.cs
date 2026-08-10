@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using UnityEngine;
 using UnityEditor;
 
@@ -141,7 +142,7 @@ public class RunodeCubeEditor : Editor
                     {
                         sr.sprite = s;
                         sr.size = s.bounds.size * 1.98f;
-                        spriteTransform.localRotation = Quaternion.Euler(0, 0, GetTypeRotation(newType));
+                        spriteTransform.localRotation = Quaternion.Euler(0, 0, RunodeLineSpriteLibrary.GetRotationForType(newType));
                     }
                 }
             }
@@ -235,6 +236,14 @@ public class RunodeCubeEditor : Editor
 
     private Sprite GetSpriteForType(RunodeLineType type)
     {
+        RunodeLineSpriteLibrary library = GetLineSpriteLibrary();
+        if (library != null)
+        {
+            List<Sprite> sprites = library.GetSpritesForType(type);
+            if (sprites != null && sprites.Count > 0 && sprites[0] != null)
+                return sprites[0];
+        }
+
         switch (type)
         {
             case RunodeLineType.Horizontal:        return cube.horizontalSprite;
@@ -252,20 +261,9 @@ public class RunodeCubeEditor : Editor
         }
     }
 
-    private float GetTypeRotation(RunodeLineType type)
+    private RunodeLineSpriteLibrary GetLineSpriteLibrary()
     {
-        switch (type)
-        {
-            case RunodeLineType.Vertical:          return 90f;
-            case RunodeLineType.CornerLeftTop:     return 0f;
-            case RunodeLineType.CornerTopRight:    return 270f;
-            case RunodeLineType.CornerRightBottom: return 180f;
-            case RunodeLineType.CornerBottomLeft:  return 90f;
-            case RunodeLineType.TSectionLeft:      return 0f;
-            case RunodeLineType.TSectionTop:       return 270f;
-            case RunodeLineType.TSectionRight:     return 180f;
-            case RunodeLineType.TSectionBottom:    return 90f;
-            default:                               return 0f;
-        }
+        RunodeCubeVisualRandomizer randomizer = cube.GetComponent<RunodeCubeVisualRandomizer>();
+        return randomizer != null ? randomizer.LineSpriteLibrary : null;
     }
 }

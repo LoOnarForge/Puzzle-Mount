@@ -318,7 +318,7 @@ public class RunodeLine : MonoBehaviour
         if (HaltAllPropagationOnShortCircuit)
             propagationHalted = true;
 
-        // TriggerShortCircuitFinalEvent();
+        // TriggerShortCircuitFinalEvent(); 
     }
 
 }

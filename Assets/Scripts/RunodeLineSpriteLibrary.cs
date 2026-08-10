@@ -57,14 +57,18 @@ public class RunodeLineSpriteLibrary : ScriptableObject
         {
             case RunodeLineType.Vertical:
                 return 90f;
-            case RunodeLineType.CornerLeftTop:     return 0f;
-            case RunodeLineType.CornerTopRight:    return 270f;
-            case RunodeLineType.CornerRightBottom: return 180f;
-            case RunodeLineType.CornerBottomLeft:  return 90f;
-            case RunodeLineType.TSectionLeft:      return 0f;
-            case RunodeLineType.TSectionTop:       return 270f;
-            case RunodeLineType.TSectionRight:     return 180f;
-            case RunodeLineType.TSectionBottom:    return 90f;
+            case RunodeLineType.CornerLeftTop:
+            case RunodeLineType.TSectionLeft:
+                return 0f;
+            case RunodeLineType.CornerTopRight:
+            case RunodeLineType.TSectionTop:
+                return 270f;
+            case RunodeLineType.CornerRightBottom:
+            case RunodeLineType.TSectionRight:
+                return 180f;
+            case RunodeLineType.CornerBottomLeft:
+            case RunodeLineType.TSectionBottom:
+                return 90f;
             default:
                 return 0f;
         }
