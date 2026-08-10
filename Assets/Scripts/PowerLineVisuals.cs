@@ -213,7 +213,7 @@ public class PowerLineVisuals : MonoBehaviour
 
     private float GetEmissionBlend()
     {
-        if (!isPowered || isBlocked)
+        if (isBlocked)
             return 0f;
 
         float fromNeutral = MaxChannelDiff(currentBaseColor, neutralColor);
