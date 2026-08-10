@@ -47,6 +47,7 @@ public class RunodeHighlighter : MonoBehaviour
     private static RunodeHighlighter currentHovered;
 
     private static readonly int BaseColorId = Shader.PropertyToID("_BaseColor");
+    private static readonly int HighlightColorId = Shader.PropertyToID("_HighlightColor");
 
     private void Awake()
     {
@@ -155,12 +156,12 @@ public class RunodeHighlighter : MonoBehaviour
     {
         if (lineSprites == null) return;
 
-        linePropBlock.Clear();
-        linePropBlock.SetColor("_Color", highlightColor);
-
         foreach (var sr in lineSprites)
         {
-            if (sr != null) sr.SetPropertyBlock(linePropBlock);
+            if (sr == null) continue;
+            sr.GetPropertyBlock(linePropBlock);
+            linePropBlock.SetColor(HighlightColorId, highlightColor);
+            sr.SetPropertyBlock(linePropBlock);
         }
     }
 
@@ -170,7 +171,10 @@ public class RunodeHighlighter : MonoBehaviour
 
         foreach (var sr in lineSprites)
         {
-            if (sr != null) sr.SetPropertyBlock(null);
+            if (sr == null) continue;
+            sr.GetPropertyBlock(linePropBlock);
+            linePropBlock.SetColor(HighlightColorId, Color.white);
+            sr.SetPropertyBlock(linePropBlock);
         }
     }
 
