@@ -4,7 +4,7 @@ using UnityEngine;
 
 public class RunodeLine : MonoBehaviour
 {
-    [SerializeField] private SpriteRenderer lineSprite;
+    [SerializeField] private PowerLineVisuals lineVisuals;
 
     [Space(20)]
     [Header("STATE:")]
@@ -43,21 +43,15 @@ public class RunodeLine : MonoBehaviour
     public static bool IsPropagationHalted => propagationHalted;
 
     private float powerPropagationDelay;
-    private const float DarkeningSpeed = 20f;
 
-
-    private Coroutine colorPowerLineCoroutine;
     private Coroutine powerUpSequenceCoroutine;
-    private Coroutine decolorPowerLineCoroutine;
     private Coroutine depowerSequenceCoroutine;
-    private Coroutine darkenSpriteLineCoroutine;
-    private Coroutine brightenSpriteLineCoroutine;
 
     private void Awake()
     {
         propagationHalted = false;
 
-        Debug.Assert(lineSprite != null, $"{nameof(RunodeLine)} on {name} requires a line sprite.", this);
+        Debug.Assert(lineVisuals != null, $"{nameof(RunodeLine)} on {name} requires line visuals.", this);
         Debug.Assert(obstructionPort != null, $"{nameof(RunodeLine)} on {name} requires an obstruction port.", this);
         Debug.Assert(upPort != null && rightPort != null && downPort != null && leftPort != null,
             $"{nameof(RunodeLine)} on {name} requires all four line ports.", this);
@@ -102,10 +96,9 @@ public class RunodeLine : MonoBehaviour
         }
 
         SetInitialReceiverAndGiverPorts(targetPort);
-        StopBrightenSpriteLineCoroutine();
-        StopPowerCoroutines();
+        StopPropagationCoroutines();
 
-        colorPowerLineCoroutine = StartCoroutine(ColorPowerLine(color));
+        lineVisuals.PowerUp(color, powerPropagationDelay);
         powerUpSequenceCoroutine = StartCoroutine(PowerUpSequence());
     }
 
@@ -129,8 +122,9 @@ public class RunodeLine : MonoBehaviour
         receiverPort = null;
         powerColor = Color.white;
         powerIndex = -1;
-        StopPowerCoroutines();
-        decolorPowerLineCoroutine = StartCoroutine(DecolorPowerLine());
+        StopPropagationCoroutines();
+
+        lineVisuals.PowerDown(powerPropagationDelay);
         depowerSequenceCoroutine = StartCoroutine(DepowerSequence());
     }
 
@@ -223,94 +217,28 @@ public class RunodeLine : MonoBehaviour
         SetAllPortsNeutral();
         depowerSequenceCoroutine = null;
     }
-    private IEnumerator ColorPowerLine(Color targetColor)
-    {
-        Color startingColor = lineSprite.color;
-        float elapsedTime = 0f;
-
-        while (elapsedTime < powerPropagationDelay)
-        {
-            elapsedTime += Time.deltaTime;
-            lineSprite.color = Color.Lerp(startingColor, targetColor, elapsedTime / powerPropagationDelay);
-            yield return null;
-        }
-
-        lineSprite.color = isFaceBlocked ? Color.black : targetColor;
-        colorPowerLineCoroutine = null;
-    }
-    private IEnumerator DecolorPowerLine()
-    {
-        Color startingColor = lineSprite.color;
-        float elapsedTime = 0f;
-
-        while (elapsedTime < powerPropagationDelay)
-        {
-            elapsedTime += Time.deltaTime;
-            lineSprite.color = Color.Lerp(startingColor, isFaceBlocked ? Color.black : Color.white, elapsedTime / powerPropagationDelay);
-            yield return null;
-        }
-
-        lineSprite.color = isFaceBlocked ? Color.black : Color.white;
-        decolorPowerLineCoroutine = null;
-    }
-
+    // Marks the face as obstructed: disables its ports and darkens its line sprite.
     public void FaceObstructed()
     {
         isFaceBlocked = true;
-        StopBrightenSpriteLineCoroutine();
-        darkenSpriteLineCoroutine = StartCoroutine(DarkenSpriteLine());
+        lineVisuals.FaceObstructed();
         SetPortBlockedState(true);
     }
 
+    // Marks the face as cleared: re-enables its ports and brightens its line sprite back.
     public void FaceCleared()
     {
         isFaceBlocked = false;
-        StopDarkenSpriteLineCoroutine();
-        brightenSpriteLineCoroutine = StartCoroutine(BrightenSpriteLine());
+        lineVisuals.FaceCleared();
         SetPortBlockedState(false);
     }
 
-    private IEnumerator DarkenSpriteLine()
+    private void StopPropagationCoroutines()
     {
-        while (lineSprite.color != Color.black)
-        {
-            lineSprite.color = Color.Lerp(lineSprite.color, Color.black, Time.deltaTime * DarkeningSpeed);
-            yield return null;
-        }
-
-        lineSprite.color = Color.black;
-        darkenSpriteLineCoroutine = null;
-    }
-    private IEnumerator BrightenSpriteLine()
-    {
-        while (lineSprite.color != Color.white)
-        {
-            lineSprite.color = Color.Lerp(lineSprite.color, Color.white, Time.deltaTime * DarkeningSpeed);
-            yield return null;
-        }
-
-        lineSprite.color = Color.white;
-        brightenSpriteLineCoroutine = null;
-    }
-
-    private void StopPowerCoroutines()
-    {
-        if (colorPowerLineCoroutine != null)
-        {
-            StopCoroutine(colorPowerLineCoroutine);
-            colorPowerLineCoroutine = null;
-        }
-
         if (powerUpSequenceCoroutine != null)
         {
             StopCoroutine(powerUpSequenceCoroutine);
             powerUpSequenceCoroutine = null;
-        }
-
-        if (decolorPowerLineCoroutine != null)
-        {
-            StopCoroutine(decolorPowerLineCoroutine);
-            decolorPowerLineCoroutine = null;
         }
 
         if (depowerSequenceCoroutine != null)
@@ -318,23 +246,6 @@ public class RunodeLine : MonoBehaviour
             StopCoroutine(depowerSequenceCoroutine);
             depowerSequenceCoroutine = null;
         }
-    }
-
-    private void StopDarkenSpriteLineCoroutine()
-    {
-        if (darkenSpriteLineCoroutine == null)
-            return;
-
-        StopCoroutine(darkenSpriteLineCoroutine);
-        darkenSpriteLineCoroutine = null;
-    }
-    private void StopBrightenSpriteLineCoroutine()
-    {
-        if (brightenSpriteLineCoroutine == null)
-            return;
-
-        StopCoroutine(brightenSpriteLineCoroutine);
-        brightenSpriteLineCoroutine = null;
     }
 
     private void SetPortBlockedState(bool blocked)

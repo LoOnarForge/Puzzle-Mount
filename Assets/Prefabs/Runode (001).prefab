@@ -257,6 +257,7 @@ GameObject:
   m_Component:
   - component: {fileID: 816600194662489829}
   - component: {fileID: 3568495528392509501}
+  - component: {fileID: 4383258153851359693}
   m_Layer: 11
   m_Name: North Face
   m_TagString: Untagged
@@ -298,7 +299,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 506280a9761253b4d83b80c9f428ba24, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::RunodeLine
-  lineSprite: {fileID: 1342779466184929273}
+  lineVisuals: {fileID: 4383258153851359693}
   isPowered: 0
   isConnected: 0
   isFaceBlocked: 0
@@ -312,6 +313,19 @@ MonoBehaviour:
   downPort: {fileID: 106691692236735582}
   leftPort: {fileID: 4278960131790577153}
   obstructionPort: {fileID: 743986489415372247}
+--- !u!114 &4383258153851359693
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 669587160118137425}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 65ca2206af7024740a6d40d05875eb0d, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::PowerLineVisuals
+  lineSprite: {fileID: 1342779466184929273}
 --- !u!1 &731834577419325323
 GameObject:
   m_ObjectHideFlags: 0
@@ -582,6 +596,7 @@ GameObject:
   m_Component:
   - component: {fileID: 6948482468091255248}
   - component: {fileID: 7721211325919884356}
+  - component: {fileID: 4801214896627676751}
   m_Layer: 11
   m_Name: West Face
   m_TagString: Untagged
@@ -623,7 +638,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 506280a9761253b4d83b80c9f428ba24, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::RunodeLine
-  lineSprite: {fileID: 6513066122090101677}
+  lineVisuals: {fileID: 4801214896627676751}
   isPowered: 0
   isConnected: 0
   isFaceBlocked: 0
@@ -637,6 +652,19 @@ MonoBehaviour:
   downPort: {fileID: 3202900054699402837}
   leftPort: {fileID: 7889570847190979975}
   obstructionPort: {fileID: 7375523348631533460}
+--- !u!114 &4801214896627676751
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1104031167063227887}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 65ca2206af7024740a6d40d05875eb0d, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::PowerLineVisuals
+  lineSprite: {fileID: 6513066122090101677}
 --- !u!1 &1162837989423954080
 GameObject:
   m_ObjectHideFlags: 0
@@ -1732,6 +1760,7 @@ GameObject:
   m_Component:
   - component: {fileID: 6041701261941342080}
   - component: {fileID: 3201380440818016219}
+  - component: {fileID: 8095291410222713882}
   m_Layer: 11
   m_Name: East Face
   m_TagString: Untagged
@@ -1773,7 +1802,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 506280a9761253b4d83b80c9f428ba24, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::RunodeLine
-  lineSprite: {fileID: 812971541554150987}
+  lineVisuals: {fileID: 8095291410222713882}
   isPowered: 0
   isConnected: 0
   isFaceBlocked: 0
@@ -1787,6 +1816,19 @@ MonoBehaviour:
   downPort: {fileID: 386523426907770464}
   leftPort: {fileID: 8288275694186124002}
   obstructionPort: {fileID: 60215689022552945}
+--- !u!114 &8095291410222713882
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 3058618734017462157}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 65ca2206af7024740a6d40d05875eb0d, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::PowerLineVisuals
+  lineSprite: {fileID: 812971541554150987}
 --- !u!1 &3145876027576378562
 GameObject:
   m_ObjectHideFlags: 0
@@ -2190,6 +2232,7 @@ GameObject:
   m_Component:
   - component: {fileID: 2615174383923592750}
   - component: {fileID: 6718197769347375655}
+  - component: {fileID: 3315838495490139245}
   m_Layer: 11
   m_Name: Bottom Face
   m_TagString: Untagged
@@ -2231,7 +2274,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 506280a9761253b4d83b80c9f428ba24, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::RunodeLine
-  lineSprite: {fileID: 8698879850506680210}
+  lineVisuals: {fileID: 3315838495490139245}
   isPowered: 0
   isConnected: 0
   isFaceBlocked: 0
@@ -2245,6 +2288,19 @@ MonoBehaviour:
   downPort: {fileID: 5918982321288194944}
   leftPort: {fileID: 6815501372411557126}
   obstructionPort: {fileID: 5184810918456420346}
+--- !u!114 &3315838495490139245
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 3467705389157016525}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 65ca2206af7024740a6d40d05875eb0d, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::PowerLineVisuals
+  lineSprite: {fileID: 8698879850506680210}
 --- !u!1 &3756597695155602671
 GameObject:
   m_ObjectHideFlags: 0
@@ -3387,6 +3443,7 @@ GameObject:
   m_Component:
   - component: {fileID: 8933136795940741772}
   - component: {fileID: 2512085481284264395}
+  - component: {fileID: 2357219762930167464}
   m_Layer: 11
   m_Name: Top Face
   m_TagString: Untagged
@@ -3428,7 +3485,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 506280a9761253b4d83b80c9f428ba24, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::RunodeLine
-  lineSprite: {fileID: 7810630569320415241}
+  lineVisuals: {fileID: 2357219762930167464}
   isPowered: 0
   isConnected: 0
   isFaceBlocked: 0
@@ -3442,6 +3499,19 @@ MonoBehaviour:
   downPort: {fileID: 2168787158476516098}
   leftPort: {fileID: 3533911695350202143}
   obstructionPort: {fileID: 8179791318541084186}
+--- !u!114 &2357219762930167464
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 5520389836897962900}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 65ca2206af7024740a6d40d05875eb0d, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::PowerLineVisuals
+  lineSprite: {fileID: 7810630569320415241}
 --- !u!1 &5631163825147809943
 GameObject:
   m_ObjectHideFlags: 0
@@ -4355,6 +4425,7 @@ GameObject:
   m_Component:
   - component: {fileID: 601895148445390062}
   - component: {fileID: 3132759350798874552}
+  - component: {fileID: 5540184295301437374}
   m_Layer: 11
   m_Name: South Face
   m_TagString: Untagged
@@ -4396,7 +4467,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 506280a9761253b4d83b80c9f428ba24, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::RunodeLine
-  lineSprite: {fileID: 5774017099668130549}
+  lineVisuals: {fileID: 5540184295301437374}
   isPowered: 0
   isConnected: 0
   isFaceBlocked: 0
@@ -4410,6 +4481,19 @@ MonoBehaviour:
   downPort: {fileID: 2188555493224020658}
   leftPort: {fileID: 368114293644029500}
   obstructionPort: {fileID: 4279474800344945178}
+--- !u!114 &5540184295301437374
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 7382487862263092506}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 65ca2206af7024740a6d40d05875eb0d, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::PowerLineVisuals
+  lineSprite: {fileID: 5774017099668130549}
 --- !u!1 &7425086947185854509
 GameObject:
   m_ObjectHideFlags: 0
