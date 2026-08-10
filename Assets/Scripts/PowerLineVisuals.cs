@@ -41,6 +41,7 @@ public class PowerLineVisuals : MonoBehaviour
 
     private Color currentBaseColor = Color.white;
     private Color activePowerColor;
+    private float transitionEmissionBlend;
 
     private bool isPowered;
     // Mirrors RunodeLine's isFaceBlocked so in-progress fades can keep re-checking it every frame.
@@ -75,14 +76,12 @@ public class PowerLineVisuals : MonoBehaviour
     // Re-applies inspector tuning to the current line state (live tweak in Play mode).
     private void RefreshFromTuningFields()
     {
-        if (isBlocked)
+        if (isBlocked
+            && darkenSpriteLineCoroutine == null
+            && brightenSpriteLineCoroutine == null)
         {
             currentBaseColor = blockedColor;
-            return;
         }
-
-        if (!isPowered && colorPowerLineCoroutine == null && decolorPowerLineCoroutine == null)
-            currentBaseColor = neutralColor;
     }
 
     // Fades the line sprite to the given power color over the supplied duration.
@@ -92,6 +91,7 @@ public class PowerLineVisuals : MonoBehaviour
         isPowered = true;
         StopBrightenSpriteLineCoroutine();
         StopColorCoroutines();
+        SyncCurrentBaseColorFromSprite();
         colorPowerLineCoroutine = StartCoroutine(ColorPowerLine(color, duration));
     }
 
@@ -100,6 +100,7 @@ public class PowerLineVisuals : MonoBehaviour
     {
         isPowered = false;
         StopColorCoroutines();
+        SyncCurrentBaseColorFromSprite();
         decolorPowerLineCoroutine = StartCoroutine(DecolorPowerLine(duration));
     }
 
@@ -108,6 +109,7 @@ public class PowerLineVisuals : MonoBehaviour
     {
         isBlocked = true;
         StopBrightenSpriteLineCoroutine();
+        SyncCurrentBaseColorFromSprite();
         darkenSpriteLineCoroutine = StartCoroutine(DarkenSpriteLine());
     }
 
@@ -116,7 +118,14 @@ public class PowerLineVisuals : MonoBehaviour
     {
         isBlocked = false;
         StopDarkenSpriteLineCoroutine();
+        SyncCurrentBaseColorFromSprite();
         brightenSpriteLineCoroutine = StartCoroutine(BrightenSpriteLine());
+    }
+
+    private void SyncCurrentBaseColorFromSprite()
+    {
+        lineSprite.GetPropertyBlock(propBlock);
+        currentBaseColor = propBlock.isEmpty ? neutralColor : propBlock.GetColor(BaseColorId);
     }
 
     private IEnumerator ColorPowerLine(Color targetColor, float duration)
@@ -129,11 +138,11 @@ public class PowerLineVisuals : MonoBehaviour
         {
             elapsedTime += Time.deltaTime;
             float t = elapsedTime / duration;
-            ApplyBaseColor(Color.Lerp(startingBase, targetBase, t));
+            ApplyTransitionState(Color.Lerp(startingBase, targetBase, t), t);
             yield return null;
         }
 
-        ApplyBaseColor(targetBase);
+        ApplyTransitionState(targetBase, 1f);
         colorPowerLineCoroutine = null;
     }
 
@@ -147,11 +156,11 @@ public class PowerLineVisuals : MonoBehaviour
         {
             elapsedTime += Time.deltaTime;
             float t = elapsedTime / duration;
-            ApplyBaseColor(Color.Lerp(startingBase, targetBase, t));
+            ApplyTransitionState(Color.Lerp(startingBase, targetBase, t), 1f - t);
             yield return null;
         }
 
-        ApplyBaseColor(targetBase);
+        ApplyTransitionState(targetBase, 0f);
         decolorPowerLineCoroutine = null;
     }
 
@@ -190,6 +199,13 @@ public class PowerLineVisuals : MonoBehaviour
         ApplyVisualState();
     }
 
+    private void ApplyTransitionState(Color baseColor, float emissionBlend)
+    {
+        currentBaseColor = baseColor;
+        transitionEmissionBlend = emissionBlend;
+        ApplyVisualState();
+    }
+
     private void ApplyVisualState()
     {
         lineSprite.GetPropertyBlock(propBlock);
@@ -198,7 +214,7 @@ public class PowerLineVisuals : MonoBehaviour
         float emissionBlend = GetEmissionBlend();
         if (emissionBlend > 0f)
         {
-            propBlock.SetColor(EmissionColorId, GetEmissionForPowerColor(currentBaseColor));
+            propBlock.SetColor(EmissionColorId, GetEmissionForPowerColor(activePowerColor));
             propBlock.SetFloat(EmissionStrengthId, emissionStrength * emissionBlend);
         }
         else
@@ -216,12 +232,10 @@ public class PowerLineVisuals : MonoBehaviour
         if (isBlocked)
             return 0f;
 
-        float fromNeutral = MaxChannelDiff(currentBaseColor, neutralColor);
-        float targetFromNeutral = MaxChannelDiff(activePowerColor, neutralColor);
-        if (targetFromNeutral <= 0.001f)
-            return fromNeutral > 0.001f ? 1f : 0f;
+        if (colorPowerLineCoroutine != null || decolorPowerLineCoroutine != null)
+            return transitionEmissionBlend;
 
-        return Mathf.Clamp01(fromNeutral / targetFromNeutral);
+        return isPowered ? 1f : 0f;
     }
 
     private static float MaxChannelDiff(Color a, Color b)
