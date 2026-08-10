@@ -238,7 +238,7 @@ public class RunodeCubeEditor : Editor
         switch (type)
         {
             case RunodeLineType.Horizontal:        return cube.horizontalSprite;
-            case RunodeLineType.Vertical:          return cube.verticalSprite;
+            case RunodeLineType.Vertical:          return cube.horizontalSprite;
             case RunodeLineType.CornerTopRight:
             case RunodeLineType.CornerRightBottom:
             case RunodeLineType.CornerBottomLeft:
@@ -256,6 +256,7 @@ public class RunodeCubeEditor : Editor
     {
         switch (type)
         {
+            case RunodeLineType.Vertical:          return 90f;
             case RunodeLineType.CornerLeftTop:     return 0f;
             case RunodeLineType.CornerTopRight:    return 270f;
             case RunodeLineType.CornerRightBottom: return 180f;
