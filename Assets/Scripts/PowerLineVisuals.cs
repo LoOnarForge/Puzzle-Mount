@@ -20,9 +20,9 @@ public class PowerLineVisuals : MonoBehaviour
     [SerializeField] private float poweredEmissionMultiplier = 1f;
 
     [Header("LIGHTING")]
-    [Tooltip("Darkest the lit surface can go. Raise if unpowered lines look too dark. Test on unpowered lines.")]
+    [Tooltip("Darkest ambient fill (not spot/point lights). 0 = fully dark until a light hits the line.")]
     [Range(0f, 1f)]
-    [SerializeField] private float minBrightness = 0.35f;
+    [SerializeField] private float minBrightness = 0f;
     [Tooltip("0 = flat unlit color. 1 = full scene lighting. Test on unpowered lines.")]
     [Range(0f, 1f)]
     [SerializeField] private float lightInfluence = 1f;
@@ -40,8 +40,9 @@ public class PowerLineVisuals : MonoBehaviour
     private MaterialPropertyBlock propBlock;
 
     private Color currentBaseColor = Color.white;
-    private Color currentEmissionColor = Color.black;
+    private Color activePowerColor;
 
+    private bool isPowered;
     // Mirrors RunodeLine's isFaceBlocked so in-progress fades can keep re-checking it every frame.
     private bool isBlocked;
 
@@ -56,7 +57,7 @@ public class PowerLineVisuals : MonoBehaviour
 
         propBlock = new MaterialPropertyBlock();
         currentBaseColor = neutralColor;
-        currentEmissionColor = Color.black;
+        isPowered = false;
 
         lineSprite.color = Color.white;
         ApplyVisualState();
@@ -77,22 +78,18 @@ public class PowerLineVisuals : MonoBehaviour
         if (isBlocked)
         {
             currentBaseColor = blockedColor;
-            currentEmissionColor = Color.black;
             return;
         }
 
-        if (ColorsApproximatelyEqual(currentEmissionColor, Color.black))
-        {
+        if (!isPowered && colorPowerLineCoroutine == null && decolorPowerLineCoroutine == null)
             currentBaseColor = neutralColor;
-            return;
-        }
-
-        currentEmissionColor = GetEmissionForBaseColor(currentBaseColor);
     }
 
     // Fades the line sprite to the given power color over the supplied duration.
     public void PowerUp(Color color, float duration)
     {
+        activePowerColor = color;
+        isPowered = true;
         StopBrightenSpriteLineCoroutine();
         StopColorCoroutines();
         colorPowerLineCoroutine = StartCoroutine(ColorPowerLine(color, duration));
@@ -101,6 +98,7 @@ public class PowerLineVisuals : MonoBehaviour
     // Fades the line sprite back to neutral (white, or black if blocked) over the supplied duration.
     public void PowerDown(float duration)
     {
+        isPowered = false;
         StopColorCoroutines();
         decolorPowerLineCoroutine = StartCoroutine(DecolorPowerLine(duration));
     }
@@ -124,40 +122,36 @@ public class PowerLineVisuals : MonoBehaviour
     private IEnumerator ColorPowerLine(Color targetColor, float duration)
     {
         Color startingBase = currentBaseColor;
-        Color startingEmission = currentEmissionColor;
         Color targetBase = isBlocked ? blockedColor : targetColor;
-        Color targetEmission = isBlocked ? Color.black : GetEmissionForBaseColor(targetColor);
         float elapsedTime = 0f;
 
         while (elapsedTime < duration)
         {
             elapsedTime += Time.deltaTime;
             float t = elapsedTime / duration;
-            ApplyColors(Color.Lerp(startingBase, targetBase, t), Color.Lerp(startingEmission, targetEmission, t));
+            ApplyBaseColor(Color.Lerp(startingBase, targetBase, t));
             yield return null;
         }
 
-        ApplyColors(targetBase, targetEmission);
+        ApplyBaseColor(targetBase);
         colorPowerLineCoroutine = null;
     }
 
     private IEnumerator DecolorPowerLine(float duration)
     {
         Color startingBase = currentBaseColor;
-        Color startingEmission = currentEmissionColor;
         Color targetBase = isBlocked ? blockedColor : neutralColor;
-        Color targetEmission = Color.black;
         float elapsedTime = 0f;
 
         while (elapsedTime < duration)
         {
             elapsedTime += Time.deltaTime;
             float t = elapsedTime / duration;
-            ApplyColors(Color.Lerp(startingBase, targetBase, t), Color.Lerp(startingEmission, targetEmission, t));
+            ApplyBaseColor(Color.Lerp(startingBase, targetBase, t));
             yield return null;
         }
 
-        ApplyColors(targetBase, targetEmission);
+        ApplyBaseColor(targetBase);
         decolorPowerLineCoroutine = null;
     }
 
@@ -165,13 +159,11 @@ public class PowerLineVisuals : MonoBehaviour
     {
         while (!ColorsApproximatelyEqual(currentBaseColor, blockedColor))
         {
-            ApplyColors(
-                Color.Lerp(currentBaseColor, blockedColor, Time.deltaTime * darkeningSpeed),
-                Color.Lerp(currentEmissionColor, Color.black, Time.deltaTime * darkeningSpeed));
+            ApplyBaseColor(Color.Lerp(currentBaseColor, blockedColor, Time.deltaTime * darkeningSpeed));
             yield return null;
         }
 
-        ApplyColors(blockedColor, Color.black);
+        ApplyBaseColor(blockedColor);
         darkenSpriteLineCoroutine = null;
     }
 
@@ -179,28 +171,22 @@ public class PowerLineVisuals : MonoBehaviour
     {
         while (!ColorsApproximatelyEqual(currentBaseColor, neutralColor))
         {
-            ApplyColors(
-                Color.Lerp(currentBaseColor, neutralColor, Time.deltaTime * darkeningSpeed),
-                Color.Lerp(currentEmissionColor, Color.black, Time.deltaTime * darkeningSpeed));
+            ApplyBaseColor(Color.Lerp(currentBaseColor, neutralColor, Time.deltaTime * darkeningSpeed));
             yield return null;
         }
 
-        ApplyColors(neutralColor, Color.black);
+        ApplyBaseColor(neutralColor);
         brightenSpriteLineCoroutine = null;
     }
 
-    private Color GetEmissionForBaseColor(Color baseColor)
+    private Color GetEmissionForPowerColor(Color powerColor)
     {
-        if (ColorsApproximatelyEqual(baseColor, neutralColor) || ColorsApproximatelyEqual(baseColor, blockedColor))
-            return Color.black;
-
-        return baseColor * emissionStrength * poweredEmissionMultiplier;
+        return powerColor * poweredEmissionMultiplier;
     }
 
-    private void ApplyColors(Color baseColor, Color emissionColor)
+    private void ApplyBaseColor(Color baseColor)
     {
         currentBaseColor = baseColor;
-        currentEmissionColor = emissionColor;
         ApplyVisualState();
     }
 
@@ -208,17 +194,47 @@ public class PowerLineVisuals : MonoBehaviour
     {
         lineSprite.GetPropertyBlock(propBlock);
         propBlock.SetColor(BaseColorId, currentBaseColor);
-        propBlock.SetColor(EmissionColorId, currentEmissionColor);
-        propBlock.SetFloat(EmissionStrengthId, emissionStrength);
+
+        float emissionBlend = GetEmissionBlend();
+        if (emissionBlend > 0f)
+        {
+            propBlock.SetColor(EmissionColorId, GetEmissionForPowerColor(currentBaseColor));
+            propBlock.SetFloat(EmissionStrengthId, emissionStrength * emissionBlend);
+        }
+        else
+        {
+            propBlock.SetColor(EmissionColorId, Color.black);
+            propBlock.SetFloat(EmissionStrengthId, 0f);
+        }
         propBlock.SetFloat(MinBrightnessId, minBrightness);
         propBlock.SetFloat(LightInfluenceId, lightInfluence);
         lineSprite.SetPropertyBlock(propBlock);
     }
 
+    private float GetEmissionBlend()
+    {
+        if (!isPowered || isBlocked)
+            return 0f;
+
+        float fromNeutral = MaxChannelDiff(currentBaseColor, neutralColor);
+        float targetFromNeutral = MaxChannelDiff(activePowerColor, neutralColor);
+        if (targetFromNeutral <= 0.001f)
+            return fromNeutral > 0.001f ? 1f : 0f;
+
+        return Mathf.Clamp01(fromNeutral / targetFromNeutral);
+    }
+
+    private static float MaxChannelDiff(Color a, Color b)
+    {
+        return Mathf.Max(
+            Mathf.Abs(a.r - b.r),
+            Mathf.Abs(a.g - b.g),
+            Mathf.Abs(a.b - b.b));
+    }
+
     private static bool ColorsApproximatelyEqual(Color a, Color b)
     {
-        return Mathf.Abs(a.r - b.r) < 0.01f && Mathf.Abs(a.g - b.g) < 0.01f
-            && Mathf.Abs(a.b - b.b) < 0.01f && Mathf.Abs(a.a - b.a) < 0.01f;
+        return MaxChannelDiff(a, b) < 0.01f && Mathf.Abs(a.a - b.a) < 0.01f;
     }
 
     private void StopColorCoroutines()
