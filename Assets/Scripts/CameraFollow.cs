@@ -19,6 +19,16 @@ public class CameraFollow : MonoBehaviour
     public float fixedYPosition = 10f;
     [Tooltip("Offsets the screen position without changing the camera angle")]
     public float screenFramingOffset = 0f;
+
+    [Header("View Height & Zoom")]
+    [Tooltip("Camera height above Tim")]
+    public float cameraHeight = 9f;
+    [Tooltip("Distance from Tim (adjust with scroll wheel)")]
+    public float zoomDistance = 10f;
+    public float minZoomDistance = 6f;
+    public float maxZoomDistance = 14f;
+    [Tooltip("Distance change per scroll notch")]
+    public float scrollZoomStep = 0.4f;
     
     private Vector3 lookAtOffset = Vector3.up * 2f;
     
@@ -43,12 +53,14 @@ public class CameraFollow : MonoBehaviour
     private Camera actionCamera;
     private float lastRotationTime;
     
+    private const float BaseZoomDistance = 10f;
+
     private Vector3[] presetOffsets = new Vector3[]
     {
-        new Vector3(-1.5f, 7, -10),  // North 
-        new Vector3(10, 7, -1.5f),   // East  
-        new Vector3(1.5f, 7, 10),    // South 
-        new Vector3(-10, 7, 1.5f)    // West  
+        new Vector3(-1.5f, 0, -10),  // North 
+        new Vector3(10, 0, -1.5f),   // East  
+        new Vector3(1.5f, 0, 10),    // South 
+        new Vector3(-10, 0, 1.5f)    // West  
     };
     
     private int currentAngleIndex = 0;
@@ -61,7 +73,21 @@ public class CameraFollow : MonoBehaviour
     private void Awake()
     {
         actionCamera = GetComponent<Camera>();
-        offset = presetOffsets[0];
+        ApplyCurrentOffset();
+    }
+
+    private void OnValidate()
+    {
+        zoomDistance = Mathf.Clamp(zoomDistance, minZoomDistance, maxZoomDistance);
+        if (presetOffsets != null && presetOffsets.Length > 0)
+            ApplyCurrentOffset();
+    }
+
+    private void ApplyCurrentOffset()
+    {
+        float zoomScale = zoomDistance / BaseZoomDistance;
+        Vector3 preset = presetOffsets[currentAngleIndex];
+        offset = new Vector3(preset.x * zoomScale, cameraHeight, preset.z * zoomScale);
     }
     
     private void Start()
@@ -93,6 +119,19 @@ public class CameraFollow : MonoBehaviour
         }
 
         if (isInspectionMode) return;
+
+        if (Mouse.current != null)
+        {
+            float scroll = Mouse.current.scroll.ReadValue().y;
+            if (Mathf.Abs(scroll) > 0.01f)
+            {
+                zoomDistance = Mathf.Clamp(
+                    zoomDistance - Mathf.Sign(scroll) * scrollZoomStep,
+                    minZoomDistance,
+                    maxZoomDistance);
+                ApplyCurrentOffset();
+            }
+        }
 
         // Action Mode Controls
         if (Keyboard.current[resetKey].wasPressedThisFrame) ResetToDefault();
@@ -154,7 +193,7 @@ public class CameraFollow : MonoBehaviour
         if (Time.unscaledTime < lastRotationTime + rotationCooldown) return;
 
         currentAngleIndex = (currentAngleIndex + 1) % presetOffsets.Length;
-        offset = presetOffsets[currentAngleIndex];
+        ApplyCurrentOffset();
         lastRotationTime = Time.unscaledTime;
     }
     
@@ -163,7 +202,7 @@ public class CameraFollow : MonoBehaviour
         if (Time.unscaledTime < lastRotationTime + rotationCooldown) return;
 
         currentAngleIndex = (currentAngleIndex - 1 + presetOffsets.Length) % presetOffsets.Length;
-        offset = presetOffsets[currentAngleIndex];
+        ApplyCurrentOffset();
         lastRotationTime = Time.unscaledTime;
     }
     
@@ -172,7 +211,7 @@ public class CameraFollow : MonoBehaviour
         if (Time.unscaledTime < lastRotationTime + rotationCooldown) return;
 
         currentAngleIndex = 0;
-        offset = presetOffsets[0];
+        ApplyCurrentOffset();
         lastRotationTime = Time.unscaledTime;
     }
 
