@@ -98,7 +98,6 @@ public class PowerLineVisuals : MonoBehaviour
     // Fades the line sprite back to neutral (white, or black if blocked) over the supplied duration.
     public void PowerDown(float duration)
     {
-        isPowered = false;
         StopColorCoroutines();
         SyncCurrentBaseColorFromSprite();
         decolorPowerLineCoroutine = StartCoroutine(DecolorPowerLine(duration));
@@ -161,6 +160,7 @@ public class PowerLineVisuals : MonoBehaviour
         }
 
         ApplyTransitionState(targetBase, 0f);
+        isPowered = false;
         decolorPowerLineCoroutine = null;
     }
 
