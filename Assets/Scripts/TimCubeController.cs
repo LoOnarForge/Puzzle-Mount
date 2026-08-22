@@ -305,6 +305,7 @@ public class TimCubeController : MonoBehaviour
     public bool IsCubeRotatable(RunodeMovement cube, Vector3 hitPoint)
     {
         if (cube == null) return false;
+        if (!cube.isRotatable) return false;
         if (characterMovement != null && !characterMovement.IsGrounded) return false;
 
         float dist = Vector3.ProjectOnPlane(cube.transform.position - timTransform.position, Vector3.up).magnitude;

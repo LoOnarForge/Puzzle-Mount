@@ -9,6 +9,10 @@ public class RunodeMovement : MonoBehaviour
     [Header("MOVEMENT:")]
     public float moveSpeed = 5f;
 
+    [Header("ROTATION:")]
+    // When false, the player cannot rotate this cube in-game. Random rotation on start is unaffected.
+    public bool isRotatable = true;
+
     [Header("RANDOM ROTATION:")]
     public bool randomRotateOnStart = true;
 
