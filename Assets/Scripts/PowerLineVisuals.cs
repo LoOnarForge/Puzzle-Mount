@@ -18,6 +18,10 @@ public class PowerLineVisuals : MonoBehaviour
     [SerializeField] private float emissionStrength = 2f;
     [Tooltip("Extra multiplier on top of emission strength (powered lines only).")]
     [SerializeField] private float poweredEmissionMultiplier = 1f;
+    [Tooltip("Emission boost on power-up (0.2 = +20%), then decays back to normal.")]
+    [SerializeField] private float powerUpEmissionBump = 0.2f;
+    [Tooltip("How long the power-up emission bump takes to settle.")]
+    [SerializeField] private float powerUpEmissionBumpDuration = 0.2f;
 
     [Header("LIGHTING")]
     [Tooltip("Darkest ambient fill (not spot/point lights). 0 = fully dark until a light hits the line.")]
@@ -42,6 +46,7 @@ public class PowerLineVisuals : MonoBehaviour
     private Color currentBaseColor = Color.white;
     private Color activePowerColor;
     private float transitionEmissionBlend;
+    private float emissionBumpMultiplier = 1f;
 
     private bool isPowered;
     // Mirrors RunodeLine's isFaceBlocked so in-progress fades can keep re-checking it every frame.
@@ -49,6 +54,7 @@ public class PowerLineVisuals : MonoBehaviour
 
     private Coroutine colorPowerLineCoroutine;
     private Coroutine decolorPowerLineCoroutine;
+    private Coroutine emissionBumpCoroutine;
     private Coroutine darkenSpriteLineCoroutine;
     private Coroutine brightenSpriteLineCoroutine;
 
@@ -92,12 +98,14 @@ public class PowerLineVisuals : MonoBehaviour
         StopBrightenSpriteLineCoroutine();
         StopColorCoroutines();
         SyncCurrentBaseColorFromSprite();
+        StartEmissionBump();
         colorPowerLineCoroutine = StartCoroutine(ColorPowerLine(color, duration));
     }
 
     // Fades the line sprite back to neutral (white, or black if blocked) over the supplied duration.
     public void PowerDown(float duration)
     {
+        StopEmissionBump();
         StopColorCoroutines();
         SyncCurrentBaseColorFromSprite();
         decolorPowerLineCoroutine = StartCoroutine(DecolorPowerLine(duration));
@@ -215,7 +223,7 @@ public class PowerLineVisuals : MonoBehaviour
         if (emissionBlend > 0f)
         {
             propBlock.SetColor(EmissionColorId, GetEmissionForPowerColor(activePowerColor));
-            propBlock.SetFloat(EmissionStrengthId, emissionStrength * emissionBlend);
+            propBlock.SetFloat(EmissionStrengthId, emissionStrength * emissionBlend * emissionBumpMultiplier);
         }
         else
         {
@@ -264,6 +272,43 @@ public class PowerLineVisuals : MonoBehaviour
             StopCoroutine(decolorPowerLineCoroutine);
             decolorPowerLineCoroutine = null;
         }
+    }
+
+    private void StartEmissionBump()
+    {
+        StopEmissionBump();
+        emissionBumpMultiplier = 1f + powerUpEmissionBump;
+        emissionBumpCoroutine = StartCoroutine(EmissionBumpDecay());
+    }
+
+    private void StopEmissionBump()
+    {
+        if (emissionBumpCoroutine != null)
+        {
+            StopCoroutine(emissionBumpCoroutine);
+            emissionBumpCoroutine = null;
+        }
+
+        emissionBumpMultiplier = 1f;
+    }
+
+    private IEnumerator EmissionBumpDecay()
+    {
+        float startMultiplier = 1f + powerUpEmissionBump;
+        float elapsedTime = 0f;
+
+        while (elapsedTime < powerUpEmissionBumpDuration)
+        {
+            elapsedTime += Time.deltaTime;
+            float t = elapsedTime / powerUpEmissionBumpDuration;
+            emissionBumpMultiplier = Mathf.Lerp(startMultiplier, 1f, t);
+            ApplyVisualState();
+            yield return null;
+        }
+
+        emissionBumpMultiplier = 1f;
+        ApplyVisualState();
+        emissionBumpCoroutine = null;
     }
 
     private void StopDarkenSpriteLineCoroutine()
