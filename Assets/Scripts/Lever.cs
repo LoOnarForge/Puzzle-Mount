@@ -23,6 +23,7 @@ public class Lever : MonoBehaviour
 
     private readonly List<MediumDoor> mediumDoors = new List<MediumDoor>();
     private readonly List<Elevator> elevators = new List<Elevator>();
+    private readonly List<Piston> pistons = new List<Piston>();
 
     private bool isLeverMoving;
     private bool isAtPositiveAngle = true;
@@ -95,6 +96,9 @@ public class Lever : MonoBehaviour
 
         foreach (Elevator elevator in elevators)
             elevator.OnLeverOperated();
+
+        foreach (Piston piston in pistons)
+            piston.OnLeverOperated();
     }
 
     // Builds typed device lists once from the inspector object list.
@@ -102,6 +106,7 @@ public class Lever : MonoBehaviour
     {
         mediumDoors.Clear();
         elevators.Clear();
+        pistons.Clear();
 
         foreach (GameObject deviceObject in connectedDevices)
         {
@@ -115,6 +120,10 @@ public class Lever : MonoBehaviour
             Elevator elevator = deviceObject.GetComponent<Elevator>();
             if (elevator != null)
                 elevators.Add(elevator);
+
+            Piston piston = deviceObject.GetComponent<Piston>();
+            if (piston != null)
+                pistons.Add(piston);
         }
     }
 
