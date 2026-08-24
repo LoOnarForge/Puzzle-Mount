@@ -17,7 +17,7 @@ public class ElevatorEditor : Editor
             sockets.arraySize = SocketCount;
 
         for (int i = 0; i < SocketCount; i++)
-            DrawSocket($"SOCKET {(i + 1):D2}", sockets.GetArrayElementAtIndex(i), colorManager);
+            DrawSocket(i, sockets.GetArrayElementAtIndex(i), colorManager);
 
         EditorGUILayout.Space(20);
         EditorGUILayout.PropertyField(serializedObject.FindProperty("platform"));
@@ -82,12 +82,12 @@ public class ElevatorEditor : Editor
         return prefix + "(" + nextNumber + ")";
     }
 
-    private void DrawSocket(string sectionLabel, SerializedProperty slot, ColorManager colorManager)
+    private void DrawSocket(int socketIndex, SerializedProperty slot, ColorManager colorManager)
     {
         EditorGUILayout.Space(20);
-        EditorGUILayout.LabelField(sectionLabel, EditorStyles.boldLabel);
+        EditorGUILayout.LabelField($"SOCKET {(socketIndex + 1):D2}:", EditorStyles.boldLabel);
 
-        EditorGUILayout.PropertyField(slot.FindPropertyRelative("socketObject"), new GUIContent("Socket Object"));
+        EditorGUILayout.PropertyField(slot.FindPropertyRelative("socketObject"), new GUIContent($"Power Socket {(socketIndex + 1):D2}"));
         EditorGUILayout.PropertyField(slot.FindPropertyRelative("isEnabled"), new GUIContent("Is Enabled"));
 
         SerializedProperty colorIndex = slot.FindPropertyRelative("requiredColorIndex");
