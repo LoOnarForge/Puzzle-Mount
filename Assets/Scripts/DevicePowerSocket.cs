@@ -3,10 +3,24 @@ using UnityEngine;
 
 public class DevicePowerSocket : MonoBehaviour
 {
+    private const float EmissionStrength = 2f;
+    private const float PoweredEmissionMultiplier = 1f;
+    private const float MinBrightness = 0f;
+    private const float LightInfluence = 1f;
+
+    private static readonly Color NeutralColor = Color.white;
+    private static readonly int BaseColorId = Shader.PropertyToID("_BaseColor");
+    private static readonly int EmissionColorId = Shader.PropertyToID("_EmissionColor");
+    private static readonly int EmissionStrengthId = Shader.PropertyToID("_EmissionStrength");
+    private static readonly int MinBrightnessId = Shader.PropertyToID("_MinBrightness");
+    private static readonly int LightInfluenceId = Shader.PropertyToID("_LightInfluence");
+
     [Header("SOCKET:")]
-    [SerializeField] private LinePort port;
     [SerializeField] private int colorIndex;
     [SerializeField] private int requiredMw = 1;
+
+    [Header("VISUAL:")]
+    [SerializeField] private GameObject socketSpriteObject;
 
     [Space(20)]
     [Header("STATE:")]
@@ -17,6 +31,9 @@ public class DevicePowerSocket : MonoBehaviour
     [SerializeField] private int powerIndex = -1;
     [SerializeField] private Color powerColor;
 
+    private LinePort port;
+    private SpriteRenderer socketSprite;
+    private MaterialPropertyBlock propBlock;
     private float powerPropagationDelay;
     private Coroutine clearPowerCoroutine;
     private int ownerIndex = -1;
@@ -34,13 +51,60 @@ public class DevicePowerSocket : MonoBehaviour
 
     private void Awake()
     {
-        Debug.Assert(port != null, $"{nameof(DevicePowerSocket)} on {name} requires a line port.", this);
+        port = GetComponent<LinePort>();
+
+        if (socketSpriteObject != null)
+            socketSprite = socketSpriteObject.GetComponent<SpriteRenderer>();
+
+        Debug.Assert(port != null, $"{nameof(DevicePowerSocket)} on {name} requires a {nameof(LinePort)} on the same object.", this);
+        Debug.Assert(socketSprite != null, $"{nameof(DevicePowerSocket)} on {name} requires a {nameof(SpriteRenderer)} on the assigned socket sprite object.", this);
         Debug.Assert(AssignAnOwner(), $"{nameof(DevicePowerSocket)} on {name} requires an owner device.", this);
         Debug.Assert(GameConfig.Instance != null, $"{nameof(DevicePowerSocket)} on {name} requires a {nameof(GameConfig)} in the scene.", this);
 
         powerPropagationDelay = GameConfig.Instance.PowerPropagationDelay;
+        propBlock = new MaterialPropertyBlock();
         port.ParentDevicePowerSocket = this;
         port.SetPortType(PortType.Receiver);
+        ApplyDepoweredVisual();
+    }
+
+    // Colors the socket sprite with the delivered power color once at least 1 MW is held.
+    public void ApplyPoweredVisual()
+    {
+        if (socketSprite == null || allocatedMw < 1)
+            return;
+
+        ApplyVisualState(powerColor, true);
+    }
+
+    // Resets the socket sprite to white when the socket has no power.
+    public void ApplyDepoweredVisual()
+    {
+        if (socketSprite == null)
+            return;
+
+        ApplyVisualState(NeutralColor, false);
+    }
+
+    private void ApplyVisualState(Color baseColor, bool powered)
+    {
+        socketSprite.GetPropertyBlock(propBlock);
+        propBlock.SetColor(BaseColorId, baseColor);
+
+        if (powered)
+        {
+            propBlock.SetColor(EmissionColorId, powerColor * PoweredEmissionMultiplier);
+            propBlock.SetFloat(EmissionStrengthId, EmissionStrength);
+        }
+        else
+        {
+            propBlock.SetColor(EmissionColorId, Color.black);
+            propBlock.SetFloat(EmissionStrengthId, 0f);
+        }
+
+        propBlock.SetFloat(MinBrightnessId, MinBrightness);
+        propBlock.SetFloat(LightInfluenceId, LightInfluence);
+        socketSprite.SetPropertyBlock(propBlock);
     }
 
     // Sets socket index, required color, and required MW from the owning device. Called once.
@@ -84,6 +148,9 @@ public class DevicePowerSocket : MonoBehaviour
             }
         }
 
+        if (allocatedMw >= 1)
+            ApplyPoweredVisual();
+
         UpdateSocketStateChangeToOwner();
         return allocatedMw >= requiredMw;
     }
@@ -108,6 +175,7 @@ public class DevicePowerSocket : MonoBehaviour
             linePort = null;
             powerColor = Color.white;
             powerIndex = -1;
+            ApplyDepoweredVisual();
         }
 
         givingLine?.RefreshFaceAndPortsStates();
@@ -136,6 +204,7 @@ public class DevicePowerSocket : MonoBehaviour
             linePort = null;
             powerColor = Color.white;
             powerIndex = -1;
+            ApplyDepoweredVisual();
             UpdateSocketStateChangeToOwner();
             return;
         }

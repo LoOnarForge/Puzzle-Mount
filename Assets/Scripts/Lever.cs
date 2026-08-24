@@ -1,6 +1,7 @@
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
+using UnityEngine.Serialization;
 
 public class Lever : MonoBehaviour
 {
@@ -9,7 +10,8 @@ public class Lever : MonoBehaviour
     [System.Serializable]
     private class SocketSlot
     {
-        public GameObject socketObject;
+        [FormerlySerializedAs("socketObject")]
+        public GameObject powerSocket01;
         public int requiredColorIndex;
         public int requiredMw = 1;
         public int allocatedMw;
@@ -130,10 +132,14 @@ public class Lever : MonoBehaviour
     // Claims the assigned socket once and pushes required color and MW to it.
     private void InitialSocketConfiguration()
     {
-        if (socket.socketObject == null)
+        if (socket.powerSocket01 == null)
             return;
 
-        DevicePowerSocket device = socket.socketObject.GetComponent<DevicePowerSocket>();
+        DevicePowerSocket device = socket.powerSocket01.GetComponent<DevicePowerSocket>();
+        Debug.Assert(device != null, $"{nameof(Lever)} on {name} requires a {nameof(DevicePowerSocket)} on the assigned power socket object.", this);
+        if (device == null)
+            return;
+
         device.InitialSocketConfiguration(SocketIndex, socket.requiredColorIndex, socket.requiredMw);
         RefreshLeverState();
     }

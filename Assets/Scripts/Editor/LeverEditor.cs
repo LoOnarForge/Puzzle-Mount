@@ -11,7 +11,7 @@ public class LeverEditor : Editor
         ColorManager colorManager = Object.FindAnyObjectByType<ColorManager>();
         SerializedProperty socket = serializedObject.FindProperty("socket");
 
-        DrawSocket("SOCKET", socket, colorManager);
+        DrawSocket("SOCKET 01:", socket, colorManager);
 
         EditorGUILayout.Space(20);
         EditorGUILayout.PropertyField(serializedObject.FindProperty("leverHandle"));
@@ -36,7 +36,7 @@ public class LeverEditor : Editor
         EditorGUILayout.Space(20);
         EditorGUILayout.LabelField(sectionLabel, EditorStyles.boldLabel);
 
-        EditorGUILayout.PropertyField(slot.FindPropertyRelative("socketObject"), new GUIContent("Socket Object"));
+        EditorGUILayout.PropertyField(slot.FindPropertyRelative("powerSocket01"), new GUIContent("Power Socket 01"));
 
         SerializedProperty colorIndex = slot.FindPropertyRelative("requiredColorIndex");
 
