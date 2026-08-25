@@ -30,6 +30,7 @@ public class Piston : MonoBehaviour
     [SerializeField] private Transform pistonFace;
     [SerializeField] private int maxStage = 3;
     [SerializeField] private int startingStage;
+    [SerializeField] private bool startExtending = true;
     [SerializeField] private float moveSpeed = DefaultMoveSpeed;
     [SerializeField] private LayerMask obstructionMask;
     [SerializeField] private bool isPowered;
@@ -48,6 +49,7 @@ public class Piston : MonoBehaviour
             obstructionMask = ~LayerMask.GetMask(TimLayerName);
 
         currentStage = Mathf.Clamp(startingStage, 0, maxStage);
+        stageDirection = startExtending ? 1 : -1;
         ApplyStagePosition(currentStage);
         InitialSocketConfiguration();
     }
@@ -231,25 +233,43 @@ public class Piston : MonoBehaviour
             cube.PushSingle(worldPush);
 
         foreach (CharacterMovement tim in timsInFront)
-            PushTimOneStep(tim, worldPush);
+        {
+            if (!CanTimMoveOneStep(tim, worldPush))
+                tim.ApplyDeathToss(worldPush);
+        }
 
         return true;
     }
 
-    private void PushTimOneStep(CharacterMovement tim, Vector3 worldPush)
+    private bool CanTimMoveOneStep(CharacterMovement tim, Vector3 worldPush)
     {
-        CharacterController controller = tim.GetComponent<CharacterController>();
-        Vector3 target = tim.transform.position + worldPush.normalized * GridUnit;
-
-        if (controller != null)
-            controller.enabled = false;
-
-        tim.transform.position = new Vector3(
+        Vector3 pushDir = worldPush.normalized;
+        Vector3 target = tim.transform.position + pushDir * GridUnit;
+        Vector3 checkCenter = new Vector3(
             Mathf.Round(target.x),
-            tim.transform.position.y,
+            tim.transform.position.y + 0.5f,
             Mathf.Round(target.z));
 
-        if (controller != null)
-            controller.enabled = true;
+        int count = Physics.OverlapBoxNonAlloc(checkCenter, Vector3.one * PushDetectHalf, overlapHits, Quaternion.identity);
+
+        for (int i = 0; i < count; i++)
+        {
+            Collider hit = overlapHits[i];
+            if (hit.isTrigger)
+                continue;
+
+            if (hit.transform.IsChildOf(tim.transform))
+                continue;
+
+            if (hit.transform.IsChildOf(transform))
+                continue;
+
+            if ((obstructionMask.value & (1 << hit.gameObject.layer)) == 0)
+                continue;
+
+            return false;
+        }
+
+        return true;
     }
 }
