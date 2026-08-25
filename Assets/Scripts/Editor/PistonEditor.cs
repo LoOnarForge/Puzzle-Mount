@@ -21,8 +21,14 @@ public class PistonEditor : Editor
 
         EditorGUILayout.Space(20);
         EditorGUILayout.PropertyField(serializedObject.FindProperty("pistonFace"));
-        EditorGUILayout.PropertyField(serializedObject.FindProperty("maxStage"));
+
+        SerializedProperty maxStage = serializedObject.FindProperty("maxStage");
+        SerializedProperty startingStage = serializedObject.FindProperty("startingStage");
+        EditorGUILayout.PropertyField(maxStage);
+        startingStage.intValue = EditorGUILayout.IntSlider("Starting Stage", startingStage.intValue, 0, maxStage.intValue);
+
         EditorGUILayout.PropertyField(serializedObject.FindProperty("moveSpeed"));
+        EditorGUILayout.PropertyField(serializedObject.FindProperty("obstructionMask"));
 
         EditorGUILayout.Space(20);
         using (new EditorGUI.DisabledScope(true))

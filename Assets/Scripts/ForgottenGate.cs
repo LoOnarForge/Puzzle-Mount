@@ -91,7 +91,7 @@ public class ForgottenGate : MonoBehaviour
 
             if (!slot.isEnabled)
             {
-                slot.socketObject.SetActive(false);
+                DevicePowerSocket.SetSocketHierarchyActive(slot.socketObject, false);
                 slot.allocatedMw = 0;
                 slot.poweringSource = null;
                 continue;
@@ -100,7 +100,7 @@ public class ForgottenGate : MonoBehaviour
             DevicePowerSocket device = slot.socketObject.GetComponent<DevicePowerSocket>();
             Debug.Assert(device != null, $"{nameof(ForgottenGate)} on {name} socket object requires a {nameof(DevicePowerSocket)}.", this);
 
-            slot.socketObject.SetActive(true);
+            DevicePowerSocket.SetSocketHierarchyActive(slot.socketObject, true);
             device.InitialSocketConfiguration(i, slot.requiredColorIndex, slot.requiredMw);
         }
 

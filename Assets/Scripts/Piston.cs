@@ -8,6 +8,7 @@ public class Piston : MonoBehaviour
     private const float GridUnit = 1f;
     private const float DefaultMoveSpeed = 5f;
     private const float PushDetectHalf = 0.45f;
+    private const string TimLayerName = "TimJones";
 
     [System.Serializable]
     private class SocketSlot
@@ -28,11 +29,12 @@ public class Piston : MonoBehaviour
 
     [SerializeField] private Transform pistonFace;
     [SerializeField] private int maxStage = 3;
+    [SerializeField] private int startingStage;
     [SerializeField] private float moveSpeed = DefaultMoveSpeed;
+    [SerializeField] private LayerMask obstructionMask;
     [SerializeField] private bool isPowered;
 
     private Vector3 faceHomeLocalPosition;
-    private Vector3 facePushLocalDirection;
     private int currentStage;
     private int stageDirection = 1;
     private bool isMoving;
@@ -42,8 +44,23 @@ public class Piston : MonoBehaviour
     {
         Debug.Assert(pistonFace != null, $"{nameof(Piston)} on {name} requires Pistons Face assigned.", this);
         faceHomeLocalPosition = pistonFace.localPosition;
-        facePushLocalDirection = (pistonFace.localRotation * Vector3.forward).normalized;
+        if (obstructionMask.value == 0)
+            obstructionMask = ~LayerMask.GetMask(TimLayerName);
+
+        currentStage = Mathf.Clamp(startingStage, 0, maxStage);
+        ApplyStagePosition(currentStage);
         InitialSocketConfiguration();
+    }
+
+    private void OnValidate()
+    {
+        maxStage = Mathf.Max(0, maxStage);
+        startingStage = Mathf.Clamp(startingStage, 0, maxStage);
+    }
+
+    private void ApplyStagePosition(int stage)
+    {
+        pistonFace.localPosition = faceHomeLocalPosition + Vector3.forward * (stage * GridUnit);
     }
 
     // Called by a DevicePowerSocket when its power state changes.
@@ -75,7 +92,7 @@ public class Piston : MonoBehaviour
             stageDirection = 1;
         }
 
-        StartCoroutine(MoveOneStage(nextStage));
+        StartCoroutine(MoveToStage(nextStage));
     }
 
     // Claims assigned sockets once and pushes required color and MW to each.
@@ -90,7 +107,7 @@ public class Piston : MonoBehaviour
 
             if (!slot.isEnabled)
             {
-                slot.socketObject.SetActive(false);
+                DevicePowerSocket.SetSocketHierarchyActive(slot.socketObject, false);
                 slot.allocatedMw = 0;
                 slot.poweringSource = null;
                 continue;
@@ -100,7 +117,7 @@ public class Piston : MonoBehaviour
             if (device == null)
                 continue;
 
-            slot.socketObject.SetActive(true);
+            DevicePowerSocket.SetSocketHierarchyActive(slot.socketObject, true);
             device.InitialSocketConfiguration(i, slot.requiredColorIndex, slot.requiredMw);
         }
 
@@ -126,20 +143,32 @@ public class Piston : MonoBehaviour
         isPowered = hasEnabledSocket && allPowered;
     }
 
-    private IEnumerator MoveOneStage(int nextStage)
+    private IEnumerator MoveToStage(int nextStage)
     {
         isMoving = true;
 
-        Vector3 worldPush = RunodeMovement.GetCardinalAxis(pistonFace.forward);
-        if (nextStage > currentStage && Mathf.Abs(worldPush.y) < 0.5f && !TryPushRunodes(worldPush))
+        Vector3 worldPush = RunodeMovement.GetCardinalAxis(transform.forward);
+        if (nextStage > currentStage && !CanAdvanceStage(worldPush))
         {
+            stageDirection = 1;
+
+            if (currentStage > 0)
+                yield return AnimateToStage(0);
+
             isMoving = false;
             yield break;
         }
 
+        yield return AnimateToStage(nextStage);
+        isMoving = false;
+    }
+
+    private IEnumerator AnimateToStage(int nextStage)
+    {
         Vector3 start = pistonFace.localPosition;
-        Vector3 end = faceHomeLocalPosition + facePushLocalDirection * (nextStage * GridUnit);
-        float duration = moveSpeed > 0f ? GridUnit / moveSpeed : 0f;
+        Vector3 end = faceHomeLocalPosition + Vector3.forward * (nextStage * GridUnit);
+        float distance = Vector3.Distance(start, end);
+        float duration = moveSpeed > 0f ? distance / moveSpeed : 0f;
 
         for (float elapsed = 0f; elapsed < duration; elapsed += Time.deltaTime)
         {
@@ -150,23 +179,46 @@ public class Piston : MonoBehaviour
 
         pistonFace.localPosition = end;
         currentStage = nextStage;
-        isMoving = false;
     }
 
-    private bool TryPushRunodes(Vector3 worldPush)
+    private bool CanAdvanceStage(Vector3 worldPush)
     {
         Vector3 center = pistonFace.position + worldPush * GridUnit * 0.5f;
         int count = Physics.OverlapBoxNonAlloc(center, Vector3.one * PushDetectHalf, overlapHits, Quaternion.identity);
 
+        bool isHorizontal = Mathf.Abs(worldPush.y) < 0.5f;
         HashSet<RunodeMovement> cubesInFront = new HashSet<RunodeMovement>();
+        HashSet<CharacterMovement> timsInFront = new HashSet<CharacterMovement>();
+
         for (int i = 0; i < count; i++)
         {
-            RunodeMovement runode = overlapHits[i].GetComponentInParent<RunodeMovement>();
-            if (runode != null && !runode.IsBusy)
+            Collider hit = overlapHits[i];
+            if (hit.isTrigger || hit.transform.IsChildOf(transform))
+                continue;
+
+            if ((obstructionMask.value & (1 << hit.gameObject.layer)) == 0)
+            {
+                CharacterMovement tim = hit.GetComponentInParent<CharacterMovement>();
+                if (tim != null && !tim.IsDead)
+                    timsInFront.Add(tim);
+
+                continue;
+            }
+
+            RunodeMovement runode = hit.GetComponentInParent<RunodeMovement>();
+            if (runode != null)
+            {
+                if (runode.IsBusy)
+                    return false;
+
                 cubesInFront.Add(runode);
+                continue;
+            }
+
+            return false;
         }
 
-        if (cubesInFront.Count == 0)
+        if (!isHorizontal)
             return true;
 
         foreach (RunodeMovement cube in cubesInFront)
@@ -178,6 +230,26 @@ public class Piston : MonoBehaviour
         foreach (RunodeMovement cube in cubesInFront)
             cube.PushSingle(worldPush);
 
+        foreach (CharacterMovement tim in timsInFront)
+            PushTimOneStep(tim, worldPush);
+
         return true;
+    }
+
+    private void PushTimOneStep(CharacterMovement tim, Vector3 worldPush)
+    {
+        CharacterController controller = tim.GetComponent<CharacterController>();
+        Vector3 target = tim.transform.position + worldPush.normalized * GridUnit;
+
+        if (controller != null)
+            controller.enabled = false;
+
+        tim.transform.position = new Vector3(
+            Mathf.Round(target.x),
+            tim.transform.position.y,
+            Mathf.Round(target.z));
+
+        if (controller != null)
+            controller.enabled = true;
     }
 }

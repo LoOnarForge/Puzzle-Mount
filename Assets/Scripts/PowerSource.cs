@@ -62,6 +62,10 @@ public class PowerSource : MonoBehaviour
         leftPort.SetPortType(PortType.Giver);
     }
 
+    private void Start()
+    {
+        RefreshGiverPorts();
+    }
 
     public void RefreshGiverPorts()
     {

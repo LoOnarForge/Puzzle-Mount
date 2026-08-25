@@ -107,6 +107,19 @@ public class DevicePowerSocket : MonoBehaviour
         socketSprite.SetPropertyBlock(propBlock);
     }
 
+    // Enables or disables the socket hierarchy root (parent one level up, or the DPS object if none).
+    public static void SetSocketHierarchyActive(GameObject socketObject, bool active)
+    {
+        if (socketObject == null)
+            return;
+
+        Transform parent = socketObject.transform.parent;
+        if (parent != null)
+            parent.gameObject.SetActive(active);
+        else
+            socketObject.SetActive(active);
+    }
+
     // Sets socket index, required color, and required MW from the owning device. Called once.
     public void InitialSocketConfiguration(int index, int color, int mw)
     {

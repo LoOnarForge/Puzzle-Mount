@@ -1,0 +1,21 @@
+---
+description: Never edit Unity scenes, prefabs, or serialized assets unless the user explicitly requests it
+alwaysApply: true
+---
+
+# No Scene or Asset Edits
+
+**NEVER modify Unity scene files, prefabs, or other serialized editor assets unless the user explicitly asks you to in that message.**
+
+This includes:
+- `Assets/**/*.unity` (scenes)
+- `Assets/**/*.prefab` (prefabs)
+- `ProjectSettings/**`
+- Any YAML/serialized Unity asset (materials, animators, ScriptableObjects, etc.)
+- Static flags, layer assignments, transform values, component references, or hierarchy in those files
+
+**Allowed without explicit request:** C# scripts in `Assets/Scripts/` (and other code files) when the task requires code changes.
+
+**If a task needs scene/prefab setup:** tell the user exactly what to set in the Unity Editor — do not edit the asset files yourself.
+
+**If unsure:** ask first. Do not touch scenes "to help" or "to test."
