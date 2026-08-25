@@ -25,6 +25,7 @@ public class LinePort : MonoBehaviour
     [SerializeField] private bool isIncluded;
     public bool IsIncluded => isIncluded;
     public RunodeLine ParentLine => parentLine;
+    public PowerSource ParentPowerSource => parentPowerSource;
     public DevicePowerSocket ParentDevicePowerSocket
     {
         get => parentDevicePowerSocket;

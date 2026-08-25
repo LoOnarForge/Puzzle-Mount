@@ -107,6 +107,14 @@ public class PowerSource : MonoBehaviour
         else
         {
             RunodeLine targetLine = targetPort.ParentLine;
+            if (targetLine == null)
+            {
+                PowerSource otherSource = targetPort.ParentPowerSource;
+                if (otherSource != null && otherSource != this)
+                    ReportPowerSourceConnection(otherSource);
+
+                return true;
+            }
 
             if (TakeMW())
             {
@@ -385,6 +393,14 @@ public class PowerSource : MonoBehaviour
         }
 
         return false;
+    }
+
+    // Logs when two Power Sources are linked through overlapping ports (directly or via a Runode line).
+    private void ReportPowerSourceConnection(PowerSource otherSource)
+    {
+        Debug.Log(
+            $"POWER SOURCE CONNECTION DETECTED BETWEEN {gameObject.name.ToUpper()} AND {otherSource.gameObject.name.ToUpper()}.",
+            this);
     }
 
     private void OnValidate()
