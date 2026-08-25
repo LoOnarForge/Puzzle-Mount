@@ -27,7 +27,7 @@ public class DevicePowerSocket : MonoBehaviour
     [SerializeField] private int allocatedMw;
     [SerializeField] private PowerSource powerSource;
     [SerializeField] private RunodeLine poweredByLine;
-    [SerializeField] private LinePort linePort;
+    [SerializeField] private LinePort givingLinePort;
     [SerializeField] private int powerIndex = -1;
     [SerializeField] private Color powerColor;
 
@@ -142,7 +142,7 @@ public class DevicePowerSocket : MonoBehaviour
             {
                 poweredByLine = givingLine;
                 powerSource = source;
-                linePort = givingPort;
+                givingLinePort = givingPort;
                 powerColor = color;
                 powerIndex = index;
             }
@@ -172,7 +172,7 @@ public class DevicePowerSocket : MonoBehaviour
             source.RemoveCircuitMember(this);
             powerSource = null;
             poweredByLine = null;
-            linePort = null;
+            givingLinePort = null;
             powerColor = Color.white;
             powerIndex = -1;
             ApplyDepoweredVisual();
@@ -201,7 +201,7 @@ public class DevicePowerSocket : MonoBehaviour
             }
 
             poweredByLine = null;
-            linePort = null;
+            givingLinePort = null;
             powerColor = Color.white;
             powerIndex = -1;
             ApplyDepoweredVisual();
@@ -210,7 +210,7 @@ public class DevicePowerSocket : MonoBehaviour
         }
 
         poweredByLine = null;
-        linePort = null;
+        givingLinePort = null;
         UpdateSocketStateChangeToOwner();
 
         if (powerSource != null)
