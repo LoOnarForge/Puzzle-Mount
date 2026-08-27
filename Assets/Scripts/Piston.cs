@@ -80,6 +80,9 @@ public class Piston : MonoBehaviour
         pistonFace.localPosition = faceHomeLocalPosition + GetTravelAxisLocal() * (stage * GridUnit);
     }
 
+    // True when the piston face is at stage 0.
+    public bool IsRetracted => currentStage == 0;
+
     // Called by a DevicePowerSocket when its power state changes.
     public void UpdateSocketStateToOwner(int ownerIndex, int allocatedMw, PowerSource poweringSource)
     {
