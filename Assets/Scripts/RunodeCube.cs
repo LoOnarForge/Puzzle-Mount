@@ -71,62 +71,65 @@ public class RunodeCube : MonoBehaviour
     // Refreshes obstruction state and then connections on this cube and its neighbours.
     public void RefreshCubeAndAdjacentConnections()
     {
-        RunodeCube[] affectedCubes = FindAffectedCubes();
-
-        PowerSource[] affectedPowerSources = FindAffectedPowerSources();
-
-        RefreshObstructionsOnAffectedCubes(affectedCubes);
-        RefreshPortObstructionsOnAffectedCubes(affectedCubes);
-        RefreshPowerSourceConnections(affectedPowerSources);
-        RefreshConnectionsOnAffectedCubes(affectedCubes);
+        RefreshConnectionsNearPoint(transform.position);
     }
 
-    // Finds this cube plus every face- or edge-adjacent cube within the refresh radius.
-    private RunodeCube[] FindAffectedCubes()
+    // Refreshes every cube and power source within the standard refresh radius of a world point.
+    public static void RefreshConnectionsNearPoint(Vector3 center)
     {
-        List<RunodeCube> affectedCubes = new List<RunodeCube> { this };
+        RunodeCube[] affectedCubes = FindCubesNearPoint(center);
+        PowerSource[] affectedPowerSources = FindPowerSourcesNearPoint(center);
+
+        RefreshObstructionsOnCubes(affectedCubes);
+        RefreshPortObstructionsOnCubes(affectedCubes);
+        RefreshPowerSourceConnections(affectedPowerSources);
+        RefreshConnectionsOnCubes(affectedCubes);
+    }
+
+    private static RunodeCube[] FindCubesNearPoint(Vector3 center)
+    {
+        List<RunodeCube> affectedCubes = new List<RunodeCube>();
         RunodeCube[] cubes = FindObjectsByType<RunodeCube>();
 
         foreach (RunodeCube cube in cubes)
         {
-            if (cube == this)
-                continue;
-
-            if (IsWithinRefreshRange(cube.transform.position))
+            if (IsWithinRefreshRange(cube.transform.position, center))
                 affectedCubes.Add(cube);
         }
 
         return affectedCubes.ToArray();
     }
-    private PowerSource[] FindAffectedPowerSources()
+
+    private static PowerSource[] FindPowerSourcesNearPoint(Vector3 center)
     {
         List<PowerSource> affectedPowerSources = new List<PowerSource>();
         PowerSource[] powerSources = FindObjectsByType<PowerSource>();
 
         foreach (PowerSource powerSource in powerSources)
         {
-            if (IsWithinRefreshRange(powerSource.transform.position))
+            if (IsWithinRefreshRange(powerSource.transform.position, center))
                 affectedPowerSources.Add(powerSource);
         }
 
         return affectedPowerSources.ToArray();
     }
-    private bool IsWithinRefreshRange(Vector3 otherPosition)
+
+    private static bool IsWithinRefreshRange(Vector3 otherPosition, Vector3 center)
     {
-        Vector3 offset = otherPosition - transform.position;
+        Vector3 offset = otherPosition - center;
 
         return Mathf.Abs(offset.x) <= RefreshRadius
             && Mathf.Abs(offset.y) <= RefreshRadius
             && Mathf.Abs(offset.z) <= RefreshRadius;
     }
 
-    private void RefreshPowerSourceConnections(PowerSource[] affectedPowerSources)
+    private static void RefreshPowerSourceConnections(PowerSource[] affectedPowerSources)
     {
         foreach (PowerSource powerSource in affectedPowerSources)
             powerSource.RefreshGiverPorts();
     }
 
-    private void RefreshObstructionsOnAffectedCubes(RunodeCube[] affectedCubes)
+    private static void RefreshObstructionsOnCubes(RunodeCube[] affectedCubes)
     {
         foreach (RunodeCube cube in affectedCubes)
         {
@@ -137,9 +140,8 @@ public class RunodeCube : MonoBehaviour
         }
     }
 
-    private void RefreshPortObstructionsOnAffectedCubes(RunodeCube[] affectedCubes)
+    private static void RefreshPortObstructionsOnCubes(RunodeCube[] affectedCubes)
     {
-
         foreach (RunodeCube cube in affectedCubes)
         {
             RunodeLine[] lines = cube.GetLines();
@@ -150,16 +152,14 @@ public class RunodeCube : MonoBehaviour
     }
 
     // Refreshes connections on every unobstructed active line in the affected cubes.
-    private void RefreshConnectionsOnAffectedCubes(RunodeCube[] affectedCubes)
+    private static void RefreshConnectionsOnCubes(RunodeCube[] affectedCubes)
     {
         foreach (RunodeCube cube in affectedCubes)
         {
             RunodeLine[] lines = cube.GetLines();
 
             foreach (RunodeLine line in lines)
-            {
                 line.RefreshPortConnections();
-            }
         }
     }
 

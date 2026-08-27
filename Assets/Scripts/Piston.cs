@@ -8,6 +8,7 @@ public class Piston : MonoBehaviour
     private const float GridUnit = 1f;
     private const float DefaultMoveSpeed = 5f;
     private const float PushDetectHalf = 0.45f;
+    private const float FaceTopTolerance = 0.1f;
     private const string TimLayerName = "TimJones";
 
     [System.Serializable]
@@ -28,6 +29,7 @@ public class Piston : MonoBehaviour
     };
 
     [SerializeField] private Transform pistonFace;
+    [SerializeField] private bool isVertical;
     [SerializeField] private int maxStage = 3;
     [SerializeField] private int startingStage;
     [SerializeField] private bool startExtending = true;
@@ -39,11 +41,14 @@ public class Piston : MonoBehaviour
     private int currentStage;
     private int stageDirection = 1;
     private bool isMoving;
+    private Collider faceCollider;
     private readonly Collider[] overlapHits = new Collider[16];
 
     private void Awake()
     {
         Debug.Assert(pistonFace != null, $"{nameof(Piston)} on {name} requires Pistons Face assigned.", this);
+        faceCollider = pistonFace.GetComponent<Collider>();
+        Debug.Assert(faceCollider != null, $"{nameof(Piston)} on {name} requires a collider on Pistons Face.", this);
         faceHomeLocalPosition = pistonFace.localPosition;
         if (obstructionMask.value == 0)
             obstructionMask = ~LayerMask.GetMask(TimLayerName);
@@ -60,9 +65,19 @@ public class Piston : MonoBehaviour
         startingStage = Mathf.Clamp(startingStage, 0, maxStage);
     }
 
+    private Vector3 GetTravelAxisLocal()
+    {
+        return isVertical ? Vector3.up : Vector3.forward;
+    }
+
+    private Vector3 GetWorldPush()
+    {
+        return isVertical ? Vector3.up : RunodeMovement.GetCardinalAxis(transform.forward);
+    }
+
     private void ApplyStagePosition(int stage)
     {
-        pistonFace.localPosition = faceHomeLocalPosition + Vector3.forward * (stage * GridUnit);
+        pistonFace.localPosition = faceHomeLocalPosition + GetTravelAxisLocal() * (stage * GridUnit);
     }
 
     // Called by a DevicePowerSocket when its power state changes.
@@ -149,7 +164,7 @@ public class Piston : MonoBehaviour
     {
         isMoving = true;
 
-        Vector3 worldPush = RunodeMovement.GetCardinalAxis(transform.forward);
+        Vector3 worldPush = GetWorldPush();
         if (nextStage > currentStage && !CanAdvanceStage(worldPush))
         {
             stageDirection = 1;
@@ -168,19 +183,90 @@ public class Piston : MonoBehaviour
     private IEnumerator AnimateToStage(int nextStage)
     {
         Vector3 start = pistonFace.localPosition;
-        Vector3 end = faceHomeLocalPosition + Vector3.forward * (nextStage * GridUnit);
+        Vector3 end = faceHomeLocalPosition + GetTravelAxisLocal() * (nextStage * GridUnit);
+        Vector3 startWorldPosition = pistonFace.position;
+        Vector3 endWorldPosition = pistonFace.parent.TransformPoint(end);
+        bool carryRunodes = isVertical;
+
+        List<RunodeMovement> carriedRunodes = carryRunodes ? GetRunodesOnFace() : null;
+
+        if (carryRunodes)
+        {
+            foreach (RunodeMovement runode in carriedRunodes)
+                runode.SetKinematic(true);
+        }
+
         float distance = Vector3.Distance(start, end);
         float duration = moveSpeed > 0f ? distance / moveSpeed : 0f;
+        Vector3 previousWorldPosition = startWorldPosition;
 
         for (float elapsed = 0f; elapsed < duration; elapsed += Time.deltaTime)
         {
             float t = Mathf.SmoothStep(0f, 1f, elapsed / duration);
             pistonFace.localPosition = Vector3.Lerp(start, end, t);
+
+            if (carryRunodes)
+            {
+                Vector3 delta = pistonFace.position - previousWorldPosition;
+                MoveCarriedRunodes(carriedRunodes, delta);
+                previousWorldPosition = pistonFace.position;
+            }
+
             yield return null;
         }
 
-        pistonFace.localPosition = end;
+        if (carryRunodes)
+        {
+            Vector3 finalDelta = endWorldPosition - pistonFace.position;
+            pistonFace.localPosition = end;
+            MoveCarriedRunodes(carriedRunodes, finalDelta);
+
+            foreach (RunodeMovement runode in carriedRunodes)
+                runode.SetKinematic(false);
+        }
+        else
+        {
+            pistonFace.localPosition = end;
+        }
+
+        RefreshRunodesNearFace(startWorldPosition);
+        RefreshRunodesNearFace(endWorldPosition);
+
         currentStage = nextStage;
+    }
+
+    private static void RefreshRunodesNearFace(Vector3 worldPosition)
+    {
+        RunodeCube.RefreshConnectionsNearPoint(worldPosition);
+    }
+
+    private List<RunodeMovement> GetRunodesOnFace()
+    {
+        List<RunodeMovement> carriedRunodes = new List<RunodeMovement>();
+        Bounds bounds = faceCollider.bounds;
+        RunodeMovement[] allRunodes = Object.FindObjectsByType<RunodeMovement>();
+
+        foreach (RunodeMovement runode in allRunodes)
+        {
+            Vector3 position = runode.transform.position;
+
+            bool overFace =
+                position.x >= bounds.min.x && position.x <= bounds.max.x &&
+                position.z >= bounds.min.z && position.z <= bounds.max.z;
+
+            bool onOrAboveFace = position.y >= bounds.max.y - FaceTopTolerance;
+
+            if (overFace && onOrAboveFace)
+                carriedRunodes.Add(runode);
+        }
+
+        return carriedRunodes;
+    }
+
+    private static void MoveCarriedRunodes(List<RunodeMovement> carriedRunodes, Vector3 delta)
+    {
+        foreach (RunodeMovement runode in carriedRunodes)
+            runode.transform.position += delta;
     }
 
     private bool CanAdvanceStage(Vector3 worldPush)

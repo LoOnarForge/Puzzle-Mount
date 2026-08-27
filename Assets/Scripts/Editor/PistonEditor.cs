@@ -21,6 +21,7 @@ public class PistonEditor : Editor
 
         EditorGUILayout.Space(20);
         EditorGUILayout.PropertyField(serializedObject.FindProperty("pistonFace"));
+        EditorGUILayout.PropertyField(serializedObject.FindProperty("isVertical"), new GUIContent("Is Vertical"));
 
         SerializedProperty maxStage = serializedObject.FindProperty("maxStage");
         SerializedProperty startingStage = serializedObject.FindProperty("startingStage");

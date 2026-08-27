@@ -11,6 +11,7 @@ public class ObstructionPort : MonoBehaviour
     [SerializeField] private LayerMask obstructionLayers;
 
     private BoxCollider obstructionTrigger;
+    private RunodeMovement ownerRunode;
     private readonly Collider[] overlapResults = new Collider[16];
     private int overlapCount;
 
@@ -19,6 +20,7 @@ public class ObstructionPort : MonoBehaviour
     private void Awake()
     {
         obstructionTrigger = GetComponent<BoxCollider>();
+        ownerRunode = GetComponentInParent<RunodeMovement>();
 
         if (obstructionTrigger == null)
         {
@@ -67,7 +69,12 @@ public class ObstructionPort : MonoBehaviour
     {
         for (int i = 0; i < overlapCount; i++)
         {
-            GameObject obstruction = overlapResults[i].gameObject;
+            Collider hit = overlapResults[i];
+
+            if (ownerRunode != null && hit.GetComponentInParent<RunodeMovement>() == ownerRunode)
+                continue;
+
+            GameObject obstruction = hit.gameObject;
 
             if (!obstructions.Contains(obstruction))
                 obstructions.Add(obstruction);
