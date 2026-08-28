@@ -19,8 +19,13 @@ public class PistonShaft : MonoBehaviour
     [Header("Light")]
     [SerializeField] private Light shaftLight;
 
+    private Collider shaftCollider;
     private Vector3 baseLocalScale;
     private Vector3 localNearEdge = DefaultLocalNearEdge;
+    private Vector3 colliderBaseSize = Vector3.one;
+    private Vector3 colliderBaseCenter = Vector3.zero;
+    private Transform shaftColliderTransform;
+    private BoxCollider shaftBoxCollider;
     private Renderer[] shaftRenderers;
     private float baseLightIntensity;
     private float retractedSpan = -1f;
@@ -34,6 +39,8 @@ public class PistonShaft : MonoBehaviour
 
         if (shaftLight != null)
             baseLightIntensity = shaftLight.intensity;
+
+        CacheShaftCollider();
     }
 
     private void Start()
@@ -48,6 +55,7 @@ public class PistonShaft : MonoBehaviour
         if (baseAnchor == null || faceAnchor == null)
         {
             SetShaftVisible(false);
+            SetShaftColliderActive(false);
             ApplyShaftLight(0f);
             return;
         }
@@ -55,6 +63,7 @@ public class PistonShaft : MonoBehaviour
         if (!TryGetSpan(out Vector3 start, out _, out Vector3 forward, out float rawSpan))
         {
             SetShaftVisible(false);
+            SetShaftColliderActive(false);
             ApplyShaftLight(0f);
             return;
         }
@@ -64,6 +73,7 @@ public class PistonShaft : MonoBehaviour
         if (IsWithinRetractedSpan(rawSpan))
         {
             SetShaftVisible(false);
+            SetShaftColliderActive(false);
             return;
         }
 
@@ -72,6 +82,14 @@ public class PistonShaft : MonoBehaviour
         ApplyShaftLength(rawSpan);
         AlignNearEdgeTo(start);
         SetShaftVisible(true);
+        SyncShaftCollider(start, forward, GetShaftUp(forward), rawSpan);
+    }
+
+    // Receives the shaft collider assigned on the parent Piston.
+    public void SetShaftCollider(Collider collider)
+    {
+        shaftCollider = collider;
+        CacheShaftCollider();
     }
 
     private void TryCaptureRetractedSpan()
@@ -171,6 +189,63 @@ public class PistonShaft : MonoBehaviour
     {
         Vector3 nearWorld = transform.TransformPoint(localNearEdge);
         transform.position += worldStart - nearWorld;
+    }
+
+    private void CacheShaftCollider()
+    {
+        shaftBoxCollider = null;
+
+        if (shaftCollider == null)
+            return;
+
+        shaftColliderTransform = shaftCollider.transform;
+        shaftBoxCollider = shaftCollider as BoxCollider;
+
+        if (shaftBoxCollider == null)
+        {
+            Debug.LogWarning($"{nameof(PistonShaft)} on {name} requires a {nameof(BoxCollider)} for shaft collider length sync.", this);
+            return;
+        }
+
+        colliderBaseSize = shaftBoxCollider.size;
+        colliderBaseCenter = shaftBoxCollider.center;
+    }
+
+    private void SyncShaftCollider(Vector3 worldStart, Vector3 forward, Vector3 up, float span)
+    {
+        if (shaftBoxCollider == null || shaftColliderTransform == null)
+            return;
+
+        shaftCollider.enabled = true;
+        shaftColliderTransform.rotation = Quaternion.LookRotation(forward, up);
+        ApplyColliderLength(span);
+        AlignColliderNearEdgeTo(worldStart);
+    }
+
+    private void ApplyColliderLength(float span)
+    {
+        float worldScaleOnLength = shaftColliderTransform.TransformVector(Vector3.forward).magnitude;
+        if (worldScaleOnLength < MinSpan)
+            worldScaleOnLength = MinSpan;
+
+        float newLength = span / worldScaleOnLength;
+        shaftBoxCollider.size = new Vector3(colliderBaseSize.x, colliderBaseSize.y, newLength);
+    }
+
+    private void AlignColliderNearEdgeTo(Vector3 worldStart)
+    {
+        Vector3 nearLocal = new Vector3(
+            colliderBaseCenter.x,
+            colliderBaseCenter.y,
+            colliderBaseCenter.z - shaftBoxCollider.size.z * 0.5f);
+        Vector3 nearWorld = shaftColliderTransform.TransformPoint(nearLocal);
+        shaftColliderTransform.position += worldStart - nearWorld;
+    }
+
+    private void SetShaftColliderActive(bool active)
+    {
+        if (shaftCollider != null)
+            shaftCollider.enabled = active;
     }
 
     private void SetShaftVisible(bool visible)
