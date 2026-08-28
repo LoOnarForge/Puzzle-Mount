@@ -26,6 +26,8 @@ public class Piston : MonoBehaviour
         public PowerSource poweringSource;
     }
 
+    [SerializeField] private bool isSelfPowered;
+
     [SerializeField] private SocketSlot[] sockets = new SocketSlot[SocketCount]
     {
         new SocketSlot(),
@@ -124,7 +126,7 @@ public class Piston : MonoBehaviour
     // Called by a powered Lever when the player operates it.
     public void OnLeverOperated()
     {
-        if (!isPowered || isMoving || maxStage <= 0)
+        if ((!isSelfPowered && !isPowered) || isMoving || maxStage <= 0)
             return;
 
         int nextStage = currentStage + stageDirection;
@@ -146,6 +148,12 @@ public class Piston : MonoBehaviour
     // Claims assigned sockets once and pushes required color and MW to each.
     private void InitialSocketConfiguration()
     {
+        if (isSelfPowered)
+        {
+            isPowered = true;
+            return;
+        }
+
         for (int i = 0; i < sockets.Length; i++)
         {
             SocketSlot slot = sockets[i];
@@ -174,6 +182,12 @@ public class Piston : MonoBehaviour
 
     private void RefreshPistonState()
     {
+        if (isSelfPowered)
+        {
+            isPowered = true;
+            return;
+        }
+
         bool hasEnabledSocket = false;
         bool allPowered = true;
 

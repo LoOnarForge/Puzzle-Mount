@@ -10,6 +10,8 @@ public class PistonEditor : Editor
     {
         serializedObject.Update();
 
+        EditorGUILayout.PropertyField(serializedObject.FindProperty("isSelfPowered"), new GUIContent("Is Self Powered"));
+
         ColorManager colorManager = Object.FindAnyObjectByType<ColorManager>();
         SerializedProperty sockets = serializedObject.FindProperty("sockets");
 
