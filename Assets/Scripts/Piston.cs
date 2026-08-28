@@ -46,8 +46,12 @@ public class Piston : MonoBehaviour
     private int stageDirection = 1;
     private bool isMoving;
     private bool timKilledDuringMove;
+    private bool isHorizontallyExtending;
+    private int targetStageThisMove;
     private Piston timKillPartner;
+    private Vector3 horizontalExtendPush;
     private Collider faceCollider;
+    private static readonly List<Piston> HorizontalExtenders = new List<Piston>();
     private readonly Collider[] overlapHits = new Collider[16];
 
     private void Awake()
@@ -63,6 +67,18 @@ public class Piston : MonoBehaviour
         stageDirection = startExtending ? 1 : -1;
         ApplyStagePosition(currentStage);
         InitialSocketConfiguration();
+    }
+
+    private void LateUpdate()
+    {
+        if (!isHorizontallyExtending)
+            return;
+
+        for (int pass = 0; pass < 2; pass++)
+        {
+            for (int i = 0; i < HorizontalExtenders.Count; i++)
+                HorizontalExtenders[i].ClampFaceToOpposingPistons(HorizontalExtenders[i].horizontalExtendPush);
+        }
     }
 
     private void OnValidate()
@@ -118,6 +134,7 @@ public class Piston : MonoBehaviour
             stageDirection = 1;
         }
 
+        targetStageThisMove = nextStage;
         StartCoroutine(MoveToStage(nextStage));
     }
 
@@ -205,7 +222,6 @@ public class Piston : MonoBehaviour
         Vector3 start = pistonFace.localPosition;
         Vector3 end = faceHomeLocalPosition + GetTravelAxisLocal() * (nextStage * GridUnit);
         Vector3 startWorldPosition = pistonFace.position;
-        Vector3 endWorldPosition = pistonFace.parent.TransformPoint(end);
         bool carryRunodes = isVertical;
 
         List<RunodeMovement> carriedRunodes = carryRunodes ? GetRunodesOnFace() : null;
@@ -216,12 +232,30 @@ public class Piston : MonoBehaviour
                 runode.SetKinematic(true);
         }
 
+        bool isExtendingHorizontally = !carryRunodes && nextStage > currentStage;
+        Vector3 worldPush = GetWorldPush();
+
+        if (isExtendingHorizontally)
+        {
+            Vector3 travelLocal = end - start;
+            float requestedTravel = travelLocal.magnitude;
+            if (requestedTravel > 0f)
+            {
+                float allowedTravel = GetAllowedExtendTravel(worldPush, requestedTravel);
+                if (allowedTravel < requestedTravel)
+                    end = start + travelLocal.normalized * allowedTravel;
+            }
+
+            isHorizontallyExtending = true;
+            horizontalExtendPush = worldPush;
+            if (!HorizontalExtenders.Contains(this))
+                HorizontalExtenders.Add(this);
+        }
+
+        Vector3 endWorldPosition = pistonFace.parent.TransformPoint(end);
         float distance = Vector3.Distance(start, end);
         float duration = moveSpeed > 0f ? distance / moveSpeed : 0f;
         Vector3 previousWorldPosition = startWorldPosition;
-
-        bool isExtendingHorizontally = !carryRunodes && nextStage > currentStage;
-        Vector3 worldPush = GetWorldPush();
 
         for (float elapsed = 0f; elapsed < duration; elapsed += Time.deltaTime)
         {
@@ -259,10 +293,22 @@ public class Piston : MonoBehaviour
 
             if (isExtendingHorizontally)
             {
+                for (int pass = 0; pass < 2; pass++)
+                {
+                    for (int i = 0; i < HorizontalExtenders.Count; i++)
+                        HorizontalExtenders[i].ClampFaceToOpposingPistons(HorizontalExtenders[i].horizontalExtendPush);
+                }
+
                 Piston crushPartner = TrySandwichCrushTim(worldPush);
                 if (crushPartner != null)
                     timKillPartner = crushPartner;
             }
+        }
+
+        if (isExtendingHorizontally)
+        {
+            isHorizontallyExtending = false;
+            HorizontalExtenders.Remove(this);
         }
 
         RefreshRunodesNearFace(startWorldPosition);
@@ -480,6 +526,117 @@ public class Piston : MonoBehaviour
         }
 
         return false;
+    }
+
+    // Caps extend distance so paired pistons meet without overlapping when both advance together.
+    private float GetAllowedExtendTravel(Vector3 worldPush, float requestedTravel)
+    {
+        Vector3 axis = RunodeMovement.GetCardinalAxis(worldPush);
+        if (axis.sqrMagnitude < 0.01f)
+            return requestedTravel;
+
+        float pushSign = Mathf.Sign(Vector3.Dot(axis, worldPush.normalized));
+        if (pushSign == 0f)
+            return requestedTravel;
+
+        Bounds thisBounds = faceCollider.bounds;
+        float thisAxisPos = Vector3.Dot(GetFaceFrontPoint(thisBounds, axis), axis);
+        float smallestGap = float.PositiveInfinity;
+        bool opposingAlsoExtending = false;
+
+        Piston[] allPistons = Object.FindObjectsByType<Piston>();
+        foreach (Piston other in allPistons)
+        {
+            if (other == this || other.isVertical)
+                continue;
+
+            Vector3 otherPush = other.GetWorldPush();
+            Vector3 otherAxis = RunodeMovement.GetCardinalAxis(otherPush);
+            if (Vector3.Dot(axis, otherAxis) > OpposingAxisDotThreshold)
+                continue;
+
+            if (!SharesOpposingPistonLane(axis, thisBounds, other.faceCollider.bounds))
+                continue;
+
+            float otherAxisPos = Vector3.Dot(GetFaceFrontPoint(other.faceCollider.bounds, -axis), axis);
+            float gap = pushSign > 0f ? otherAxisPos - thisAxisPos : thisAxisPos - otherAxisPos;
+            if (gap <= 0f)
+                continue;
+
+            smallestGap = Mathf.Min(smallestGap, gap);
+
+            if (other.targetStageThisMove > other.currentStage)
+                opposingAlsoExtending = true;
+        }
+
+        if (smallestGap == float.PositiveInfinity)
+            return requestedTravel;
+
+        float allowedTravel = opposingAlsoExtending ? smallestGap * 0.5f : smallestGap;
+        return Mathf.Min(requestedTravel, allowedTravel);
+    }
+
+    // Stops this face from lerping past an opposing piston face on the same axis.
+    private void ClampFaceToOpposingPistons(Vector3 worldPush)
+    {
+        if (isVertical || Mathf.Abs(worldPush.y) > 0.5f)
+            return;
+
+        Vector3 axis = RunodeMovement.GetCardinalAxis(worldPush);
+        if (axis.sqrMagnitude < 0.01f)
+            return;
+
+        float pushSign = Mathf.Sign(Vector3.Dot(axis, worldPush.normalized));
+        if (pushSign == 0f)
+            return;
+
+        Bounds thisBounds = faceCollider.bounds;
+        float thisAxisPos = Vector3.Dot(GetFaceFrontPoint(thisBounds, axis), axis);
+        float tightestLimit = pushSign > 0f ? float.PositiveInfinity : float.NegativeInfinity;
+        bool hasOpposingLimit = false;
+
+        Piston[] allPistons = Object.FindObjectsByType<Piston>();
+        foreach (Piston other in allPistons)
+        {
+            if (other == this || other.isVertical)
+                continue;
+
+            Vector3 otherPush = other.GetWorldPush();
+            Vector3 otherAxis = RunodeMovement.GetCardinalAxis(otherPush);
+            if (Vector3.Dot(axis, otherAxis) > OpposingAxisDotThreshold)
+                continue;
+
+            if (!SharesOpposingPistonLane(axis, thisBounds, other.faceCollider.bounds))
+                continue;
+
+            float otherAxisPos = Vector3.Dot(GetFaceFrontPoint(other.faceCollider.bounds, -axis), axis);
+            hasOpposingLimit = true;
+
+            if (pushSign > 0f)
+                tightestLimit = Mathf.Min(tightestLimit, otherAxisPos);
+            else
+                tightestLimit = Mathf.Max(tightestLimit, otherAxisPos);
+        }
+
+        if (!hasOpposingLimit)
+            return;
+
+        if (pushSign > 0f && thisAxisPos > tightestLimit)
+            pistonFace.position -= axis * (thisAxisPos - tightestLimit);
+        else if (pushSign < 0f && thisAxisPos < tightestLimit)
+            pistonFace.position -= axis * (thisAxisPos - tightestLimit);
+    }
+
+    private static bool SharesOpposingPistonLane(Vector3 axis, Bounds thisBounds, Bounds otherBounds)
+    {
+        if (Mathf.Abs(axis.x) > 0.5f)
+        {
+            return thisBounds.max.z >= otherBounds.min.z - TimLaneTolerance &&
+                   thisBounds.min.z <= otherBounds.max.z + TimLaneTolerance;
+        }
+
+        return thisBounds.max.x >= otherBounds.min.x - TimLaneTolerance &&
+               thisBounds.min.x <= otherBounds.max.x + TimLaneTolerance;
     }
 
     // Kills Tim when he is caught between this face and an opposing piston face on the same axis.
