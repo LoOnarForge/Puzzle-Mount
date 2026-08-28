@@ -45,6 +45,8 @@ public class Piston : MonoBehaviour
     private int currentStage;
     private int stageDirection = 1;
     private bool isMoving;
+    private bool timKilledDuringMove;
+    private Piston timKillPartner;
     private Collider faceCollider;
     private readonly Collider[] overlapHits = new Collider[16];
 
@@ -170,6 +172,8 @@ public class Piston : MonoBehaviour
     private IEnumerator MoveToStage(int nextStage)
     {
         isMoving = true;
+        timKilledDuringMove = false;
+        timKillPartner = null;
 
         Vector3 worldPush = GetWorldPush();
         if (nextStage > currentStage && !CanAdvanceStage(worldPush))
@@ -184,6 +188,15 @@ public class Piston : MonoBehaviour
         }
 
         yield return AnimateToStage(nextStage);
+
+        if (timKilledDuringMove)
+        {
+            stageDirection = 1;
+            Piston partner = timKillPartner;
+            timKillPartner = null;
+            yield return RetractAfterTimKill(partner);
+        }
+
         isMoving = false;
     }
 
@@ -223,7 +236,9 @@ public class Piston : MonoBehaviour
             }
             else if (isExtendingHorizontally)
             {
-                TrySandwichCrushTim(worldPush);
+                Piston crushPartner = TrySandwichCrushTim(worldPush);
+                if (crushPartner != null)
+                    timKillPartner = crushPartner;
             }
 
             yield return null;
@@ -243,7 +258,11 @@ public class Piston : MonoBehaviour
             pistonFace.localPosition = end;
 
             if (isExtendingHorizontally)
-                TrySandwichCrushTim(worldPush);
+            {
+                Piston crushPartner = TrySandwichCrushTim(worldPush);
+                if (crushPartner != null)
+                    timKillPartner = crushPartner;
+            }
         }
 
         RefreshRunodesNearFace(startWorldPosition);
@@ -323,7 +342,12 @@ public class Piston : MonoBehaviour
             Piston opposingPiston = hit.GetComponentInParent<Piston>();
             if (opposingPiston != null && opposingPiston != this)
             {
-                TrySandwichCrushTim(worldPush);
+                if (isHorizontal && IsTimBetweenOpposingPistons(worldPush, opposingPiston))
+                {
+                    timKillPartner = opposingPiston;
+                    continue;
+                }
+
                 return false;
             }
 
@@ -345,7 +369,10 @@ public class Piston : MonoBehaviour
         foreach (CharacterMovement tim in timsInFront)
         {
             if (!CanTimMoveOneStep(tim, worldPush))
+            {
                 tim.ApplyDeathToss(worldPush);
+                timKilledDuringMove = true;
+            }
         }
 
         return true;
@@ -383,15 +410,87 @@ public class Piston : MonoBehaviour
         return true;
     }
 
-    // Kills Tim when he is caught between this face and an opposing piston face on the same axis.
-    private void TrySandwichCrushTim(Vector3 worldPush)
+    // Retracts this piston and any paired piston after Tim was crushed at full extension.
+    private IEnumerator RetractAfterTimKill(Piston partner)
     {
-        if (isVertical || Mathf.Abs(worldPush.y) > 0.5f)
-            return;
+        if (!IsFaceRetracted())
+            yield return AnimateToStage(0);
+
+        if (partner != null && !partner.IsFaceRetracted())
+        {
+            partner.StopAllCoroutines();
+            yield return partner.StartCoroutine(partner.RetractAfterTimKillInternal());
+        }
+    }
+
+    // Retracts a paired piston when the other piston finished a Tim crush at full extension.
+    private IEnumerator RetractAfterTimKillInternal()
+    {
+        stageDirection = 1;
+        isMoving = true;
+        timKilledDuringMove = false;
+        timKillPartner = null;
+
+        if (!IsFaceRetracted())
+            yield return AnimateToStage(0);
+
+        isMoving = false;
+    }
+
+    private bool IsFaceRetracted()
+    {
+        return Vector3.Distance(pistonFace.localPosition, faceHomeLocalPosition) < 0.001f && currentStage == 0;
+    }
+
+    private bool IsTimBetweenOpposingPistons(Vector3 worldPush, Piston opposingPiston)
+    {
+        if (isVertical || opposingPiston.isVertical || Mathf.Abs(worldPush.y) > 0.5f)
+            return false;
 
         Vector3 axis = RunodeMovement.GetCardinalAxis(worldPush);
         if (axis.sqrMagnitude < 0.01f)
-            return;
+            return false;
+
+        Vector3 otherPush = opposingPiston.GetWorldPush();
+        Vector3 otherAxis = RunodeMovement.GetCardinalAxis(otherPush);
+        if (Vector3.Dot(axis, otherAxis) > OpposingAxisDotThreshold)
+            return false;
+
+        Bounds thisBounds = faceCollider.bounds;
+        Bounds otherBounds = opposingPiston.faceCollider.bounds;
+        Vector3 thisFacePoint = GetFaceFrontPoint(thisBounds, axis);
+        Vector3 otherFacePoint = GetFaceFrontPoint(otherBounds, -axis);
+        float thisAxisPos = Vector3.Dot(thisFacePoint, axis);
+        float otherAxisPos = Vector3.Dot(otherFacePoint, axis);
+        float minFace = Mathf.Min(thisAxisPos, otherAxisPos);
+        float maxFace = Mathf.Max(thisAxisPos, otherAxisPos);
+
+        CharacterMovement[] allCharacters = Object.FindObjectsByType<CharacterMovement>();
+        foreach (CharacterMovement tim in allCharacters)
+        {
+            if (tim.IsDead)
+                continue;
+
+            if (!IsTimInCrushLane(tim.transform.position, axis, thisBounds, otherBounds))
+                continue;
+
+            float timAxisPos = Vector3.Dot(tim.transform.position, axis);
+            if (timAxisPos >= minFace - PushDetectHalf && timAxisPos <= maxFace + PushDetectHalf)
+                return true;
+        }
+
+        return false;
+    }
+
+    // Kills Tim when he is caught between this face and an opposing piston face on the same axis.
+    private Piston TrySandwichCrushTim(Vector3 worldPush)
+    {
+        if (isVertical || Mathf.Abs(worldPush.y) > 0.5f)
+            return null;
+
+        Vector3 axis = RunodeMovement.GetCardinalAxis(worldPush);
+        if (axis.sqrMagnitude < 0.01f)
+            return null;
 
         Vector3 thisFacePoint = GetFaceFrontPoint(faceCollider.bounds, axis);
         float thisAxisPos = Vector3.Dot(thisFacePoint, axis);
@@ -433,8 +532,12 @@ public class Piston : MonoBehaviour
                     continue;
 
                 tim.ApplyDeathToss(axis);
+                timKilledDuringMove = true;
+                return other;
             }
         }
+
+        return null;
     }
 
     private static bool IsTimInCrushLane(Vector3 timPosition, Vector3 axis, Bounds thisBounds, Bounds otherBounds)
