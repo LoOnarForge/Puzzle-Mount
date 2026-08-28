@@ -9,6 +9,10 @@ public class Piston : MonoBehaviour
     private const float DefaultMoveSpeed = 5f;
     private const float PushDetectHalf = 0.45f;
     private const float FaceTopTolerance = 0.1f;
+    private const float TimCrushGap = 0.85f;
+    private const float TimLaneTolerance = 0.55f;
+    private const float TimHeightTolerance = 1.5f;
+    private const float OpposingAxisDotThreshold = -0.9f;
     private const string TimLayerName = "TimJones";
 
     [System.Serializable]
@@ -203,6 +207,9 @@ public class Piston : MonoBehaviour
         float duration = moveSpeed > 0f ? distance / moveSpeed : 0f;
         Vector3 previousWorldPosition = startWorldPosition;
 
+        bool isExtendingHorizontally = !carryRunodes && nextStage > currentStage;
+        Vector3 worldPush = GetWorldPush();
+
         for (float elapsed = 0f; elapsed < duration; elapsed += Time.deltaTime)
         {
             float t = Mathf.SmoothStep(0f, 1f, elapsed / duration);
@@ -213,6 +220,10 @@ public class Piston : MonoBehaviour
                 Vector3 delta = pistonFace.position - previousWorldPosition;
                 MoveCarriedRunodes(carriedRunodes, delta);
                 previousWorldPosition = pistonFace.position;
+            }
+            else if (isExtendingHorizontally)
+            {
+                TrySandwichCrushTim(worldPush);
             }
 
             yield return null;
@@ -230,6 +241,9 @@ public class Piston : MonoBehaviour
         else
         {
             pistonFace.localPosition = end;
+
+            if (isExtendingHorizontally)
+                TrySandwichCrushTim(worldPush);
         }
 
         RefreshRunodesNearFace(startWorldPosition);
@@ -306,6 +320,13 @@ public class Piston : MonoBehaviour
                 continue;
             }
 
+            Piston opposingPiston = hit.GetComponentInParent<Piston>();
+            if (opposingPiston != null && opposingPiston != this)
+            {
+                TrySandwichCrushTim(worldPush);
+                return false;
+            }
+
             return false;
         }
 
@@ -360,5 +381,96 @@ public class Piston : MonoBehaviour
         }
 
         return true;
+    }
+
+    // Kills Tim when he is caught between this face and an opposing piston face on the same axis.
+    private void TrySandwichCrushTim(Vector3 worldPush)
+    {
+        if (isVertical || Mathf.Abs(worldPush.y) > 0.5f)
+            return;
+
+        Vector3 axis = RunodeMovement.GetCardinalAxis(worldPush);
+        if (axis.sqrMagnitude < 0.01f)
+            return;
+
+        Vector3 thisFacePoint = GetFaceFrontPoint(faceCollider.bounds, axis);
+        float thisAxisPos = Vector3.Dot(thisFacePoint, axis);
+        Bounds thisBounds = faceCollider.bounds;
+
+        Piston[] allPistons = Object.FindObjectsByType<Piston>();
+        foreach (Piston other in allPistons)
+        {
+            if (other == this || other.isVertical)
+                continue;
+
+            Vector3 otherPush = other.GetWorldPush();
+            Vector3 otherAxis = RunodeMovement.GetCardinalAxis(otherPush);
+            if (Vector3.Dot(axis, otherAxis) > OpposingAxisDotThreshold)
+                continue;
+
+            Vector3 otherFacePoint = GetFaceFrontPoint(other.faceCollider.bounds, -axis);
+            float otherAxisPos = Vector3.Dot(otherFacePoint, axis);
+            float gap = Mathf.Abs(thisAxisPos - otherAxisPos);
+
+            if (gap > TimCrushGap)
+                continue;
+
+            Bounds otherBounds = other.faceCollider.bounds;
+            float minFace = Mathf.Min(thisAxisPos, otherAxisPos);
+            float maxFace = Mathf.Max(thisAxisPos, otherAxisPos);
+
+            CharacterMovement[] allCharacters = Object.FindObjectsByType<CharacterMovement>();
+            foreach (CharacterMovement tim in allCharacters)
+            {
+                if (tim.IsDead)
+                    continue;
+
+                if (!IsTimInCrushLane(tim.transform.position, axis, thisBounds, otherBounds))
+                    continue;
+
+                float timAxisPos = Vector3.Dot(tim.transform.position, axis);
+                if (timAxisPos < minFace - PushDetectHalf || timAxisPos > maxFace + PushDetectHalf)
+                    continue;
+
+                tim.ApplyDeathToss(axis);
+            }
+        }
+    }
+
+    private static bool IsTimInCrushLane(Vector3 timPosition, Vector3 axis, Bounds thisBounds, Bounds otherBounds)
+    {
+        if (Mathf.Abs(timPosition.y - thisBounds.center.y) > TimHeightTolerance)
+            return false;
+
+        if (Mathf.Abs(axis.x) > 0.5f)
+        {
+            float minZ = Mathf.Min(thisBounds.min.z, otherBounds.min.z) - TimLaneTolerance;
+            float maxZ = Mathf.Max(thisBounds.max.z, otherBounds.max.z) + TimLaneTolerance;
+            return timPosition.z >= minZ && timPosition.z <= maxZ;
+        }
+
+        float minX = Mathf.Min(thisBounds.min.x, otherBounds.min.x) - TimLaneTolerance;
+        float maxX = Mathf.Max(thisBounds.max.x, otherBounds.max.x) + TimLaneTolerance;
+        return timPosition.x >= minX && timPosition.x <= maxX;
+    }
+
+    private static Vector3 GetFaceFrontPoint(Bounds bounds, Vector3 direction)
+    {
+        Vector3 center = bounds.center;
+        Vector3 extents = bounds.extents;
+
+        float absX = Mathf.Abs(direction.x);
+        float absY = Mathf.Abs(direction.y);
+        float absZ = Mathf.Abs(direction.z);
+
+        Vector3 face = center;
+        if (absX >= absY && absX >= absZ)
+            face.x += Mathf.Sign(direction.x) * extents.x;
+        else if (absY >= absX && absY >= absZ)
+            face.y += Mathf.Sign(direction.y) * extents.y;
+        else
+            face.z += Mathf.Sign(direction.z) * extents.z;
+
+        return face;
     }
 }
