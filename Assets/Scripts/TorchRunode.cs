@@ -23,6 +23,8 @@ public class TorchRunode : MonoBehaviour
     [SerializeField] private float baseLightIntensity = 4f;
     [SerializeField] private bool ignorePowerColor;
     [SerializeField][Range(0f, 5f)] private float fadeDuration = 0.2f;
+    [SerializeField][Range(0f, 1f)] private float obstructionOffDelay = 0.1f;
+    [SerializeField][Range(0f, 1f)] private float powerOnDelay = 0.2f;
 
     [SerializeField] private int allocatedMw;
     [SerializeField] private PowerSource poweringSource;
@@ -41,6 +43,7 @@ public class TorchRunode : MonoBehaviour
     private bool isFadingOn;
 
     private bool topFaceWasObstructed;
+    private Coroutine obstructionOffCoroutine;
 
     private void Awake()
     {
@@ -111,7 +114,29 @@ public class TorchRunode : MonoBehaviour
             return;
 
         topFaceWasObstructed = isObstructed;
-        RefreshLightState();
+
+        if (obstructionOffCoroutine != null)
+            StopCoroutine(obstructionOffCoroutine);
+
+        if (fadeCoroutine != null)
+        {
+            StopCoroutine(fadeCoroutine);
+            fadeCoroutine = null;
+            isFadingOn = false;
+        }
+
+        if (isObstructed)
+            obstructionOffCoroutine = StartCoroutine(ObstructionOffAfterDelay());
+        else
+            RefreshLightState();
+    }
+
+    private IEnumerator ObstructionOffAfterDelay()
+    {
+        yield return new WaitForSeconds(obstructionOffDelay);
+        if (topFaceObstructionPort != null && topFaceObstructionPort.IsObstructed)
+            ApplyLightState(0, Color.white, 0f);
+        obstructionOffCoroutine = null;
     }
 
     // Device socket ports are not refreshed by RunodeLine; detect disconnects here.
@@ -141,32 +166,26 @@ public class TorchRunode : MonoBehaviour
         RefreshLightState();
     }
 
-    private int GetEffectiveAllocatedMw()
+    private bool IsTopFaceObstructed()
     {
-        if (topFaceObstructionPort != null && topFaceObstructionPort.IsObstructed)
-            return 0;
-
-        return allocatedMw;
+        return topFaceObstructionPort != null && topFaceObstructionPort.IsObstructed;
     }
 
-    private static Color ResolveDeliveredColor(PowerSource source)
+    private int GetDisplayMw()
     {
-        if (source == null || ColorManager.Instance == null)
-            return Color.white;
-
-        return ColorManager.Instance.GetColor(source.ColorIndex);
+        return IsTopFaceObstructed() ? 0 : allocatedMw;
     }
 
     private void RefreshLightState(bool instant = false)
     {
-        int effectiveMw = GetEffectiveAllocatedMw();
-        isLit = effectiveMw >= 1;
+        int displayMw = GetDisplayMw();
+        isLit = displayMw >= 1;
 
         if (fadeCoroutine != null)
         {
             if (isFadingOff)
             {
-                if (effectiveMw >= 1 && poweringSource != null)
+                if (allocatedMw >= 1 && poweringSource != null && !IsTopFaceObstructed())
                 {
                     StopCoroutine(fadeCoroutine);
                     fadeCoroutine = null;
@@ -200,13 +219,13 @@ public class TorchRunode : MonoBehaviour
 
         bool wasLit = displayedMw >= 1;
         bool depowering = wasLit && !isLit;
-        bool poweringOn = !wasLit && isLit;
+        bool poweringOn = displayedMw < 1 && allocatedMw >= 1 && !IsTopFaceObstructed();
 
         if (instant || fadeDuration <= 0f)
         {
             isFadingOff = false;
             isFadingOn = false;
-            ApplyLightState(effectiveMw, GetLightColor(), isLit ? 1f : 0f);
+            ApplyLightState(displayMw, GetLightColor(), isLit ? 1f : 0f);
             return;
         }
 
@@ -226,7 +245,15 @@ public class TorchRunode : MonoBehaviour
             return;
         }
 
-        ApplyLightState(effectiveMw, GetLightColor(), isLit ? 1f : 0f);
+        ApplyLightState(displayMw, GetLightColor(), isLit ? 1f : 0f);
+    }
+
+    private static Color ResolveDeliveredColor(PowerSource source)
+    {
+        if (source == null || ColorManager.Instance == null)
+            return Color.white;
+
+        return ColorManager.Instance.GetColor(source.ColorIndex);
     }
 
     private Color GetLightColor()
@@ -239,12 +266,20 @@ public class TorchRunode : MonoBehaviour
 
     private IEnumerator FadeLightOn()
     {
-        int effectiveMw = GetEffectiveAllocatedMw();
+        yield return new WaitForSeconds(powerOnDelay);
+        if (allocatedMw < 1 || IsTopFaceObstructed())
+        {
+            isFadingOn = false;
+            fadeCoroutine = null;
+            yield break;
+        }
+
+        int mw = allocatedMw;
         Color lightColor = GetLightColor();
         float startIntensity = 0f;
         float startRange = 0f;
-        float endIntensity = GetLightIntensity(effectiveMw);
-        float endRange = GetLightRange(effectiveMw);
+        float endIntensity = GetLightIntensity(mw);
+        float endRange = GetLightRange(mw);
         float startEmissionBlend = 0f;
         float endEmissionBlend = 1f;
 
@@ -265,7 +300,7 @@ public class TorchRunode : MonoBehaviour
             yield return null;
         }
 
-        ApplyLightState(effectiveMw, lightColor, endEmissionBlend);
+        ApplyLightState(mw, lightColor, endEmissionBlend);
         isFadingOn = false;
         fadeCoroutine = null;
     }
