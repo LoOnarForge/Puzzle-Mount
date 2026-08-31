@@ -39,7 +39,7 @@ public class DevicePowerSocket : MonoBehaviour
     private int ownerIndex = -1;
 
     public int AllocatedMw => allocatedMw;
-    public int RemainingMwNeeded => requiredMw - allocatedMw;
+    public int RemainingMwNeeded => ownerRuneTorch != null && allocatedMw >= 1 ? 0 : requiredMw - allocatedMw;
     public int PowerIndex => powerIndex;
 
     [Space (20)]
@@ -47,7 +47,7 @@ public class DevicePowerSocket : MonoBehaviour
     [SerializeField] private Lever ownerLever;
     [SerializeField] private Elevator ownerElevator;
     [SerializeField] private Piston ownerPiston;
-
+    [SerializeField] private RuneTorch ownerRuneTorch;
 
     private void Awake()
     {
@@ -132,6 +132,9 @@ public class DevicePowerSocket : MonoBehaviour
     // True when the Power Source colour matches this socket's required colour.
     public bool CheckIfCorrectPowerColor(PowerSource source)
     {
+        if (ownerRuneTorch != null)
+            return source != null;
+
         return source != null && source.ColorIndex == colorIndex;
     }
 
@@ -264,11 +267,17 @@ public class DevicePowerSocket : MonoBehaviour
             ownerPiston.UpdateSocketStateToOwner(ownerIndex, allocatedMw, powerSource);
             return;
         }
+
+        if (ownerRuneTorch != null)
+        {
+            ownerRuneTorch.UpdateSocketStateToOwner(ownerIndex, allocatedMw, powerSource);
+            return;
+        }
     }
 
     private bool AssignAnOwner()
     {
-        return ownerForgottenGate != null || ownerLever != null || ownerElevator != null || ownerPiston != null;
+        return ownerForgottenGate != null || ownerLever != null || ownerElevator != null || ownerPiston != null || ownerRuneTorch != null;
     }
 
     private IEnumerator ClearPowerSequence()
