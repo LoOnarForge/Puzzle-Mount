@@ -27,6 +27,7 @@ public class CharacterMovement : MonoBehaviour
 
     private const float DeathTossStrength = 8f;
     private const float DeathTossUpwardRatio = 0.5f;
+    private const float SprintTapThreshold = 0.2f;
     
     // Physics settings
     public float gravity = -20f;
@@ -47,6 +48,7 @@ public class CharacterMovement : MonoBehaviour
     public void SetMovementEnabled(bool enabled) { isMovementEnabled = enabled; }
 
     private CameraFollow cameraFollow;
+    private MenuManager menuManager;
     private InputAction moveAction;
     private InputAction jumpAction;
     private InputAction sprintAction;
@@ -55,6 +57,9 @@ public class CharacterMovement : MonoBehaviour
     private Vector3 velocity;
     private bool isGrounded;
     private bool isSprinting;
+    private bool sprintToggledOn;
+    private bool sprintPressActive;
+    private float sprintPressStartTime;
     private float currentSpeed;
     
     // Air control variables
@@ -79,6 +84,7 @@ public class CharacterMovement : MonoBehaviour
         cubeInteraction = GetComponent<TimCubeController>();
         animator = GetComponent<Animator>();
         cameraFollow = FindAnyObjectByType<CameraFollow>();
+        menuManager = FindAnyObjectByType<MenuManager>();
         CacheRagdollParts();
         
         // Fix PlayerInput notification behavior
@@ -255,8 +261,40 @@ public class CharacterMovement : MonoBehaviour
         if (moveAction != null)
             moveInput = moveAction.ReadValue<Vector2>();
         
-        if (sprintAction != null)
-            isSprinting = sprintAction.IsPressed();
+        HandleSprintInput();
+    }
+
+    private void HandleSprintInput()
+    {
+        if (sprintAction == null) return;
+
+        if (sprintAction.WasPressedThisFrame())
+        {
+            sprintPressStartTime = Time.time;
+            sprintPressActive = true;
+        }
+
+        if (sprintAction.WasReleasedThisFrame() && sprintPressActive)
+        {
+            float pressDuration = Time.time - sprintPressStartTime;
+
+            if (pressDuration <= SprintTapThreshold)
+            {
+                sprintToggledOn = !sprintToggledOn;
+                if (menuManager != null)
+                    menuManager.SetSprintToggle(sprintToggledOn);
+            }
+            else if (sprintToggledOn)
+            {
+                sprintToggledOn = false;
+                if (menuManager != null)
+                    menuManager.SetSprintToggle(false);
+            }
+
+            sprintPressActive = false;
+        }
+
+        isSprinting = sprintToggledOn || sprintAction.IsPressed();
     }
     
     private void HandleMovement()

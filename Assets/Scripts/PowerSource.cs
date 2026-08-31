@@ -98,7 +98,7 @@ public class PowerSource : MonoBehaviour
 
         if (targetSocket != null)
         {
-            if (!targetSocket.CheckIfCorrectPowerColor(this))
+            if (targetSocket.RequiredColorIndex >= 0 && ColorIndex != targetSocket.RequiredColorIndex)
                 return true;
 
             targetSocket.TryReceivePower(givingLine, sourcePort, this, circuitColor, receiverPowerIndex);

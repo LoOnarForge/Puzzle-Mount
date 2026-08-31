@@ -131,7 +131,7 @@ public class RunodeCubeEditor : Editor
 
         if (spriteTransform != null)
         {
-            if (faceIndex == 0 && cube.GetComponent<RuneTorch>() != null)
+            if (faceIndex == 0 && cube.GetComponent<TorchRunode>() != null)
                 return;
 
             if (newType != RunodeLineType.Empty)

@@ -1,8 +1,8 @@
 using UnityEditor;
 using UnityEngine;
 
-[CustomEditor(typeof(RuneTorch))]
-public class RuneTorchEditor : Editor
+[CustomEditor(typeof(TorchRunode))]
+public class TorchRunodeEditor : Editor
 {
     public override void OnInspectorGUI()
     {
@@ -12,7 +12,11 @@ public class RuneTorchEditor : Editor
         EditorGUILayout.PropertyField(serializedObject.FindProperty("pointLight"));
         EditorGUILayout.PropertyField(serializedObject.FindProperty("spriteLibrary"), new GUIContent("Torch Sprite Library"));
         EditorGUILayout.PropertyField(serializedObject.FindProperty("topFaceSprite"), new GUIContent("Top Face Sprite"));
+        EditorGUILayout.PropertyField(serializedObject.FindProperty("topFaceObstructionPort"), new GUIContent("Top Face Obstruction Port"));
         EditorGUILayout.PropertyField(serializedObject.FindProperty("maxPower"), new GUIContent("Max Power (MW)"));
+        EditorGUILayout.PropertyField(serializedObject.FindProperty("baseLightRange"), new GUIContent("Base Light Range"));
+        EditorGUILayout.PropertyField(serializedObject.FindProperty("baseLightIntensity"), new GUIContent("Base Light Intensity"));
+        EditorGUILayout.PropertyField(serializedObject.FindProperty("ignorePowerColor"), new GUIContent("Ignore Power Color"));
         EditorGUILayout.Slider(serializedObject.FindProperty("fadeDuration"), 0f, 5f, new GUIContent("Fade Duration (s)"));
 
         EditorGUILayout.Space(20);

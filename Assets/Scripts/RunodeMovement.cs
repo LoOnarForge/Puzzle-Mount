@@ -231,9 +231,11 @@ public class RunodeMovement : MonoBehaviour
 
         transform.position = targetPosition;
         Physics.SyncTransforms();
-        runodeCube.RefreshCubeAndAdjacentConnections();
-
         isMovingPos = false;
+        rb.constraints = RigidbodyConstraints.FreezePositionX | RigidbodyConstraints.FreezePositionZ | RigidbodyConstraints.FreezeRotation;
+
+        if (runodeCube != null)
+            runodeCube.RefreshCubeAndAdjacentConnections();
     }
 
     private void ApplyRandomRotation()

@@ -12,6 +12,7 @@ public class MenuManager : MonoBehaviour
     private VisualElement _menuButtons;
     private VisualElement _confirmDialog;
     private VisualElement _movementIcon;
+    private VisualElement _sprintIcon;
     private VisualElement _inspectionVignette;
 
     private bool _isPaused = false;
@@ -19,6 +20,12 @@ public class MenuManager : MonoBehaviour
     private string _pendingAction;
 
     [SerializeField] private InputActionProperty _pauseAction;
+
+    [Header("HUD Icons")]
+    [SerializeField] private Sprite _fastPushIcon;
+    [SerializeField] private Sprite _precisePushIcon;
+    [SerializeField] private Sprite _walkIcon;
+    [SerializeField] private Sprite _runIcon;
 
     void OnEnable()
     {
@@ -30,7 +37,11 @@ public class MenuManager : MonoBehaviour
         _menuButtons = root.Q<VisualElement>("MenuButtonsContainer");
         _confirmDialog = root.Q<VisualElement>("ConfirmDialog");
         _movementIcon = root.Q<VisualElement>("MovementIcon");
+        _sprintIcon = root.Q<VisualElement>("SprintIcon");
         _inspectionVignette = root.Q<VisualElement>("InspectionVignette");
+
+        SetupHudIconElement(_movementIcon);
+        SetupHudIconElement(_sprintIcon);
 
         root.Q<Button>("RestartButton").clicked += RestartLevel;
         root.Q<Button>("SettingsButton").clicked += OpenSettings;
@@ -53,6 +64,8 @@ public class MenuManager : MonoBehaviour
             // Using true/false to force initial class assignment
             SetPreciseMode(false); 
         }
+
+        SetSprintToggle(false);
 
         _pauseAction.action?.Enable();
     }
@@ -161,17 +174,26 @@ public class MenuManager : MonoBehaviour
     public void SetPreciseMode(bool isPrecise)
     {
         if (_movementIcon == null) return;
-        
-        if (isPrecise)
-        {
-            _movementIcon.AddToClassList("mode-precise");
-            _movementIcon.RemoveFromClassList("mode-fast");
-        }
-        else
-        {
-            _movementIcon.AddToClassList("mode-fast");
-            _movementIcon.RemoveFromClassList("mode-precise");
-        }
+        ApplyHudIcon(_movementIcon, isPrecise ? _precisePushIcon : _fastPushIcon);
+    }
+
+    // Updates sprint toggle icon (walk vs run latched mode).
+    public void SetSprintToggle(bool isRunToggled)
+    {
+        if (_sprintIcon == null) return;
+        ApplyHudIcon(_sprintIcon, isRunToggled ? _runIcon : _walkIcon);
+    }
+
+    private void SetupHudIconElement(VisualElement iconElement)
+    {
+        if (iconElement == null) return;
+        iconElement.style.backgroundSize = new BackgroundSize(BackgroundSizeType.Contain);
+    }
+
+    private void ApplyHudIcon(VisualElement iconElement, Sprite sprite)
+    {
+        if (iconElement == null || sprite == null) return;
+        iconElement.style.backgroundImage = new StyleBackground(sprite);
     }
 
     public void SetInspectionModeUI(bool active)

@@ -3,7 +3,10 @@
     
     <!-- HUD Layer -->
     <ui:VisualElement name="HUD">
-        <ui:VisualElement name="MovementIcon" class="movement-icon" />
+        <ui:VisualElement name="HudIcons" class="hud-icons">
+            <ui:VisualElement name="SprintIcon" class="sprint-icon" />
+            <ui:VisualElement name="MovementIcon" class="movement-icon" />
+        </ui:VisualElement>
     </ui:VisualElement>
 
     <!-- Inspection Vignette -->

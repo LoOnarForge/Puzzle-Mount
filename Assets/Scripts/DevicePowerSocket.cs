@@ -1,5 +1,6 @@
 using System.Collections;
 using UnityEngine;
+using UnityEngine.Serialization;
 
 public class DevicePowerSocket : MonoBehaviour
 {
@@ -39,6 +40,7 @@ public class DevicePowerSocket : MonoBehaviour
     private int ownerIndex = -1;
 
     public int AllocatedMw => allocatedMw;
+    public int RequiredColorIndex => colorIndex;
     public int RemainingMwNeeded => requiredMw - allocatedMw;
     public int PowerIndex => powerIndex;
 
@@ -47,7 +49,8 @@ public class DevicePowerSocket : MonoBehaviour
     [SerializeField] private Lever ownerLever;
     [SerializeField] private Elevator ownerElevator;
     [SerializeField] private Piston ownerPiston;
-    [SerializeField] private RuneTorch ownerRuneTorch;
+    [FormerlySerializedAs("ownerRuneTorch")]
+    [SerializeField] private TorchRunode ownerTorchRunode;
 
     private void Awake()
     {
@@ -127,15 +130,6 @@ public class DevicePowerSocket : MonoBehaviour
         colorIndex = color;
         requiredMw = mw;
         UpdateSocketStateChangeToOwner();
-    }
-
-    // True when the Power Source colour matches this socket's required colour.
-    public bool CheckIfCorrectPowerColor(PowerSource source)
-    {
-        if (ownerRuneTorch != null)
-            return source != null;
-
-        return source != null && source.ColorIndex == colorIndex;
     }
 
     // Takes MW from the giver's Power Source 1 at a time until full or the pool is empty.
@@ -268,16 +262,16 @@ public class DevicePowerSocket : MonoBehaviour
             return;
         }
 
-        if (ownerRuneTorch != null)
+        if (ownerTorchRunode != null)
         {
-            ownerRuneTorch.UpdateSocketStateToOwner(ownerIndex, allocatedMw, powerSource);
+            ownerTorchRunode.UpdateSocketStateToOwner(ownerIndex, allocatedMw, powerSource);
             return;
         }
     }
 
     private bool AssignAnOwner()
     {
-        return ownerForgottenGate != null || ownerLever != null || ownerElevator != null || ownerPiston != null || ownerRuneTorch != null;
+        return ownerForgottenGate != null || ownerLever != null || ownerElevator != null || ownerPiston != null || ownerTorchRunode != null;
     }
 
     private IEnumerator ClearPowerSequence()

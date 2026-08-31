@@ -1,11 +1,10 @@
 using System.Collections;
 using UnityEngine;
 
-public class RuneTorch : MonoBehaviour
+public class TorchRunode : MonoBehaviour
 {
     private const int SocketIndex = 0;
-    private const float FirstStepIntensityBonus = 0.5f;
-    private const float AdditionalIntensityBonusPerMw = 0.25f;
+    private const int AnyPowerColor = -1;
     private const float EmissionStrength = 2f;
 
     private static readonly int BaseColorId = Shader.PropertyToID("_BaseColor");
@@ -18,7 +17,11 @@ public class RuneTorch : MonoBehaviour
     [SerializeField] private Light pointLight;
     [SerializeField] private RuneTorchSpriteLibrary spriteLibrary;
     [SerializeField] private SpriteRenderer topFaceSprite;
+    [SerializeField] private ObstructionPort topFaceObstructionPort;
     [SerializeField] private int maxPower = 4;
+    [SerializeField] private float baseLightRange = 4f;
+    [SerializeField] private float baseLightIntensity = 4f;
+    [SerializeField] private bool ignorePowerColor;
     [SerializeField][Range(0f, 5f)] private float fadeDuration = 0.2f;
 
     [SerializeField] private int allocatedMw;
@@ -26,29 +29,34 @@ public class RuneTorch : MonoBehaviour
     [SerializeField] private bool isLit;
     [SerializeField] private float displayedIntensity;
 
-    private float baseRange;
-    private float baseIntensity;
     private DevicePowerSocket devicePowerSocket;
     private LinePort socketPort;
     private MaterialPropertyBlock spritePropBlock;
+    private Color defaultLightColor;
     private Color deliveredPowerColor = Color.white;
     private Coroutine fadeCoroutine;
     private float displayedSpriteBlend;
     private int displayedMw;
+    private bool isFadingOff;
+    private bool isFadingOn;
+
+    private bool topFaceWasObstructed;
 
     private void Awake()
     {
-        Debug.Assert(powerSocketObject != null, $"{nameof(RuneTorch)} on {name} requires a power socket object.", this);
-        Debug.Assert(pointLight != null, $"{nameof(RuneTorch)} on {name} requires a point light.", this);
-        Debug.Assert(maxPower >= 1, $"{nameof(RuneTorch)} on {name} requires max power of at least 1.", this);
+        Debug.Assert(powerSocketObject != null, $"{nameof(TorchRunode)} on {name} requires a power socket object.", this);
+        Debug.Assert(pointLight != null, $"{nameof(TorchRunode)} on {name} requires a point light.", this);
+        Debug.Assert(maxPower >= 1, $"{nameof(TorchRunode)} on {name} requires max power of at least 1.", this);
 
         devicePowerSocket = powerSocketObject.GetComponent<DevicePowerSocket>();
         socketPort = powerSocketObject.GetComponent<LinePort>();
-        Debug.Assert(devicePowerSocket != null, $"{nameof(RuneTorch)} on {name} requires a {nameof(DevicePowerSocket)} on the power socket object.", this);
-        Debug.Assert(socketPort != null, $"{nameof(RuneTorch)} on {name} requires a {nameof(LinePort)} on the power socket object.", this);
+        Debug.Assert(devicePowerSocket != null, $"{nameof(TorchRunode)} on {name} requires a {nameof(DevicePowerSocket)} on the power socket object.", this);
+        Debug.Assert(socketPort != null, $"{nameof(TorchRunode)} on {name} requires a {nameof(LinePort)} on the power socket object.", this);
 
-        baseRange = pointLight.range;
-        baseIntensity = pointLight.intensity;
+        if (topFaceObstructionPort == null)
+            topFaceObstructionPort = GetComponentInChildren<ObstructionPort>();
+
+        defaultLightColor = pointLight.color;
 
         Sprite torchSprite = spriteLibrary.GetRandomSprite();
         topFaceSprite.sprite = torchSprite;
@@ -57,12 +65,14 @@ public class RuneTorch : MonoBehaviour
         spritePropBlock = new MaterialPropertyBlock();
 
         InitialSocketConfiguration();
+        RefreshTopFaceObstruction();
         RefreshLightState(true);
     }
 
     private void LateUpdate()
     {
         displayedIntensity = pointLight.intensity;
+        RefreshTopFaceObstruction();
         RefreshSocketConnection();
         SyncLightFromSocket();
     }
@@ -85,7 +95,23 @@ public class RuneTorch : MonoBehaviour
         if (devicePowerSocket == null)
             return;
 
-        devicePowerSocket.InitialSocketConfiguration(SocketIndex, 0, maxPower);
+        devicePowerSocket.InitialSocketConfiguration(SocketIndex, AnyPowerColor, maxPower);
+    }
+
+    // Top-face obstruction only affects torch visuals; power stays on the socket until the giver/path changes.
+    private void RefreshTopFaceObstruction()
+    {
+        if (topFaceObstructionPort == null)
+            return;
+
+        topFaceObstructionPort.RefreshObstructionState();
+
+        bool isObstructed = topFaceObstructionPort.IsObstructed;
+        if (isObstructed == topFaceWasObstructed)
+            return;
+
+        topFaceWasObstructed = isObstructed;
+        RefreshLightState();
     }
 
     // Device socket ports are not refreshed by RunodeLine; detect disconnects here.
@@ -115,6 +141,14 @@ public class RuneTorch : MonoBehaviour
         RefreshLightState();
     }
 
+    private int GetEffectiveAllocatedMw()
+    {
+        if (topFaceObstructionPort != null && topFaceObstructionPort.IsObstructed)
+            return 0;
+
+        return allocatedMw;
+    }
+
     private static Color ResolveDeliveredColor(PowerSource source)
     {
         if (source == null || ColorManager.Instance == null)
@@ -125,7 +159,38 @@ public class RuneTorch : MonoBehaviour
 
     private void RefreshLightState(bool instant = false)
     {
-        isLit = allocatedMw >= 1;
+        int effectiveMw = GetEffectiveAllocatedMw();
+        isLit = effectiveMw >= 1;
+
+        if (fadeCoroutine != null)
+        {
+            if (isFadingOff)
+            {
+                if (effectiveMw >= 1 && poweringSource != null)
+                {
+                    StopCoroutine(fadeCoroutine);
+                    fadeCoroutine = null;
+                    isFadingOff = false;
+                }
+                else
+                {
+                    return;
+                }
+            }
+            else if (isFadingOn)
+            {
+                if (!isLit)
+                {
+                    StopCoroutine(fadeCoroutine);
+                    fadeCoroutine = null;
+                    isFadingOn = false;
+                }
+                else
+                {
+                    return;
+                }
+            }
+        }
 
         if (fadeCoroutine != null)
         {
@@ -133,34 +198,59 @@ public class RuneTorch : MonoBehaviour
             fadeCoroutine = null;
         }
 
+        bool wasLit = displayedMw >= 1;
+        bool depowering = wasLit && !isLit;
+        bool poweringOn = !wasLit && isLit;
+
         if (instant || fadeDuration <= 0f)
         {
-            ApplyLightState(allocatedMw, deliveredPowerColor, isLit ? 1f : 0f);
+            isFadingOff = false;
+            isFadingOn = false;
+            ApplyLightState(effectiveMw, GetLightColor(), isLit ? 1f : 0f);
             return;
         }
 
-        fadeCoroutine = StartCoroutine(FadeLightState());
+        if (depowering)
+        {
+            isFadingOff = true;
+            isFadingOn = false;
+            fadeCoroutine = StartCoroutine(FadeLightOff());
+            return;
+        }
+
+        if (poweringOn)
+        {
+            isFadingOn = true;
+            isFadingOff = false;
+            fadeCoroutine = StartCoroutine(FadeLightOn());
+            return;
+        }
+
+        ApplyLightState(effectiveMw, GetLightColor(), isLit ? 1f : 0f);
     }
 
-    private IEnumerator FadeLightState()
+    private Color GetLightColor()
     {
-        int endMw = allocatedMw;
-        float startIntensity = pointLight.enabled ? pointLight.intensity : 0f;
-        float startRange = pointLight.enabled ? pointLight.range : 0f;
-        float endIntensity = endMw >= 1 ? baseIntensity * GetIntensityMultiplier(endMw) : 0f;
-        float endRange = endMw >= 1 ? baseRange * GetRangeMultiplier(endMw) : 0f;
-        Color fadeColor = endMw >= 1 ? deliveredPowerColor : pointLight.color;
-        float startEmissionBlend = displayedSpriteBlend;
-        float endEmissionBlend = endMw >= 1 ? 1f : 0f;
-        bool fadeSpriteEmission = displayedMw < 1 || endMw < 1;
+        if (ignorePowerColor)
+            return defaultLightColor;
 
-        if (endMw >= 1)
-        {
-            pointLight.enabled = true;
-            pointLight.color = deliveredPowerColor;
-            if (fadeSpriteEmission)
-                ApplySpriteVisual(deliveredPowerColor, startEmissionBlend);
-        }
+        return deliveredPowerColor;
+    }
+
+    private IEnumerator FadeLightOn()
+    {
+        int effectiveMw = GetEffectiveAllocatedMw();
+        Color lightColor = GetLightColor();
+        float startIntensity = 0f;
+        float startRange = 0f;
+        float endIntensity = GetLightIntensity(effectiveMw);
+        float endRange = GetLightRange(effectiveMw);
+        float startEmissionBlend = 0f;
+        float endEmissionBlend = 1f;
+
+        pointLight.enabled = true;
+        pointLight.color = lightColor;
+        ApplySpriteVisual(lightColor, startEmissionBlend);
 
         float elapsed = 0f;
         while (elapsed < fadeDuration)
@@ -170,14 +260,38 @@ public class RuneTorch : MonoBehaviour
 
             pointLight.intensity = Mathf.Lerp(startIntensity, endIntensity, t);
             pointLight.range = Mathf.Lerp(startRange, endRange, t);
-
-            if (fadeSpriteEmission)
-                ApplySpriteVisual(fadeColor, Mathf.Lerp(startEmissionBlend, endEmissionBlend, t));
+            ApplySpriteVisual(lightColor, Mathf.Lerp(startEmissionBlend, endEmissionBlend, t));
 
             yield return null;
         }
 
-        ApplyLightState(endMw, endMw >= 1 ? deliveredPowerColor : fadeColor, endEmissionBlend);
+        ApplyLightState(effectiveMw, lightColor, endEmissionBlend);
+        isFadingOn = false;
+        fadeCoroutine = null;
+    }
+
+    private IEnumerator FadeLightOff()
+    {
+        float startIntensity = pointLight.intensity;
+        float startRange = pointLight.range;
+        Color fadeColor = pointLight.color;
+        float startEmissionBlend = displayedSpriteBlend;
+
+        float elapsed = 0f;
+        while (elapsed < fadeDuration)
+        {
+            elapsed += Time.deltaTime;
+            float t = Mathf.SmoothStep(0f, 1f, elapsed / fadeDuration);
+
+            pointLight.intensity = Mathf.Lerp(startIntensity, 0f, t);
+            pointLight.range = Mathf.Lerp(startRange, 0f, t);
+            ApplySpriteVisual(fadeColor, Mathf.Lerp(startEmissionBlend, 0f, t));
+
+            yield return null;
+        }
+
+        isFadingOff = false;
+        ApplyLightState(0, Color.white, 0f);
         fadeCoroutine = null;
     }
 
@@ -196,8 +310,8 @@ public class RuneTorch : MonoBehaviour
 
         pointLight.enabled = true;
         pointLight.color = color;
-        pointLight.range = baseRange * GetRangeMultiplier(mw);
-        pointLight.intensity = baseIntensity * GetIntensityMultiplier(mw);
+        pointLight.range = GetLightRange(mw);
+        pointLight.intensity = GetLightIntensity(mw);
         ApplySpriteVisual(color, spriteBlend);
     }
 
@@ -224,16 +338,13 @@ public class RuneTorch : MonoBehaviour
         displayedSpriteBlend = emissionBlend;
     }
 
-    private static float GetRangeMultiplier(int mw)
+    private float GetLightRange(int mw)
     {
-        return mw;
+        return baseLightRange + mw;
     }
 
-    private static float GetIntensityMultiplier(int mw)
+    private float GetLightIntensity(int mw)
     {
-        if (mw <= 1)
-            return 1f;
-
-        return 1f + FirstStepIntensityBonus + (mw - 2) * AdditionalIntensityBonusPerMw;
+        return baseLightIntensity + mw;
     }
 }
