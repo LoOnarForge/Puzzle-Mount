@@ -33,6 +33,7 @@ public class TorchRunode : MonoBehaviour
 
     private DevicePowerSocket devicePowerSocket;
     private LinePort socketPort;
+    private BoxCollider socketCollider;
     private MaterialPropertyBlock spritePropBlock;
     private Color defaultLightColor;
     private Color deliveredPowerColor = Color.white;
@@ -53,6 +54,7 @@ public class TorchRunode : MonoBehaviour
 
         devicePowerSocket = powerSocketObject.GetComponent<DevicePowerSocket>();
         socketPort = powerSocketObject.GetComponent<LinePort>();
+        socketCollider = powerSocketObject.GetComponent<BoxCollider>();
         Debug.Assert(devicePowerSocket != null, $"{nameof(TorchRunode)} on {name} requires a {nameof(DevicePowerSocket)} on the power socket object.", this);
         Debug.Assert(socketPort != null, $"{nameof(TorchRunode)} on {name} requires a {nameof(LinePort)} on the power socket object.", this);
 
@@ -101,7 +103,6 @@ public class TorchRunode : MonoBehaviour
         devicePowerSocket.InitialSocketConfiguration(SocketIndex, AnyPowerColor, maxPower);
     }
 
-    // Top-face obstruction only affects torch visuals; power stays on the socket until the giver/path changes.
     private void RefreshTopFaceObstruction()
     {
         if (topFaceObstructionPort == null)
@@ -125,24 +126,40 @@ public class TorchRunode : MonoBehaviour
             isFadingOn = false;
         }
 
+        SetSocketPortActive(!isObstructed);
+        RunodeCube.RefreshConnectionsNearPoint(transform.position);
+
         if (isObstructed)
             obstructionOffCoroutine = StartCoroutine(ObstructionOffAfterDelay());
         else
             RefreshLightState();
     }
 
+    private void SetSocketPortActive(bool active)
+    {
+        if (socketPort == null)
+            return;
+
+        socketPort.SetParentFaceBlockedState(!active);
+
+        if (socketCollider != null)
+            socketCollider.enabled = active;
+
+        socketPort.RefreshPortConnection();
+    }
+
     private IEnumerator ObstructionOffAfterDelay()
     {
         yield return new WaitForSeconds(obstructionOffDelay);
         if (topFaceObstructionPort != null && topFaceObstructionPort.IsObstructed)
-            ApplyLightState(0, Color.white, 0f);
+            ApplyLightState(0, 0f);
         obstructionOffCoroutine = null;
     }
 
     // Device socket ports are not refreshed by RunodeLine; detect disconnects here.
     private void RefreshSocketConnection()
     {
-        if (socketPort == null)
+        if (socketPort == null || IsTopFaceObstructed())
             return;
 
         socketPort.RefreshPortObstructionState();
@@ -225,7 +242,7 @@ public class TorchRunode : MonoBehaviour
         {
             isFadingOff = false;
             isFadingOn = false;
-            ApplyLightState(displayMw, GetLightColor(), isLit ? 1f : 0f);
+            ApplyLightState(displayMw, isLit ? 1f : 0f);
             return;
         }
 
@@ -245,7 +262,7 @@ public class TorchRunode : MonoBehaviour
             return;
         }
 
-        ApplyLightState(displayMw, GetLightColor(), isLit ? 1f : 0f);
+        ApplyLightState(displayMw, isLit ? 1f : 0f);
     }
 
     private static Color ResolveDeliveredColor(PowerSource source)
@@ -264,6 +281,11 @@ public class TorchRunode : MonoBehaviour
         return deliveredPowerColor;
     }
 
+    private Color GetSpriteColor()
+    {
+        return deliveredPowerColor;
+    }
+
     private IEnumerator FadeLightOn()
     {
         yield return new WaitForSeconds(powerOnDelay);
@@ -276,6 +298,7 @@ public class TorchRunode : MonoBehaviour
 
         int mw = allocatedMw;
         Color lightColor = GetLightColor();
+        Color spriteColor = GetSpriteColor();
         float startIntensity = 0f;
         float startRange = 0f;
         float endIntensity = GetLightIntensity(mw);
@@ -285,7 +308,7 @@ public class TorchRunode : MonoBehaviour
 
         pointLight.enabled = true;
         pointLight.color = lightColor;
-        ApplySpriteVisual(lightColor, startEmissionBlend);
+        ApplySpriteVisual(spriteColor, startEmissionBlend);
 
         float elapsed = 0f;
         while (elapsed < fadeDuration)
@@ -295,12 +318,12 @@ public class TorchRunode : MonoBehaviour
 
             pointLight.intensity = Mathf.Lerp(startIntensity, endIntensity, t);
             pointLight.range = Mathf.Lerp(startRange, endRange, t);
-            ApplySpriteVisual(lightColor, Mathf.Lerp(startEmissionBlend, endEmissionBlend, t));
+            ApplySpriteVisual(spriteColor, Mathf.Lerp(startEmissionBlend, endEmissionBlend, t));
 
             yield return null;
         }
 
-        ApplyLightState(mw, lightColor, endEmissionBlend);
+        ApplyLightState(mw, endEmissionBlend);
         isFadingOn = false;
         fadeCoroutine = null;
     }
@@ -309,7 +332,7 @@ public class TorchRunode : MonoBehaviour
     {
         float startIntensity = pointLight.intensity;
         float startRange = pointLight.range;
-        Color fadeColor = pointLight.color;
+        Color spriteColor = GetSpriteColor();
         float startEmissionBlend = displayedSpriteBlend;
 
         float elapsed = 0f;
@@ -320,17 +343,17 @@ public class TorchRunode : MonoBehaviour
 
             pointLight.intensity = Mathf.Lerp(startIntensity, 0f, t);
             pointLight.range = Mathf.Lerp(startRange, 0f, t);
-            ApplySpriteVisual(fadeColor, Mathf.Lerp(startEmissionBlend, 0f, t));
+            ApplySpriteVisual(spriteColor, Mathf.Lerp(startEmissionBlend, 0f, t));
 
             yield return null;
         }
 
         isFadingOff = false;
-        ApplyLightState(0, Color.white, 0f);
+        ApplyLightState(0, 0f);
         fadeCoroutine = null;
     }
 
-    private void ApplyLightState(int mw, Color color, float spriteBlend)
+    private void ApplyLightState(int mw, float spriteBlend)
     {
         displayedMw = mw;
         displayedSpriteBlend = spriteBlend;
@@ -344,10 +367,10 @@ public class TorchRunode : MonoBehaviour
         }
 
         pointLight.enabled = true;
-        pointLight.color = color;
+        pointLight.color = GetLightColor();
         pointLight.range = GetLightRange(mw);
         pointLight.intensity = GetLightIntensity(mw);
-        ApplySpriteVisual(color, spriteBlend);
+        ApplySpriteVisual(GetSpriteColor(), spriteBlend);
     }
 
     private void ApplySpriteVisual(Color color, float emissionBlend)
