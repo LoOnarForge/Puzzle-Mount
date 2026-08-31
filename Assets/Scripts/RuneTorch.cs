@@ -1,3 +1,4 @@
+using System.Collections;
 using UnityEngine;
 
 public class RuneTorch : MonoBehaviour
@@ -5,20 +6,35 @@ public class RuneTorch : MonoBehaviour
     private const int SocketIndex = 0;
     private const float FirstStepIntensityBonus = 0.5f;
     private const float AdditionalIntensityBonusPerMw = 0.25f;
+    private const float EmissionStrength = 2f;
+
+    private static readonly int BaseColorId = Shader.PropertyToID("_BaseColor");
+    private static readonly int EmissionColorId = Shader.PropertyToID("_EmissionColor");
+    private static readonly int EmissionStrengthId = Shader.PropertyToID("_EmissionStrength");
+    private static readonly int MinBrightnessId = Shader.PropertyToID("_MinBrightness");
+    private static readonly int LightInfluenceId = Shader.PropertyToID("_LightInfluence");
 
     [SerializeField] private GameObject powerSocketObject;
     [SerializeField] private Light pointLight;
+    [SerializeField] private RuneTorchSpriteLibrary spriteLibrary;
+    [SerializeField] private SpriteRenderer topFaceSprite;
     [SerializeField] private int maxPower = 4;
+    [SerializeField][Range(0f, 5f)] private float fadeDuration = 0.2f;
 
     [SerializeField] private int allocatedMw;
     [SerializeField] private PowerSource poweringSource;
     [SerializeField] private bool isLit;
+    [SerializeField] private float displayedIntensity;
 
     private float baseRange;
     private float baseIntensity;
     private DevicePowerSocket devicePowerSocket;
     private LinePort socketPort;
+    private MaterialPropertyBlock spritePropBlock;
     private Color deliveredPowerColor = Color.white;
+    private Coroutine fadeCoroutine;
+    private float displayedSpriteBlend;
+    private int displayedMw;
 
     private void Awake()
     {
@@ -34,12 +50,19 @@ public class RuneTorch : MonoBehaviour
         baseRange = pointLight.range;
         baseIntensity = pointLight.intensity;
 
+        Sprite torchSprite = spriteLibrary.GetRandomSprite();
+        topFaceSprite.sprite = torchSprite;
+        topFaceSprite.size = torchSprite.bounds.size * 1.98f;
+        topFaceSprite.gameObject.SetActive(true);
+        spritePropBlock = new MaterialPropertyBlock();
+
         InitialSocketConfiguration();
-        RefreshLightState();
+        RefreshLightState(true);
     }
 
     private void LateUpdate()
     {
+        displayedIntensity = pointLight.intensity;
         RefreshSocketConnection();
         SyncLightFromSocket();
     }
@@ -100,20 +123,105 @@ public class RuneTorch : MonoBehaviour
         return ColorManager.Instance.GetColor(source.ColorIndex);
     }
 
-    private void RefreshLightState()
+    private void RefreshLightState(bool instant = false)
     {
         isLit = allocatedMw >= 1;
+
+        if (fadeCoroutine != null)
+        {
+            StopCoroutine(fadeCoroutine);
+            fadeCoroutine = null;
+        }
+
+        if (instant || fadeDuration <= 0f)
+        {
+            ApplyLightState(allocatedMw, deliveredPowerColor, isLit ? 1f : 0f);
+            return;
+        }
+
+        fadeCoroutine = StartCoroutine(FadeLightState());
+    }
+
+    private IEnumerator FadeLightState()
+    {
+        int endMw = allocatedMw;
+        float startIntensity = pointLight.enabled ? pointLight.intensity : 0f;
+        float startRange = pointLight.enabled ? pointLight.range : 0f;
+        float endIntensity = endMw >= 1 ? baseIntensity * GetIntensityMultiplier(endMw) : 0f;
+        float endRange = endMw >= 1 ? baseRange * GetRangeMultiplier(endMw) : 0f;
+        Color fadeColor = endMw >= 1 ? deliveredPowerColor : pointLight.color;
+        float startEmissionBlend = displayedSpriteBlend;
+        float endEmissionBlend = endMw >= 1 ? 1f : 0f;
+        bool fadeSpriteEmission = displayedMw < 1 || endMw < 1;
+
+        if (endMw >= 1)
+        {
+            pointLight.enabled = true;
+            pointLight.color = deliveredPowerColor;
+            if (fadeSpriteEmission)
+                ApplySpriteVisual(deliveredPowerColor, startEmissionBlend);
+        }
+
+        float elapsed = 0f;
+        while (elapsed < fadeDuration)
+        {
+            elapsed += Time.deltaTime;
+            float t = Mathf.SmoothStep(0f, 1f, elapsed / fadeDuration);
+
+            pointLight.intensity = Mathf.Lerp(startIntensity, endIntensity, t);
+            pointLight.range = Mathf.Lerp(startRange, endRange, t);
+
+            if (fadeSpriteEmission)
+                ApplySpriteVisual(fadeColor, Mathf.Lerp(startEmissionBlend, endEmissionBlend, t));
+
+            yield return null;
+        }
+
+        ApplyLightState(endMw, endMw >= 1 ? deliveredPowerColor : fadeColor, endEmissionBlend);
+        fadeCoroutine = null;
+    }
+
+    private void ApplyLightState(int mw, Color color, float spriteBlend)
+    {
+        displayedMw = mw;
+        displayedSpriteBlend = spriteBlend;
+        isLit = mw >= 1;
 
         if (!isLit)
         {
             pointLight.enabled = false;
+            ApplySpriteVisual(Color.white, 0f);
             return;
         }
 
         pointLight.enabled = true;
-        pointLight.color = deliveredPowerColor;
-        pointLight.range = baseRange * GetRangeMultiplier(allocatedMw);
-        pointLight.intensity = baseIntensity * GetIntensityMultiplier(allocatedMw);
+        pointLight.color = color;
+        pointLight.range = baseRange * GetRangeMultiplier(mw);
+        pointLight.intensity = baseIntensity * GetIntensityMultiplier(mw);
+        ApplySpriteVisual(color, spriteBlend);
+    }
+
+    private void ApplySpriteVisual(Color color, float emissionBlend)
+    {
+        topFaceSprite.GetPropertyBlock(spritePropBlock);
+
+        if (emissionBlend <= 0f)
+        {
+            spritePropBlock.SetColor(BaseColorId, Color.white);
+            spritePropBlock.SetColor(EmissionColorId, Color.black);
+            spritePropBlock.SetFloat(EmissionStrengthId, 0f);
+        }
+        else
+        {
+            spritePropBlock.SetColor(BaseColorId, color);
+            spritePropBlock.SetColor(EmissionColorId, color);
+            spritePropBlock.SetFloat(EmissionStrengthId, EmissionStrength * emissionBlend);
+        }
+
+        spritePropBlock.SetFloat(MinBrightnessId, 0f);
+        spritePropBlock.SetFloat(LightInfluenceId, 1f);
+        topFaceSprite.SetPropertyBlock(spritePropBlock);
+        displayedSpriteBlend = emissionBlend;
     }
 
     private static float GetRangeMultiplier(int mw)

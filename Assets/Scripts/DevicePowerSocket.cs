@@ -39,7 +39,7 @@ public class DevicePowerSocket : MonoBehaviour
     private int ownerIndex = -1;
 
     public int AllocatedMw => allocatedMw;
-    public int RemainingMwNeeded => ownerRuneTorch != null && allocatedMw >= 1 ? 0 : requiredMw - allocatedMw;
+    public int RemainingMwNeeded => requiredMw - allocatedMw;
     public int PowerIndex => powerIndex;
 
     [Space (20)]

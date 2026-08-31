@@ -131,6 +131,9 @@ public class RunodeCubeEditor : Editor
 
         if (spriteTransform != null)
         {
+            if (faceIndex == 0 && cube.GetComponent<RuneTorch>() != null)
+                return;
+
             if (newType != RunodeLineType.Empty)
             {
                 spriteTransform.gameObject.SetActive(true);

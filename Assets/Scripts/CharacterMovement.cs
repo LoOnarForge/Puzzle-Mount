@@ -13,6 +13,8 @@ public class CharacterMovement : MonoBehaviour
     
     [Header("SPEED BUILDUP")]
     public float accelerationTime = 0.3f;
+    [Range(0.5f, 10f)]
+    public float speedRampRate = 5f;
     
     [Header("AIR CONTROL")]
     public float momentumDecay = 2f;
@@ -295,9 +297,9 @@ public class CharacterMovement : MonoBehaviour
         
         // Start acceleration from zero (removed startSpeed snap)
         
-        // Exponential buildup to max speed
-        float exponentialRate = 5f;
-        float lerpRate = Time.deltaTime / accelerationTime * exponentialRate;
+        // Exponential buildup to max speed (running ramps twice as fast)
+        float rampRate = shouldRun ? speedRampRate * 2f : speedRampRate;
+        float lerpRate = Time.deltaTime / accelerationTime * rampRate;
         currentSpeedBuildup = Mathf.Lerp(currentSpeedBuildup, targetSpeed, lerpRate);
 
         return currentSpeedBuildup;
