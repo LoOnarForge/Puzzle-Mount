@@ -41,6 +41,9 @@ public class ObstructionPort : MonoBehaviour
     private void OverlapBox()
     {
         if (obstructionTrigger == null)
+            obstructionTrigger = GetComponent<BoxCollider>();
+
+        if (obstructionTrigger == null)
         {
             Debug.LogError(
                 $"{nameof(ObstructionPort)} on {name} cannot refresh because its {nameof(BoxCollider)} is missing.",

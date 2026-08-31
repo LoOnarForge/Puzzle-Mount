@@ -17,9 +17,9 @@ public class TorchRunodeEditor : Editor
         EditorGUILayout.PropertyField(serializedObject.FindProperty("baseLightRange"), new GUIContent("Base Light Range"));
         EditorGUILayout.PropertyField(serializedObject.FindProperty("baseLightIntensity"), new GUIContent("Base Light Intensity"));
         EditorGUILayout.PropertyField(serializedObject.FindProperty("ignorePowerColor"), new GUIContent("Ignore Power Color On Light", "Top-face sprite still uses delivered power color."));
-        EditorGUILayout.Slider(serializedObject.FindProperty("fadeDuration"), 0f, 5f, new GUIContent("Fade Duration (s)"));
-        EditorGUILayout.Slider(serializedObject.FindProperty("obstructionOffDelay"), 0f, 1f, new GUIContent("Obstruction Off Delay (s)"));
-        EditorGUILayout.Slider(serializedObject.FindProperty("powerOnDelay"), 0f, 1f, new GUIContent("Power On Delay (s)"));
+        EditorGUILayout.Slider(serializedObject.FindProperty("steadyLength"), 0f, 5f, new GUIContent("Steady Length (s)"));
+        EditorGUILayout.Slider(serializedObject.FindProperty("dipLength"), 0f, 5f, new GUIContent("Dip Length (s)"));
+        EditorGUILayout.Slider(serializedObject.FindProperty("dipPercent"), 0f, 100f, new GUIContent("Dip (%)"));
 
         EditorGUILayout.Space(20);
         using (new EditorGUI.DisabledScope(true))

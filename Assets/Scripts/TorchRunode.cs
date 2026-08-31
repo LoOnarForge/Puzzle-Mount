@@ -1,5 +1,6 @@
 using System.Collections;
 using UnityEngine;
+using UnityEngine.Serialization;
 
 public class TorchRunode : MonoBehaviour
 {
@@ -25,6 +26,10 @@ public class TorchRunode : MonoBehaviour
     [SerializeField][Range(0f, 5f)] private float fadeDuration = 0.2f;
     [SerializeField][Range(0f, 1f)] private float obstructionOffDelay = 0.1f;
     [SerializeField][Range(0f, 1f)] private float powerOnDelay = 0.2f;
+    [SerializeField][Range(0f, 5f)] private float steadyLength = 2f;
+    [FormerlySerializedAs("pulseLength")]
+    [SerializeField][Range(0f, 5f)] private float dipLength = 0.6f;
+    [SerializeField][Range(0f, 100f)] private float dipPercent = 15f;
 
     [SerializeField] private int allocatedMw;
     [SerializeField] private PowerSource poweringSource;
@@ -45,6 +50,9 @@ public class TorchRunode : MonoBehaviour
 
     private bool topFaceWasObstructed;
     private Coroutine obstructionOffCoroutine;
+    private float stableLightIntensity;
+    private float pulseCycleTime;
+    private int stablePulseMw = -1;
 
     private void Awake()
     {
@@ -76,10 +84,11 @@ public class TorchRunode : MonoBehaviour
 
     private void LateUpdate()
     {
-        displayedIntensity = pointLight.intensity;
         RefreshTopFaceObstruction();
         RefreshSocketConnection();
         SyncLightFromSocket();
+        UpdateStableLightPulse();
+        displayedIntensity = pointLight.intensity;
     }
 
     // Called by a DevicePowerSocket when its power state changes.
@@ -361,6 +370,7 @@ public class TorchRunode : MonoBehaviour
 
         if (!isLit)
         {
+            stablePulseMw = -1;
             pointLight.enabled = false;
             ApplySpriteVisual(Color.white, 0f);
             return;
@@ -369,7 +379,20 @@ public class TorchRunode : MonoBehaviour
         pointLight.enabled = true;
         pointLight.color = GetLightColor();
         pointLight.range = GetLightRange(mw);
-        pointLight.intensity = GetLightIntensity(mw);
+        stableLightIntensity = GetLightIntensity(mw);
+
+        if (stablePulseMw != mw)
+        {
+            pulseCycleTime = 0f;
+            pointLight.intensity = stableLightIntensity;
+        }
+        else if (!ShouldPulse())
+        {
+            pointLight.intensity = stableLightIntensity;
+        }
+
+        stablePulseMw = mw;
+
         ApplySpriteVisual(GetSpriteColor(), spriteBlend);
     }
 
@@ -404,5 +427,43 @@ public class TorchRunode : MonoBehaviour
     private float GetLightIntensity(int mw)
     {
         return baseLightIntensity + mw;
+    }
+
+    private bool ShouldPulse()
+    {
+        return dipLength > 0f && dipPercent > 0f;
+    }
+
+    private bool IsStableLitForPulse()
+    {
+        return isLit
+            && fadeCoroutine == null
+            && !isFadingOn
+            && !isFadingOff
+            && !IsTopFaceObstructed()
+            && pointLight.enabled;
+    }
+
+    private void UpdateStableLightPulse()
+    {
+        if (!IsStableLitForPulse() || !ShouldPulse())
+            return;
+
+        float cycleDuration = steadyLength + dipLength;
+        if (cycleDuration <= 0f)
+            return;
+
+        pulseCycleTime += Time.deltaTime;
+        float cycleTime = pulseCycleTime % cycleDuration;
+
+        if (cycleTime <= steadyLength)
+        {
+            pointLight.intensity = stableLightIntensity;
+            return;
+        }
+
+        float dipT = (cycleTime - steadyLength) / dipLength;
+        float dip = dipPercent * 0.01f;
+        pointLight.intensity = stableLightIntensity * (1f - dip * Mathf.Sin(dipT * Mathf.PI));
     }
 }

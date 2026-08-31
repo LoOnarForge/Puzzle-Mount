@@ -384,7 +384,7 @@ Transform:
   m_GameObject: {fileID: 1493988934789372932}
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 0, y: -0, z: -0.65}
+  m_LocalPosition: {x: 0, y: 0, z: -0.318}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
@@ -2109,6 +2109,11 @@ MonoBehaviour:
   baseLightIntensity: 4
   ignorePowerColor: 0
   fadeDuration: 0.5
+  obstructionOffDelay: 0.1
+  powerOnDelay: 0.2
+  steadyLength: 2
+  dipLength: 0.6
+  dipPercent: 15
   allocatedMw: 0
   poweringSource: {fileID: 0}
   isLit: 0
