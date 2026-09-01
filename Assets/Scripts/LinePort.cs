@@ -244,6 +244,22 @@ public class LinePort : MonoBehaviour
         return !isBlocked && !otherPort.isBlocked;
     }
 
+    private bool HasAnotherConnectableOverlap(LinePort excludePort)
+    {
+        for (int i = 0; i < overlapCount; i++)
+        {
+            LinePort overlappingPort = overlapResults[i].GetComponent<LinePort>();
+
+            if (overlappingPort == null || overlappingPort == this || overlappingPort == excludePort)
+                continue;
+
+            if (CanConnectTo(overlappingPort))
+                return true;
+        }
+
+        return false;
+    }
+
     public void SetCanReportConnections(bool canReport)
     {
         canReportConnections = canReport;
@@ -283,10 +299,7 @@ public class LinePort : MonoBehaviour
     public void ReportPowerLossToConnectedPorts()
     {
         foreach (LinePort connectedPort in connectedPorts)
-        {
-            Debug.Log($"[PowerTrace {Time.time:F3}s] DEPOWER_SEQUENCE {name} -> {connectedPort.name}", this);
             connectedPort.ReportPowerLost();
-        }
     }
 
     private void ReportPowerLost()
@@ -296,12 +309,10 @@ public class LinePort : MonoBehaviour
 
         if (parentDevicePowerSocket != null)
         {
-            Debug.Log($"[PowerTrace {Time.time:F3}s] DEPOWER {name}", this);
             parentDevicePowerSocket.ClearPower();
             return;
         }
 
-        Debug.Log($"[PowerTrace {Time.time:F3}s] DEPOWER {name}", this);
         parentLine.PowerDownLine();
     }
 
@@ -310,7 +321,6 @@ public class LinePort : MonoBehaviour
     {
         if (canReportConnections && type == PortType.Giver)
         {
-            Debug.Log($"[PowerTrace {Time.time:F3}s] POWER_UP {name} -> {otherPort.name}", this);
             parentLine.TryPowerConnectedPort(otherPort, this);
             return;
         }
@@ -318,22 +328,21 @@ public class LinePort : MonoBehaviour
         // Device socket ports never refresh themselves, so the Power Source port reports for them.
         if (parentPowerSource != null && type == PortType.Giver && otherPort.parentDevicePowerSocket != null)
         {
-            Debug.Log($"[PowerTrace {Time.time:F3}s] POWER_UP {name} -> {otherPort.name}", this);
             parentPowerSource.PowerConnectedPortFromSource(otherPort, this);
             return;
         }
 
         if (otherPort.parentPowerSource != null)
-        {
-            Debug.Log($"[PowerTrace {Time.time:F3}s] POWER_UP {otherPort.name} -> {name}", this);
             otherPort.parentPowerSource.PowerConnectedPortFromSource(this, otherPort);
-        }
     }
 
     private void ReportLostConnection(LinePort connectedPort)
     {
         if (type == PortType.Receiver)
         {
+            if (HasAnotherConnectableOverlap(connectedPort))
+                return;
+
             ReportPowerLost();
             return;
         }
