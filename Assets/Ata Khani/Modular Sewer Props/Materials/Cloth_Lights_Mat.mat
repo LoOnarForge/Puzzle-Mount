@@ -8,15 +8,16 @@ Material:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_Name: Cloth_Lights_Mat
-  m_Shader: {fileID: 4800000, guid: 846875c43c8dab34da3ab157fb62ad17, type: 3}
+  m_Shader: {fileID: 4800000, guid: 2a7b9ce6a192f41aab3a77ba06e9b2ec, type: 3}
   m_Parent: {fileID: 0}
   m_ModifiedSerializedProperties: 0
-  m_ValidKeywords:
+  m_ValidKeywords: []
+  m_InvalidKeywords:
   - USE_EMISSION
   - USE_MASK_MAP
   - USE_NORMAL_MAP
-  m_InvalidKeywords:
   - _CULL_FRONT
+  - _ZWRITE_ON
   m_LightmapFlags: 4
   m_EnableInstancingVariants: 0
   m_DoubleSidedGI: 0
@@ -59,6 +60,10 @@ Material:
         m_Texture: {fileID: 0}
         m_Scale: {x: 1, y: 1}
         m_Offset: {x: 0, y: 0}
+    - _NoiseTex:
+        m_Texture: {fileID: 0}
+        m_Scale: {x: 1, y: 1}
+        m_Offset: {x: 0, y: 0}
     - _NormalMap:
         m_Texture: {fileID: 2800000, guid: 0159e8041aae0ad4499325795bd7a2a7, type: 3}
         m_Scale: {x: 1, y: 1}
@@ -76,28 +81,46 @@ Material:
     - _BumpScale: 1
     - _Cull: 2
     - _Cutoff: 0.5
+    - _DepthFadeDistance: 1
     - _DetailNormalMapScale: 1
+    - _DissolveAmount: 0
+    - _DissolveEdgeWidth: 0.1
+    - _DistortionStrength: 0.1
     - _DstBlend: 0
+    - _FresnelPower: 2
     - _GlossMapScale: 1
     - _Glossiness: 0.5
     - _GlossyReflections: 1
+    - _MainTexUSpeed: 0
+    - _MainTexVSpeed: 0
     - _Metallic: 0
     - _MetallicStrength: 1
     - _Mode: 0
+    - _NoiseUSpeed: 0.2
+    - _NoiseVSpeed: 0.1
     - _Occlusion: 1
     - _OcclusionStrength: 0.342
     - _Parallax: 0.02
+    - _RampSmoothness: 0.1
+    - _RampThreshold: 0.5
+    - _Smoothness: 0.5
     - _SmoothnessStrength: 1
     - _SmoothnessTextureChannel: 0
     - _SpecularHighlights: 1
     - _SrcBlend: 1
     - _UVSec: 0
+    - _UseDepthFade: 0
     - _UseEmission: 1
     - _UseMaskMap: 1
     - _UseNormalMap: 1
+    - _UseRamp: 0
     - _ZWrite: 1
     m_Colors:
+    - _BaseColor: {r: 1, g: 1, b: 1, a: 1}
     - _Color: {r: 1, g: 1, b: 1, a: 1}
+    - _DissolveEdgeColor: {r: 2, g: 1, b: 0, a: 1}
     - _EmissionColor: {r: 127.99999, g: 127.99999, b: 127.99999, a: 1}
+    - _FresnelColor: {r: 1, g: 1, b: 1, a: 1}
+    - _SpecularColor: {r: 0.19999996, g: 0.19999996, b: 0.19999996, a: 1}
   m_BuildTextureStacks: []
   m_AllowLocking: 1
