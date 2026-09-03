@@ -44,7 +44,8 @@ public class Piston : MonoBehaviour
     [SerializeField] private Collider shaftCollider;
     [SerializeField] private bool isPowered;
 
-    private Vector3 faceHomeLocalPosition;
+    private Vector3 faceHomeRootLocal;
+    private Vector3 travelAxisLocal;
     private int currentStage;
     private int stageDirection = 1;
     private bool isMoving;
@@ -62,7 +63,7 @@ public class Piston : MonoBehaviour
         Debug.Assert(pistonFace != null, $"{nameof(Piston)} on {name} requires Pistons Face assigned.", this);
         faceCollider = pistonFace.GetComponent<Collider>();
         Debug.Assert(faceCollider != null, $"{nameof(Piston)} on {name} requires a collider on Pistons Face.", this);
-        faceHomeLocalPosition = pistonFace.localPosition;
+        CacheFaceTravelSetup();
         if (obstructionMask.value == 0)
             obstructionMask = ~LayerMask.GetMask(TimLayerName);
 
@@ -92,21 +93,60 @@ public class Piston : MonoBehaviour
     {
         maxStage = Mathf.Max(0, maxStage);
         startingStage = Mathf.Clamp(startingStage, 0, maxStage);
+
+        if (pistonFace != null)
+            CacheFaceTravelSetup();
+    }
+
+    private void CacheFaceTravelSetup()
+    {
+        faceHomeRootLocal = transform.InverseTransformPoint(pistonFace.position);
+        travelAxisLocal = ResolveTravelAxisLocal(faceHomeRootLocal);
     }
 
     private Vector3 GetTravelAxisLocal()
     {
-        return isVertical ? Vector3.up : Vector3.forward;
+        return travelAxisLocal;
     }
 
     private Vector3 GetWorldPush()
     {
-        return isVertical ? Vector3.up : RunodeMovement.GetCardinalAxis(transform.forward);
+        return RunodeMovement.GetCardinalAxis(transform.TransformDirection(travelAxisLocal));
+    }
+
+    private bool IsVerticalTravel()
+    {
+        return Mathf.Abs(GetWorldPush().y) > 0.5f;
+    }
+
+    private Vector3 ResolveTravelAxisLocal(Vector3 faceHomeLocal)
+    {
+        Vector3 axis = GetDominantUnitLocalAxis(faceHomeLocal);
+        if (axis.sqrMagnitude > 0.01f)
+            return axis;
+
+        return isVertical ? Vector3.up : Vector3.forward;
+    }
+
+    private static Vector3 GetDominantUnitLocalAxis(Vector3 localDirection)
+    {
+        float absX = Mathf.Abs(localDirection.x);
+        float absY = Mathf.Abs(localDirection.y);
+        float absZ = Mathf.Abs(localDirection.z);
+
+        if (absX >= absY && absX >= absZ)
+            return Vector3.right * Mathf.Sign(localDirection.x);
+
+        if (absY >= absX && absY >= absZ)
+            return Vector3.up * Mathf.Sign(localDirection.y);
+
+        return Vector3.forward * Mathf.Sign(localDirection.z);
     }
 
     private void ApplyStagePosition(int stage)
     {
-        pistonFace.localPosition = faceHomeLocalPosition + GetTravelAxisLocal() * (stage * GridUnit);
+        pistonFace.position = transform.TransformPoint(
+            faceHomeRootLocal + GetTravelAxisLocal() * (stage * GridUnit));
     }
 
     // True when the piston face is at stage 0.
@@ -238,10 +278,10 @@ public class Piston : MonoBehaviour
 
     private IEnumerator AnimateToStage(int nextStage)
     {
-        Vector3 start = pistonFace.localPosition;
-        Vector3 end = faceHomeLocalPosition + GetTravelAxisLocal() * (nextStage * GridUnit);
+        Vector3 startRootLocal = transform.InverseTransformPoint(pistonFace.position);
+        Vector3 endRootLocal = faceHomeRootLocal + GetTravelAxisLocal() * (nextStage * GridUnit);
         Vector3 startWorldPosition = pistonFace.position;
-        bool carryRunodes = isVertical;
+        bool carryRunodes = IsVerticalTravel();
 
         List<RunodeMovement> carriedRunodes = carryRunodes ? GetRunodesOnFace() : null;
 
@@ -256,13 +296,13 @@ public class Piston : MonoBehaviour
 
         if (isExtendingHorizontally)
         {
-            Vector3 travelLocal = end - start;
-            float requestedTravel = travelLocal.magnitude;
+            Vector3 travelRootLocal = endRootLocal - startRootLocal;
+            float requestedTravel = travelRootLocal.magnitude;
             if (requestedTravel > 0f)
             {
                 float allowedTravel = GetAllowedExtendTravel(worldPush, requestedTravel);
                 if (allowedTravel < requestedTravel)
-                    end = start + travelLocal.normalized * allowedTravel;
+                    endRootLocal = startRootLocal + travelRootLocal.normalized * allowedTravel;
             }
 
             isHorizontallyExtending = true;
@@ -271,15 +311,15 @@ public class Piston : MonoBehaviour
                 HorizontalExtenders.Add(this);
         }
 
-        Vector3 endWorldPosition = pistonFace.parent.TransformPoint(end);
-        float distance = Vector3.Distance(start, end);
+        Vector3 endWorldPosition = transform.TransformPoint(endRootLocal);
+        float distance = Vector3.Distance(startWorldPosition, endWorldPosition);
         float duration = moveSpeed > 0f ? distance / moveSpeed : 0f;
         Vector3 previousWorldPosition = startWorldPosition;
 
         for (float elapsed = 0f; elapsed < duration; elapsed += Time.deltaTime)
         {
             float t = Mathf.SmoothStep(0f, 1f, elapsed / duration);
-            pistonFace.localPosition = Vector3.Lerp(start, end, t);
+            pistonFace.position = transform.TransformPoint(Vector3.Lerp(startRootLocal, endRootLocal, t));
 
             if (carryRunodes)
             {
@@ -300,7 +340,7 @@ public class Piston : MonoBehaviour
         if (carryRunodes)
         {
             Vector3 finalDelta = endWorldPosition - pistonFace.position;
-            pistonFace.localPosition = end;
+            pistonFace.position = endWorldPosition;
             MoveCarriedRunodes(carriedRunodes, finalDelta);
 
             foreach (RunodeMovement runode in carriedRunodes)
@@ -308,7 +348,7 @@ public class Piston : MonoBehaviour
         }
         else
         {
-            pistonFace.localPosition = end;
+            pistonFace.position = endWorldPosition;
 
             if (isExtendingHorizontally)
             {
@@ -504,12 +544,13 @@ public class Piston : MonoBehaviour
 
     private bool IsFaceRetracted()
     {
-        return Vector3.Distance(pistonFace.localPosition, faceHomeLocalPosition) < 0.001f && currentStage == 0;
+        return currentStage == 0 &&
+               Vector3.Distance(transform.InverseTransformPoint(pistonFace.position), faceHomeRootLocal) < 0.001f;
     }
 
     private bool IsTimBetweenOpposingPistons(Vector3 worldPush, Piston opposingPiston)
     {
-        if (isVertical || opposingPiston.isVertical || Mathf.Abs(worldPush.y) > 0.5f)
+        if (IsVerticalTravel() || opposingPiston.IsVerticalTravel() || Mathf.Abs(worldPush.y) > 0.5f)
             return false;
 
         Vector3 axis = RunodeMovement.GetCardinalAxis(worldPush);
@@ -566,7 +607,7 @@ public class Piston : MonoBehaviour
         Piston[] allPistons = Object.FindObjectsByType<Piston>();
         foreach (Piston other in allPistons)
         {
-            if (other == this || other.isVertical)
+            if (other == this || other.IsVerticalTravel())
                 continue;
 
             Vector3 otherPush = other.GetWorldPush();
@@ -598,7 +639,7 @@ public class Piston : MonoBehaviour
     // Stops this face from lerping past an opposing piston face on the same axis.
     private void ClampFaceToOpposingPistons(Vector3 worldPush)
     {
-        if (isVertical || Mathf.Abs(worldPush.y) > 0.5f)
+        if (IsVerticalTravel() || Mathf.Abs(worldPush.y) > 0.5f)
             return;
 
         Vector3 axis = RunodeMovement.GetCardinalAxis(worldPush);
@@ -617,7 +658,7 @@ public class Piston : MonoBehaviour
         Piston[] allPistons = Object.FindObjectsByType<Piston>();
         foreach (Piston other in allPistons)
         {
-            if (other == this || other.isVertical)
+            if (other == this || other.IsVerticalTravel())
                 continue;
 
             Vector3 otherPush = other.GetWorldPush();
@@ -661,7 +702,7 @@ public class Piston : MonoBehaviour
     // Kills Tim when he is caught between this face and an opposing piston face on the same axis.
     private Piston TrySandwichCrushTim(Vector3 worldPush)
     {
-        if (isVertical || Mathf.Abs(worldPush.y) > 0.5f)
+        if (IsVerticalTravel() || Mathf.Abs(worldPush.y) > 0.5f)
             return null;
 
         Vector3 axis = RunodeMovement.GetCardinalAxis(worldPush);
@@ -675,7 +716,7 @@ public class Piston : MonoBehaviour
         Piston[] allPistons = Object.FindObjectsByType<Piston>();
         foreach (Piston other in allPistons)
         {
-            if (other == this || other.isVertical)
+            if (other == this || other.IsVerticalTravel())
                 continue;
 
             Vector3 otherPush = other.GetWorldPush();
