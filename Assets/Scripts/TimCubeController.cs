@@ -23,10 +23,12 @@ public class TimCubeController : MonoBehaviour
     [HideInInspector] public float detectionTolerance = 0.6f;
 
     [Header("MOUSE ROTATION SETTINGS:")]
+    [Tooltip("Runodes + Devices only.")]
     public LayerMask interactionLayer;
     public float mouseRotationSensitivity = 1.0f;
     public float mouseRotationDuration = 0.08f;
     public float maxRotationDistance = 5.0f;
+    public float maxClickDistance = 3f;
     public float mouseRotationClarity = 1.5f;
     public float mouseTwitchDeadzone = 0.01f;
 
@@ -110,6 +112,10 @@ public class TimCubeController : MonoBehaviour
         }
 
         HandleMouseRotation(mouseHitValid, mouseHit, mouseHitCube);
+
+        if (Mouse.current != null && Mouse.current.leftButton.wasPressedThisFrame)
+            TryHandleLeverClick(mouseHitValid, mouseHit, mouseHitCube);
+
         HandleCameraRotation();
         UpdateGaze(mouseHitValid, mouseHit, mouseHitCube);
     }
@@ -322,6 +328,27 @@ public class TimCubeController : MonoBehaviour
     }
 
     public bool IsActuallyRotatable(RunodeMovement cube, Vector3 hitPoint) => IsCubeRotatable(cube, hitPoint);
+
+    private void TryHandleLeverClick(bool mouseHitValid, RaycastHit mouseHit, RunodeMovement mouseHitCube)
+    {
+        if (!mouseHitValid || mouseHitCube != null)
+            return;
+
+        Lever lever = mouseHit.collider.GetComponentInParent<Lever>();
+        if (lever == null)
+            return;
+
+        if (!IsInClickRange(lever.transform.position))
+            return;
+
+        lever.MouseClickDetected();
+    }
+
+    private bool IsInClickRange(Vector3 targetPosition)
+    {
+        float distance = Vector3.ProjectOnPlane(targetPosition - timTransform.position, Vector3.up).magnitude;
+        return distance <= maxClickDistance;
+    }
 
     private void HandleMouseRotation(bool mouseHitValid, RaycastHit mouseHit, RunodeMovement mouseHitCube)
     {

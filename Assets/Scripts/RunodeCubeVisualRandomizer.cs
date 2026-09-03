@@ -7,13 +7,14 @@ public class RunodeCubeVisualRandomizer : MonoBehaviour
     [SerializeField] private Mesh mesh03;
     [SerializeField] private Mesh mesh04;
     [SerializeField] private Mesh mesh05;
-
+    [Space (10)]
     [SerializeField] private Material material01;
     [SerializeField] private Material material02;
     [SerializeField] private Material material03;
-
+    [Space(10)]
     [SerializeField] private MeshFilter meshFilter;
     [SerializeField] private MeshRenderer meshRenderer;
+    [Space(10)]
     [SerializeField] private RunodeLineSpriteLibrary lineSpriteLibrary;
 
     public RunodeLineSpriteLibrary LineSpriteLibrary => lineSpriteLibrary;
