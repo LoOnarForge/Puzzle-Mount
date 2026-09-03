@@ -9,9 +9,7 @@ public class Piston : MonoBehaviour
     private const float DefaultMoveSpeed = 5f;
     private const float PushDetectHalf = 0.45f;
     private const float FaceTopTolerance = 0.1f;
-    private const float TimCrushGap = 0.85f;
-    private const float TimLaneTolerance = 0.55f;
-    private const float TimHeightTolerance = 1.5f;
+    private const float PistonLaneTolerance = 0.55f;
     private const float OpposingAxisDotThreshold = -0.9f;
     private const float MinTravelAxisSqr = 0.0001f;
     private const string TimLayerName = "TimJones";
@@ -52,10 +50,8 @@ public class Piston : MonoBehaviour
     private int currentStage;
     private int stageDirection = 1;
     private bool isMoving;
-    private bool timKilledDuringMove;
     private bool isHorizontallyExtending;
     private int targetStageThisMove;
-    private Piston timKillPartner;
     private Vector3 horizontalExtendPush;
     private Collider faceCollider;
     private static readonly List<Piston> HorizontalExtenders = new List<Piston>();
@@ -279,8 +275,6 @@ public class Piston : MonoBehaviour
     private IEnumerator MoveToStage(int nextStage)
     {
         isMoving = true;
-        timKilledDuringMove = false;
-        timKillPartner = null;
 
         int stageDelta = nextStage - currentStage;
         Vector3 worldPush = GetWorldPushForStageDelta(stageDelta);
@@ -297,14 +291,6 @@ public class Piston : MonoBehaviour
 
         yield return AnimateToStage(nextStage);
 
-        if (timKilledDuringMove)
-        {
-            stageDirection = 1;
-            Piston partner = timKillPartner;
-            timKillPartner = null;
-            yield return RetractAfterTimKill(partner);
-        }
-
         isMoving = false;
     }
 
@@ -316,7 +302,6 @@ public class Piston : MonoBehaviour
         bool extending = stageDelta > 0;
         bool carryRunodes = IsVerticalTravel() && extending;
         bool carryCharacters = IsVerticalTravel() && extending;
-        bool crushWhileMoving = IsVerticalTravel() && !extending;
 
         List<RunodeMovement> carriedRunodes = carryRunodes ? GetRunodesOnFace() : null;
         List<CharacterMovement> carriedCharacters = carryCharacters ? GetCharactersOnFace() : null;
@@ -364,17 +349,6 @@ public class Piston : MonoBehaviour
             if (carryCharacters)
                 MoveCarriedCharacters(carriedCharacters, delta);
 
-            if (isExtendingHorizontally)
-            {
-                Piston crushPartner = TrySandwichCrushTim(worldPush);
-                if (crushPartner != null)
-                    timKillPartner = crushPartner;
-            }
-            else if (crushWhileMoving)
-            {
-                TryCrushTimInTravelPath(worldPush);
-            }
-
             previousWorldPosition = pistonFace.position;
             yield return null;
         }
@@ -403,14 +377,6 @@ public class Piston : MonoBehaviour
                 for (int i = 0; i < HorizontalExtenders.Count; i++)
                     HorizontalExtenders[i].ClampFaceToOpposingPistons(HorizontalExtenders[i].horizontalExtendPush);
             }
-
-            Piston crushPartner = TrySandwichCrushTim(worldPush);
-            if (crushPartner != null)
-                timKillPartner = crushPartner;
-        }
-        else if (crushWhileMoving)
-        {
-            TryCrushTimInTravelPath(worldPush);
         }
 
         if (isExtendingHorizontally)
@@ -530,15 +496,7 @@ public class Piston : MonoBehaviour
 
             Piston opposingPiston = hit.GetComponentInParent<Piston>();
             if (opposingPiston != null && opposingPiston != this)
-            {
-                if (isHorizontal && IsTimBetweenOpposingPistons(worldPush, opposingPiston))
-                {
-                    timKillPartner = opposingPiston;
-                    continue;
-                }
-
                 return false;
-            }
 
             return false;
         }
@@ -557,10 +515,7 @@ public class Piston : MonoBehaviour
             foreach (CharacterMovement tim in timsInFront)
             {
                 if (!CanTimMoveOneStep(tim, worldPush))
-                {
-                    tim.ApplyDeathToss(worldPush);
-                    timKilledDuringMove = true;
-                }
+                    return false;
             }
         }
         else
@@ -571,10 +526,7 @@ public class Piston : MonoBehaviour
             foreach (CharacterMovement tim in timsInFront)
             {
                 if (!CanTimMoveOneStep(tim, worldPush))
-                {
-                    tim.ApplyDeathToss(worldPush);
-                    timKilledDuringMove = true;
-                }
+                    return false;
             }
         }
 
@@ -625,77 +577,10 @@ public class Piston : MonoBehaviour
         return true;
     }
 
-    // Retracts this piston and any paired piston after Tim was crushed at full extension.
-    private IEnumerator RetractAfterTimKill(Piston partner)
-    {
-        if (!IsFaceRetracted())
-            yield return AnimateToStage(0);
-
-        if (partner != null && !partner.IsFaceRetracted())
-        {
-            partner.StopAllCoroutines();
-            yield return partner.StartCoroutine(partner.RetractAfterTimKillInternal());
-        }
-    }
-
-    // Retracts a paired piston when the other piston finished a Tim crush at full extension.
-    private IEnumerator RetractAfterTimKillInternal()
-    {
-        stageDirection = 1;
-        isMoving = true;
-        timKilledDuringMove = false;
-        timKillPartner = null;
-
-        if (!IsFaceRetracted())
-            yield return AnimateToStage(0);
-
-        isMoving = false;
-    }
-
     private bool IsFaceRetracted()
     {
         return currentStage == 0 &&
                Vector3.Distance(pistonFace.position, faceHomeWorld) < 0.001f;
-    }
-
-    private bool IsTimBetweenOpposingPistons(Vector3 worldPush, Piston opposingPiston)
-    {
-        if (IsVerticalTravel())
-            return false;
-
-        Vector3 axis = RunodeMovement.GetCardinalAxis(worldPush);
-        if (axis.sqrMagnitude < 0.01f)
-            return false;
-
-        Vector3 otherPush = opposingPiston.GetWorldPush();
-        Vector3 otherAxis = RunodeMovement.GetCardinalAxis(otherPush);
-        if (Vector3.Dot(axis, otherAxis) > OpposingAxisDotThreshold)
-            return false;
-
-        Bounds thisBounds = faceCollider.bounds;
-        Bounds otherBounds = opposingPiston.faceCollider.bounds;
-        Vector3 thisFacePoint = GetFaceFrontPoint(thisBounds, axis);
-        Vector3 otherFacePoint = GetFaceFrontPoint(otherBounds, -axis);
-        float thisAxisPos = Vector3.Dot(thisFacePoint, axis);
-        float otherAxisPos = Vector3.Dot(otherFacePoint, axis);
-        float minFace = Mathf.Min(thisAxisPos, otherAxisPos);
-        float maxFace = Mathf.Max(thisAxisPos, otherAxisPos);
-
-        CharacterMovement[] allCharacters = Object.FindObjectsByType<CharacterMovement>();
-        foreach (CharacterMovement tim in allCharacters)
-        {
-            if (tim.IsDead)
-                continue;
-
-            if (!IsTimInCrushLane(tim.transform.position, axis, thisBounds, otherBounds))
-                continue;
-
-            float timAxisPos = Vector3.Dot(tim.transform.position, axis);
-            if (timAxisPos >= minFace - PushDetectHalf && timAxisPos <= maxFace + PushDetectHalf)
-                return true;
-        }
-
-        return false;
     }
 
     // Caps extend distance so paired pistons meet without overlapping when both advance together.
@@ -804,140 +689,20 @@ public class Piston : MonoBehaviour
     {
         if (Mathf.Abs(axis.y) > 0.5f)
         {
-            return thisBounds.max.x >= otherBounds.min.x - TimLaneTolerance &&
-                   thisBounds.min.x <= otherBounds.max.x + TimLaneTolerance &&
-                   thisBounds.max.z >= otherBounds.min.z - TimLaneTolerance &&
-                   thisBounds.min.z <= otherBounds.max.z + TimLaneTolerance;
+            return thisBounds.max.x >= otherBounds.min.x - PistonLaneTolerance &&
+                   thisBounds.min.x <= otherBounds.max.x + PistonLaneTolerance &&
+                   thisBounds.max.z >= otherBounds.min.z - PistonLaneTolerance &&
+                   thisBounds.min.z <= otherBounds.max.z + PistonLaneTolerance;
         }
 
         if (Mathf.Abs(axis.x) > 0.5f)
         {
-            return thisBounds.max.z >= otherBounds.min.z - TimLaneTolerance &&
-                   thisBounds.min.z <= otherBounds.max.z + TimLaneTolerance;
+            return thisBounds.max.z >= otherBounds.min.z - PistonLaneTolerance &&
+                   thisBounds.min.z <= otherBounds.max.z + PistonLaneTolerance;
         }
 
-        return thisBounds.max.x >= otherBounds.min.x - TimLaneTolerance &&
-               thisBounds.min.x <= otherBounds.max.x + TimLaneTolerance;
-    }
-
-    // Kills Tim when he is caught between this face and an opposing piston face on the same axis.
-    private Piston TrySandwichCrushTim(Vector3 worldPush)
-    {
-        if (IsVerticalTravel())
-            return null;
-
-        Vector3 axis = RunodeMovement.GetCardinalAxis(worldPush);
-        if (axis.sqrMagnitude < 0.01f)
-            return null;
-
-        Vector3 thisFacePoint = GetFaceFrontPoint(faceCollider.bounds, axis);
-        float thisAxisPos = Vector3.Dot(thisFacePoint, axis);
-        Bounds thisBounds = faceCollider.bounds;
-
-        Piston[] allPistons = Object.FindObjectsByType<Piston>();
-        foreach (Piston other in allPistons)
-        {
-            if (other == this)
-                continue;
-
-            Vector3 otherPush = other.GetWorldPush();
-            Vector3 otherAxis = RunodeMovement.GetCardinalAxis(otherPush);
-            if (Vector3.Dot(axis, otherAxis) > OpposingAxisDotThreshold)
-                continue;
-
-            Vector3 otherFacePoint = GetFaceFrontPoint(other.faceCollider.bounds, -axis);
-            float otherAxisPos = Vector3.Dot(otherFacePoint, axis);
-            float gap = Mathf.Abs(thisAxisPos - otherAxisPos);
-
-            if (gap > TimCrushGap)
-                continue;
-
-            Bounds otherBounds = other.faceCollider.bounds;
-            float minFace = Mathf.Min(thisAxisPos, otherAxisPos);
-            float maxFace = Mathf.Max(thisAxisPos, otherAxisPos);
-
-            CharacterMovement[] allCharacters = Object.FindObjectsByType<CharacterMovement>();
-            foreach (CharacterMovement tim in allCharacters)
-            {
-                if (tim.IsDead)
-                    continue;
-
-                if (!IsTimInCrushLane(tim.transform.position, axis, thisBounds, otherBounds))
-                    continue;
-
-                float timAxisPos = Vector3.Dot(tim.transform.position, axis);
-                if (timAxisPos < minFace - PushDetectHalf || timAxisPos > maxFace + PushDetectHalf)
-                    continue;
-
-                tim.ApplyDeathToss(axis);
-                timKilledDuringMove = true;
-                return other;
-            }
-        }
-
-        return null;
-    }
-
-    // Kills Tim when a vertical piston face closes on him and he has nowhere to go.
-    private void TryCrushTimInTravelPath(Vector3 worldPush)
-    {
-        if (!IsVerticalTravel())
-            return;
-
-        Vector3 axis = RunodeMovement.GetCardinalAxis(worldPush);
-        if (axis.sqrMagnitude < 0.01f)
-            return;
-
-        float pushSign = Mathf.Sign(Vector3.Dot(axis, worldPush.normalized));
-        if (pushSign == 0f)
-            return;
-
-        Bounds thisBounds = faceCollider.bounds;
-        float faceAxisPos = Vector3.Dot(GetFaceFrontPoint(thisBounds, axis), axis);
-
-        CharacterMovement[] allCharacters = Object.FindObjectsByType<CharacterMovement>();
-        foreach (CharacterMovement tim in allCharacters)
-        {
-            if (tim.IsDead)
-                continue;
-
-            if (!IsTimInCrushLane(tim.transform.position, axis, thisBounds, thisBounds))
-                continue;
-
-            float timAxisPos = Vector3.Dot(tim.transform.position, axis);
-            float gapAlongPush = pushSign > 0f ? timAxisPos - faceAxisPos : faceAxisPos - timAxisPos;
-            if (gapAlongPush > TimCrushGap || gapAlongPush < -PushDetectHalf)
-                continue;
-
-            if (!CanTimMoveOneStep(tim, worldPush))
-            {
-                tim.ApplyDeathToss(worldPush);
-                timKilledDuringMove = true;
-            }
-        }
-    }
-
-    private static bool IsTimInCrushLane(Vector3 timPosition, Vector3 axis, Bounds thisBounds, Bounds otherBounds)
-    {
-        if (Mathf.Abs(axis.y) > 0.5f)
-        {
-            return timPosition.x >= Mathf.Min(thisBounds.min.x, otherBounds.min.x) - TimLaneTolerance &&
-                   timPosition.x <= Mathf.Max(thisBounds.max.x, otherBounds.max.x) + TimLaneTolerance &&
-                   timPosition.z >= Mathf.Min(thisBounds.min.z, otherBounds.min.z) - TimLaneTolerance &&
-                   timPosition.z <= Mathf.Max(thisBounds.max.z, otherBounds.max.z) + TimLaneTolerance;
-        }
-
-        if (Mathf.Abs(timPosition.y - thisBounds.center.y) > TimHeightTolerance)
-            return false;
-
-        if (Mathf.Abs(axis.x) > 0.5f)
-        {
-            return timPosition.z >= Mathf.Min(thisBounds.min.z, otherBounds.min.z) - TimLaneTolerance &&
-                   timPosition.z <= Mathf.Max(thisBounds.max.z, otherBounds.max.z) + TimLaneTolerance;
-        }
-
-        return timPosition.x >= Mathf.Min(thisBounds.min.x, otherBounds.min.x) - TimLaneTolerance &&
-               timPosition.x <= Mathf.Max(thisBounds.max.x, otherBounds.max.x) + TimLaneTolerance;
+        return thisBounds.max.x >= otherBounds.min.x - PistonLaneTolerance &&
+               thisBounds.min.x <= otherBounds.max.x + PistonLaneTolerance;
     }
 
     private static Vector3 GetFaceFrontPoint(Bounds bounds, Vector3 direction)
