@@ -13,7 +13,9 @@ public class Piston : MonoBehaviour
     private const float TimLaneTolerance = 0.55f;
     private const float TimHeightTolerance = 1.5f;
     private const float OpposingAxisDotThreshold = -0.9f;
+    private const float MinTravelAxisSqr = 0.0001f;
     private const string TimLayerName = "TimJones";
+    private const string PistonBaseObjectName = "Piston Base";
 
     [System.Serializable]
     private class SocketSlot
@@ -35,6 +37,7 @@ public class Piston : MonoBehaviour
     };
 
     [SerializeField] private Transform pistonFace;
+    [SerializeField] private Transform pistonBase;
     [SerializeField] private bool isVertical;
     [SerializeField] private int maxStage = 3;
     [SerializeField] private int startingStage;
@@ -44,9 +47,7 @@ public class Piston : MonoBehaviour
     [SerializeField] private Collider shaftCollider;
     [SerializeField] private bool isPowered;
 
-    private Transform faceTravelParent;
-    private Vector3 faceHomeLocal;
-    private Vector3 travelAxisLocal;
+    private Vector3 faceHomeWorld;
     private Vector3 travelAxisWorld;
     private int currentStage;
     private int stageDirection = 1;
@@ -65,12 +66,12 @@ public class Piston : MonoBehaviour
         Debug.Assert(pistonFace != null, $"{nameof(Piston)} on {name} requires Pistons Face assigned.", this);
         faceCollider = pistonFace.GetComponent<Collider>();
         Debug.Assert(faceCollider != null, $"{nameof(Piston)} on {name} requires a collider on Pistons Face.", this);
-        CacheFaceTravelSetup();
         if (obstructionMask.value == 0)
             obstructionMask = ~LayerMask.GetMask(TimLayerName);
 
         currentStage = Mathf.Clamp(startingStage, 0, maxStage);
         stageDirection = startExtending ? 1 : -1;
+        CacheTravelSetup();
         ApplyStagePosition(currentStage);
         InitialSocketConfiguration();
 
@@ -97,36 +98,70 @@ public class Piston : MonoBehaviour
         startingStage = Mathf.Clamp(startingStage, 0, maxStage);
     }
 
-    private void CacheFaceTravelSetup()
+    private Vector3 GetWorldTravelAxis()
     {
-        faceTravelParent = pistonFace.parent;
-        Debug.Assert(faceTravelParent != null, $"{nameof(Piston)} on {name} requires Pistons Face to have a parent travel anchor.", this);
-        faceHomeLocal = pistonFace.localPosition;
-        travelAxisLocal = ResolveTravelAxisLocal(faceHomeLocal);
-        travelAxisWorld = faceTravelParent.TransformDirection(travelAxisLocal).normalized;
-    }
-
-    private static Vector3 ResolveTravelAxisLocal(Vector3 homeLocal)
-    {
-        Vector3 abs = new Vector3(Mathf.Abs(homeLocal.x), Mathf.Abs(homeLocal.y), Mathf.Abs(homeLocal.z));
-        if (abs.x >= abs.y && abs.x >= abs.z)
-            return new Vector3(Mathf.Sign(homeLocal.x), 0f, 0f);
-        if (abs.y >= abs.x && abs.y >= abs.z)
-            return new Vector3(0f, Mathf.Sign(homeLocal.y), 0f);
-        return new Vector3(0f, 0f, Mathf.Sign(homeLocal.z));
+        return travelAxisWorld;
     }
 
     private bool IsVerticalTravel()
     {
-        return Mathf.Abs(Vector3.Dot(travelAxisWorld, Vector3.up)) > 0.5f;
+        return isVertical;
     }
 
-    private Vector3 GetWorldTravelAxis()
+    private bool IsHorizontalTravel()
     {
-        if (IsVerticalTravel())
-            return travelAxisWorld;
+        return !isVertical;
+    }
 
-        return RunodeMovement.GetCardinalAxis(travelAxisWorld);
+    private void CacheTravelSetup()
+    {
+        ResolvePistonBase();
+        Debug.Assert(pistonBase != null, $"{nameof(Piston)} on {name} requires {PistonBaseObjectName} assigned or present in hierarchy.", this);
+
+        Vector3 baseToFaceWorld = pistonFace.position - pistonBase.position;
+
+        if (isVertical)
+        {
+            float ySign = baseToFaceWorld.y >= 0f ? 1f : -1f;
+            travelAxisWorld = Vector3.up * ySign;
+        }
+        else
+        {
+            Vector3 planarWorld = new Vector3(baseToFaceWorld.x, 0f, baseToFaceWorld.z);
+            travelAxisWorld = planarWorld.sqrMagnitude >= MinTravelAxisSqr
+                ? RunodeMovement.GetCardinalAxis(planarWorld)
+                : RunodeMovement.GetCardinalAxis(transform.forward);
+        }
+
+        faceHomeWorld = pistonFace.position - travelAxisWorld * (currentStage * GridUnit);
+    }
+
+    private void ResolvePistonBase()
+    {
+        if (pistonBase != null)
+            return;
+
+        pistonBase = FindChildTransformByName(transform, PistonBaseObjectName);
+    }
+
+    private static Transform FindChildTransformByName(Transform parent, string childName)
+    {
+        foreach (Transform child in parent)
+        {
+            if (child.name == childName)
+                return child;
+
+            Transform found = FindChildTransformByName(child, childName);
+            if (found != null)
+                return found;
+        }
+
+        return null;
+    }
+
+    private Vector3 GetFaceWorldPositionForStage(int stage)
+    {
+        return faceHomeWorld + travelAxisWorld * (stage * GridUnit);
     }
 
     private Vector3 GetWorldPushForStageDelta(int stageDelta)
@@ -140,14 +175,9 @@ public class Piston : MonoBehaviour
         return GetWorldPushForStageDelta(stageDirection);
     }
 
-    private Vector3 GetStageWorldPosition(int stage)
-    {
-        return faceTravelParent.TransformPoint(faceHomeLocal) + travelAxisWorld * (stage * GridUnit);
-    }
-
     private void ApplyStagePosition(int stage)
     {
-        pistonFace.position = GetStageWorldPosition(stage);
+        pistonFace.position = GetFaceWorldPositionForStage(stage);
     }
 
     // True when the piston face is at stage 0.
@@ -281,7 +311,7 @@ public class Piston : MonoBehaviour
     private IEnumerator AnimateToStage(int nextStage)
     {
         Vector3 startWorldPosition = pistonFace.position;
-        Vector3 endWorldPosition = GetStageWorldPosition(nextStage);
+        Vector3 endWorldPosition = GetFaceWorldPositionForStage(nextStage);
         int stageDelta = nextStage - currentStage;
         bool extending = stageDelta > 0;
         bool carryRunodes = IsVerticalTravel() && extending;
@@ -297,7 +327,7 @@ public class Piston : MonoBehaviour
                 runode.SetKinematic(true);
         }
 
-        bool isExtendingHorizontally = !IsVerticalTravel() && extending;
+        bool isExtendingHorizontally = IsHorizontalTravel() && extending;
         Vector3 worldPush = GetWorldPushForStageDelta(stageDelta);
 
         if (isExtendingHorizontally)
@@ -308,7 +338,7 @@ public class Piston : MonoBehaviour
             {
                 float allowedTravel = GetAllowedExtendTravel(worldPush, requestedTravel);
                 if (allowedTravel < requestedTravel)
-                    endWorldPosition = startWorldPosition + travel.normalized * allowedTravel;
+                    endWorldPosition = startWorldPosition + travelAxisWorld * allowedTravel;
             }
 
             isHorizontallyExtending = true;
@@ -461,7 +491,7 @@ public class Piston : MonoBehaviour
         Vector3 center = pistonFace.position + worldPush * GridUnit * 0.5f;
         int count = Physics.OverlapBoxNonAlloc(center, Vector3.one * PushDetectHalf, overlapHits, Quaternion.identity);
 
-        bool isHorizontal = !IsVerticalTravel();
+        bool isHorizontal = IsHorizontalTravel();
         HashSet<RunodeMovement> cubesInFront = new HashSet<RunodeMovement>();
         HashSet<CharacterMovement> timsInFront = new HashSet<CharacterMovement>();
 
@@ -625,7 +655,7 @@ public class Piston : MonoBehaviour
     private bool IsFaceRetracted()
     {
         return currentStage == 0 &&
-               Vector3.Distance(pistonFace.position, GetStageWorldPosition(0)) < 0.001f;
+               Vector3.Distance(pistonFace.position, faceHomeWorld) < 0.001f;
     }
 
     private bool IsTimBetweenOpposingPistons(Vector3 worldPush, Piston opposingPiston)
