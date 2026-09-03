@@ -44,8 +44,10 @@ public class Piston : MonoBehaviour
     [SerializeField] private Collider shaftCollider;
     [SerializeField] private bool isPowered;
 
-    private Vector3 faceHomeRootLocal;
+    private Transform faceTravelParent;
+    private Vector3 faceHomeLocal;
     private Vector3 travelAxisLocal;
+    private Vector3 travelAxisWorld;
     private int currentStage;
     private int stageDirection = 1;
     private bool isMoving;
@@ -93,60 +95,59 @@ public class Piston : MonoBehaviour
     {
         maxStage = Mathf.Max(0, maxStage);
         startingStage = Mathf.Clamp(startingStage, 0, maxStage);
-
-        if (pistonFace != null)
-            CacheFaceTravelSetup();
     }
 
     private void CacheFaceTravelSetup()
     {
-        faceHomeRootLocal = transform.InverseTransformPoint(pistonFace.position);
-        travelAxisLocal = ResolveTravelAxisLocal(faceHomeRootLocal);
+        faceTravelParent = pistonFace.parent;
+        Debug.Assert(faceTravelParent != null, $"{nameof(Piston)} on {name} requires Pistons Face to have a parent travel anchor.", this);
+        faceHomeLocal = pistonFace.localPosition;
+        travelAxisLocal = ResolveTravelAxisLocal(faceHomeLocal);
+        travelAxisWorld = faceTravelParent.TransformDirection(travelAxisLocal).normalized;
     }
 
-    private Vector3 GetTravelAxisLocal()
+    private static Vector3 ResolveTravelAxisLocal(Vector3 homeLocal)
     {
-        return travelAxisLocal;
-    }
-
-    private Vector3 GetWorldPush()
-    {
-        return RunodeMovement.GetCardinalAxis(transform.TransformDirection(travelAxisLocal));
+        Vector3 abs = new Vector3(Mathf.Abs(homeLocal.x), Mathf.Abs(homeLocal.y), Mathf.Abs(homeLocal.z));
+        if (abs.x >= abs.y && abs.x >= abs.z)
+            return new Vector3(Mathf.Sign(homeLocal.x), 0f, 0f);
+        if (abs.y >= abs.x && abs.y >= abs.z)
+            return new Vector3(0f, Mathf.Sign(homeLocal.y), 0f);
+        return new Vector3(0f, 0f, Mathf.Sign(homeLocal.z));
     }
 
     private bool IsVerticalTravel()
     {
-        return Mathf.Abs(GetWorldPush().y) > 0.5f;
+        return Mathf.Abs(Vector3.Dot(travelAxisWorld, Vector3.up)) > 0.5f;
     }
 
-    private Vector3 ResolveTravelAxisLocal(Vector3 faceHomeLocal)
+    private Vector3 GetWorldTravelAxis()
     {
-        Vector3 axis = GetDominantUnitLocalAxis(faceHomeLocal);
-        if (axis.sqrMagnitude > 0.01f)
-            return axis;
+        if (IsVerticalTravel())
+            return travelAxisWorld;
 
-        return isVertical ? Vector3.up : Vector3.forward;
+        return RunodeMovement.GetCardinalAxis(travelAxisWorld);
     }
 
-    private static Vector3 GetDominantUnitLocalAxis(Vector3 localDirection)
+    private Vector3 GetWorldPushForStageDelta(int stageDelta)
     {
-        float absX = Mathf.Abs(localDirection.x);
-        float absY = Mathf.Abs(localDirection.y);
-        float absZ = Mathf.Abs(localDirection.z);
+        Vector3 axis = GetWorldTravelAxis();
+        return stageDelta >= 0 ? axis : -axis;
+    }
 
-        if (absX >= absY && absX >= absZ)
-            return Vector3.right * Mathf.Sign(localDirection.x);
+    private Vector3 GetWorldPush()
+    {
+        return GetWorldPushForStageDelta(stageDirection);
+    }
 
-        if (absY >= absX && absY >= absZ)
-            return Vector3.up * Mathf.Sign(localDirection.y);
-
-        return Vector3.forward * Mathf.Sign(localDirection.z);
+    private Vector3 GetStageWorldPosition(int stage)
+    {
+        return faceTravelParent.TransformPoint(faceHomeLocal) + travelAxisWorld * (stage * GridUnit);
     }
 
     private void ApplyStagePosition(int stage)
     {
-        pistonFace.position = transform.TransformPoint(
-            faceHomeRootLocal + GetTravelAxisLocal() * (stage * GridUnit));
+        pistonFace.position = GetStageWorldPosition(stage);
     }
 
     // True when the piston face is at stage 0.
@@ -251,8 +252,9 @@ public class Piston : MonoBehaviour
         timKilledDuringMove = false;
         timKillPartner = null;
 
-        Vector3 worldPush = GetWorldPush();
-        if (nextStage > currentStage && !CanAdvanceStage(worldPush))
+        int stageDelta = nextStage - currentStage;
+        Vector3 worldPush = GetWorldPushForStageDelta(stageDelta);
+        if (stageDelta > 0 && !CanAdvanceStage(worldPush))
         {
             stageDirection = 1;
 
@@ -278,12 +280,16 @@ public class Piston : MonoBehaviour
 
     private IEnumerator AnimateToStage(int nextStage)
     {
-        Vector3 startRootLocal = transform.InverseTransformPoint(pistonFace.position);
-        Vector3 endRootLocal = faceHomeRootLocal + GetTravelAxisLocal() * (nextStage * GridUnit);
         Vector3 startWorldPosition = pistonFace.position;
-        bool carryRunodes = IsVerticalTravel();
+        Vector3 endWorldPosition = GetStageWorldPosition(nextStage);
+        int stageDelta = nextStage - currentStage;
+        bool extending = stageDelta > 0;
+        bool carryRunodes = IsVerticalTravel() && extending;
+        bool carryCharacters = IsVerticalTravel() && extending;
+        bool crushWhileMoving = IsVerticalTravel() && !extending;
 
         List<RunodeMovement> carriedRunodes = carryRunodes ? GetRunodesOnFace() : null;
+        List<CharacterMovement> carriedCharacters = carryCharacters ? GetCharactersOnFace() : null;
 
         if (carryRunodes)
         {
@@ -291,18 +297,18 @@ public class Piston : MonoBehaviour
                 runode.SetKinematic(true);
         }
 
-        bool isExtendingHorizontally = !carryRunodes && nextStage > currentStage;
-        Vector3 worldPush = GetWorldPush();
+        bool isExtendingHorizontally = !IsVerticalTravel() && extending;
+        Vector3 worldPush = GetWorldPushForStageDelta(stageDelta);
 
         if (isExtendingHorizontally)
         {
-            Vector3 travelRootLocal = endRootLocal - startRootLocal;
-            float requestedTravel = travelRootLocal.magnitude;
+            Vector3 travel = endWorldPosition - startWorldPosition;
+            float requestedTravel = travel.magnitude;
             if (requestedTravel > 0f)
             {
                 float allowedTravel = GetAllowedExtendTravel(worldPush, requestedTravel);
                 if (allowedTravel < requestedTravel)
-                    endRootLocal = startRootLocal + travelRootLocal.normalized * allowedTravel;
+                    endWorldPosition = startWorldPosition + travel.normalized * allowedTravel;
             }
 
             isHorizontallyExtending = true;
@@ -311,7 +317,6 @@ public class Piston : MonoBehaviour
                 HorizontalExtenders.Add(this);
         }
 
-        Vector3 endWorldPosition = transform.TransformPoint(endRootLocal);
         float distance = Vector3.Distance(startWorldPosition, endWorldPosition);
         float duration = moveSpeed > 0f ? distance / moveSpeed : 0f;
         Vector3 previousWorldPosition = startWorldPosition;
@@ -319,49 +324,63 @@ public class Piston : MonoBehaviour
         for (float elapsed = 0f; elapsed < duration; elapsed += Time.deltaTime)
         {
             float t = Mathf.SmoothStep(0f, 1f, elapsed / duration);
-            pistonFace.position = transform.TransformPoint(Vector3.Lerp(startRootLocal, endRootLocal, t));
+            pistonFace.position = Vector3.Lerp(startWorldPosition, endWorldPosition, t);
+
+            Vector3 delta = pistonFace.position - previousWorldPosition;
 
             if (carryRunodes)
-            {
-                Vector3 delta = pistonFace.position - previousWorldPosition;
                 MoveCarriedRunodes(carriedRunodes, delta);
-                previousWorldPosition = pistonFace.position;
-            }
-            else if (isExtendingHorizontally)
+
+            if (carryCharacters)
+                MoveCarriedCharacters(carriedCharacters, delta);
+
+            if (isExtendingHorizontally)
             {
                 Piston crushPartner = TrySandwichCrushTim(worldPush);
                 if (crushPartner != null)
                     timKillPartner = crushPartner;
             }
+            else if (crushWhileMoving)
+            {
+                TryCrushTimInTravelPath(worldPush);
+            }
 
+            previousWorldPosition = pistonFace.position;
             yield return null;
         }
 
+        pistonFace.position = endWorldPosition;
+
         if (carryRunodes)
         {
-            Vector3 finalDelta = endWorldPosition - pistonFace.position;
-            pistonFace.position = endWorldPosition;
+            Vector3 finalDelta = endWorldPosition - previousWorldPosition;
             MoveCarriedRunodes(carriedRunodes, finalDelta);
 
             foreach (RunodeMovement runode in carriedRunodes)
                 runode.SetKinematic(false);
         }
-        else
+
+        if (carryCharacters)
         {
-            pistonFace.position = endWorldPosition;
+            Vector3 finalDelta = endWorldPosition - previousWorldPosition;
+            MoveCarriedCharacters(carriedCharacters, finalDelta);
+        }
 
-            if (isExtendingHorizontally)
+        if (isExtendingHorizontally)
+        {
+            for (int pass = 0; pass < 2; pass++)
             {
-                for (int pass = 0; pass < 2; pass++)
-                {
-                    for (int i = 0; i < HorizontalExtenders.Count; i++)
-                        HorizontalExtenders[i].ClampFaceToOpposingPistons(HorizontalExtenders[i].horizontalExtendPush);
-                }
-
-                Piston crushPartner = TrySandwichCrushTim(worldPush);
-                if (crushPartner != null)
-                    timKillPartner = crushPartner;
+                for (int i = 0; i < HorizontalExtenders.Count; i++)
+                    HorizontalExtenders[i].ClampFaceToOpposingPistons(HorizontalExtenders[i].horizontalExtendPush);
             }
+
+            Piston crushPartner = TrySandwichCrushTim(worldPush);
+            if (crushPartner != null)
+                timKillPartner = crushPartner;
+        }
+        else if (crushWhileMoving)
+        {
+            TryCrushTimInTravelPath(worldPush);
         }
 
         if (isExtendingHorizontally)
@@ -381,27 +400,48 @@ public class Piston : MonoBehaviour
         RunodeCube.RefreshConnectionsNearPoint(worldPosition);
     }
 
+    private bool IsOnFacePlatform(Vector3 position)
+    {
+        Bounds bounds = faceCollider.bounds;
+
+        bool overFace =
+            position.x >= bounds.min.x && position.x <= bounds.max.x &&
+            position.z >= bounds.min.z && position.z <= bounds.max.z;
+
+        bool onOrAboveFace = position.y >= bounds.max.y - FaceTopTolerance;
+
+        return overFace && onOrAboveFace;
+    }
+
     private List<RunodeMovement> GetRunodesOnFace()
     {
         List<RunodeMovement> carriedRunodes = new List<RunodeMovement>();
-        Bounds bounds = faceCollider.bounds;
         RunodeMovement[] allRunodes = Object.FindObjectsByType<RunodeMovement>();
 
         foreach (RunodeMovement runode in allRunodes)
         {
-            Vector3 position = runode.transform.position;
-
-            bool overFace =
-                position.x >= bounds.min.x && position.x <= bounds.max.x &&
-                position.z >= bounds.min.z && position.z <= bounds.max.z;
-
-            bool onOrAboveFace = position.y >= bounds.max.y - FaceTopTolerance;
-
-            if (overFace && onOrAboveFace)
+            if (IsOnFacePlatform(runode.transform.position))
                 carriedRunodes.Add(runode);
         }
 
         return carriedRunodes;
+    }
+
+    private List<CharacterMovement> GetCharactersOnFace()
+    {
+        List<CharacterMovement> carriedCharacters = new List<CharacterMovement>();
+        CharacterMovement[] allCharacters = Object.FindObjectsByType<CharacterMovement>();
+
+        foreach (CharacterMovement character in allCharacters)
+        {
+            if (character.IsDead)
+                continue;
+
+            if (IsOnFacePlatform(character.transform.position))
+                carriedCharacters.Add(character);
+        }
+
+        return carriedCharacters;
     }
 
     private static void MoveCarriedRunodes(List<RunodeMovement> carriedRunodes, Vector3 delta)
@@ -410,12 +450,18 @@ public class Piston : MonoBehaviour
             runode.transform.position += delta;
     }
 
+    private static void MoveCarriedCharacters(List<CharacterMovement> carriedCharacters, Vector3 delta)
+    {
+        foreach (CharacterMovement character in carriedCharacters)
+            character.transform.position += delta;
+    }
+
     private bool CanAdvanceStage(Vector3 worldPush)
     {
         Vector3 center = pistonFace.position + worldPush * GridUnit * 0.5f;
         int count = Physics.OverlapBoxNonAlloc(center, Vector3.one * PushDetectHalf, overlapHits, Quaternion.identity);
 
-        bool isHorizontal = Mathf.Abs(worldPush.y) < 0.5f;
+        bool isHorizontal = !IsVerticalTravel();
         HashSet<RunodeMovement> cubesInFront = new HashSet<RunodeMovement>();
         HashSet<CharacterMovement> timsInFront = new HashSet<CharacterMovement>();
 
@@ -429,7 +475,12 @@ public class Piston : MonoBehaviour
             {
                 CharacterMovement tim = hit.GetComponentInParent<CharacterMovement>();
                 if (tim != null && !tim.IsDead)
+                {
+                    if (IsVerticalTravel() && IsOnFacePlatform(tim.transform.position))
+                        continue;
+
                     timsInFront.Add(tim);
+                }
 
                 continue;
             }
@@ -437,6 +488,9 @@ public class Piston : MonoBehaviour
             RunodeMovement runode = hit.GetComponentInParent<RunodeMovement>();
             if (runode != null)
             {
+                if (IsVerticalTravel() && IsOnFacePlatform(runode.transform.position))
+                    continue;
+
                 if (runode.IsBusy)
                     return false;
 
@@ -459,24 +513,38 @@ public class Piston : MonoBehaviour
             return false;
         }
 
-        if (!isHorizontal)
-            return true;
-
-        foreach (RunodeMovement cube in cubesInFront)
+        if (isHorizontal)
         {
-            if (!cube.CanPushSingle(worldPush))
-                return false;
-        }
-
-        foreach (RunodeMovement cube in cubesInFront)
-            cube.PushSingle(worldPush);
-
-        foreach (CharacterMovement tim in timsInFront)
-        {
-            if (!CanTimMoveOneStep(tim, worldPush))
+            foreach (RunodeMovement cube in cubesInFront)
             {
-                tim.ApplyDeathToss(worldPush);
-                timKilledDuringMove = true;
+                if (!cube.CanPushSingle(worldPush))
+                    return false;
+            }
+
+            foreach (RunodeMovement cube in cubesInFront)
+                cube.PushSingle(worldPush);
+
+            foreach (CharacterMovement tim in timsInFront)
+            {
+                if (!CanTimMoveOneStep(tim, worldPush))
+                {
+                    tim.ApplyDeathToss(worldPush);
+                    timKilledDuringMove = true;
+                }
+            }
+        }
+        else
+        {
+            foreach (RunodeMovement cube in cubesInFront)
+                return false;
+
+            foreach (CharacterMovement tim in timsInFront)
+            {
+                if (!CanTimMoveOneStep(tim, worldPush))
+                {
+                    tim.ApplyDeathToss(worldPush);
+                    timKilledDuringMove = true;
+                }
             }
         }
 
@@ -487,10 +555,22 @@ public class Piston : MonoBehaviour
     {
         Vector3 pushDir = worldPush.normalized;
         Vector3 target = tim.transform.position + pushDir * GridUnit;
-        Vector3 checkCenter = new Vector3(
-            Mathf.Round(target.x),
-            tim.transform.position.y + 0.5f,
-            Mathf.Round(target.z));
+        Vector3 checkCenter;
+
+        if (IsVerticalTravel())
+        {
+            checkCenter = new Vector3(
+                Mathf.Round(tim.transform.position.x),
+                target.y + 0.5f,
+                Mathf.Round(tim.transform.position.z));
+        }
+        else
+        {
+            checkCenter = new Vector3(
+                Mathf.Round(target.x),
+                tim.transform.position.y + 0.5f,
+                Mathf.Round(target.z));
+        }
 
         int count = Physics.OverlapBoxNonAlloc(checkCenter, Vector3.one * PushDetectHalf, overlapHits, Quaternion.identity);
 
@@ -545,12 +625,12 @@ public class Piston : MonoBehaviour
     private bool IsFaceRetracted()
     {
         return currentStage == 0 &&
-               Vector3.Distance(transform.InverseTransformPoint(pistonFace.position), faceHomeRootLocal) < 0.001f;
+               Vector3.Distance(pistonFace.position, GetStageWorldPosition(0)) < 0.001f;
     }
 
     private bool IsTimBetweenOpposingPistons(Vector3 worldPush, Piston opposingPiston)
     {
-        if (IsVerticalTravel() || opposingPiston.IsVerticalTravel() || Mathf.Abs(worldPush.y) > 0.5f)
+        if (IsVerticalTravel())
             return false;
 
         Vector3 axis = RunodeMovement.GetCardinalAxis(worldPush);
@@ -591,6 +671,9 @@ public class Piston : MonoBehaviour
     // Caps extend distance so paired pistons meet without overlapping when both advance together.
     private float GetAllowedExtendTravel(Vector3 worldPush, float requestedTravel)
     {
+        if (IsVerticalTravel())
+            return requestedTravel;
+
         Vector3 axis = RunodeMovement.GetCardinalAxis(worldPush);
         if (axis.sqrMagnitude < 0.01f)
             return requestedTravel;
@@ -639,7 +722,7 @@ public class Piston : MonoBehaviour
     // Stops this face from lerping past an opposing piston face on the same axis.
     private void ClampFaceToOpposingPistons(Vector3 worldPush)
     {
-        if (IsVerticalTravel() || Mathf.Abs(worldPush.y) > 0.5f)
+        if (IsVerticalTravel())
             return;
 
         Vector3 axis = RunodeMovement.GetCardinalAxis(worldPush);
@@ -689,6 +772,14 @@ public class Piston : MonoBehaviour
 
     private static bool SharesOpposingPistonLane(Vector3 axis, Bounds thisBounds, Bounds otherBounds)
     {
+        if (Mathf.Abs(axis.y) > 0.5f)
+        {
+            return thisBounds.max.x >= otherBounds.min.x - TimLaneTolerance &&
+                   thisBounds.min.x <= otherBounds.max.x + TimLaneTolerance &&
+                   thisBounds.max.z >= otherBounds.min.z - TimLaneTolerance &&
+                   thisBounds.min.z <= otherBounds.max.z + TimLaneTolerance;
+        }
+
         if (Mathf.Abs(axis.x) > 0.5f)
         {
             return thisBounds.max.z >= otherBounds.min.z - TimLaneTolerance &&
@@ -702,7 +793,7 @@ public class Piston : MonoBehaviour
     // Kills Tim when he is caught between this face and an opposing piston face on the same axis.
     private Piston TrySandwichCrushTim(Vector3 worldPush)
     {
-        if (IsVerticalTravel() || Mathf.Abs(worldPush.y) > 0.5f)
+        if (IsVerticalTravel())
             return null;
 
         Vector3 axis = RunodeMovement.GetCardinalAxis(worldPush);
@@ -716,7 +807,7 @@ public class Piston : MonoBehaviour
         Piston[] allPistons = Object.FindObjectsByType<Piston>();
         foreach (Piston other in allPistons)
         {
-            if (other == this || other.IsVerticalTravel())
+            if (other == this)
                 continue;
 
             Vector3 otherPush = other.GetWorldPush();
@@ -757,21 +848,66 @@ public class Piston : MonoBehaviour
         return null;
     }
 
+    // Kills Tim when a vertical piston face closes on him and he has nowhere to go.
+    private void TryCrushTimInTravelPath(Vector3 worldPush)
+    {
+        if (!IsVerticalTravel())
+            return;
+
+        Vector3 axis = RunodeMovement.GetCardinalAxis(worldPush);
+        if (axis.sqrMagnitude < 0.01f)
+            return;
+
+        float pushSign = Mathf.Sign(Vector3.Dot(axis, worldPush.normalized));
+        if (pushSign == 0f)
+            return;
+
+        Bounds thisBounds = faceCollider.bounds;
+        float faceAxisPos = Vector3.Dot(GetFaceFrontPoint(thisBounds, axis), axis);
+
+        CharacterMovement[] allCharacters = Object.FindObjectsByType<CharacterMovement>();
+        foreach (CharacterMovement tim in allCharacters)
+        {
+            if (tim.IsDead)
+                continue;
+
+            if (!IsTimInCrushLane(tim.transform.position, axis, thisBounds, thisBounds))
+                continue;
+
+            float timAxisPos = Vector3.Dot(tim.transform.position, axis);
+            float gapAlongPush = pushSign > 0f ? timAxisPos - faceAxisPos : faceAxisPos - timAxisPos;
+            if (gapAlongPush > TimCrushGap || gapAlongPush < -PushDetectHalf)
+                continue;
+
+            if (!CanTimMoveOneStep(tim, worldPush))
+            {
+                tim.ApplyDeathToss(worldPush);
+                timKilledDuringMove = true;
+            }
+        }
+    }
+
     private static bool IsTimInCrushLane(Vector3 timPosition, Vector3 axis, Bounds thisBounds, Bounds otherBounds)
     {
+        if (Mathf.Abs(axis.y) > 0.5f)
+        {
+            return timPosition.x >= Mathf.Min(thisBounds.min.x, otherBounds.min.x) - TimLaneTolerance &&
+                   timPosition.x <= Mathf.Max(thisBounds.max.x, otherBounds.max.x) + TimLaneTolerance &&
+                   timPosition.z >= Mathf.Min(thisBounds.min.z, otherBounds.min.z) - TimLaneTolerance &&
+                   timPosition.z <= Mathf.Max(thisBounds.max.z, otherBounds.max.z) + TimLaneTolerance;
+        }
+
         if (Mathf.Abs(timPosition.y - thisBounds.center.y) > TimHeightTolerance)
             return false;
 
         if (Mathf.Abs(axis.x) > 0.5f)
         {
-            float minZ = Mathf.Min(thisBounds.min.z, otherBounds.min.z) - TimLaneTolerance;
-            float maxZ = Mathf.Max(thisBounds.max.z, otherBounds.max.z) + TimLaneTolerance;
-            return timPosition.z >= minZ && timPosition.z <= maxZ;
+            return timPosition.z >= Mathf.Min(thisBounds.min.z, otherBounds.min.z) - TimLaneTolerance &&
+                   timPosition.z <= Mathf.Max(thisBounds.max.z, otherBounds.max.z) + TimLaneTolerance;
         }
 
-        float minX = Mathf.Min(thisBounds.min.x, otherBounds.min.x) - TimLaneTolerance;
-        float maxX = Mathf.Max(thisBounds.max.x, otherBounds.max.x) + TimLaneTolerance;
-        return timPosition.x >= minX && timPosition.x <= maxX;
+        return timPosition.x >= Mathf.Min(thisBounds.min.x, otherBounds.min.x) - TimLaneTolerance &&
+               timPosition.x <= Mathf.Max(thisBounds.max.x, otherBounds.max.x) + TimLaneTolerance;
     }
 
     private static Vector3 GetFaceFrontPoint(Bounds bounds, Vector3 direction)
