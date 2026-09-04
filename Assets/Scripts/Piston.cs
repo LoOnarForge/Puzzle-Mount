@@ -9,11 +9,12 @@ public class Piston : MonoBehaviour
     private const float DefaultMoveSpeed = 5f;
     private const float PushDetectHalf = 0.45f;
     private const float FaceTopTolerance = 0.1f;
-    private const float PistonLaneTolerance = 0.55f;
-    private const float OpposingAxisDotThreshold = -0.9f;
-    private const float MinTravelAxisSqr = 0.0001f;
     private const string TimLayerName = "TimJones";
-    private const string PistonBaseObjectName = "Piston Base";
+    private const string ExtensionDirectionName = "Extension Direction";
+    private const string PrimaryFlatProbeName = "Primary Flat Trigger";
+    private const string PrimaryCubeProbeName = "Primary Cube Trigger";
+    private const string SecondaryCubeProbeName = "Secondary Cube Trigger";
+    private const string SecondaryFlatProbeName = "Secondary Flat Trigger";
 
     [System.Serializable]
     private class SocketSlot
@@ -35,8 +36,6 @@ public class Piston : MonoBehaviour
     };
 
     [SerializeField] private Transform pistonFace;
-    [SerializeField] private Transform pistonBase;
-    [SerializeField] private bool isVertical;
     [SerializeField] private int maxStage = 3;
     [SerializeField] private int startingStage;
     [SerializeField] private bool startExtending = true;
@@ -45,29 +44,40 @@ public class Piston : MonoBehaviour
     [SerializeField] private Collider shaftCollider;
     [SerializeField] private bool isPowered;
 
-    private Vector3 faceHomeWorld;
-    private Vector3 travelAxisWorld;
+    private Vector3 faceHomeLocalPosition;
     private int currentStage;
     private int stageDirection = 1;
     private bool isMoving;
-    private bool isHorizontallyExtending;
-    private int targetStageThisMove;
-    private Vector3 horizontalExtendPush;
+    private bool timKilledDuringMove;
+    private Piston timKillPartner;
     private Collider faceCollider;
-    private static readonly List<Piston> HorizontalExtenders = new List<Piston>();
     private readonly Collider[] overlapHits = new Collider[16];
+    private readonly HashSet<RunodeMovement> pushedCubesThisMove = new HashSet<RunodeMovement>();
+
+    private bool extendBlocked;
+    private Vector3 cachedWorldExtendDirection;
+    private Vector3 cachedTravelAxisInFaceParentLocal;
+    private int probeQueryMask;
+    private BoxCollider primaryFlatProbe;
+    private BoxCollider primaryCubeProbe;
+    private BoxCollider secondaryCubeProbe;
+    private BoxCollider secondaryFlatProbe;
 
     private void Awake()
     {
         Debug.Assert(pistonFace != null, $"{nameof(Piston)} on {name} requires Pistons Face assigned.", this);
         faceCollider = pistonFace.GetComponent<Collider>();
         Debug.Assert(faceCollider != null, $"{nameof(Piston)} on {name} requires a collider on Pistons Face.", this);
+        faceHomeLocalPosition = pistonFace.localPosition;
+        CacheExtensionDirection();
+        CacheFaceProbes();
         if (obstructionMask.value == 0)
             obstructionMask = ~LayerMask.GetMask(TimLayerName);
 
+        probeQueryMask = obstructionMask.value | LayerMask.GetMask(TimLayerName);
+
         currentStage = Mathf.Clamp(startingStage, 0, maxStage);
         stageDirection = startExtending ? 1 : -1;
-        CacheTravelSetup();
         ApplyStagePosition(currentStage);
         InitialSocketConfiguration();
 
@@ -76,104 +86,95 @@ public class Piston : MonoBehaviour
             pistonShaft.SetShaftCollider(shaftCollider);
     }
 
-    private void LateUpdate()
-    {
-        if (!isHorizontallyExtending)
-            return;
-
-        for (int pass = 0; pass < 2; pass++)
-        {
-            for (int i = 0; i < HorizontalExtenders.Count; i++)
-                HorizontalExtenders[i].ClampFaceToOpposingPistons(HorizontalExtenders[i].horizontalExtendPush);
-        }
-    }
-
     private void OnValidate()
     {
         maxStage = Mathf.Max(0, maxStage);
         startingStage = Mathf.Clamp(startingStage, 0, maxStage);
     }
 
-    private Vector3 GetWorldTravelAxis()
+    private Vector3 GetTravelAxisLocal()
     {
-        return travelAxisWorld;
+        return cachedTravelAxisInFaceParentLocal;
     }
 
-    private bool IsVerticalTravel()
+    private Vector3 GetWorldPush()
     {
-        return isVertical;
+        if (Mathf.Abs(cachedWorldExtendDirection.y) >= 0.5f)
+            return Vector3.up * Mathf.Sign(cachedWorldExtendDirection.y);
+
+        return RunodeMovement.GetCardinalAxis(cachedWorldExtendDirection);
     }
 
-    private bool IsHorizontalTravel()
+    private bool IsHorizontalExtend()
     {
-        return !isVertical;
+        return Mathf.Abs(cachedWorldExtendDirection.y) < 0.5f;
     }
 
-    private void CacheTravelSetup()
+    private bool ShouldCarryRunodesOnFace()
     {
-        ResolvePistonBase();
-        Debug.Assert(pistonBase != null, $"{nameof(Piston)} on {name} requires {PistonBaseObjectName} assigned or present in hierarchy.", this);
+        return cachedWorldExtendDirection.y > 0.5f;
+    }
 
-        Vector3 baseToFaceWorld = pistonFace.position - pistonBase.position;
+    // Reads the Extension Direction marker once at startup to lock extend axis to the hierarchy.
+    private void CacheExtensionDirection()
+    {
+        Transform extensionDirection = FindExtensionDirectionTransform();
+        Debug.Assert(extensionDirection != null, $"{nameof(Piston)} on {name} requires a child named '{ExtensionDirectionName}'.", this);
 
-        if (isVertical)
-        {
-            float ySign = baseToFaceWorld.y >= 0f ? 1f : -1f;
-            travelAxisWorld = Vector3.up * ySign;
-        }
+        Transform faceParent = pistonFace.parent;
+        Vector3 worldDirection = extensionDirection.position - faceParent.position;
+        if (worldDirection.sqrMagnitude < 0.0001f)
+            worldDirection = faceParent.forward;
+
+        cachedWorldExtendDirection = worldDirection.normalized;
+        cachedTravelAxisInFaceParentLocal = faceParent.InverseTransformDirection(cachedWorldExtendDirection);
+
+        if (cachedTravelAxisInFaceParentLocal.sqrMagnitude < 0.0001f)
+            cachedTravelAxisInFaceParentLocal = Vector3.forward;
         else
-        {
-            Vector3 planarWorld = new Vector3(baseToFaceWorld.x, 0f, baseToFaceWorld.z);
-            travelAxisWorld = planarWorld.sqrMagnitude >= MinTravelAxisSqr
-                ? RunodeMovement.GetCardinalAxis(planarWorld)
-                : RunodeMovement.GetCardinalAxis(transform.forward);
-        }
-
-        faceHomeWorld = pistonFace.position - travelAxisWorld * (currentStage * GridUnit);
+            cachedTravelAxisInFaceParentLocal.Normalize();
     }
 
-    private void ResolvePistonBase()
+    // Finds the four face probe colliders used before each 1 m extend step.
+    private void CacheFaceProbes()
     {
-        if (pistonBase != null)
-            return;
+        primaryFlatProbe = FindProbeCollider(PrimaryFlatProbeName);
+        primaryCubeProbe = FindProbeCollider(PrimaryCubeProbeName);
+        secondaryCubeProbe = FindProbeCollider(SecondaryCubeProbeName);
+        secondaryFlatProbe = FindProbeCollider(SecondaryFlatProbeName);
 
-        pistonBase = FindChildTransformByName(transform, PistonBaseObjectName);
+        Debug.Assert(primaryFlatProbe != null, $"{nameof(Piston)} on {name} requires '{PrimaryFlatProbeName}' under the piston face.", this);
     }
 
-    private static Transform FindChildTransformByName(Transform parent, string childName)
+    private BoxCollider FindProbeCollider(string probeName)
     {
-        foreach (Transform child in parent)
+        foreach (Transform child in pistonFace.GetComponentsInChildren<Transform>(true))
         {
-            if (child.name == childName)
-                return child;
+            if (child.name != probeName)
+                continue;
 
-            Transform found = FindChildTransformByName(child, childName);
-            if (found != null)
-                return found;
+            BoxCollider box = child.GetComponent<BoxCollider>();
+            if (box != null)
+                return box;
         }
 
         return null;
     }
 
-    private Vector3 GetFaceWorldPositionForStage(int stage)
+    private Transform FindExtensionDirectionTransform()
     {
-        return faceHomeWorld + travelAxisWorld * (stage * GridUnit);
-    }
+        foreach (Transform child in GetComponentsInChildren<Transform>(true))
+        {
+            if (child.name == ExtensionDirectionName)
+                return child;
+        }
 
-    private Vector3 GetWorldPushForStageDelta(int stageDelta)
-    {
-        Vector3 axis = GetWorldTravelAxis();
-        return stageDelta >= 0 ? axis : -axis;
-    }
-
-    private Vector3 GetWorldPush()
-    {
-        return GetWorldPushForStageDelta(stageDirection);
+        return null;
     }
 
     private void ApplyStagePosition(int stage)
     {
-        pistonFace.position = GetFaceWorldPositionForStage(stage);
+        pistonFace.localPosition = faceHomeLocalPosition + GetTravelAxisLocal() * (stage * GridUnit);
     }
 
     // True when the piston face is at stage 0.
@@ -208,7 +209,6 @@ public class Piston : MonoBehaviour
             stageDirection = 1;
         }
 
-        targetStageThisMove = nextStage;
         StartCoroutine(MoveToStage(nextStage));
     }
 
@@ -275,120 +275,403 @@ public class Piston : MonoBehaviour
     private IEnumerator MoveToStage(int nextStage)
     {
         isMoving = true;
+        timKilledDuringMove = false;
+        timKillPartner = null;
+        extendBlocked = false;
+        pushedCubesThisMove.Clear();
 
-        int stageDelta = nextStage - currentStage;
-        Vector3 worldPush = GetWorldPushForStageDelta(stageDelta);
-        if (stageDelta > 0 && !CanAdvanceStage(worldPush))
+        if (nextStage > currentStage)
+            yield return ExtendByGridSteps(nextStage);
+        else
+            yield return AnimateRetractToStage(nextStage);
+
+        if (extendBlocked && currentStage > 0)
         {
             stageDirection = 1;
-
-            if (currentStage > 0)
-                yield return AnimateToStage(0);
-
-            isMoving = false;
-            yield break;
+            extendBlocked = false;
+            yield return AnimateRetractToStage(0);
         }
 
-        yield return AnimateToStage(nextStage);
+        if (timKilledDuringMove)
+        {
+            stageDirection = 1;
+            Piston partner = timKillPartner;
+            timKillPartner = null;
+            yield return RetractAfterTimKill(partner);
+        }
 
         isMoving = false;
     }
 
-    private IEnumerator AnimateToStage(int nextStage)
+    // Extends one grid step at a time, running probe overlap checks before each step.
+    private IEnumerator ExtendByGridSteps(int targetStage)
     {
-        Vector3 startWorldPosition = pistonFace.position;
-        Vector3 endWorldPosition = GetFaceWorldPositionForStage(nextStage);
-        int stageDelta = nextStage - currentStage;
-        bool extending = stageDelta > 0;
-        bool carryRunodes = IsVerticalTravel() && extending;
-        bool carryCharacters = IsVerticalTravel() && extending;
+        List<RunodeMovement> carriedRunodes = ShouldCarryRunodesOnFace() ? GetRunodesOnFace() : null;
 
-        List<RunodeMovement> carriedRunodes = carryRunodes ? GetRunodesOnFace() : null;
-        List<CharacterMovement> carriedCharacters = carryCharacters ? GetCharactersOnFace() : null;
-
-        if (carryRunodes)
+        if (carriedRunodes != null && carriedRunodes.Count > 0)
         {
             foreach (RunodeMovement runode in carriedRunodes)
                 runode.SetKinematic(true);
         }
 
-        bool isExtendingHorizontally = IsHorizontalTravel() && extending;
-        Vector3 worldPush = GetWorldPushForStageDelta(stageDelta);
+        Vector3 startWorldPosition = pistonFace.position;
 
-        if (isExtendingHorizontally)
+        while (currentStage < targetStage)
         {
-            Vector3 travel = endWorldPosition - startWorldPosition;
-            float requestedTravel = travel.magnitude;
-            if (requestedTravel > 0f)
+            if (!TryPrepareExtendStep(carriedRunodes, GetWorldPush()))
             {
-                float allowedTravel = GetAllowedExtendTravel(worldPush, requestedTravel);
-                if (allowedTravel < requestedTravel)
-                    endWorldPosition = startWorldPosition + travelAxisWorld * allowedTravel;
+                extendBlocked = true;
+                break;
             }
 
-            isHorizontallyExtending = true;
-            horizontalExtendPush = worldPush;
-            if (!HorizontalExtenders.Contains(this))
-                HorizontalExtenders.Add(this);
+            yield return AnimateOneGridStep(carriedRunodes);
+            if (extendBlocked)
+                break;
+
+            currentStage++;
+            RefreshRunodesNearFace(pistonFace.position);
         }
 
-        float distance = Vector3.Distance(startWorldPosition, endWorldPosition);
+        if (carriedRunodes != null && carriedRunodes.Count > 0)
+        {
+            foreach (RunodeMovement runode in carriedRunodes)
+                runode.SetKinematic(false);
+        }
+
+        RefreshRunodesNearFace(startWorldPosition);
+        RefreshRunodesNearFace(pistonFace.position);
+    }
+
+    // Runs probe checks before one 1 m step. Primary flat during the slide only stops on pistons.
+    private bool TryPrepareExtendStep(List<RunodeMovement> carriedRunodes, Vector3 worldPush)
+    {
+        if (IsPrimaryFlatPlanningBlocked(carriedRunodes, worldPush))
+            return false;
+
+        if (!IsHorizontalExtend())
+            return TryPrepareVerticalStep(carriedRunodes);
+
+        return TryPrepareHorizontalPushStep(worldPush);
+    }
+
+    private bool IsPrimaryFlatPlanningBlocked(List<RunodeMovement> carriedRunodes, Vector3 worldPush)
+    {
+        foreach (Collider hit in GetProbeHits(primaryFlatProbe))
+        {
+            if (TryGetCarriedCube(hit, carriedRunodes, out _))
+                continue;
+
+            if (TryGetTim(hit, out CharacterMovement tim))
+            {
+                if (!CanTimMoveOneStep(tim, worldPush))
+                {
+                    tim.ApplyDeathToss(worldPush);
+                    timKilledDuringMove = true;
+                }
+
+                continue;
+            }
+
+            if (TryGetPiston(hit, out _))
+                return true;
+
+            if (IsStaticObstruction(hit))
+                return true;
+        }
+
+        return false;
+    }
+
+    private bool TryPrepareVerticalStep(List<RunodeMovement> carriedRunodes)
+    {
+        if (GetCubeInProbe(primaryFlatProbe, carriedRunodes) != null)
+            return false;
+
+        if (cachedWorldExtendDirection.y < -0.5f)
+            return true;
+
+        return !ProbeHasBlockingObstruction(primaryCubeProbe, carriedRunodes, null);
+    }
+
+    private bool TryPrepareHorizontalPushStep(Vector3 worldPush)
+    {
+        RunodeMovement cubeInPushCell = GetCubeInProbe(primaryCubeProbe, null);
+        if (cubeInPushCell == null)
+            return true;
+
+        RunodeMovement cubeOnPlatform = GetCubeInProbe(primaryFlatProbe, null);
+        if (cubeOnPlatform != cubeInPushCell)
+            return true;
+
+        foreach (Collider hit in GetProbeHits(secondaryFlatProbe))
+        {
+            if (TryGetPiston(hit, out _))
+                return false;
+        }
+
+        foreach (Collider hit in GetProbeHits(secondaryCubeProbe))
+        {
+            if (TryGetCube(hit, out RunodeMovement landingCube) && landingCube != cubeInPushCell)
+                return false;
+
+            if (TryGetPiston(hit, out _))
+                return false;
+
+            if (IsStaticObstruction(hit))
+                return false;
+        }
+
+        return TryPushCube(cubeInPushCell, worldPush);
+    }
+
+    private RunodeMovement GetCubeInProbe(BoxCollider probe, List<RunodeMovement> carriedRunodes)
+    {
+        foreach (Collider hit in GetProbeHits(probe))
+        {
+            if (TryGetCarriedCube(hit, carriedRunodes, out _))
+                continue;
+
+            if (TryGetCube(hit, out RunodeMovement cube) && !pushedCubesThisMove.Contains(cube))
+                return cube;
+        }
+
+        return null;
+    }
+
+    private bool ProbeHasBlockingObstruction(BoxCollider probe, List<RunodeMovement> carriedRunodes, RunodeMovement ignoredCube)
+    {
+        foreach (Collider hit in GetProbeHits(probe))
+        {
+            if (TryGetCarriedCube(hit, carriedRunodes, out _))
+                continue;
+
+            if (TryGetCube(hit, out RunodeMovement cube))
+            {
+                if (ignoredCube != null && cube == ignoredCube)
+                    continue;
+
+                if (pushedCubesThisMove.Contains(cube))
+                    continue;
+
+                return true;
+            }
+
+            if (TryGetPiston(hit, out _))
+                return true;
+
+            if (IsStaticObstruction(hit))
+                return true;
+        }
+
+        return false;
+    }
+
+    private bool IsPrimaryFlatContactBlocked(List<RunodeMovement> carriedRunodes, Vector3 worldPush)
+    {
+        foreach (Collider hit in GetProbeHits(primaryFlatProbe))
+        {
+            if (TryGetCarriedCube(hit, carriedRunodes, out _))
+                continue;
+
+            if (TryGetPiston(hit, out _))
+                return true;
+        }
+
+        return false;
+    }
+
+    private bool TryPushCube(RunodeMovement cube, Vector3 worldPush)
+    {
+        if (cube == null || pushedCubesThisMove.Contains(cube))
+            return true;
+
+        if (cube.IsBusy || !cube.CanPushSingle(worldPush))
+            return false;
+
+        cube.PushSingle(worldPush);
+        pushedCubesThisMove.Add(cube);
+        return true;
+    }
+
+    private IEnumerable<Collider> GetProbeHits(BoxCollider probe)
+    {
+        if (probe == null)
+            yield break;
+
+        Bounds bounds = probe.bounds;
+        int count = Physics.OverlapBoxNonAlloc(
+            bounds.center,
+            bounds.extents,
+            overlapHits,
+            probe.transform.rotation,
+            probeQueryMask,
+            QueryTriggerInteraction.Collide);
+
+        for (int i = 0; i < count; i++)
+        {
+            Collider hit = overlapHits[i];
+            if (ShouldIgnoreProbeHit(hit))
+                continue;
+
+            yield return hit;
+        }
+    }
+
+    private bool ShouldIgnoreProbeHit(Collider hit)
+    {
+        if (hit == null)
+            return true;
+
+        if (hit.transform.IsChildOf(transform))
+            return true;
+
+        return IsProbeCollider(hit);
+    }
+
+    private static bool IsProbeCollider(Collider hit)
+    {
+        string objectName = hit.gameObject.name;
+        return objectName == PrimaryFlatProbeName
+            || objectName == PrimaryCubeProbeName
+            || objectName == SecondaryCubeProbeName
+            || objectName == SecondaryFlatProbeName;
+    }
+
+    private static bool TryGetCube(Collider hit, out RunodeMovement cube)
+    {
+        cube = hit.GetComponentInParent<RunodeMovement>();
+        return cube != null;
+    }
+
+    private static bool TryGetCarriedCube(Collider hit, List<RunodeMovement> carriedRunodes, out RunodeMovement cube)
+    {
+        cube = null;
+        if (carriedRunodes == null || !TryGetCube(hit, out RunodeMovement found))
+            return false;
+
+        if (!carriedRunodes.Contains(found))
+            return false;
+
+        cube = found;
+        return true;
+    }
+
+    private static bool TryGetTim(Collider hit, out CharacterMovement tim)
+    {
+        tim = hit.GetComponentInParent<CharacterMovement>();
+        return tim != null && !tim.IsDead;
+    }
+
+    private bool TryGetPiston(Collider hit, out Piston piston)
+    {
+        piston = hit.GetComponentInParent<Piston>();
+        return piston != null && piston != this;
+    }
+
+    private bool IsStaticObstruction(Collider hit)
+    {
+        if ((obstructionMask.value & (1 << hit.gameObject.layer)) == 0)
+            return false;
+
+        if (TryGetCube(hit, out _))
+            return false;
+
+        if (TryGetPiston(hit, out _))
+            return false;
+
+        return true;
+    }
+
+    private IEnumerator AnimateOneGridStep(List<RunodeMovement> carriedRunodes)
+    {
+        Vector3 start = pistonFace.localPosition;
+        Vector3 end = start + GetTravelAxisLocal() * GridUnit;
+        Vector3 previousWorldPosition = pistonFace.position;
+        Vector3 worldPush = GetWorldPush();
+        float duration = moveSpeed > 0f ? GridUnit / moveSpeed : 0f;
+        bool stoppedEarly = false;
+
+        for (float elapsed = 0f; elapsed < duration; elapsed += Time.deltaTime)
+        {
+            float t = Mathf.SmoothStep(0f, 1f, elapsed / duration);
+            pistonFace.localPosition = Vector3.Lerp(start, end, t);
+
+            if (carriedRunodes != null)
+            {
+                Vector3 delta = pistonFace.position - previousWorldPosition;
+                MoveCarriedRunodes(carriedRunodes, delta);
+                previousWorldPosition = pistonFace.position;
+            }
+
+            if (IsPrimaryFlatContactBlocked(carriedRunodes, worldPush))
+            {
+                stoppedEarly = true;
+                break;
+            }
+
+            yield return null;
+        }
+
+        if (!stoppedEarly)
+            pistonFace.localPosition = end;
+        else
+            extendBlocked = true;
+
+        if (carriedRunodes != null && !stoppedEarly)
+        {
+            Vector3 finalDelta = pistonFace.parent.TransformPoint(end) - pistonFace.position;
+            MoveCarriedRunodes(carriedRunodes, finalDelta);
+        }
+    }
+
+    private IEnumerator AnimateRetractToStage(int targetStage)
+    {
+        Vector3 start = pistonFace.localPosition;
+        Vector3 end = faceHomeLocalPosition + GetTravelAxisLocal() * (targetStage * GridUnit);
+        Vector3 startWorldPosition = pistonFace.position;
+        List<RunodeMovement> carriedRunodes = ShouldCarryRunodesOnFace() ? GetRunodesOnFace() : null;
+
+        if (carriedRunodes != null && carriedRunodes.Count > 0)
+        {
+            foreach (RunodeMovement runode in carriedRunodes)
+                runode.SetKinematic(true);
+        }
+
+        float distance = Vector3.Distance(start, end);
         float duration = moveSpeed > 0f ? distance / moveSpeed : 0f;
         Vector3 previousWorldPosition = startWorldPosition;
 
         for (float elapsed = 0f; elapsed < duration; elapsed += Time.deltaTime)
         {
             float t = Mathf.SmoothStep(0f, 1f, elapsed / duration);
-            pistonFace.position = Vector3.Lerp(startWorldPosition, endWorldPosition, t);
+            pistonFace.localPosition = Vector3.Lerp(start, end, t);
 
-            Vector3 delta = pistonFace.position - previousWorldPosition;
-
-            if (carryRunodes)
+            if (carriedRunodes != null)
+            {
+                Vector3 delta = pistonFace.position - previousWorldPosition;
                 MoveCarriedRunodes(carriedRunodes, delta);
+                previousWorldPosition = pistonFace.position;
+            }
 
-            if (carryCharacters)
-                MoveCarriedCharacters(carriedCharacters, delta);
-
-            previousWorldPosition = pistonFace.position;
             yield return null;
         }
 
-        pistonFace.position = endWorldPosition;
+        pistonFace.localPosition = end;
 
-        if (carryRunodes)
+        if (carriedRunodes != null && carriedRunodes.Count > 0)
         {
-            Vector3 finalDelta = endWorldPosition - previousWorldPosition;
+            Vector3 endWorldPosition = pistonFace.parent.TransformPoint(end);
+            Vector3 finalDelta = endWorldPosition - pistonFace.position;
             MoveCarriedRunodes(carriedRunodes, finalDelta);
 
             foreach (RunodeMovement runode in carriedRunodes)
                 runode.SetKinematic(false);
         }
 
-        if (carryCharacters)
-        {
-            Vector3 finalDelta = endWorldPosition - previousWorldPosition;
-            MoveCarriedCharacters(carriedCharacters, finalDelta);
-        }
-
-        if (isExtendingHorizontally)
-        {
-            for (int pass = 0; pass < 2; pass++)
-            {
-                for (int i = 0; i < HorizontalExtenders.Count; i++)
-                    HorizontalExtenders[i].ClampFaceToOpposingPistons(HorizontalExtenders[i].horizontalExtendPush);
-            }
-        }
-
-        if (isExtendingHorizontally)
-        {
-            isHorizontallyExtending = false;
-            HorizontalExtenders.Remove(this);
-        }
-
         RefreshRunodesNearFace(startWorldPosition);
-        RefreshRunodesNearFace(endWorldPosition);
+        RefreshRunodesNearFace(pistonFace.position);
 
-        currentStage = nextStage;
+        currentStage = targetStage;
     }
 
     private static void RefreshRunodesNearFace(Vector3 worldPosition)
@@ -396,48 +679,27 @@ public class Piston : MonoBehaviour
         RunodeCube.RefreshConnectionsNearPoint(worldPosition);
     }
 
-    private bool IsOnFacePlatform(Vector3 position)
-    {
-        Bounds bounds = faceCollider.bounds;
-
-        bool overFace =
-            position.x >= bounds.min.x && position.x <= bounds.max.x &&
-            position.z >= bounds.min.z && position.z <= bounds.max.z;
-
-        bool onOrAboveFace = position.y >= bounds.max.y - FaceTopTolerance;
-
-        return overFace && onOrAboveFace;
-    }
-
     private List<RunodeMovement> GetRunodesOnFace()
     {
         List<RunodeMovement> carriedRunodes = new List<RunodeMovement>();
+        Bounds bounds = faceCollider.bounds;
         RunodeMovement[] allRunodes = Object.FindObjectsByType<RunodeMovement>();
 
         foreach (RunodeMovement runode in allRunodes)
         {
-            if (IsOnFacePlatform(runode.transform.position))
+            Vector3 position = runode.transform.position;
+
+            bool overFace =
+                position.x >= bounds.min.x && position.x <= bounds.max.x &&
+                position.z >= bounds.min.z && position.z <= bounds.max.z;
+
+            bool onOrAboveFace = position.y >= bounds.max.y - FaceTopTolerance;
+
+            if (overFace && onOrAboveFace)
                 carriedRunodes.Add(runode);
         }
 
         return carriedRunodes;
-    }
-
-    private List<CharacterMovement> GetCharactersOnFace()
-    {
-        List<CharacterMovement> carriedCharacters = new List<CharacterMovement>();
-        CharacterMovement[] allCharacters = Object.FindObjectsByType<CharacterMovement>();
-
-        foreach (CharacterMovement character in allCharacters)
-        {
-            if (character.IsDead)
-                continue;
-
-            if (IsOnFacePlatform(character.transform.position))
-                carriedCharacters.Add(character);
-        }
-
-        return carriedCharacters;
     }
 
     private static void MoveCarriedRunodes(List<RunodeMovement> carriedRunodes, Vector3 delta)
@@ -446,115 +708,16 @@ public class Piston : MonoBehaviour
             runode.transform.position += delta;
     }
 
-    private static void MoveCarriedCharacters(List<CharacterMovement> carriedCharacters, Vector3 delta)
-    {
-        foreach (CharacterMovement character in carriedCharacters)
-            character.transform.position += delta;
-    }
-
-    private bool CanAdvanceStage(Vector3 worldPush)
-    {
-        Vector3 center = pistonFace.position + worldPush * GridUnit * 0.5f;
-        int count = Physics.OverlapBoxNonAlloc(center, Vector3.one * PushDetectHalf, overlapHits, Quaternion.identity);
-
-        bool isHorizontal = IsHorizontalTravel();
-        HashSet<RunodeMovement> cubesInFront = new HashSet<RunodeMovement>();
-        HashSet<CharacterMovement> timsInFront = new HashSet<CharacterMovement>();
-
-        for (int i = 0; i < count; i++)
-        {
-            Collider hit = overlapHits[i];
-            if (hit.isTrigger || hit.transform.IsChildOf(transform))
-                continue;
-
-            if ((obstructionMask.value & (1 << hit.gameObject.layer)) == 0)
-            {
-                CharacterMovement tim = hit.GetComponentInParent<CharacterMovement>();
-                if (tim != null && !tim.IsDead)
-                {
-                    if (IsVerticalTravel() && IsOnFacePlatform(tim.transform.position))
-                        continue;
-
-                    timsInFront.Add(tim);
-                }
-
-                continue;
-            }
-
-            RunodeMovement runode = hit.GetComponentInParent<RunodeMovement>();
-            if (runode != null)
-            {
-                if (IsVerticalTravel() && IsOnFacePlatform(runode.transform.position))
-                    continue;
-
-                if (runode.IsBusy)
-                    return false;
-
-                cubesInFront.Add(runode);
-                continue;
-            }
-
-            Piston opposingPiston = hit.GetComponentInParent<Piston>();
-            if (opposingPiston != null && opposingPiston != this)
-                return false;
-
-            return false;
-        }
-
-        if (isHorizontal)
-        {
-            foreach (RunodeMovement cube in cubesInFront)
-            {
-                if (!cube.CanPushSingle(worldPush))
-                    return false;
-            }
-
-            foreach (RunodeMovement cube in cubesInFront)
-                cube.PushSingle(worldPush);
-
-            foreach (CharacterMovement tim in timsInFront)
-            {
-                if (!CanTimMoveOneStep(tim, worldPush))
-                    return false;
-            }
-        }
-        else
-        {
-            foreach (RunodeMovement cube in cubesInFront)
-                return false;
-
-            foreach (CharacterMovement tim in timsInFront)
-            {
-                if (!CanTimMoveOneStep(tim, worldPush))
-                    return false;
-            }
-        }
-
-        return true;
-    }
-
     private bool CanTimMoveOneStep(CharacterMovement tim, Vector3 worldPush)
     {
         Vector3 pushDir = worldPush.normalized;
         Vector3 target = tim.transform.position + pushDir * GridUnit;
-        Vector3 checkCenter;
+        Vector3 checkCenter = new Vector3(
+            Mathf.Round(target.x),
+            tim.transform.position.y + 0.5f,
+            Mathf.Round(target.z));
 
-        if (IsVerticalTravel())
-        {
-            checkCenter = new Vector3(
-                Mathf.Round(tim.transform.position.x),
-                target.y + 0.5f,
-                Mathf.Round(tim.transform.position.z));
-        }
-        else
-        {
-            checkCenter = new Vector3(
-                Mathf.Round(target.x),
-                tim.transform.position.y + 0.5f,
-                Mathf.Round(target.z));
-        }
-
-        int count = Physics.OverlapBoxNonAlloc(checkCenter, Vector3.one * PushDetectHalf, overlapHits, Quaternion.identity);
+        int count = Physics.OverlapBoxNonAlloc(checkCenter, Vector3.one * PushDetectHalf, overlapHits, Quaternion.identity, obstructionMask);
 
         for (int i = 0; i < count; i++)
         {
@@ -577,151 +740,35 @@ public class Piston : MonoBehaviour
         return true;
     }
 
+    // Retracts this piston and any paired piston after Tim was crushed at full extension.
+    private IEnumerator RetractAfterTimKill(Piston partner)
+    {
+        if (!IsFaceRetracted())
+            yield return AnimateRetractToStage(0);
+
+        if (partner != null && !partner.IsFaceRetracted())
+        {
+            partner.StopAllCoroutines();
+            yield return partner.StartCoroutine(partner.RetractAfterTimKillInternal());
+        }
+    }
+
+    // Retracts a paired piston when the other piston finished a Tim crush at full extension.
+    private IEnumerator RetractAfterTimKillInternal()
+    {
+        stageDirection = 1;
+        isMoving = true;
+        timKilledDuringMove = false;
+        timKillPartner = null;
+
+        if (!IsFaceRetracted())
+            yield return AnimateRetractToStage(0);
+
+        isMoving = false;
+    }
+
     private bool IsFaceRetracted()
     {
-        return currentStage == 0 &&
-               Vector3.Distance(pistonFace.position, faceHomeWorld) < 0.001f;
-    }
-
-    // Caps extend distance so paired pistons meet without overlapping when both advance together.
-    private float GetAllowedExtendTravel(Vector3 worldPush, float requestedTravel)
-    {
-        if (IsVerticalTravel())
-            return requestedTravel;
-
-        Vector3 axis = RunodeMovement.GetCardinalAxis(worldPush);
-        if (axis.sqrMagnitude < 0.01f)
-            return requestedTravel;
-
-        float pushSign = Mathf.Sign(Vector3.Dot(axis, worldPush.normalized));
-        if (pushSign == 0f)
-            return requestedTravel;
-
-        Bounds thisBounds = faceCollider.bounds;
-        float thisAxisPos = Vector3.Dot(GetFaceFrontPoint(thisBounds, axis), axis);
-        float smallestGap = float.PositiveInfinity;
-        bool opposingAlsoExtending = false;
-
-        Piston[] allPistons = Object.FindObjectsByType<Piston>();
-        foreach (Piston other in allPistons)
-        {
-            if (other == this || other.IsVerticalTravel())
-                continue;
-
-            Vector3 otherPush = other.GetWorldPush();
-            Vector3 otherAxis = RunodeMovement.GetCardinalAxis(otherPush);
-            if (Vector3.Dot(axis, otherAxis) > OpposingAxisDotThreshold)
-                continue;
-
-            if (!SharesOpposingPistonLane(axis, thisBounds, other.faceCollider.bounds))
-                continue;
-
-            float otherAxisPos = Vector3.Dot(GetFaceFrontPoint(other.faceCollider.bounds, -axis), axis);
-            float gap = pushSign > 0f ? otherAxisPos - thisAxisPos : thisAxisPos - otherAxisPos;
-            if (gap <= 0f)
-                continue;
-
-            smallestGap = Mathf.Min(smallestGap, gap);
-
-            if (other.targetStageThisMove > other.currentStage)
-                opposingAlsoExtending = true;
-        }
-
-        if (smallestGap == float.PositiveInfinity)
-            return requestedTravel;
-
-        float allowedTravel = opposingAlsoExtending ? smallestGap * 0.5f : smallestGap;
-        return Mathf.Min(requestedTravel, allowedTravel);
-    }
-
-    // Stops this face from lerping past an opposing piston face on the same axis.
-    private void ClampFaceToOpposingPistons(Vector3 worldPush)
-    {
-        if (IsVerticalTravel())
-            return;
-
-        Vector3 axis = RunodeMovement.GetCardinalAxis(worldPush);
-        if (axis.sqrMagnitude < 0.01f)
-            return;
-
-        float pushSign = Mathf.Sign(Vector3.Dot(axis, worldPush.normalized));
-        if (pushSign == 0f)
-            return;
-
-        Bounds thisBounds = faceCollider.bounds;
-        float thisAxisPos = Vector3.Dot(GetFaceFrontPoint(thisBounds, axis), axis);
-        float tightestLimit = pushSign > 0f ? float.PositiveInfinity : float.NegativeInfinity;
-        bool hasOpposingLimit = false;
-
-        Piston[] allPistons = Object.FindObjectsByType<Piston>();
-        foreach (Piston other in allPistons)
-        {
-            if (other == this || other.IsVerticalTravel())
-                continue;
-
-            Vector3 otherPush = other.GetWorldPush();
-            Vector3 otherAxis = RunodeMovement.GetCardinalAxis(otherPush);
-            if (Vector3.Dot(axis, otherAxis) > OpposingAxisDotThreshold)
-                continue;
-
-            if (!SharesOpposingPistonLane(axis, thisBounds, other.faceCollider.bounds))
-                continue;
-
-            float otherAxisPos = Vector3.Dot(GetFaceFrontPoint(other.faceCollider.bounds, -axis), axis);
-            hasOpposingLimit = true;
-
-            if (pushSign > 0f)
-                tightestLimit = Mathf.Min(tightestLimit, otherAxisPos);
-            else
-                tightestLimit = Mathf.Max(tightestLimit, otherAxisPos);
-        }
-
-        if (!hasOpposingLimit)
-            return;
-
-        if (pushSign > 0f && thisAxisPos > tightestLimit)
-            pistonFace.position -= axis * (thisAxisPos - tightestLimit);
-        else if (pushSign < 0f && thisAxisPos < tightestLimit)
-            pistonFace.position -= axis * (thisAxisPos - tightestLimit);
-    }
-
-    private static bool SharesOpposingPistonLane(Vector3 axis, Bounds thisBounds, Bounds otherBounds)
-    {
-        if (Mathf.Abs(axis.y) > 0.5f)
-        {
-            return thisBounds.max.x >= otherBounds.min.x - PistonLaneTolerance &&
-                   thisBounds.min.x <= otherBounds.max.x + PistonLaneTolerance &&
-                   thisBounds.max.z >= otherBounds.min.z - PistonLaneTolerance &&
-                   thisBounds.min.z <= otherBounds.max.z + PistonLaneTolerance;
-        }
-
-        if (Mathf.Abs(axis.x) > 0.5f)
-        {
-            return thisBounds.max.z >= otherBounds.min.z - PistonLaneTolerance &&
-                   thisBounds.min.z <= otherBounds.max.z + PistonLaneTolerance;
-        }
-
-        return thisBounds.max.x >= otherBounds.min.x - PistonLaneTolerance &&
-               thisBounds.min.x <= otherBounds.max.x + PistonLaneTolerance;
-    }
-
-    private static Vector3 GetFaceFrontPoint(Bounds bounds, Vector3 direction)
-    {
-        Vector3 center = bounds.center;
-        Vector3 extents = bounds.extents;
-
-        float absX = Mathf.Abs(direction.x);
-        float absY = Mathf.Abs(direction.y);
-        float absZ = Mathf.Abs(direction.z);
-
-        Vector3 face = center;
-        if (absX >= absY && absX >= absZ)
-            face.x += Mathf.Sign(direction.x) * extents.x;
-        else if (absY >= absX && absY >= absZ)
-            face.y += Mathf.Sign(direction.y) * extents.y;
-        else
-            face.z += Mathf.Sign(direction.z) * extents.z;
-
-        return face;
+        return Vector3.Distance(pistonFace.localPosition, faceHomeLocalPosition) < 0.001f && currentStage == 0;
     }
 }

@@ -14,6 +14,7 @@ public class TimCubeController : MonoBehaviour
 {
     [Header("PUSH SETTINGS:")]
     public float pushRange = 1.5f;
+    [SerializeField] private LayerMask pushDetectionLayer;
     public float initialPushDelay = 0.35f;
     public float fastPushInterval = 0.1f;
     public float precisePushInterval = 0.5f;
@@ -75,6 +76,9 @@ public class TimCubeController : MonoBehaviour
         playerAnimator = GetComponent<PlayerAnimator>();
         cameraFollow = FindAnyObjectByType<CameraFollow>();
         _menuManager = Object.FindAnyObjectByType<MenuManager>();
+
+        if (pushDetectionLayer.value == 0)
+            pushDetectionLayer = LayerMask.GetMask("Runodes");
     }
 
     private void Update()
@@ -128,7 +132,7 @@ public class TimCubeController : MonoBehaviour
         Vector3 rayStart = timTransform.position + Vector3.up * detectionHeight;
         Vector3 rayDirection = timTransform.forward;
 
-        if (Physics.Raycast(rayStart, rayDirection, out RaycastHit hit, pushRange))
+        if (Physics.Raycast(rayStart, rayDirection, out RaycastHit hit, pushRange, pushDetectionLayer))
         {
             RunodeMovement hitCube = hit.collider.GetComponentInParent<RunodeMovement>();
             if (hitCube != null)
