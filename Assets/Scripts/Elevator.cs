@@ -165,7 +165,7 @@ public class Elevator : MonoBehaviour
                 platform.position = newPosition;
                 MoveCarriedRunodes(carriedRunodes, delta);
                 MoveCarriedElevators(carriedElevators, delta);
-                TryCrushTim();
+                // TryCrushTim();
 
                 previousPosition = newPosition;
                 yield return null;
@@ -191,6 +191,7 @@ public class Elevator : MonoBehaviour
         currentMoveDirection = Vector3.zero;
     }
 
+    /*
     private void TryCrushTim()
     {
         if (tim == null || tim.IsDead || platformCollider == null || currentMoveDirection == Vector3.zero)
@@ -218,6 +219,7 @@ public class Elevator : MonoBehaviour
             return;
         }
     }
+    */
 
     private void MoveCarriedRunodes(List<RunodeMovement> carriedRunodes, Vector3 delta)
     {
