@@ -26,6 +26,8 @@ public class Lever : MonoBehaviour
     private readonly List<MediumDoor> mediumDoors = new List<MediumDoor>();
     private readonly List<Elevator> elevators = new List<Elevator>();
     private readonly List<Piston> pistons = new List<Piston>();
+    private readonly List<PistonHorizontal> pistonHorizontals = new List<PistonHorizontal>();
+    private readonly List<PistonVertical> pistonVerticals = new List<PistonVertical>();
 
     private bool isLeverMoving;
     private bool isAtPositiveAngle = true;
@@ -101,6 +103,12 @@ public class Lever : MonoBehaviour
 
         foreach (Piston piston in pistons)
             piston.OnLeverOperated();
+
+        foreach (PistonHorizontal pistonHorizontal in pistonHorizontals)
+            pistonHorizontal.OnLeverOperated();
+
+        foreach (PistonVertical pistonVertical in pistonVerticals)
+            pistonVertical.OnLeverOperated();
     }
 
     // Builds typed device lists once from the inspector object list.
@@ -109,6 +117,8 @@ public class Lever : MonoBehaviour
         mediumDoors.Clear();
         elevators.Clear();
         pistons.Clear();
+        pistonHorizontals.Clear();
+        pistonVerticals.Clear();
 
         foreach (GameObject deviceObject in connectedDevices)
         {
@@ -126,6 +136,14 @@ public class Lever : MonoBehaviour
             Piston piston = deviceObject.GetComponent<Piston>();
             if (piston != null)
                 pistons.Add(piston);
+
+            PistonHorizontal pistonHorizontal = deviceObject.GetComponent<PistonHorizontal>();
+            if (pistonHorizontal != null)
+                pistonHorizontals.Add(pistonHorizontal);
+
+            PistonVertical pistonVertical = deviceObject.GetComponent<PistonVertical>();
+            if (pistonVertical != null)
+                pistonVerticals.Add(pistonVertical);
         }
     }
 

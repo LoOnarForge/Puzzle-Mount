@@ -70,13 +70,6 @@ public class PistonShaft : MonoBehaviour
 
         ApplyShaftLight(rawSpan);
 
-        if (IsWithinRetractedSpan(rawSpan))
-        {
-            SetShaftVisible(false);
-            SetShaftColliderActive(false);
-            return;
-        }
-
         currentSpan = rawSpan;
         transform.rotation = Quaternion.LookRotation(forward, GetShaftUp(forward));
         ApplyShaftLength(rawSpan);
