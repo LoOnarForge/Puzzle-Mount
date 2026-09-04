@@ -367,6 +367,11 @@ public class Piston : MonoBehaviour
         if (cachedWorldExtendDirection.y < -0.5f)
             return true;
 
+        RunodeMovement cubeInPrimary = GetCubeInProbe(primaryCubeProbe, carriedRunodes);
+        RunodeMovement cubeInSecondary = GetCubeInProbe(secondaryCubeProbe, carriedRunodes);
+        if (cubeInPrimary != null && cubeInSecondary != null)
+            return false;
+
         return !ProbeHasBlockingObstruction(primaryCubeProbe, carriedRunodes, null);
     }
 
@@ -441,6 +446,11 @@ public class Piston : MonoBehaviour
         }
 
         return false;
+    }
+
+    private bool HasVerticalUpCubeProbeSlideObstruction(List<RunodeMovement> carriedRunodes)
+    {
+        return ProbeHasBlockingObstruction(primaryCubeProbe, carriedRunodes, null);
     }
 
     private bool HasPrimaryFlatSlideObstruction(List<RunodeMovement> carriedRunodes)
@@ -598,6 +608,13 @@ public class Piston : MonoBehaviour
             }
 
             if (HasPrimaryFlatSlideObstruction(carriedRunodes))
+            {
+                stoppedEarly = true;
+                break;
+            }
+
+            if (carriedRunodes != null && carriedRunodes.Count > 0 && ShouldCarryRunodesOnFace()
+                && HasVerticalUpCubeProbeSlideObstruction(carriedRunodes))
             {
                 stoppedEarly = true;
                 break;

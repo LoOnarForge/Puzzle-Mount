@@ -5011,6 +5011,7 @@ GameObject:
   m_Component:
   - component: {fileID: 4579125368508089656}
   - component: {fileID: 2855638452778227098}
+  - component: {fileID: 3763827716112520940}
   m_Layer: 13
   m_Name: Piston Horizontal (001)
   m_TagString: Untagged
@@ -5070,6 +5071,27 @@ MonoBehaviour:
     m_Bits: 2148019217
   shaftCollider: {fileID: 4778630602695094208}
   isPowered: 0
+--- !u!65 &3763827716112520940
+BoxCollider:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1763896035060562364}
+  m_Material: {fileID: 0}
+  m_IncludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_ExcludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_LayerOverridePriority: 0
+  m_IsTrigger: 0
+  m_ProvidesContacts: 0
+  m_Enabled: 1
+  serializedVersion: 3
+  m_Size: {x: 1, y: 1, z: 1}
+  m_Center: {x: 0, y: 0, z: 0}
 --- !u!1 &1903218183552158172
 GameObject:
   m_ObjectHideFlags: 0
@@ -5239,7 +5261,6 @@ GameObject:
   - component: {fileID: 6260581295424679250}
   - component: {fileID: 1671769574826486260}
   - component: {fileID: 7142162445347515243}
-  - component: {fileID: 3900278193187787875}
   m_Layer: 13
   m_Name: Piston Base
   m_TagString: Untagged
@@ -5256,8 +5277,8 @@ Transform:
   m_GameObject: {fileID: 3396332310339667373}
   serializedVersion: 2
   m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
-  m_LocalPosition: {x: 0, y: -0.5678201, z: -0.1}
-  m_LocalScale: {x: 1, y: 0.8780432, z: 0.73927}
+  m_LocalPosition: {x: 0, y: -0.518, z: -0.1}
+  m_LocalScale: {x: 1, y: 0.8379956, z: 0.71145123}
   m_ConstrainProportionsScale: 0
   m_Children:
   - {fileID: 3113764341306016546}
@@ -5320,28 +5341,6 @@ MeshRenderer:
   m_SortingOrder: 0
   m_MaskInteraction: 0
   m_AdditionalVertexStreams: {fileID: 0}
---- !u!64 &3900278193187787875
-MeshCollider:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 3396332310339667373}
-  m_Material: {fileID: 0}
-  m_IncludeLayers:
-    serializedVersion: 2
-    m_Bits: 0
-  m_ExcludeLayers:
-    serializedVersion: 2
-    m_Bits: 0
-  m_LayerOverridePriority: 0
-  m_IsTrigger: 0
-  m_ProvidesContacts: 0
-  m_Enabled: 1
-  serializedVersion: 5
-  m_Convex: 1
-  m_CookingOptions: 30
-  m_Mesh: {fileID: -8535474399797797799, guid: 3b1d600e763023e4aba8dc950635c7c8, type: 3}
 --- !u!1 &3685156730187296673
 GameObject:
   m_ObjectHideFlags: 0
@@ -5472,8 +5471,8 @@ Transform:
   m_GameObject: {fileID: 3878531077038842645}
   serializedVersion: 2
   m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
-  m_LocalPosition: {x: 0, y: 0.64668804, z: 0.13526858}
-  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_LocalPosition: {x: 0, y: 0.61814165, z: 0.14055777}
+  m_LocalScale: {x: 1, y: 1.0477897, z: 1.0391014}
   m_ConstrainProportionsScale: 0
   m_Children: []
   m_Father: {fileID: 6260581295424679250}
@@ -6225,7 +6224,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 1
+  m_IsActive: 0
 --- !u!4 &1468259650507657746
 Transform:
   m_ObjectHideFlags: 0
@@ -6260,7 +6259,7 @@ BoxCollider:
   m_ProvidesContacts: 0
   m_Enabled: 1
   serializedVersion: 3
-  m_Size: {x: 1, y: 1, z: 1}
+  m_Size: {x: 0.999, y: 0.999, z: 0.999}
   m_Center: {x: 0, y: 0, z: 0}
 --- !u!1 &6978530215849365348
 GameObject:
@@ -6464,7 +6463,7 @@ BoxCollider:
   m_ProvidesContacts: 0
   m_Enabled: 1
   serializedVersion: 3
-  m_Size: {x: 0.99999994, y: 1.0000001, z: 1.0000001}
+  m_Size: {x: 0.99, y: 0.99, z: 0.99}
   m_Center: {x: 0, y: 0.5001095, z: -0.000000074505806}
 --- !u!1 &8228853841583497537
 GameObject:
