@@ -330,7 +330,7 @@ public class Piston : MonoBehaviour
         RefreshRunodesNearFace(pistonFace.position);
     }
 
-    // Runs probe checks before one 1 m step. Primary flat during the slide only stops on pistons.
+    // Runs probe checks before one 1 m step. Primary flat during the slide stops on anything except Tim.
     private bool TryPrepareExtendStep(List<RunodeMovement> carriedRunodes, Vector3 worldPush)
     {
         if (IsPrimaryFlatPlanningBlocked(carriedRunodes))
@@ -443,14 +443,28 @@ public class Piston : MonoBehaviour
         return false;
     }
 
-    private bool IsPrimaryFlatContactBlocked(List<RunodeMovement> carriedRunodes)
+    private bool HasPrimaryFlatSlideObstruction(List<RunodeMovement> carriedRunodes)
     {
         foreach (Collider hit in GetProbeHits(primaryFlatProbe))
         {
             if (TryGetCarriedCube(hit, carriedRunodes, out _))
                 continue;
 
+            if (TryGetTim(hit, out _))
+                continue;
+
+            if (TryGetCube(hit, out RunodeMovement cube))
+            {
+                if (pushedCubesThisMove.Contains(cube))
+                    continue;
+
+                return true;
+            }
+
             if (TryGetPiston(hit, out _))
+                return true;
+
+            if (IsStaticObstruction(hit))
                 return true;
         }
 
@@ -572,7 +586,8 @@ public class Piston : MonoBehaviour
 
         for (float elapsed = 0f; elapsed < duration; elapsed += Time.deltaTime)
         {
-            float t = Mathf.SmoothStep(0f, 1f, elapsed / duration);
+            float moveProgress = duration > 0f ? Mathf.Clamp01(elapsed / duration) : 1f;
+            float t = Mathf.SmoothStep(0f, 1f, moveProgress);
             pistonFace.localPosition = Vector3.Lerp(start, end, t);
 
             if (carriedRunodes != null)
@@ -582,7 +597,7 @@ public class Piston : MonoBehaviour
                 previousWorldPosition = pistonFace.position;
             }
 
-            if (IsPrimaryFlatContactBlocked(carriedRunodes))
+            if (HasPrimaryFlatSlideObstruction(carriedRunodes))
             {
                 stoppedEarly = true;
                 break;
