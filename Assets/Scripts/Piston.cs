@@ -7,7 +7,6 @@ public class Piston : MonoBehaviour
     private const int SocketCount = 2;
     private const float GridUnit = 1f;
     private const float DefaultMoveSpeed = 5f;
-    private const float PushDetectHalf = 0.45f;
     private const float FaceTopTolerance = 0.1f;
     private const string TimLayerName = "TimJones";
     private const string ExtensionDirectionName = "Extension Direction";
@@ -48,8 +47,6 @@ public class Piston : MonoBehaviour
     private int currentStage;
     private int stageDirection = 1;
     private bool isMoving;
-    private bool timKilledDuringMove;
-    private Piston timKillPartner;
     private Collider faceCollider;
     private readonly Collider[] overlapHits = new Collider[16];
     private readonly HashSet<RunodeMovement> pushedCubesThisMove = new HashSet<RunodeMovement>();
@@ -74,7 +71,8 @@ public class Piston : MonoBehaviour
         if (obstructionMask.value == 0)
             obstructionMask = ~LayerMask.GetMask(TimLayerName);
 
-        probeQueryMask = obstructionMask.value | LayerMask.GetMask(TimLayerName);
+        int timLayerMask = LayerMask.GetMask(TimLayerName);
+        probeQueryMask = obstructionMask.value & ~timLayerMask;
 
         currentStage = Mathf.Clamp(startingStage, 0, maxStage);
         stageDirection = startExtending ? 1 : -1;
@@ -275,8 +273,6 @@ public class Piston : MonoBehaviour
     private IEnumerator MoveToStage(int nextStage)
     {
         isMoving = true;
-        timKilledDuringMove = false;
-        timKillPartner = null;
         extendBlocked = false;
         pushedCubesThisMove.Clear();
 
@@ -290,14 +286,6 @@ public class Piston : MonoBehaviour
             stageDirection = 1;
             extendBlocked = false;
             yield return AnimateRetractToStage(0);
-        }
-
-        if (timKilledDuringMove)
-        {
-            stageDirection = 1;
-            Piston partner = timKillPartner;
-            timKillPartner = null;
-            yield return RetractAfterTimKill(partner);
         }
 
         isMoving = false;
@@ -345,7 +333,7 @@ public class Piston : MonoBehaviour
     // Runs probe checks before one 1 m step. Primary flat during the slide only stops on pistons.
     private bool TryPrepareExtendStep(List<RunodeMovement> carriedRunodes, Vector3 worldPush)
     {
-        if (IsPrimaryFlatPlanningBlocked(carriedRunodes, worldPush))
+        if (IsPrimaryFlatPlanningBlocked(carriedRunodes))
             return false;
 
         if (!IsHorizontalExtend())
@@ -354,23 +342,12 @@ public class Piston : MonoBehaviour
         return TryPrepareHorizontalPushStep(worldPush);
     }
 
-    private bool IsPrimaryFlatPlanningBlocked(List<RunodeMovement> carriedRunodes, Vector3 worldPush)
+    private bool IsPrimaryFlatPlanningBlocked(List<RunodeMovement> carriedRunodes)
     {
         foreach (Collider hit in GetProbeHits(primaryFlatProbe))
         {
             if (TryGetCarriedCube(hit, carriedRunodes, out _))
                 continue;
-
-            if (TryGetTim(hit, out CharacterMovement tim))
-            {
-                if (!CanTimMoveOneStep(tim, worldPush))
-                {
-                    tim.ApplyDeathToss(worldPush);
-                    timKilledDuringMove = true;
-                }
-
-                continue;
-            }
 
             if (TryGetPiston(hit, out _))
                 return true;
@@ -466,7 +443,7 @@ public class Piston : MonoBehaviour
         return false;
     }
 
-    private bool IsPrimaryFlatContactBlocked(List<RunodeMovement> carriedRunodes, Vector3 worldPush)
+    private bool IsPrimaryFlatContactBlocked(List<RunodeMovement> carriedRunodes)
     {
         foreach (Collider hit in GetProbeHits(primaryFlatProbe))
         {
@@ -570,6 +547,9 @@ public class Piston : MonoBehaviour
 
     private bool IsStaticObstruction(Collider hit)
     {
+        if (TryGetTim(hit, out _))
+            return false;
+
         if ((obstructionMask.value & (1 << hit.gameObject.layer)) == 0)
             return false;
 
@@ -587,7 +567,6 @@ public class Piston : MonoBehaviour
         Vector3 start = pistonFace.localPosition;
         Vector3 end = start + GetTravelAxisLocal() * GridUnit;
         Vector3 previousWorldPosition = pistonFace.position;
-        Vector3 worldPush = GetWorldPush();
         float duration = moveSpeed > 0f ? GridUnit / moveSpeed : 0f;
         bool stoppedEarly = false;
 
@@ -603,7 +582,7 @@ public class Piston : MonoBehaviour
                 previousWorldPosition = pistonFace.position;
             }
 
-            if (IsPrimaryFlatContactBlocked(carriedRunodes, worldPush))
+            if (IsPrimaryFlatContactBlocked(carriedRunodes))
             {
                 stoppedEarly = true;
                 break;
@@ -708,67 +687,4 @@ public class Piston : MonoBehaviour
             runode.transform.position += delta;
     }
 
-    private bool CanTimMoveOneStep(CharacterMovement tim, Vector3 worldPush)
-    {
-        Vector3 pushDir = worldPush.normalized;
-        Vector3 target = tim.transform.position + pushDir * GridUnit;
-        Vector3 checkCenter = new Vector3(
-            Mathf.Round(target.x),
-            tim.transform.position.y + 0.5f,
-            Mathf.Round(target.z));
-
-        int count = Physics.OverlapBoxNonAlloc(checkCenter, Vector3.one * PushDetectHalf, overlapHits, Quaternion.identity, obstructionMask);
-
-        for (int i = 0; i < count; i++)
-        {
-            Collider hit = overlapHits[i];
-            if (hit.isTrigger)
-                continue;
-
-            if (hit.transform.IsChildOf(tim.transform))
-                continue;
-
-            if (hit.transform.IsChildOf(transform))
-                continue;
-
-            if ((obstructionMask.value & (1 << hit.gameObject.layer)) == 0)
-                continue;
-
-            return false;
-        }
-
-        return true;
-    }
-
-    // Retracts this piston and any paired piston after Tim was crushed at full extension.
-    private IEnumerator RetractAfterTimKill(Piston partner)
-    {
-        if (!IsFaceRetracted())
-            yield return AnimateRetractToStage(0);
-
-        if (partner != null && !partner.IsFaceRetracted())
-        {
-            partner.StopAllCoroutines();
-            yield return partner.StartCoroutine(partner.RetractAfterTimKillInternal());
-        }
-    }
-
-    // Retracts a paired piston when the other piston finished a Tim crush at full extension.
-    private IEnumerator RetractAfterTimKillInternal()
-    {
-        stageDirection = 1;
-        isMoving = true;
-        timKilledDuringMove = false;
-        timKillPartner = null;
-
-        if (!IsFaceRetracted())
-            yield return AnimateRetractToStage(0);
-
-        isMoving = false;
-    }
-
-    private bool IsFaceRetracted()
-    {
-        return Vector3.Distance(pistonFace.localPosition, faceHomeLocalPosition) < 0.001f && currentStage == 0;
-    }
 }
