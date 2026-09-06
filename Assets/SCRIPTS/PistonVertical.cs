@@ -47,7 +47,6 @@ public class PistonVertical : MonoBehaviour
     private int currentStage;
     private int stageDirection = 1;
     private bool isMoving;
-    private Collider faceCollider;
     private readonly Collider[] overlapHits = new Collider[16];
     private readonly HashSet<RunodeMovement> pushedCubesThisMove = new HashSet<RunodeMovement>();
 
@@ -63,8 +62,6 @@ public class PistonVertical : MonoBehaviour
     private void Awake()
     {
         Debug.Assert(pistonFace != null, $"{nameof(PistonVertical)} on {name} requires Pistons Face assigned.", this);
-        faceCollider = pistonFace.GetComponent<Collider>();
-        Debug.Assert(faceCollider != null, $"{nameof(PistonVertical)} on {name} requires a collider on Pistons Face.", this);
         faceHomeLocalPosition = pistonFace.localPosition;
         CacheExtensionDirection();
         CacheFaceProbes();
@@ -641,7 +638,12 @@ public class PistonVertical : MonoBehaviour
     private List<RunodeMovement> GetRunodesOnFace()
     {
         List<RunodeMovement> carriedRunodes = new List<RunodeMovement>();
-        Bounds bounds = faceCollider.bounds;
+
+        Collider boundsSource = FindFaceBoundsCollider();
+        if (boundsSource == null)
+            return carriedRunodes;
+
+        Bounds bounds = boundsSource.bounds;
         RunodeMovement[] allRunodes = Object.FindObjectsByType<RunodeMovement>();
 
         foreach (RunodeMovement runode in allRunodes)
@@ -659,6 +661,19 @@ public class PistonVertical : MonoBehaviour
         }
 
         return carriedRunodes;
+    }
+
+    private Collider FindFaceBoundsCollider()
+    {
+        foreach (Collider collider in pistonFace.GetComponentsInChildren<Collider>(true))
+        {
+            if (collider.isTrigger || IsProbeCollider(collider))
+                continue;
+
+            return collider;
+        }
+
+        return null;
     }
 
     private static void RefreshRunodesNearFace(Vector3 worldPosition)
