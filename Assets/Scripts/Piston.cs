@@ -40,7 +40,7 @@ public class Piston : MonoBehaviour
     [SerializeField] private bool startExtending = true;
     [SerializeField] private float moveSpeed = DefaultMoveSpeed;
     [SerializeField] private LayerMask obstructionMask;
-    [SerializeField] private Collider shaftCollider;
+    [SerializeField] private Transform shaftColliderObject;
     [SerializeField] private bool isPowered;
 
     private Vector3 faceHomeLocalPosition;
@@ -81,7 +81,7 @@ public class Piston : MonoBehaviour
 
         PistonShaft pistonShaft = GetComponentInChildren<PistonShaft>();
         if (pistonShaft != null)
-            pistonShaft.SetShaftCollider(shaftCollider);
+            pistonShaft.SetShaftColliderObject(shaftColliderObject);
     }
 
     private void OnValidate()

@@ -19,11 +19,13 @@ public class PistonShaft : MonoBehaviour
     [Header("Light")]
     [SerializeField] private Light shaftLight;
 
-    private Collider shaftCollider;
+    private Transform shaftColliderObject;
     private Vector3 baseLocalScale;
     private Vector3 localNearEdge = DefaultLocalNearEdge;
-    private Vector3 colliderBaseSize = Vector3.one;
-    private Vector3 colliderBaseCenter = Vector3.zero;
+    private Vector3 colliderBaseLocalScale = Vector3.one;
+    private Vector3 colliderLocalNearEdge = DefaultLocalNearEdge;
+    private float colliderBaseWorldLength = 1f;
+    private Collider shaftCollider;
     private Transform shaftColliderTransform;
     private BoxCollider shaftBoxCollider;
     private Renderer[] shaftRenderers;
@@ -40,7 +42,7 @@ public class PistonShaft : MonoBehaviour
         if (shaftLight != null)
             baseLightIntensity = shaftLight.intensity;
 
-        CacheShaftCollider();
+        CacheShaftColliderObject();
     }
 
     private void Start()
@@ -75,14 +77,20 @@ public class PistonShaft : MonoBehaviour
         ApplyShaftLength(rawSpan);
         AlignNearEdgeTo(start);
         SetShaftVisible(true);
-        SyncShaftCollider(start, forward, GetShaftUp(forward), rawSpan);
+        SyncShaftColliderObject(start, forward, GetShaftUp(forward), rawSpan);
     }
 
-    // Receives the shaft collider assigned on the parent Piston.
+    // Receives the shaft collider object assigned on the parent Piston.
+    public void SetShaftColliderObject(Transform colliderObject)
+    {
+        shaftColliderObject = colliderObject;
+        CacheShaftColliderObject();
+    }
+
+    // Legacy entry point kept for existing Collider references.
     public void SetShaftCollider(Collider collider)
     {
-        shaftCollider = collider;
-        CacheShaftCollider();
+        SetShaftColliderObject(collider != null ? collider.transform : null);
     }
 
     private void TryCaptureRetractedSpan()
@@ -184,54 +192,59 @@ public class PistonShaft : MonoBehaviour
         transform.position += worldStart - nearWorld;
     }
 
-    private void CacheShaftCollider()
+    private void CacheShaftColliderObject()
     {
+        shaftCollider = null;
         shaftBoxCollider = null;
+        shaftColliderTransform = shaftColliderObject;
 
-        if (shaftCollider == null)
+        if (shaftColliderTransform == null)
             return;
 
-        shaftColliderTransform = shaftCollider.transform;
-        shaftBoxCollider = shaftCollider as BoxCollider;
+        shaftCollider = shaftColliderTransform.GetComponent<Collider>();
+        shaftBoxCollider = shaftColliderTransform.GetComponent<BoxCollider>();
 
         if (shaftBoxCollider == null)
         {
-            Debug.LogWarning($"{nameof(PistonShaft)} on {name} requires a {nameof(BoxCollider)} for shaft collider length sync.", this);
+            Debug.LogWarning($"{nameof(PistonShaft)} on {name} requires a {nameof(BoxCollider)} on the shaft collider object for length sync.", this);
             return;
         }
 
-        colliderBaseSize = shaftBoxCollider.size;
-        colliderBaseCenter = shaftBoxCollider.center;
+        colliderBaseLocalScale = shaftColliderTransform.localScale;
+        Vector3 size = shaftBoxCollider.size;
+        Vector3 center = shaftBoxCollider.center;
+        colliderLocalNearEdge = new Vector3(center.x, center.y, center.z - size.z * 0.5f);
+        colliderBaseWorldLength = size.z * shaftColliderTransform.TransformVector(Vector3.forward).magnitude;
     }
 
-    private void SyncShaftCollider(Vector3 worldStart, Vector3 forward, Vector3 up, float span)
+    private void SyncShaftColliderObject(Vector3 worldStart, Vector3 forward, Vector3 up, float span)
     {
-        if (shaftBoxCollider == null || shaftColliderTransform == null)
+        if (shaftColliderTransform == null)
             return;
 
-        shaftCollider.enabled = true;
+        if (shaftCollider != null)
+            shaftCollider.enabled = true;
+
         shaftColliderTransform.rotation = Quaternion.LookRotation(forward, up);
-        ApplyColliderLength(span);
-        AlignColliderNearEdgeTo(worldStart);
+        ApplyColliderObjectLength(span);
+        AlignColliderObjectNearEdgeTo(worldStart);
     }
 
-    private void ApplyColliderLength(float span)
+    private void ApplyColliderObjectLength(float span)
     {
-        float worldScaleOnLength = shaftColliderTransform.TransformVector(Vector3.forward).magnitude;
-        if (worldScaleOnLength < MinSpan)
-            worldScaleOnLength = MinSpan;
+        if (colliderBaseWorldLength < MinSpan)
+            return;
 
-        float newLength = span / worldScaleOnLength;
-        shaftBoxCollider.size = new Vector3(colliderBaseSize.x, colliderBaseSize.y, newLength);
+        float scaleZ = colliderBaseLocalScale.z * span / colliderBaseWorldLength;
+        shaftColliderTransform.localScale = new Vector3(
+            colliderBaseLocalScale.x,
+            colliderBaseLocalScale.y,
+            scaleZ);
     }
 
-    private void AlignColliderNearEdgeTo(Vector3 worldStart)
+    private void AlignColliderObjectNearEdgeTo(Vector3 worldStart)
     {
-        Vector3 nearLocal = new Vector3(
-            colliderBaseCenter.x,
-            colliderBaseCenter.y,
-            colliderBaseCenter.z - shaftBoxCollider.size.z * 0.5f);
-        Vector3 nearWorld = shaftColliderTransform.TransformPoint(nearLocal);
+        Vector3 nearWorld = shaftColliderTransform.TransformPoint(colliderLocalNearEdge);
         shaftColliderTransform.position += worldStart - nearWorld;
     }
 

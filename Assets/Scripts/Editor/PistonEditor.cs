@@ -32,7 +32,7 @@ public class PistonEditor : Editor
 
         EditorGUILayout.PropertyField(serializedObject.FindProperty("moveSpeed"));
         EditorGUILayout.PropertyField(serializedObject.FindProperty("obstructionMask"));
-        EditorGUILayout.PropertyField(serializedObject.FindProperty("shaftCollider"), new GUIContent("Shaft Collider"));
+        EditorGUILayout.PropertyField(serializedObject.FindProperty("shaftColliderObject"), new GUIContent("Shaft Collider Object"));
 
         EditorGUILayout.Space(20);
         using (new EditorGUI.DisabledScope(true))

@@ -10,7 +10,7 @@ GameObject:
   m_Component:
   - component: {fileID: 3911336212223785105}
   - component: {fileID: 8559521913005448225}
-  m_Layer: 13
+  m_Layer: 2
   m_Name: Secondary Flat Trigger
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -115,6 +115,7 @@ MonoBehaviour:
     requiredMw: 1
     allocatedMw: 0
     poweringSource: {fileID: 0}
+  extendsUpward: 1
   pistonFace: {fileID: 2856082361707471678}
   maxStage: 3
   startingStage: 0
@@ -123,7 +124,7 @@ MonoBehaviour:
   obstructionMask:
     serializedVersion: 2
     m_Bits: 0
-  shaftCollider: {fileID: 6650821932098293373}
+  shaftColliderObject: {fileID: 0}
   isPowered: 0
 --- !u!1 &388808391937985798
 GameObject:
@@ -315,7 +316,7 @@ GameObject:
   m_Component:
   - component: {fileID: 7925605697938441457}
   - component: {fileID: 3832949948174621292}
-  m_Layer: 13
+  m_Layer: 2
   m_Name: Secondary Cube Trigger
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -518,7 +519,7 @@ GameObject:
   m_Component:
   - component: {fileID: 6131760141765601576}
   - component: {fileID: 1999916445741528481}
-  m_Layer: 13
+  m_Layer: 2
   m_Name: Primary Flat Trigger
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -5780,7 +5781,7 @@ GameObject:
   m_Component:
   - component: {fileID: 7929480186519733226}
   - component: {fileID: 6697976100834101389}
-  m_Layer: 13
+  m_Layer: 2
   m_Name: Primary Cube Trigger
   m_TagString: Untagged
   m_Icon: {fileID: 0}

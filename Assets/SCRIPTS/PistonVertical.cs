@@ -34,13 +34,14 @@ public class PistonVertical : MonoBehaviour
         new SocketSlot()
     };
 
+    [SerializeField] private bool extendsUpward = true;
     [SerializeField] private Transform pistonFace;
     [SerializeField] private int maxStage = 3;
     [SerializeField] private int startingStage;
     [SerializeField] private bool startExtending = true;
     [SerializeField] private float moveSpeed = DefaultMoveSpeed;
     [SerializeField] private LayerMask obstructionMask;
-    [SerializeField] private Collider shaftCollider;
+    [SerializeField] private Transform shaftColliderObject;
     [SerializeField] private bool isPowered;
 
     private Vector3 faceHomeLocalPosition;
@@ -74,7 +75,7 @@ public class PistonVertical : MonoBehaviour
 
         PistonShaft pistonShaft = GetComponentInChildren<PistonShaft>();
         if (pistonShaft != null)
-            pistonShaft.SetShaftCollider(shaftCollider);
+            pistonShaft.SetShaftColliderObject(shaftColliderObject);
     }
 
     private void OnValidate()
@@ -90,12 +91,7 @@ public class PistonVertical : MonoBehaviour
 
     private Vector3 GetWorldPush()
     {
-        return Vector3.up * Mathf.Sign(cachedWorldExtendDirection.y);
-    }
-
-    private bool ShouldCarryRunodesOnFace()
-    {
-        return cachedWorldExtendDirection.y > 0.5f;
+        return extendsUpward ? Vector3.up : Vector3.down;
     }
 
     // Reads the Extension Direction marker once at startup to lock extend axis to the hierarchy.
@@ -279,7 +275,7 @@ public class PistonVertical : MonoBehaviour
     // Extends one grid step at a time, running probe overlap checks before each step.
     private IEnumerator ExtendByGridSteps(int targetStage)
     {
-        List<RunodeMovement> carriedRunodes = ShouldCarryRunodesOnFace() ? GetRunodesOnFace() : null;
+        List<RunodeMovement> carriedRunodes = extendsUpward ? GetRunodesOnFace() : null;
 
         if (carriedRunodes != null && carriedRunodes.Count > 0)
         {
@@ -319,48 +315,22 @@ public class PistonVertical : MonoBehaviour
     // Runs probe checks before one 1 m step.
     private bool TryPrepareExtendStep(List<RunodeMovement> carriedRunodes, out bool hardBlock)
     {
-        hardBlock = false;
-
-        if (IsPrimaryFlatPlanningBlocked(carriedRunodes))
-        {
-            hardBlock = true;
+        hardBlock = PrimaryFlatBlocked(carriedRunodes);
+        if (hardBlock)
             return false;
-        }
 
-        if (!TryPrepareVerticalStep(carriedRunodes))
-        {
-            hardBlock = true;
-            return false;
-        }
+        if (!extendsUpward)
+            return true;
 
-        return true;
-    }
+        if (TryPrepareVerticalUpStep(carriedRunodes))
+            return true;
 
-    private bool IsPrimaryFlatPlanningBlocked(List<RunodeMovement> carriedRunodes)
-    {
-        foreach (Collider hit in GetProbeHits(primaryFlatProbe))
-        {
-            if (TryGetCarriedCube(hit, carriedRunodes, out _))
-                continue;
-
-            if (TryGetPiston(hit, out _))
-                return true;
-
-            if (IsStaticObstruction(hit))
-                return true;
-        }
-
+        hardBlock = true;
         return false;
     }
 
-    private bool TryPrepareVerticalStep(List<RunodeMovement> carriedRunodes)
+    private bool TryPrepareVerticalUpStep(List<RunodeMovement> carriedRunodes)
     {
-        if (GetCubeInProbe(primaryFlatProbe, carriedRunodes) != null)
-            return false;
-
-        if (cachedWorldExtendDirection.y < -0.5f)
-            return true;
-
         RunodeMovement cubeInPrimary = GetCubeInProbe(primaryCubeProbe, carriedRunodes);
         RunodeMovement cubeInSecondary = GetCubeInProbe(secondaryCubeProbe, carriedRunodes);
         if (cubeInPrimary != null && cubeInSecondary != null)
@@ -416,7 +386,7 @@ public class PistonVertical : MonoBehaviour
         return ProbeHasBlockingObstruction(primaryCubeProbe, carriedRunodes, null);
     }
 
-    private bool HasPrimaryFlatSlideObstruction(List<RunodeMovement> carriedRunodes, RunodeMovement cubeInPushCell)
+    private bool PrimaryFlatBlocked(List<RunodeMovement> carriedRunodes, RunodeMovement ignoredCube = null)
     {
         foreach (Collider hit in GetProbeHits(primaryFlatProbe))
         {
@@ -428,7 +398,7 @@ public class PistonVertical : MonoBehaviour
                 if (pushedCubesThisMove.Contains(cube))
                     continue;
 
-                if (cubeInPushCell != null && cube == cubeInPushCell)
+                if (ignoredCube != null && cube == ignoredCube)
                     continue;
 
                 return true;
@@ -545,7 +515,7 @@ public class PistonVertical : MonoBehaviour
         Vector3 previousWorldPosition = pistonFace.position;
         float duration = moveSpeed > 0f ? GridUnit / moveSpeed : 0f;
         bool stoppedEarly = false;
-        RunodeMovement cubeInPushCell = GetCubeInProbe(primaryCubeProbe, carriedRunodes);
+        RunodeMovement cubeInPushCell = extendsUpward ? GetCubeInProbe(primaryCubeProbe, carriedRunodes) : null;
 
         for (float elapsed = 0f; elapsed < duration; elapsed += Time.deltaTime)
         {
@@ -559,13 +529,13 @@ public class PistonVertical : MonoBehaviour
             previousWorldPosition = pistonFace.position;
 
             if (moveProgress < PrimaryFlatSlideCheckEndProgress
-                && HasPrimaryFlatSlideObstruction(carriedRunodes, cubeInPushCell))
+                && PrimaryFlatBlocked(carriedRunodes, cubeInPushCell))
             {
                 stoppedEarly = true;
                 break;
             }
 
-            if (carriedRunodes != null && carriedRunodes.Count > 0 && ShouldCarryRunodesOnFace()
+            if (extendsUpward && carriedRunodes != null && carriedRunodes.Count > 0
                 && HasVerticalUpCubeProbeSlideObstruction(carriedRunodes))
             {
                 stoppedEarly = true;
@@ -592,7 +562,7 @@ public class PistonVertical : MonoBehaviour
         Vector3 start = pistonFace.localPosition;
         Vector3 end = faceHomeLocalPosition + GetTravelAxisLocal() * (targetStage * GridUnit);
         Vector3 startWorldPosition = pistonFace.position;
-        List<RunodeMovement> carriedRunodes = ShouldCarryRunodesOnFace() ? GetRunodesOnFace() : null;
+        List<RunodeMovement> carriedRunodes = extendsUpward ? GetRunodesOnFace() : null;
 
         if (carriedRunodes != null && carriedRunodes.Count > 0)
         {
