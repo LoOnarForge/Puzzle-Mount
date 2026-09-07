@@ -13,8 +13,8 @@ public class PistonShaft : MonoBehaviour
     [SerializeField] private Transform baseAnchor;
     [SerializeField] private Transform faceAnchor;
 
-    private const float LightOffSpan = 1f;
-    private const float LightFullFadeSpan = 1.1f;
+    private const float LightOffSpan = 1.25f;
+    private const float LightFullFadeSpan = 1.35f;
 
     [Header("Light")]
     [SerializeField] private Light shaftLight;
