@@ -68,7 +68,7 @@ public class PressurePlate : MonoBehaviour
         {
             isPressed = false;
             StartCoroutine(PlateSwitchingMovement(false));
-            NotifyConnectedDevices();
+            NotifyConnectedDevices(false);
         }
     }
 
@@ -87,7 +87,7 @@ public class PressurePlate : MonoBehaviour
 
         isPressed = true;
         StartCoroutine(PlateSwitchingMovement(true));
-        NotifyConnectedDevices();
+        NotifyConnectedDevices(true);
     }
 
     // Lerps the plate top local Y between rest and pressed depth.
@@ -171,11 +171,11 @@ public class PressurePlate : MonoBehaviour
         return triggerBounds.Intersects(controller.bounds);
     }
 
-    // Calls OnLeverOperated on every cached connected device.
-    private void NotifyConnectedDevices()
+    // State-aware doors follow plate pressure; other devices toggle on each notify.
+    private void NotifyConnectedDevices(bool pressed)
     {
         foreach (MediumDoor mediumDoor in mediumDoors)
-            mediumDoor.OnLeverOperated();
+            mediumDoor.ApplyOpenState(pressed);
 
         foreach (Elevator elevator in elevators)
             elevator.OnLeverOperated();
