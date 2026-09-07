@@ -10,6 +10,9 @@ public class ElevatorEditor : Editor
     {
         serializedObject.Update();
 
+        EditorGUILayout.PropertyField(serializedObject.FindProperty("isSelfPowered"), new GUIContent("Is Self Powered"));
+
+        EditorGUILayout.Space(20);
         ColorManager colorManager = Object.FindAnyObjectByType<ColorManager>();
         SerializedProperty sockets = serializedObject.FindProperty("sockets");
 

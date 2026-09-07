@@ -353,10 +353,6 @@ public class PistonShaft : MonoBehaviour
 
     private bool IsParentPistonExtended()
     {
-        Piston piston = GetComponentInParent<Piston>();
-        if (piston != null)
-            return !piston.IsRetracted;
-
         PistonHorizontal horizontal = GetComponentInParent<PistonHorizontal>();
         if (horizontal != null)
             return !horizontal.IsRetracted;

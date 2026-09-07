@@ -19,6 +19,8 @@ public class Elevator : MonoBehaviour
         public PowerSource poweringSource;
     }
 
+    [SerializeField] private bool isSelfPowered;
+
     [SerializeField] private SocketSlot[] sockets = new SocketSlot[SocketCount]
     {
         new SocketSlot(),
@@ -34,6 +36,7 @@ public class Elevator : MonoBehaviour
 
     private bool isElevatorMoving;
     public bool IsMoving => isElevatorMoving;
+    public int StageCount => stops.Count;
     private Collider platformCollider;
     private CharacterMovement tim;
     private Vector3 currentMoveDirection;
@@ -74,7 +77,7 @@ public class Elevator : MonoBehaviour
     // Called by a powered Lever when the player operates it.
     public void OnLeverOperated()
     {
-        if (!isPowered || isElevatorMoving || platform == null || stops.Count < 2)
+        if ((!isSelfPowered && !isPowered) || isElevatorMoving || platform == null || stops.Count < 2)
             return;
 
         int nextStopIndex = (currentStopIndex + 1) % stops.Count;
@@ -88,6 +91,12 @@ public class Elevator : MonoBehaviour
     // Claims assigned sockets once and pushes required color and MW to each.
     private void InitialSocketConfiguration()
     {
+        if (isSelfPowered)
+        {
+            isPowered = true;
+            return;
+        }
+
         for (int i = 0; i < sockets.Length; i++)
         {
             SocketSlot slot = sockets[i];
@@ -116,6 +125,12 @@ public class Elevator : MonoBehaviour
 
     private void RefreshElevatorState()
     {
+        if (isSelfPowered)
+        {
+            isPowered = true;
+            return;
+        }
+
         bool hasEnabledSocket = false;
         bool allPowered = true;
 

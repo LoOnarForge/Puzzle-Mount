@@ -1,7 +1,16 @@
 using UnityEditor;
 using UnityEngine;
 
-[CustomEditor(typeof(Piston))]
+[CustomEditor(typeof(PistonHorizontal))]
+public class PistonHorizontalEditor : PistonEditor
+{
+}
+
+[CustomEditor(typeof(PistonVertical))]
+public class PistonVerticalEditor : PistonEditor
+{
+}
+
 public class PistonEditor : Editor
 {
     private const int SocketCount = 2;

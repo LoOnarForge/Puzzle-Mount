@@ -163,6 +163,8 @@ public class PistonHorizontal : MonoBehaviour
 
     // True when the piston face is at stage 0.
     public bool IsRetracted => currentStage == 0;
+    public int MaxStage => maxStage;
+    public int StageCount => maxStage + 1;
 
     // Called by a DevicePowerSocket when its power state changes.
     public void UpdateSocketStateToOwner(int ownerIndex, int allocatedMw, PowerSource poweringSource)

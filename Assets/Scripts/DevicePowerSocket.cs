@@ -24,7 +24,6 @@ public class DevicePowerSocket : MonoBehaviour
     [SerializeField] private ForgottenGate ownerForgottenGate;
     [SerializeField] private Lever ownerLever;
     [SerializeField] private Elevator ownerElevator;
-    [SerializeField] private Piston ownerPiston;
     [SerializeField] private PistonHorizontal ownerPistonHorizontal;
     [SerializeField] private PistonVertical ownerPistonVertical;
     [FormerlySerializedAs("ownerRuneTorch")]
@@ -225,12 +224,6 @@ public class DevicePowerSocket : MonoBehaviour
         if (ownerElevator != null)
         {
             ownerElevator.UpdateSocketStateToOwner(ownerIndex, allocatedMw, powerSource);
-            return;
-        }
-
-        if (ownerPiston != null)
-        {
-            ownerPiston.UpdateSocketStateToOwner(ownerIndex, allocatedMw, powerSource);
             return;
         }
 

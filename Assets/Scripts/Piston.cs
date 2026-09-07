@@ -355,6 +355,7 @@ public class Piston : MonoBehaviour
     // True when the piston face is at stage 0.
 
     public bool IsRetracted => currentStage == 0;
+    public int MaxStage => maxStage;
 
 
 

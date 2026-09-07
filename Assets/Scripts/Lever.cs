@@ -25,7 +25,6 @@ public class Lever : MonoBehaviour
 
     private readonly List<MediumDoor> mediumDoors = new List<MediumDoor>();
     private readonly List<Elevator> elevators = new List<Elevator>();
-    private readonly List<Piston> pistons = new List<Piston>();
     private readonly List<PistonHorizontal> pistonHorizontals = new List<PistonHorizontal>();
     private readonly List<PistonVertical> pistonVerticals = new List<PistonVertical>();
 
@@ -101,9 +100,6 @@ public class Lever : MonoBehaviour
         foreach (Elevator elevator in elevators)
             elevator.OnLeverOperated();
 
-        foreach (Piston piston in pistons)
-            piston.OnLeverOperated();
-
         foreach (PistonHorizontal pistonHorizontal in pistonHorizontals)
             pistonHorizontal.OnLeverOperated();
 
@@ -116,7 +112,6 @@ public class Lever : MonoBehaviour
     {
         mediumDoors.Clear();
         elevators.Clear();
-        pistons.Clear();
         pistonHorizontals.Clear();
         pistonVerticals.Clear();
 
@@ -132,10 +127,6 @@ public class Lever : MonoBehaviour
             Elevator elevator = deviceObject.GetComponent<Elevator>();
             if (elevator != null)
                 elevators.Add(elevator);
-
-            Piston piston = deviceObject.GetComponent<Piston>();
-            if (piston != null)
-                pistons.Add(piston);
 
             PistonHorizontal pistonHorizontal = deviceObject.GetComponent<PistonHorizontal>();
             if (pistonHorizontal != null)

@@ -77,8 +77,12 @@ public class PistonPS : MonoBehaviour
         if (retractedSpan >= 0f || baseAnchor == null || faceAnchor == null)
             return;
 
-        Piston piston = GetComponentInParent<Piston>();
-        if (piston != null && !piston.IsRetracted)
+        PistonHorizontal horizontal = GetComponentInParent<PistonHorizontal>();
+        if (horizontal != null && !horizontal.IsRetracted)
+            return;
+
+        PistonVertical vertical = GetComponentInParent<PistonVertical>();
+        if (vertical != null && !vertical.IsRetracted)
             return;
 
         if (TryGetSpan(out _, out _, out _, out float span))
