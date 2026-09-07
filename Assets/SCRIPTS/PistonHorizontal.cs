@@ -20,7 +20,7 @@ public class PistonHorizontal : MonoBehaviour
         public int requiredColorIndex;
         public int requiredMw = 1;
         public int allocatedMw;
-        public PowerSource poweringSource;
+        public PowerSource poweringSource; 
     }
 
     [SerializeField] private bool isSelfPowered;

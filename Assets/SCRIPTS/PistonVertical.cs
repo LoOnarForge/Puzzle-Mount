@@ -176,6 +176,9 @@ public class PistonVertical : MonoBehaviour
         if ((!isSelfPowered && !isPowered) || isMoving || maxStage <= 0)
             return;
 
+        if (extendsUpward && IsBlockedByStackedCubes(GetRunodesOnFace()))
+            return;
+
         int nextStage = currentStage + stageDirection;
         if (nextStage > maxStage)
         {
@@ -262,11 +265,11 @@ public class PistonVertical : MonoBehaviour
         else
             yield return AnimateRetractToStage(nextStage);
 
-        if (extendBlocked && currentStage > 0)
+        if (extendBlocked)
         {
-            stageDirection = 1;
+            stageDirection = -stageDirection;
             extendBlocked = false;
-            yield return AnimateRetractToStage(0);
+            yield return AnimateRetractToStage(Mathf.Max(0, currentStage - 1));
         }
 
         isMoving = false;
@@ -315,12 +318,15 @@ public class PistonVertical : MonoBehaviour
     // Runs probe checks before one 1 m step.
     private bool TryPrepareExtendStep(List<RunodeMovement> carriedRunodes, out bool hardBlock)
     {
+        if (!extendsUpward)
+        {
+            hardBlock = PrimaryFlatBlocked(null);
+            return !hardBlock;
+        }
+
         hardBlock = PrimaryFlatBlocked(carriedRunodes);
         if (hardBlock)
             return false;
-
-        if (!extendsUpward)
-            return true;
 
         if (TryPrepareVerticalUpStep(carriedRunodes))
             return true;
@@ -329,11 +335,17 @@ public class PistonVertical : MonoBehaviour
         return false;
     }
 
+    private bool IsBlockedByStackedCubes(List<RunodeMovement> carriedRunodes)
+    {
+        if (GetCubeInProbe(secondaryCubeProbe, null) != null)
+            return true;
+
+        return carriedRunodes != null && carriedRunodes.Count > 1;
+    }
+
     private bool TryPrepareVerticalUpStep(List<RunodeMovement> carriedRunodes)
     {
-        RunodeMovement cubeInPrimary = GetCubeInProbe(primaryCubeProbe, carriedRunodes);
-        RunodeMovement cubeInSecondary = GetCubeInProbe(secondaryCubeProbe, carriedRunodes);
-        if (cubeInPrimary != null && cubeInSecondary != null)
+        if (IsBlockedByStackedCubes(carriedRunodes))
             return false;
 
         return !ProbeHasBlockingObstruction(primaryCubeProbe, carriedRunodes, null);
@@ -515,7 +527,6 @@ public class PistonVertical : MonoBehaviour
         Vector3 previousWorldPosition = pistonFace.position;
         float duration = moveSpeed > 0f ? GridUnit / moveSpeed : 0f;
         bool stoppedEarly = false;
-        RunodeMovement cubeInPushCell = extendsUpward ? GetCubeInProbe(primaryCubeProbe, carriedRunodes) : null;
 
         for (float elapsed = 0f; elapsed < duration; elapsed += Time.deltaTime)
         {
@@ -528,15 +539,25 @@ public class PistonVertical : MonoBehaviour
                 MoveCarriedRunodes(carriedRunodes, delta);
             previousWorldPosition = pistonFace.position;
 
-            if (moveProgress < PrimaryFlatSlideCheckEndProgress
-                && PrimaryFlatBlocked(carriedRunodes, cubeInPushCell))
+            if (extendsUpward)
             {
-                stoppedEarly = true;
-                break;
-            }
+                RunodeMovement cubeInPushCell = GetCubeInProbe(primaryCubeProbe, carriedRunodes);
 
-            if (extendsUpward && carriedRunodes != null && carriedRunodes.Count > 0
-                && HasVerticalUpCubeProbeSlideObstruction(carriedRunodes))
+                if (moveProgress < PrimaryFlatSlideCheckEndProgress
+                    && PrimaryFlatBlocked(carriedRunodes, cubeInPushCell))
+                {
+                    stoppedEarly = true;
+                    break;
+                }
+
+                if (carriedRunodes != null && carriedRunodes.Count > 0
+                    && HasVerticalUpCubeProbeSlideObstruction(carriedRunodes))
+                {
+                    stoppedEarly = true;
+                    break;
+                }
+            }
+            else if (moveProgress < PrimaryFlatSlideCheckEndProgress && PrimaryFlatBlocked(null))
             {
                 stoppedEarly = true;
                 break;

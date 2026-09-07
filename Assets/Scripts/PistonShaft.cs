@@ -98,8 +98,7 @@ public class PistonShaft : MonoBehaviour
         if (retractedSpan >= 0f || baseAnchor == null || faceAnchor == null)
             return;
 
-        Piston piston = GetComponentInParent<Piston>();
-        if (piston != null && !piston.IsRetracted)
+        if (IsParentPistonExtended())
             return;
 
         if (TryGetSpan(out _, out _, out _, out float span))
@@ -172,18 +171,24 @@ public class PistonShaft : MonoBehaviour
 
     private void ApplyShaftLength(float span)
     {
-        if (transform.parent != null)
-        {
-            float parentScaleZ = transform.parent.lossyScale.z;
-            transform.localScale = new Vector3(
-                baseLocalScale.x,
-                baseLocalScale.y,
-                parentScaleZ > MinSpan ? span / parentScaleZ : span);
-        }
-        else
+        float baseWorldLength = GetShaftWorldLengthForLocalScaleZ(baseLocalScale.z);
+        if (baseWorldLength < MinSpan)
         {
             transform.localScale = new Vector3(baseLocalScale.x, baseLocalScale.y, span);
+            return;
         }
+
+        float scaleZ = baseLocalScale.z * span / baseWorldLength;
+        transform.localScale = new Vector3(baseLocalScale.x, baseLocalScale.y, scaleZ);
+    }
+
+    private float GetShaftWorldLengthForLocalScaleZ(float localScaleZ)
+    {
+        Vector3 savedScale = transform.localScale;
+        transform.localScale = new Vector3(baseLocalScale.x, baseLocalScale.y, localScaleZ);
+        float worldLength = transform.TransformVector(Vector3.forward).magnitude;
+        transform.localScale = savedScale;
+        return worldLength;
     }
 
     private void AlignNearEdgeTo(Vector3 worldStart)
@@ -344,6 +349,23 @@ public class PistonShaft : MonoBehaviour
             face.z += Mathf.Sign(direction.z) * extents.z;
 
         return face;
+    }
+
+    private bool IsParentPistonExtended()
+    {
+        Piston piston = GetComponentInParent<Piston>();
+        if (piston != null)
+            return !piston.IsRetracted;
+
+        PistonHorizontal horizontal = GetComponentInParent<PistonHorizontal>();
+        if (horizontal != null)
+            return !horizontal.IsRetracted;
+
+        PistonVertical vertical = GetComponentInParent<PistonVertical>();
+        if (vertical != null)
+            return !vertical.IsRetracted;
+
+        return false;
     }
 
     private static Vector3 GetShaftUp(Vector3 forward)
