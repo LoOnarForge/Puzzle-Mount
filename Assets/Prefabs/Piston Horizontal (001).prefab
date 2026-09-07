@@ -10,6 +10,8 @@ GameObject:
   m_Component:
   - component: {fileID: 1202283197418562113}
   - component: {fileID: 5543904146491737084}
+  - component: {fileID: 231941313889543701}
+  - component: {fileID: 1664601504459347101}
   m_Layer: 13
   m_Name: Shaft Collider
   m_TagString: Untagged
@@ -26,8 +28,8 @@ Transform:
   m_GameObject: {fileID: 279039052853308145}
   serializedVersion: 2
   m_LocalRotation: {x: -0.00000029802325, y: -0.00000029802325, z: -0.7071068, w: -0.7071068}
-  m_LocalPosition: {x: 0.5, y: 0, z: 0}
-  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_LocalPosition: {x: 1.5, y: 0, z: 0}
+  m_LocalScale: {x: 0.99, y: 0.99, z: 0.99}
   m_ConstrainProportionsScale: 0
   m_Children: []
   m_Father: {fileID: 4251708095523686404}
@@ -51,8 +53,65 @@ BoxCollider:
   m_ProvidesContacts: 0
   m_Enabled: 1
   serializedVersion: 3
-  m_Size: {x: 0.99, y: 0.99, z: 1}
-  m_Center: {x: 0, y: 0, z: 0}
+  m_Size: {x: 1, y: 1, z: 1}
+  m_Center: {x: 0, y: 0.5, z: 0}
+--- !u!33 &231941313889543701
+MeshFilter:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 279039052853308145}
+  m_Mesh: {fileID: -2713315358966153883, guid: 641d85d96ebaee945b5ffd20a410ffa7, type: 3}
+--- !u!23 &1664601504459347101
+MeshRenderer:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 279039052853308145}
+  m_Enabled: 1
+  m_CastShadows: 1
+  m_ReceiveShadows: 1
+  m_DynamicOccludee: 1
+  m_StaticShadowCaster: 0
+  m_MotionVectors: 1
+  m_LightProbeUsage: 1
+  m_ReflectionProbeUsage: 1
+  m_RayTracingMode: 2
+  m_RayTraceProcedural: 0
+  m_RayTracingAccelStructBuildFlagsOverride: 0
+  m_RayTracingAccelStructBuildFlags: 1
+  m_SmallMeshCulling: 1
+  m_ForceMeshLod: -1
+  m_MeshLodSelectionBias: 0
+  m_RenderingLayerMask: 1
+  m_RendererPriority: 0
+  m_Materials:
+  - {fileID: 2100000, guid: a3ff708e446713a4dbb15ff4157ffd95, type: 2}
+  m_StaticBatchInfo:
+    firstSubMesh: 0
+    subMeshCount: 0
+  m_StaticBatchRoot: {fileID: 0}
+  m_ProbeAnchor: {fileID: 0}
+  m_LightProbeVolumeOverride: {fileID: 0}
+  m_ScaleInLightmap: 1
+  m_ReceiveGI: 1
+  m_PreserveUVs: 0
+  m_IgnoreNormalsForChartDetection: 0
+  m_ImportantGI: 0
+  m_StitchLightmapSeams: 1
+  m_SelectedEditorRenderState: 3
+  m_MinimumChartSize: 4
+  m_AutoUVMaxDistance: 0.5
+  m_AutoUVMaxAngle: 89
+  m_LightmapParameters: {fileID: 0}
+  m_GlobalIlluminationMeshLod: 0
+  m_SortingLayerID: 0
+  m_SortingLayer: 0
+  m_SortingOrder: 0
+  m_MaskInteraction: 0
+  m_AdditionalVertexStreams: {fileID: 0}
 --- !u!1 &308121619556772756
 GameObject:
   m_ObjectHideFlags: 0
@@ -386,37 +445,6 @@ MonoBehaviour:
     m_Bits: 524288
   connectedPorts: []
   obstructions: []
---- !u!1 &1737059804056517981
-GameObject:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  serializedVersion: 6
-  m_Component:
-  - component: {fileID: 5403126514305891257}
-  m_Layer: 13
-  m_Name: Light Shaft END
-  m_TagString: Untagged
-  m_Icon: {fileID: 0}
-  m_NavMeshLayer: 0
-  m_StaticEditorFlags: 0
-  m_IsActive: 1
---- !u!4 &5403126514305891257
-Transform:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1737059804056517981}
-  serializedVersion: 2
-  m_LocalRotation: {x: -0, y: -0.7071071, z: -0, w: -0.70710653}
-  m_LocalPosition: {x: 1.374999, y: 0.5, z: 0}
-  m_LocalScale: {x: 1, y: 0.8780432, z: 0.7392699}
-  m_ConstrainProportionsScale: 0
-  m_Children: []
-  m_Father: {fileID: 5473888883587283782}
-  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &2467983653058472941
 GameObject:
   m_ObjectHideFlags: 0
@@ -464,7 +492,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::PistonPS
   baseAnchor: {fileID: 1062650171403731636}
-  faceAnchor: {fileID: 5403126514305891257}
+  faceAnchor: {fileID: 0}
 --- !u!199 &819128891347233565
 ParticleSystemRenderer:
   serializedVersion: 7
@@ -4342,13 +4370,13 @@ ParticleSystem:
     enabled: 1
     serializedVersion: 2
     inside: 0
-    outside: 0
-    enter: 1
+    outside: 1
+    enter: 0
     exit: 0
     colliderQueryMode: 0
     radiusScale: 1
     primitives:
-    - {fileID: 6175493172726182590}
+    - {fileID: 1202283197418562113}
   SubModule:
     serializedVersion: 2
     enabled: 0
@@ -5411,7 +5439,7 @@ Transform:
   m_GameObject: {fileID: 3772318615271669918}
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 0.764, y: 0.5, z: 0}
+  m_LocalPosition: {x: 0.5, y: 0.5, z: 0}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
@@ -5535,7 +5563,6 @@ Transform:
   - {fileID: 1083022056180783039}
   - {fileID: 401927738089553161}
   - {fileID: 3005057555977774765}
-  - {fileID: 5403126514305891257}
   - {fileID: 6212899511981138429}
   - {fileID: 5379283743250585034}
   m_Father: {fileID: 4251708095523686404}
@@ -5754,7 +5781,7 @@ MonoBehaviour:
   obstructionMask:
     serializedVersion: 2
     m_Bits: 2147494912
-  shaftColliderObject: {fileID: 0}
+  shaftColliderObject: {fileID: 1202283197418562113}
   isPowered: 0
 --- !u!1 &6688025212618863883
 GameObject:
@@ -6196,7 +6223,7 @@ Transform:
   m_GameObject: {fileID: 8249281443486631592}
   serializedVersion: 2
   m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
-  m_LocalPosition: {x: -0.14, y: 0, z: 0}
+  m_LocalPosition: {x: -0.326, y: 0, z: 0}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
@@ -6322,7 +6349,7 @@ Transform:
   serializedVersion: 2
   m_LocalRotation: {x: -0, y: -0, z: 0.7071068, w: 0.7071068}
   m_LocalPosition: {x: 0, y: 0, z: 0}
-  m_LocalScale: {x: 1, y: 0.20000005, z: 1}
+  m_LocalScale: {x: 1, y: 0.3575152, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
   m_Father: {fileID: 6212899511981138429}
