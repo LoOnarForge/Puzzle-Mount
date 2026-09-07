@@ -264,6 +264,7 @@ public class PistonHorizontal : MonoBehaviour
         isMoving = true;
         extendBlocked = false;
         pushedCubesThisMove.Clear();
+        PistonCellReservation.Release(this);
 
         if (nextStage > currentStage)
             yield return ExtendByGridSteps(nextStage);
@@ -277,6 +278,7 @@ public class PistonHorizontal : MonoBehaviour
             yield return AnimateRetractToStage(0);
         }
 
+        PistonCellReservation.Release(this);
         isMoving = false;
     }
 
@@ -321,12 +323,25 @@ public class PistonHorizontal : MonoBehaviour
             return false;
         }
 
-        return TryPrepareHorizontalPushStep(worldPush, out hardBlock);
+        if (!TryPrepareHorizontalPushStep(worldPush, out hardBlock, out RunodeMovement cubeToPush))
+            return false;
+
+        if (!TryClaimExtendStepCells(cubeToPush))
+        {
+            hardBlock = true;
+            return false;
+        }
+
+        if (cubeToPush != null && !TryPushCube(cubeToPush, worldPush))
+            return false;
+
+        return true;
     }
 
-    private bool TryPrepareHorizontalPushStep(Vector3 worldPush, out bool hardBlock)
+    private bool TryPrepareHorizontalPushStep(Vector3 worldPush, out bool hardBlock, out RunodeMovement cubeToPush)
     {
         hardBlock = false;
+        cubeToPush = null;
 
         RunodeMovement cubeInPushCell = GetCubeInProbe(primaryCubeProbe, null);
         if (cubeInPushCell == null)
@@ -367,10 +382,38 @@ public class PistonHorizontal : MonoBehaviour
             }
         }
 
-        if (!TryPushCube(cubeInPushCell, worldPush))
+        if (cubeInPushCell.IsBusy || !cubeInPushCell.CanPushSingle(worldPush))
             return false;
 
+        cubeToPush = cubeInPushCell;
         return true;
+    }
+
+    // Claims the face target cell and, when pushing, the cube landing cell for this step.
+    private bool TryClaimExtendStepCells(RunodeMovement cubeToPush)
+    {
+        Vector3 faceTargetWorld = GetFaceTargetWorldPosition();
+
+        if (cubeToPush == null)
+            return PistonCellReservation.TryClaimAll(this, PistonCellReservation.Priority.ExtendOnly, faceTargetWorld);
+
+        return PistonCellReservation.TryClaimAll(
+            this,
+            PistonCellReservation.Priority.PushStep,
+            faceTargetWorld,
+            GetPushLandingWorldPosition(),
+            useSecondCell: true);
+    }
+
+    private Vector3 GetFaceTargetWorldPosition()
+    {
+        Vector3 endLocal = pistonFace.localPosition + GetTravelAxisLocal() * GridUnit;
+        return pistonFace.parent.TransformPoint(endLocal);
+    }
+
+    private Vector3 GetPushLandingWorldPosition()
+    {
+        return secondaryCubeProbe.bounds.center;
     }
 
     private bool IsPrimaryFlatPlanningBlocked(List<RunodeMovement> carriedRunodes)
@@ -608,6 +651,20 @@ public class PistonHorizontal : MonoBehaviour
         float duration = moveSpeed > 0f ? GridUnit / moveSpeed : 0f;
         bool stoppedEarly = false;
         stepCompleted = true;
+
+        if (!PistonCellReservation.OwnsCell(this, GetFaceTargetWorldPosition()))
+        {
+            extendBlocked = true;
+            stepCompleted = false;
+            yield break;
+        }
+
+        if (pushedCubesThisMove.Count > 0 && !PistonCellReservation.OwnsCell(this, GetPushLandingWorldPosition()))
+        {
+            extendBlocked = true;
+            stepCompleted = false;
+            yield break;
+        }
 
         for (float elapsed = 0f; elapsed < duration; elapsed += Time.deltaTime)
         {
