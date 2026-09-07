@@ -11,7 +11,6 @@ public class PistonHorizontal : MonoBehaviour
     private const string PrimaryFlatProbeName = "Primary Flat Trigger";
     private const string PrimaryCubeProbeName = "Primary Cube Trigger";
     private const string SecondaryCubeProbeName = "Secondary Cube Trigger";
-    private const string SecondaryFlatProbeName = "Secondary Flat Trigger";
 
     [System.Serializable]
     private class SocketSlot
@@ -58,7 +57,6 @@ public class PistonHorizontal : MonoBehaviour
     private BoxCollider primaryFlatProbe;
     private BoxCollider primaryCubeProbe;
     private BoxCollider secondaryCubeProbe;
-    private BoxCollider secondaryFlatProbe;
 
     private void Awake()
     {
@@ -122,13 +120,12 @@ public class PistonHorizontal : MonoBehaviour
             cachedTravelAxisInFaceParentLocal.Normalize();
     }
 
-    // Finds the four face probe colliders used before each 1 m extend step.
+    // Finds the three face probe colliders used before each 1 m extend step.
     private void CacheFaceProbes()
     {
         primaryFlatProbe = FindProbeCollider(PrimaryFlatProbeName);
         primaryCubeProbe = FindProbeCollider(PrimaryCubeProbeName);
         secondaryCubeProbe = FindProbeCollider(SecondaryCubeProbeName);
-        secondaryFlatProbe = FindProbeCollider(SecondaryFlatProbeName);
 
         Debug.Assert(primaryFlatProbe != null, $"{nameof(PistonHorizontal)} on {name} requires '{PrimaryFlatProbeName}' under the piston face.", this);
     }
@@ -273,9 +270,9 @@ public class PistonHorizontal : MonoBehaviour
 
         if (extendBlocked)
         {
-            stageDirection = 1;
+            stageDirection = -stageDirection;
             extendBlocked = false;
-            yield return AnimateRetractToStage(0);
+            yield return AnimateRetractToStage(Mathf.Max(0, currentStage - 1));
         }
 
         PistonCellReservation.Release(this);
@@ -350,16 +347,6 @@ public class PistonHorizontal : MonoBehaviour
         RunodeMovement cubeOnPlatform = GetCubeInProbe(primaryFlatProbe, null);
         if (cubeOnPlatform != cubeInPushCell)
             return true;
-
-        // Secondary Flat probe disabled — too sensitive when facing pistons.
-        // foreach (Collider hit in GetProbeHits(secondaryFlatProbe))
-        // {
-        //     if (TryGetPiston(hit, out _))
-        //     {
-        //         hardBlock = true;
-        //         return false;
-        //     }
-        // }
 
         foreach (Collider hit in GetProbeHits(secondaryCubeProbe))
         {
@@ -588,8 +575,7 @@ public class PistonHorizontal : MonoBehaviour
         string objectName = hit.gameObject.name;
         return objectName == PrimaryFlatProbeName
             || objectName == PrimaryCubeProbeName
-            || objectName == SecondaryCubeProbeName
-            || objectName == SecondaryFlatProbeName;
+            || objectName == SecondaryCubeProbeName;
     }
 
     private static bool TryGetCube(Collider hit, out RunodeMovement cube)
