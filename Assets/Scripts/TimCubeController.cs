@@ -338,6 +338,16 @@ public class TimCubeController : MonoBehaviour
         if (!mouseHitValid || mouseHitCube != null)
             return;
 
+        ButtonDevice buttonDevice = mouseHit.collider.GetComponentInParent<ButtonDevice>();
+        if (buttonDevice != null)
+        {
+            if (!IsInClickRange(buttonDevice.transform.position))
+                return;
+
+            buttonDevice.MouseClickDetected();
+            return;
+        }
+
         Lever lever = mouseHit.collider.GetComponentInParent<Lever>();
         if (lever == null)
             return;
