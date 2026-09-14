@@ -866,7 +866,7 @@ Transform:
   m_GameObject: {fileID: 1499678836017547596}
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 0, y: -0.5, z: 0}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
@@ -879,7 +879,7 @@ MeshFilter:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1499678836017547596}
-  m_Mesh: {fileID: 7708337578138432172, guid: 641d85d96ebaee945b5ffd20a410ffa7, type: 3}
+  m_Mesh: {fileID: -2713315358966153883, guid: aa469cbd7eb6aea4ebf384f7bb943281, type: 3}
 --- !u!23 &1159792274427574457
 MeshRenderer:
   m_ObjectHideFlags: 0
@@ -4904,11 +4904,16 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::RunodeCubeVisualRandomizer
   meshes:
-  - {fileID: 4300000, guid: 02a73121318ad77439693b49cbb55b59, type: 2}
-  - {fileID: 4300000, guid: 4464f5860ff5bc246b9c1753d9c584b6, type: 2}
-  - {fileID: 4300000, guid: 6bf68006ae1033c408b80a9f624d8686, type: 2}
-  - {fileID: 4300000, guid: 1851a3a3366251c479d8a9dc84a1704f, type: 2}
-  - {fileID: 4300000, guid: 4a210bcf1887fb449a1d5dc28c899a07, type: 2}
+  - {fileID: -2713315358966153883, guid: aa469cbd7eb6aea4ebf384f7bb943281, type: 3}
+  - {fileID: 2675737354320167212, guid: 5223adace06b247428d1491927fb38b1, type: 3}
+  - {fileID: 7969795110171841687, guid: 1a26e36a419f5684695c69182bb44287, type: 3}
+  - {fileID: 7708337578138432172, guid: 6c0f4d0bd60483443b0bcd7286e89fd5, type: 3}
+  - {fileID: -6517876966322010813, guid: 9b300930336f1bb499afe6a0259edc5e, type: 3}
+  - {fileID: -5130265498202734151, guid: 1b0bba51cce2cd24c92098bf657e6916, type: 3}
+  - {fileID: -483832111797618870, guid: 6051be5f0eeffb247986455c28b9e904, type: 3}
+  - {fileID: -7601307074351721914, guid: c44eb46fd36ca084a8db029f456223a4, type: 3}
+  - {fileID: 5115576524962790830, guid: b8659d1b0afeba24087fa6ecfd81f6d2, type: 3}
+  - {fileID: -7723684390424942907, guid: c5200961f2289db4cbce586b1475928a, type: 3}
   materials:
   - {fileID: 2100000, guid: 083306651d8a9f246ba58ab6b43f29af, type: 2}
   - {fileID: 2100000, guid: 7ea2f40ce5bb5f544b4b47866e908624, type: 2}
