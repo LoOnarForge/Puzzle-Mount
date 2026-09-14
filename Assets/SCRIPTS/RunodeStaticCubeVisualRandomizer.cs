@@ -15,8 +15,11 @@ public class RunodeStaticCubeVisualRandomizer : MonoBehaviour
     [SerializeField] private MeshFilter meshFilter;
     [SerializeField] private MeshRenderer meshRenderer;
     [Space(10)]
+    [SerializeField] private RunodeLineSpriteLibrary lineSpriteLibrary;
     [SerializeField] private bool randomizeRockColor = true;
     [SerializeField] private bool alwaysUseMaterial01 = false;
+
+    public RunodeLineSpriteLibrary LineSpriteLibrary => lineSpriteLibrary;
 
     private static readonly int BaseColorId = Shader.PropertyToID("_BaseColor");
 
@@ -34,7 +37,10 @@ public class RunodeStaticCubeVisualRandomizer : MonoBehaviour
 
         if (meshRenderer != null)
         {
-            Material chosenMaterial = alwaysUseMaterial01 ? material01 : materials[Random.Range(0, materials.Length)];
+            Material chosenMaterial = alwaysUseMaterial01
+                ? material01
+                : materials[Random.Range(0, materials.Length)];
+
             if (chosenMaterial != null)
                 meshRenderer.sharedMaterial = chosenMaterial;
 

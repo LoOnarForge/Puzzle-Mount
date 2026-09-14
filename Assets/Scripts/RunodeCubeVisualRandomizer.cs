@@ -2,15 +2,9 @@ using UnityEngine;
 
 public class RunodeCubeVisualRandomizer : MonoBehaviour
 {
-    [SerializeField] private Mesh mesh01;
-    [SerializeField] private Mesh mesh02;
-    [SerializeField] private Mesh mesh03;
-    [SerializeField] private Mesh mesh04;
-    [SerializeField] private Mesh mesh05;
-    [Space (10)]
-    [SerializeField] private Material material01;
-    [SerializeField] private Material material02;
-    [SerializeField] private Material material03;
+    [SerializeField] private Mesh[] meshes;
+    [Space(10)]
+    [SerializeField] private Material[] materials;
     [Space(10)]
     [SerializeField] private MeshFilter meshFilter;
     [SerializeField] private MeshRenderer meshRenderer;
@@ -22,10 +16,7 @@ public class RunodeCubeVisualRandomizer : MonoBehaviour
 
     private void Awake()
     {
-        Mesh[] meshes = { mesh01, mesh02, mesh03, mesh04, mesh05 };
-        Material[] materials = { material01, material02, material03 };
-
-        if (meshFilter != null)
+        if (meshFilter != null && meshes != null && meshes.Length > 0)
         {
             Mesh chosenMesh = meshes[Random.Range(0, meshes.Length)];
             if (chosenMesh != null)
@@ -44,7 +35,7 @@ public class RunodeCubeVisualRandomizer : MonoBehaviour
             }
         }
 
-        if (meshRenderer != null)
+        if (meshRenderer != null && materials != null && materials.Length > 0)
         {
             Material chosenMaterial = materials[Random.Range(0, materials.Length)];
             if (chosenMaterial != null)

@@ -4903,14 +4903,16 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: ddf29c40c2cc8be47a289c8e60d93754, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::RunodeCubeVisualRandomizer
-  mesh01: {fileID: 4300000, guid: 02a73121318ad77439693b49cbb55b59, type: 2}
-  mesh02: {fileID: 4300000, guid: 4464f5860ff5bc246b9c1753d9c584b6, type: 2}
-  mesh03: {fileID: 4300000, guid: 6bf68006ae1033c408b80a9f624d8686, type: 2}
-  mesh04: {fileID: 4300000, guid: 1851a3a3366251c479d8a9dc84a1704f, type: 2}
-  mesh05: {fileID: 4300000, guid: 4a210bcf1887fb449a1d5dc28c899a07, type: 2}
-  material01: {fileID: 2100000, guid: 083306651d8a9f246ba58ab6b43f29af, type: 2}
-  material02: {fileID: 2100000, guid: 2761a180deeaf8445ab31845de3f0db1, type: 2}
-  material03: {fileID: 2100000, guid: 7ea2f40ce5bb5f544b4b47866e908624, type: 2}
+  meshes:
+  - {fileID: 4300000, guid: 02a73121318ad77439693b49cbb55b59, type: 2}
+  - {fileID: 4300000, guid: 4464f5860ff5bc246b9c1753d9c584b6, type: 2}
+  - {fileID: 4300000, guid: 6bf68006ae1033c408b80a9f624d8686, type: 2}
+  - {fileID: 4300000, guid: 1851a3a3366251c479d8a9dc84a1704f, type: 2}
+  - {fileID: 4300000, guid: 4a210bcf1887fb449a1d5dc28c899a07, type: 2}
+  materials:
+  - {fileID: 2100000, guid: 083306651d8a9f246ba58ab6b43f29af, type: 2}
+  - {fileID: 2100000, guid: 7ea2f40ce5bb5f544b4b47866e908624, type: 2}
+  - {fileID: 2100000, guid: 2761a180deeaf8445ab31845de3f0db1, type: 2}
   meshFilter: {fileID: 7512525590632029013}
   meshRenderer: {fileID: 1159792274427574457}
   isRunode: 1
