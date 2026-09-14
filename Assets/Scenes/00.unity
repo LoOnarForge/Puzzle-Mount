@@ -14197,7 +14197,6 @@ MonoBehaviour:
   materials: []
   meshFilter: {fileID: 570326780}
   meshRenderer: {fileID: 570326779}
-  isRunode: 0
   lineSpriteLibrary: {fileID: 11400000, guid: b8e4d3f2c5a04719a2b3c4d5e6f70812, type: 2}
 --- !u!1 &572771888
 GameObject:
@@ -14490,7 +14489,6 @@ MonoBehaviour:
   materials: []
   meshFilter: {fileID: 601617623}
   meshRenderer: {fileID: 601617622}
-  isRunode: 0
   lineSpriteLibrary: {fileID: 11400000, guid: b8e4d3f2c5a04719a2b3c4d5e6f70812, type: 2}
 --- !u!4 &609986701 stripped
 Transform:
@@ -25732,7 +25730,6 @@ MonoBehaviour:
   materials: []
   meshFilter: {fileID: 1033426159}
   meshRenderer: {fileID: 1033426158}
-  isRunode: 0
   lineSpriteLibrary: {fileID: 11400000, guid: b8e4d3f2c5a04719a2b3c4d5e6f70812, type: 2}
 --- !u!1001 &1033810317
 PrefabInstance:
@@ -29605,7 +29602,6 @@ MonoBehaviour:
   materials: []
   meshFilter: {fileID: 1140974515}
   meshRenderer: {fileID: 1140974514}
-  isRunode: 0
   lineSpriteLibrary: {fileID: 11400000, guid: b8e4d3f2c5a04719a2b3c4d5e6f70812, type: 2}
 --- !u!23 &1140974514
 MeshRenderer:
@@ -34165,7 +34161,6 @@ MonoBehaviour:
   materials: []
   meshFilter: {fileID: 1282491324}
   meshRenderer: {fileID: 1282491323}
-  isRunode: 0
   lineSpriteLibrary: {fileID: 11400000, guid: b8e4d3f2c5a04719a2b3c4d5e6f70812, type: 2}
 --- !u!1 &1284207870
 GameObject:
@@ -35140,7 +35135,6 @@ MonoBehaviour:
   materials: []
   meshFilter: {fileID: 1339833598}
   meshRenderer: {fileID: 1339833597}
-  isRunode: 0
   lineSpriteLibrary: {fileID: 11400000, guid: b8e4d3f2c5a04719a2b3c4d5e6f70812, type: 2}
 --- !u!1 &1340817086
 GameObject:
@@ -41687,7 +41681,6 @@ MonoBehaviour:
   materials: []
   meshFilter: {fileID: 1582476300}
   meshRenderer: {fileID: 1582476299}
-  isRunode: 0
   lineSpriteLibrary: {fileID: 11400000, guid: b8e4d3f2c5a04719a2b3c4d5e6f70812, type: 2}
 --- !u!1001 &1582869031
 PrefabInstance:
@@ -50936,7 +50929,6 @@ MonoBehaviour:
   materials: []
   meshFilter: {fileID: 1789519003}
   meshRenderer: {fileID: 1789519002}
-  isRunode: 0
   lineSpriteLibrary: {fileID: 11400000, guid: b8e4d3f2c5a04719a2b3c4d5e6f70812, type: 2}
 --- !u!1001 &1797105420
 PrefabInstance:
@@ -53515,9 +53507,13 @@ PrefabInstance:
     serializedVersion: 3
     m_TransformParent: {fileID: 0}
     m_Modifications:
+    - target: {fileID: 777134525307293464, guid: ed6fe52524734c248953d7852374fd47, type: 3}
+      propertyPath: m_Mesh
+      value: 
+      objectReference: {fileID: 1054614081122471382, guid: e1f8f4ff76d73674887b6d56460e660d, type: 3}
     - target: {fileID: 6690875591356854382, guid: ed6fe52524734c248953d7852374fd47, type: 3}
       propertyPath: m_LocalPosition.x
-      value: 0
+      value: -3
       objectReference: {fileID: 0}
     - target: {fileID: 6690875591356854382, guid: ed6fe52524734c248953d7852374fd47, type: 3}
       propertyPath: m_LocalPosition.y
@@ -53525,27 +53521,27 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 6690875591356854382, guid: ed6fe52524734c248953d7852374fd47, type: 3}
       propertyPath: m_LocalPosition.z
-      value: 0
+      value: 2
       objectReference: {fileID: 0}
     - target: {fileID: 6690875591356854382, guid: ed6fe52524734c248953d7852374fd47, type: 3}
       propertyPath: m_LocalRotation.w
-      value: 1
+      value: 0
       objectReference: {fileID: 0}
     - target: {fileID: 6690875591356854382, guid: ed6fe52524734c248953d7852374fd47, type: 3}
       propertyPath: m_LocalRotation.x
-      value: 0
+      value: -1
       objectReference: {fileID: 0}
     - target: {fileID: 6690875591356854382, guid: ed6fe52524734c248953d7852374fd47, type: 3}
       propertyPath: m_LocalRotation.y
-      value: 0
+      value: -0
       objectReference: {fileID: 0}
     - target: {fileID: 6690875591356854382, guid: ed6fe52524734c248953d7852374fd47, type: 3}
       propertyPath: m_LocalRotation.z
-      value: 0
+      value: -0
       objectReference: {fileID: 0}
     - target: {fileID: 6690875591356854382, guid: ed6fe52524734c248953d7852374fd47, type: 3}
       propertyPath: m_LocalEulerAnglesHint.x
-      value: 0
+      value: -180
       objectReference: {fileID: 0}
     - target: {fileID: 6690875591356854382, guid: ed6fe52524734c248953d7852374fd47, type: 3}
       propertyPath: m_LocalEulerAnglesHint.y
