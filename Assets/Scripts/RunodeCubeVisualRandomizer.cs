@@ -14,6 +14,7 @@ public class RunodeCubeVisualRandomizer : MonoBehaviour
     [Space(10)]
     [SerializeField] private MeshFilter meshFilter;
     [SerializeField] private MeshRenderer meshRenderer;
+    [SerializeField] private bool isRunode = true;
     [Space(10)]
     [SerializeField] private RunodeLineSpriteLibrary lineSpriteLibrary;
 
@@ -30,14 +31,17 @@ public class RunodeCubeVisualRandomizer : MonoBehaviour
             if (chosenMesh != null)
                 meshFilter.sharedMesh = chosenMesh;
 
-            Vector3 restingLocalPosition = meshFilter.transform.localPosition;
-            Quaternion rotation = Quaternion.Euler(
-                Random.Range(1, 4) * 90f,
-                Random.Range(1, 4) * 90f,
-                Random.Range(1, 4) * 90f);
+            if (isRunode)
+            {
+                Vector3 restingLocalPosition = meshFilter.transform.localPosition;
+                Quaternion rotation = Quaternion.Euler(
+                    Random.Range(1, 4) * 90f,
+                    Random.Range(1, 4) * 90f,
+                    Random.Range(1, 4) * 90f);
 
-            meshFilter.transform.localRotation = rotation;
-            meshFilter.transform.localPosition = rotation * restingLocalPosition;
+                meshFilter.transform.localRotation = rotation;
+                meshFilter.transform.localPosition = rotation * restingLocalPosition;
+            }
         }
 
         if (meshRenderer != null)
