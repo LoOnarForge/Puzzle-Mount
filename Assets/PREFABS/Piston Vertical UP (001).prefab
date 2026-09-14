@@ -263,7 +263,7 @@ Transform:
   m_GameObject: {fileID: 480704549775362161}
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 1, y: 0.5, z: 0}
+  m_LocalPosition: {x: 1, y: 0.617, z: 0}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children:
@@ -302,7 +302,7 @@ Transform:
   m_GameObject: {fileID: 757409150718187269}
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalPosition: {x: 0, y: 0.5, z: 0}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
@@ -315,7 +315,7 @@ MeshFilter:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 757409150718187269}
-  m_Mesh: {fileID: 7708337578138432172, guid: 641d85d96ebaee945b5ffd20a410ffa7, type: 3}
+  m_Mesh: {fileID: -2713315358966153883, guid: aa469cbd7eb6aea4ebf384f7bb943281, type: 3}
 --- !u!23 &4342304648479175962
 MeshRenderer:
   m_ObjectHideFlags: 0
@@ -648,8 +648,8 @@ Transform:
   m_GameObject: {fileID: 3680482040612460644}
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 1, y: 0.002, z: 0}
-  m_LocalScale: {x: 1, y: 0.42002, z: 1}
+  m_LocalPosition: {x: 1, y: 0.25, z: 0}
+  m_LocalScale: {x: 1, y: 0.5, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children:
   - {fileID: 8411889229958716070}
@@ -662,7 +662,7 @@ MeshFilter:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 3680482040612460644}
-  m_Mesh: {fileID: 7708337578138432172, guid: 641d85d96ebaee945b5ffd20a410ffa7, type: 3}
+  m_Mesh: {fileID: -2713315358966153883, guid: aa469cbd7eb6aea4ebf384f7bb943281, type: 3}
 --- !u!23 &7081858274354508549
 MeshRenderer:
   m_ObjectHideFlags: 0
@@ -5759,7 +5759,7 @@ MeshFilter:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 4780514376582631812}
-  m_Mesh: {fileID: 7708337578138432172, guid: 641d85d96ebaee945b5ffd20a410ffa7, type: 3}
+  m_Mesh: {fileID: -2713315358966153883, guid: aa469cbd7eb6aea4ebf384f7bb943281, type: 3}
 --- !u!23 &7719439175706239253
 MeshRenderer:
   m_ObjectHideFlags: 0
@@ -5962,7 +5962,6 @@ MonoBehaviour:
   ownerForgottenGate: {fileID: 0}
   ownerLever: {fileID: 0}
   ownerElevator: {fileID: 0}
-  ownerPiston: {fileID: 0}
   ownerPistonHorizontal: {fileID: 0}
   ownerPistonVertical: {fileID: 0}
   ownerTorchRunode: {fileID: 0}
@@ -6351,7 +6350,6 @@ MonoBehaviour:
   ownerForgottenGate: {fileID: 0}
   ownerLever: {fileID: 0}
   ownerElevator: {fileID: 0}
-  ownerPiston: {fileID: 0}
   ownerPistonHorizontal: {fileID: 0}
   ownerPistonVertical: {fileID: 0}
   ownerTorchRunode: {fileID: 0}
