@@ -76,7 +76,7 @@ GameObject:
   - component: {fileID: 3887815428660256478}
   - component: {fileID: 4235334987129154682}
   - component: {fileID: 3684590363855554302}
-  - component: {fileID: 706647317464957058}
+  - component: {fileID: 1258626193725284737}
   m_Layer: 10
   m_Name: 'Mesh '
   m_TagString: Untagged
@@ -156,7 +156,7 @@ MeshRenderer:
   m_SortingOrder: 0
   m_MaskInteraction: 0
   m_AdditionalVertexStreams: {fileID: 0}
---- !u!114 &706647317464957058
+--- !u!114 &1258626193725284737
 MonoBehaviour:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
@@ -165,27 +165,29 @@ MonoBehaviour:
   m_GameObject: {fileID: 5321921825075333337}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: ddf29c40c2cc8be47a289c8e60d93754, type: 3}
+  m_Script: {fileID: 11500000, guid: cfaaefc5e4fe6c94888dd4f07aa246da, type: 3}
   m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::RunodeCubeVisualRandomizer
+  m_EditorClassIdentifier: Assembly-CSharp::RunodeStaticCubeVisualRandomizer
+  isRandomMesh: 1
+  isRandomMaterial: 1
   meshes:
-  - {fileID: -2713315358966153883, guid: aa469cbd7eb6aea4ebf384f7bb943281, type: 3}
-  - {fileID: 2675737354320167212, guid: 5223adace06b247428d1491927fb38b1, type: 3}
-  - {fileID: 7969795110171841687, guid: 1a26e36a419f5684695c69182bb44287, type: 3}
-  - {fileID: 7708337578138432172, guid: 6c0f4d0bd60483443b0bcd7286e89fd5, type: 3}
-  - {fileID: -6517876966322010813, guid: 9b300930336f1bb499afe6a0259edc5e, type: 3}
-  - {fileID: -5130265498202734151, guid: 1b0bba51cce2cd24c92098bf657e6916, type: 3}
-  - {fileID: -483832111797618870, guid: 6051be5f0eeffb247986455c28b9e904, type: 3}
-  - {fileID: -7601307074351721914, guid: c44eb46fd36ca084a8db029f456223a4, type: 3}
-  - {fileID: 5115576524962790830, guid: b8659d1b0afeba24087fa6ecfd81f6d2, type: 3}
-  - {fileID: -7723684390424942907, guid: c5200961f2289db4cbce586b1475928a, type: 3}
+  - {fileID: 4300000, guid: c78359acc065d0849bfbbcbac8fe6525, type: 2}
+  - {fileID: 4300000, guid: f7637995c0147a9428153d5419acea8d, type: 2}
+  - {fileID: 4300000, guid: c0499cd8e693f2a47af496f81d4cf2f8, type: 2}
+  - {fileID: 4300000, guid: 6ed8da8d5e427674c84e4cf9b3f7d33e, type: 2}
+  - {fileID: 4300000, guid: 892b57317c4992d4797557b35e3febec, type: 2}
+  - {fileID: 4300000, guid: 12b244eaee475664fa8a340788b87a52, type: 2}
+  - {fileID: 4300000, guid: b0c4d9bfd04d784409049b8c2c0d4859, type: 2}
+  - {fileID: 4300000, guid: 93e0da01766aa6c46b244ee1dcbd61b1, type: 2}
+  - {fileID: 4300000, guid: 3ef32ce965e56a441b1c4b58d396570b, type: 2}
+  - {fileID: 4300000, guid: 6a273bf267ab8014994974d2ced1dfce, type: 2}
   materials:
   - {fileID: 2100000, guid: 083306651d8a9f246ba58ab6b43f29af, type: 2}
   - {fileID: 2100000, guid: 7ea2f40ce5bb5f544b4b47866e908624, type: 2}
   - {fileID: 2100000, guid: 2761a180deeaf8445ab31845de3f0db1, type: 2}
+  - {fileID: 2100000, guid: 776c45e3e59593e44a0d5edfb91b183b, type: 2}
+  - {fileID: 2100000, guid: 8f35cff12e2edac43a92cc314bc11c1a, type: 2}
   meshFilter: {fileID: 4235334987129154682}
-  meshRenderer: {fileID: 3684590363855554302}
-  lineSpriteLibrary: {fileID: 11400000, guid: b8e4d3f2c5a04719a2b3c4d5e6f70812, type: 2}
 --- !u!1 &7179646743101872080
 GameObject:
   m_ObjectHideFlags: 0

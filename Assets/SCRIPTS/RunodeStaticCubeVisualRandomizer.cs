@@ -2,16 +2,18 @@ using UnityEngine;
 
 public class RunodeStaticCubeVisualRandomizer : MonoBehaviour
 {
+    [SerializeField] private bool isRandomMesh = true;
+    [SerializeField] private bool isRandomMaterial = true;
+    [Space(10)]
     [SerializeField] private Mesh[] meshes;
     [Space(10)]
     [SerializeField] private Material[] materials;
     [Space(10)]
     [SerializeField] private MeshFilter meshFilter;
-    [SerializeField] private MeshRenderer meshRenderer;
 
     private void Awake()
     {
-        if (meshFilter != null && meshes != null && meshes.Length > 0)
+        if (isRandomMesh && meshFilter != null && meshes != null && meshes.Length > 0)
         {
             Transform meshTransform = meshFilter.transform;
             Vector3 restingLocalPosition = meshTransform.localPosition;
@@ -39,11 +41,15 @@ public class RunodeStaticCubeVisualRandomizer : MonoBehaviour
                 - rotation * Vector3.Scale(compensatedLocalScale, meshCenterLocal);
         }
 
-        if (meshRenderer != null && materials != null && materials.Length > 0)
+        if (isRandomMaterial && meshFilter != null && materials != null && materials.Length > 0)
         {
-            Material chosenMaterial = materials[Random.Range(0, materials.Length)];
-            if (chosenMaterial != null)
-                meshRenderer.sharedMaterial = chosenMaterial;
+            MeshRenderer meshRenderer = meshFilter.GetComponent<MeshRenderer>();
+            if (meshRenderer != null)
+            {
+                Material chosenMaterial = materials[Random.Range(0, materials.Length)];
+                if (chosenMaterial != null)
+                    meshRenderer.sharedMaterial = chosenMaterial;
+            }
         }
     }
 
