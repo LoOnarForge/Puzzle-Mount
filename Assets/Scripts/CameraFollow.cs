@@ -1,5 +1,6 @@
 using UnityEngine;
 using UnityEngine.InputSystem;
+using System.Collections.Generic;
 
 /// Handles Action Mode (cardinal follow) for Tim Jones.
 /// Coordinates with LeyasCamera for Inspection Mode.
@@ -48,6 +49,12 @@ public class CameraFollow : MonoBehaviour
 
     [Header("INSPECTION MODE (LEYA)")]
     public LeyasCamera leyaController;
+
+    [Header("Proximity Mesh Hide")]
+    [Tooltip("Trigger collider (child of camera). Its size sets hide radius; center follows this object.")]
+    public Collider proximityVolume;
+    [Tooltip("Layers whose meshes are disabled when overlapping the volume.")]
+    public LayerMask proximityHideLayers = ~0;
     
     public bool IsInspectionMode => isInspectionMode;
     public int CurrentAngleIndex => currentAngleIndex;
@@ -71,6 +78,10 @@ public class CameraFollow : MonoBehaviour
     private int originalAngleIndex = 0;
     private bool isInspectionMode = false;
 
+    private readonly Collider[] overlapResults = new Collider[32];
+    private readonly HashSet<Renderer> hiddenRenderers = new HashSet<Renderer>();
+    private readonly HashSet<Renderer> frameHiddenRenderers = new HashSet<Renderer>();
+
     private float DampingTime => Mathf.Lerp(0.35f, 0.02f, cameraResponsiveness);
     private float RotationLerpSpeed => Mathf.Lerp(2f, 20f, cameraResponsiveness);
     private float MaxPitchDownAmount => Mathf.Max(0f, cameraHeight - 2f * scrollZoomStep);
@@ -79,6 +90,11 @@ public class CameraFollow : MonoBehaviour
     {
         actionCamera = GetComponent<Camera>();
         ApplyCurrentOffset();
+    }
+
+    private void OnDisable()
+    {
+        RestoreAllHiddenMeshes();
     }
 
     private void OnValidate()
@@ -134,6 +150,11 @@ public class CameraFollow : MonoBehaviour
         if (!isInspectionMode)
         {
             UpdateActionMode();
+            UpdateProximityMeshHide();
+        }
+        else
+        {
+            RestoreAllHiddenMeshes();
         }
     }
     
@@ -211,6 +232,7 @@ public class CameraFollow : MonoBehaviour
             isInspectionMode = true;
             originalAngleIndex = currentAngleIndex;
             actionCamera.enabled = false;
+            RestoreAllHiddenMeshes();
             
             if (tim != null) tim.SetMovementEnabled(false);
             
@@ -249,6 +271,96 @@ public class CameraFollow : MonoBehaviour
             Quaternion targetRot = Quaternion.LookRotation(direction);
             transform.rotation = Quaternion.Slerp(transform.rotation, targetRot, RotationLerpSpeed * Time.deltaTime);
         }
+    }
+
+    private void UpdateProximityMeshHide()
+    {
+        if (proximityVolume == null)
+        {
+            RestoreAllHiddenMeshes();
+            return;
+        }
+
+        Vector3 center = proximityVolume.bounds.center;
+        float radius = GetProximityRadius();
+        int hitCount = Physics.OverlapSphereNonAlloc(
+            center,
+            radius,
+            overlapResults,
+            proximityHideLayers,
+            QueryTriggerInteraction.Ignore);
+
+        frameHiddenRenderers.Clear();
+
+        for (int i = 0; i < hitCount; i++)
+        {
+            Collider hit = overlapResults[i];
+            if (hit == null || hit == proximityVolume)
+                continue;
+
+            if (tim != null && hit.transform.IsChildOf(tim.transform))
+                continue;
+
+            Renderer[] renderers = hit.GetComponentsInChildren<Renderer>();
+            for (int r = 0; r < renderers.Length; r++)
+            {
+                Renderer renderer = renderers[r];
+                if (renderer != null)
+                    frameHiddenRenderers.Add(renderer);
+            }
+        }
+
+        if (hiddenRenderers.Count > 0)
+        {
+            tempRestoreList.Clear();
+            foreach (Renderer renderer in hiddenRenderers)
+            {
+                if (renderer == null || !frameHiddenRenderers.Contains(renderer))
+                    tempRestoreList.Add(renderer);
+            }
+
+            for (int i = 0; i < tempRestoreList.Count; i++)
+            {
+                Renderer renderer = tempRestoreList[i];
+                if (renderer != null)
+                    renderer.enabled = true;
+                hiddenRenderers.Remove(renderer);
+            }
+        }
+
+        foreach (Renderer renderer in frameHiddenRenderers)
+        {
+            if (renderer == null || hiddenRenderers.Contains(renderer))
+                continue;
+
+            renderer.enabled = false;
+            hiddenRenderers.Add(renderer);
+        }
+    }
+
+    private readonly List<Renderer> tempRestoreList = new List<Renderer>();
+
+    private float GetProximityRadius()
+    {
+        if (proximityVolume is SphereCollider sphere)
+        {
+            Vector3 scale = proximityVolume.transform.lossyScale;
+            return sphere.radius * Mathf.Max(scale.x, scale.y, scale.z);
+        }
+
+        return proximityVolume.bounds.extents.magnitude;
+    }
+
+    private void RestoreAllHiddenMeshes()
+    {
+        foreach (Renderer renderer in hiddenRenderers)
+        {
+            if (renderer != null)
+                renderer.enabled = true;
+        }
+
+        hiddenRenderers.Clear();
+        frameHiddenRenderers.Clear();
     }
 
     public void CycleClockwise()
