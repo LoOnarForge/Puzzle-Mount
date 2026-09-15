@@ -29,8 +29,12 @@ public class CameraFollow : MonoBehaviour
     public float maxZoomDistance = 14f;
     [Tooltip("Distance change per scroll notch")]
     public float scrollZoomStep = 0.4f;
+    [Tooltip("Extra scroll-in range beyond min zoom (fixed angle, dolly only)")]
+    public float maxExtraCloseDistance = 4f;
     
     private Vector3 lookAtOffset = Vector3.up * 2f;
+    private float extraCloseDistance;
+    private float pitchDownAmount;
     
     [Header("Manual Control")]
     public Key clockwiseKey = Key.E;
@@ -69,6 +73,7 @@ public class CameraFollow : MonoBehaviour
 
     private float DampingTime => Mathf.Lerp(0.35f, 0.02f, cameraResponsiveness);
     private float RotationLerpSpeed => Mathf.Lerp(2f, 20f, cameraResponsiveness);
+    private float MaxPitchDownAmount => Mathf.Max(0f, cameraHeight - 2f * scrollZoomStep);
 
     private void Awake()
     {
@@ -79,14 +84,38 @@ public class CameraFollow : MonoBehaviour
     private void OnValidate()
     {
         zoomDistance = Mathf.Clamp(zoomDistance, minZoomDistance, maxZoomDistance);
+        extraCloseDistance = Mathf.Clamp(extraCloseDistance, 0f, maxExtraCloseDistance);
+        pitchDownAmount = Mathf.Clamp(pitchDownAmount, 0f, MaxPitchDownAmount);
         if (presetOffsets != null && presetOffsets.Length > 0)
             ApplyCurrentOffset();
     }
 
     private void ApplyCurrentOffset()
     {
-        float zoomScale = zoomDistance / BaseZoomDistance;
         Vector3 preset = presetOffsets[currentAngleIndex];
+
+        if (pitchDownAmount > 0f)
+        {
+            float maxScale = maxZoomDistance / BaseZoomDistance;
+            offset = new Vector3(
+                preset.x * maxScale,
+                cameraHeight - pitchDownAmount,
+                preset.z * maxScale);
+            return;
+        }
+
+        if (extraCloseDistance > 0f)
+        {
+            float minScale = minZoomDistance / BaseZoomDistance;
+            Vector3 minOffset = new Vector3(preset.x * minScale, cameraHeight, preset.z * minScale);
+            if (minOffset.sqrMagnitude > 0.0001f)
+                offset = minOffset - minOffset.normalized * extraCloseDistance;
+            else
+                offset = minOffset;
+            return;
+        }
+
+        float zoomScale = zoomDistance / BaseZoomDistance;
         offset = new Vector3(preset.x * zoomScale, cameraHeight, preset.z * zoomScale);
     }
     
@@ -125,10 +154,7 @@ public class CameraFollow : MonoBehaviour
             float scroll = Mouse.current.scroll.ReadValue().y;
             if (Mathf.Abs(scroll) > 0.01f)
             {
-                zoomDistance = Mathf.Clamp(
-                    zoomDistance - Mathf.Sign(scroll) * scrollZoomStep,
-                    minZoomDistance,
-                    maxZoomDistance);
+                HandleScrollZoom(Mathf.Sign(scroll));
                 ApplyCurrentOffset();
             }
         }
@@ -137,6 +163,43 @@ public class CameraFollow : MonoBehaviour
         if (Keyboard.current[resetKey].wasPressedThisFrame) ResetToDefault();
         if (Keyboard.current[clockwiseKey].wasPressedThisFrame) CycleClockwise();
         if (Keyboard.current[counterClockwiseKey].wasPressedThisFrame) CycleCounterClockwise();
+    }
+
+    private void HandleScrollZoom(float scrollDirection)
+    {
+        // Positive scroll = zoom in, negative = zoom out
+        if (scrollDirection > 0f)
+        {
+            if (pitchDownAmount > 0f)
+            {
+                pitchDownAmount = Mathf.Max(0f, pitchDownAmount - scrollZoomStep);
+                return;
+            }
+
+            if (zoomDistance > minZoomDistance)
+            {
+                zoomDistance = Mathf.Max(minZoomDistance, zoomDistance - scrollZoomStep);
+                return;
+            }
+
+            extraCloseDistance = Mathf.Min(maxExtraCloseDistance, extraCloseDistance + scrollZoomStep);
+        }
+        else
+        {
+            if (extraCloseDistance > 0f)
+            {
+                extraCloseDistance = Mathf.Max(0f, extraCloseDistance - scrollZoomStep);
+                return;
+            }
+
+            if (zoomDistance < maxZoomDistance)
+            {
+                zoomDistance = Mathf.Min(maxZoomDistance, zoomDistance + scrollZoomStep);
+                return;
+            }
+
+            pitchDownAmount = Mathf.Min(MaxPitchDownAmount, pitchDownAmount + scrollZoomStep);
+        }
     }
 
     private void ToggleInspectionMode()
