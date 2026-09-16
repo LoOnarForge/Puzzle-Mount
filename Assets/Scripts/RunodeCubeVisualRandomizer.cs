@@ -160,7 +160,7 @@ public class RunodeCubeVisualRandomizer : MonoBehaviour
 
             SpriteRenderer spriteRenderer = child.GetComponent<SpriteRenderer>();
             if (spriteRenderer == null)
-                return;
+                continue;
 
             spriteRenderer.sprite = sprite;
             spriteRenderer.size = sprite.bounds.size * 1.98f;
