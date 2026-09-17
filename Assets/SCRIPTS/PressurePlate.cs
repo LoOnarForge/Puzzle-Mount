@@ -253,7 +253,7 @@ public class PressurePlate : MonoBehaviour
                     continue;
                 }
 
-                pistonVerticals.Add(pistonVertical);
+                pistonVerticals.Add(pistonVertical); 
             }
         }
     }
