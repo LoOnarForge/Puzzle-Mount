@@ -11478,7 +11478,7 @@ Transform:
   m_GameObject: {fileID: 1043945975}
   serializedVersion: 2
   m_LocalRotation: {x: -0.27579248, y: 0.035457745, z: -0.122488365, w: 0.95272136}
-  m_LocalPosition: {x: 13.4, y: -1.3100004, z: 11.3}
+  m_LocalPosition: {x: 23.9, y: 3.6899996, z: 18.8}
   m_LocalScale: {x: 3, y: 3, z: 3}
   m_ConstrainProportionsScale: 0
   m_Children:
@@ -12205,15 +12205,15 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 2124630496601074580, guid: 8327116535cf1624d9db336499d66ebe, type: 3}
       propertyPath: m_LocalPosition.x
-      value: 33.378998
+      value: 39.378998
       objectReference: {fileID: 0}
     - target: {fileID: 2124630496601074580, guid: 8327116535cf1624d9db336499d66ebe, type: 3}
       propertyPath: m_LocalPosition.y
-      value: 1
+      value: 5
       objectReference: {fileID: 0}
     - target: {fileID: 2124630496601074580, guid: 8327116535cf1624d9db336499d66ebe, type: 3}
       propertyPath: m_LocalPosition.z
-      value: -9.143
+      value: -1.1429996
       objectReference: {fileID: 0}
     - target: {fileID: 2124630496601074580, guid: 8327116535cf1624d9db336499d66ebe, type: 3}
       propertyPath: m_LocalRotation.w
@@ -36525,7 +36525,7 @@ Transform:
   m_GameObject: {fileID: 7603746729615692604}
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 31, y: 0, z: -11}
+  m_LocalPosition: {x: 41.5, y: 5.5, z: -2}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children:
@@ -41791,8 +41791,10 @@ MonoBehaviour:
   cubeMeshRenderer: {fileID: 0}
   cubeSize: 1
   gridResolution: 4
-  debrisLifetime: 3
+  debrisLifetime: 4
   explosionForce: 0.005
+  minFadeStartTime: 2
+  fadeDuration: 1
   breakOnKeyPress: 1
   debugBreakKey: 98
 --- !u!23 &7609110242080219022
@@ -42878,7 +42880,7 @@ MeshFilter:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 8454656711397884401}
-  m_Mesh: {fileID: 4300000, guid: c78359acc065d0849bfbbcbac8fe6525, type: 2}
+  m_Mesh: {fileID: 4300000, guid: 12b244eaee475664fa8a340788b87a52, type: 2}
 --- !u!65 &8454656711397884406
 BoxCollider:
   m_ObjectHideFlags: 0

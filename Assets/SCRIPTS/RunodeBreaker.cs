@@ -1,5 +1,4 @@
 using System.Collections;
-using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.InputSystem;
 
@@ -9,6 +8,8 @@ public class RunodeBreaker : MonoBehaviour
     private const int DefaultGridResolution = 5;
     private const float DefaultDebrisLifetime = 3f;
     private const float DefaultExplosionForce = 1.5f;
+    private const float DefaultMinFadeStartTime = 1.5f;
+    private const float DefaultFadeDuration = 1f;
 
     [Header("VISUAL SOURCE")]
     [SerializeField] private MeshRenderer cubeMeshRenderer;
@@ -18,6 +19,8 @@ public class RunodeBreaker : MonoBehaviour
     [SerializeField] private int gridResolution = DefaultGridResolution;
     [SerializeField] private float debrisLifetime = DefaultDebrisLifetime;
     [SerializeField] private float explosionForce = DefaultExplosionForce;
+    [SerializeField] private float minFadeStartTime = DefaultMinFadeStartTime;
+    [SerializeField] private float fadeDuration = DefaultFadeDuration;
 
     [Header("DEBUG")]
     [SerializeField] private bool breakOnKeyPress;
@@ -71,8 +74,6 @@ public class RunodeBreaker : MonoBehaviour
         float halfCube = cubeSize * 0.5f;
         float halfCell = cellSize * 0.5f;
 
-        List<RunodeDebrisChunk> spawnedChunks = new List<RunodeDebrisChunk>(gridResolution * gridResolution * gridResolution);
-
         for (int x = 0; x < gridResolution; x++)
         {
             for (int y = 0; y < gridResolution; y++)
@@ -96,8 +97,14 @@ public class RunodeBreaker : MonoBehaviour
                         continue;
 
                     chunk.transform.SetParent(null, true);
-                    chunk.Activate(worldPosition, cellSize, debrisMaterial, explosion);
-                    spawnedChunks.Add(chunk);
+                    chunk.Activate(
+                        worldPosition,
+                        cellSize,
+                        debrisMaterial,
+                        explosion,
+                        debrisLifetime,
+                        minFadeStartTime,
+                        fadeDuration);
                 }
             }
         }
@@ -105,12 +112,8 @@ public class RunodeBreaker : MonoBehaviour
         if (runodeCube != null)
             RunodeCube.RefreshConnectionsNearPoint(transform.position);
 
-        yield return new WaitForSeconds(debrisLifetime);
-
-        for (int i = 0; i < spawnedChunks.Count; i++)
-            RunodeDebrisPool.Instance.Release(spawnedChunks[i]);
-
         Destroy(gameObject);
+        yield break;
     }
 
     private void PowerDownAllLines()
