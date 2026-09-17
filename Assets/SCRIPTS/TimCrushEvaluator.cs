@@ -152,6 +152,9 @@ public class TimCrushEvaluator : MonoBehaviour
         if (other == probeCapsule)
             return true;
 
+        if (other.GetComponentInParent<RunodeDebrisChunk>() != null)
+            return true;
+
         return other.isTrigger;
     }
 
