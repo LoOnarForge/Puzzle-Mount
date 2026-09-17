@@ -1,5 +1,6 @@
 using UnityEngine;
 using UnityEngine.InputSystem;
+using UnityEngine.Rendering;
 using System.Collections.Generic;
 
 /// Handles Action Mode (cardinal follow) for Tim Jones.
@@ -53,7 +54,7 @@ public class CameraFollow : MonoBehaviour
     [Header("Proximity Mesh Hide")]
     [Tooltip("Trigger collider (child of camera). Its size sets hide radius; center follows this object.")]
     public Collider proximityVolume;
-    [Tooltip("Layers whose meshes are disabled when overlapping the volume.")]
+    [Tooltip("Layers whose meshes are hidden (shadows-only) when overlapping the volume.")]
     public LayerMask proximityHideLayers = ~0;
     
     public bool IsInspectionMode => isInspectionMode;
@@ -79,7 +80,7 @@ public class CameraFollow : MonoBehaviour
     private bool isInspectionMode = false;
 
     private readonly Collider[] overlapResults = new Collider[32];
-    private readonly HashSet<Renderer> hiddenRenderers = new HashSet<Renderer>();
+    private readonly Dictionary<Renderer, ShadowCastingMode> proximityHiddenRenderers = new Dictionary<Renderer, ShadowCastingMode>();
     private readonly HashSet<Renderer> frameHiddenRenderers = new HashSet<Renderer>();
 
     private float DampingTime => Mathf.Lerp(0.35f, 0.02f, cameraResponsiveness);
@@ -310,32 +311,35 @@ public class CameraFollow : MonoBehaviour
             }
         }
 
-        if (hiddenRenderers.Count > 0)
+        if (proximityHiddenRenderers.Count > 0)
         {
             tempRestoreList.Clear();
-            foreach (Renderer renderer in hiddenRenderers)
+            foreach (Renderer renderer in proximityHiddenRenderers.Keys)
             {
                 if (renderer == null || !frameHiddenRenderers.Contains(renderer))
                     tempRestoreList.Add(renderer);
             }
 
             for (int i = 0; i < tempRestoreList.Count; i++)
-            {
-                Renderer renderer = tempRestoreList[i];
-                if (renderer != null)
-                    renderer.enabled = true;
-                hiddenRenderers.Remove(renderer);
-            }
+                RestoreProximityHiddenRenderer(tempRestoreList[i]);
         }
 
         foreach (Renderer renderer in frameHiddenRenderers)
         {
-            if (renderer == null || hiddenRenderers.Contains(renderer))
+            if (renderer == null || proximityHiddenRenderers.ContainsKey(renderer))
                 continue;
 
-            renderer.enabled = false;
-            hiddenRenderers.Add(renderer);
+            proximityHiddenRenderers[renderer] = renderer.shadowCastingMode;
+            renderer.shadowCastingMode = ShadowCastingMode.ShadowsOnly;
         }
+    }
+
+    private void RestoreProximityHiddenRenderer(Renderer renderer)
+    {
+        if (renderer != null && proximityHiddenRenderers.TryGetValue(renderer, out ShadowCastingMode originalMode))
+            renderer.shadowCastingMode = originalMode;
+
+        proximityHiddenRenderers.Remove(renderer);
     }
 
     private readonly List<Renderer> tempRestoreList = new List<Renderer>();
@@ -353,13 +357,13 @@ public class CameraFollow : MonoBehaviour
 
     private void RestoreAllHiddenMeshes()
     {
-        foreach (Renderer renderer in hiddenRenderers)
+        foreach (KeyValuePair<Renderer, ShadowCastingMode> entry in proximityHiddenRenderers)
         {
-            if (renderer != null)
-                renderer.enabled = true;
+            if (entry.Key != null)
+                entry.Key.shadowCastingMode = entry.Value;
         }
 
-        hiddenRenderers.Clear();
+        proximityHiddenRenderers.Clear();
         frameHiddenRenderers.Clear();
     }
 
