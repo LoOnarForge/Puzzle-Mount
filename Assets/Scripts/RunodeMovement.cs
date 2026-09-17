@@ -274,7 +274,7 @@ public class RunodeMovement : MonoBehaviour
         Vector3 basePos = transform.position;
         foreach (RunodeMovement cube in allCubes)
         {
-            if (cube == this) continue;
+            if (cube == null || cube == this) continue;
             Vector3 cubePos = cube.transform.position;
             bool isAligned = Mathf.Abs(cubePos.x - basePos.x) < 0.1f && Mathf.Abs(cubePos.z - basePos.z) < 0.1f;
             bool isAbove = cubePos.y > basePos.y;
