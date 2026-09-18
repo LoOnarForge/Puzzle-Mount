@@ -70,6 +70,9 @@ public class RunodeBreaker : MonoBehaviour
 
         Material debrisMaterial = cubeMeshRenderer != null ? cubeMeshRenderer.sharedMaterial : null;
         Vector3 cubeCenter = transform.position;
+
+        RunodeDebrisPool.Instance.PlayBreakEffect(cubeCenter);
+
         float cellSize = cubeSize / gridResolution;
         float halfCube = cubeSize * 0.5f;
         float halfCell = cellSize * 0.5f;

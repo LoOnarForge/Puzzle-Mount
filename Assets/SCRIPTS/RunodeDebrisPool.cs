@@ -5,8 +5,12 @@ public class RunodeDebrisPool : MonoBehaviour
 {
     public static RunodeDebrisPool Instance { get; private set; }
 
+    [Header("DEBRIS")]
     [SerializeField] private RunodeDebrisChunk chunkPrefab;
     [SerializeField] private int prewarmCount = 375;
+
+    [Header("BREAK EFFECT")]
+    [SerializeField] private ParticleSystem breakParticlesPrefab;
 
     private readonly Queue<RunodeDebrisChunk> available = new Queue<RunodeDebrisChunk>();
 
@@ -46,6 +50,20 @@ public class RunodeDebrisPool : MonoBehaviour
             return CreateChunk();
 
         return available.Dequeue();
+    }
+
+    // Spawns the break particle effect at the center of a destroyed runode.
+    public void PlayBreakEffect(Vector3 worldPosition)
+    {
+        if (breakParticlesPrefab == null)
+            return;
+
+        ParticleSystem instance = Instantiate(breakParticlesPrefab, worldPosition, Quaternion.identity);
+        instance.Play();
+
+        ParticleSystem.MainModule main = instance.main;
+        float lifetime = main.duration + main.startLifetime.constantMax;
+        Destroy(instance.gameObject, lifetime);
     }
 
     // Returns a debris chunk to the pool.
