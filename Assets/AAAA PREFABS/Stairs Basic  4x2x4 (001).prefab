@@ -174,59 +174,6 @@ MonoBehaviour:
   - {fileID: 0}
   meshRenderers:
   - {fileID: 2625726606641707208}
---- !u!1 &1166163014131190816
-GameObject:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  serializedVersion: 6
-  m_Component:
-  - component: {fileID: 7766356361576799017}
-  - component: {fileID: 7673746477866648224}
-  m_Layer: 15
-  m_Name: Runode Stopper
-  m_TagString: Untagged
-  m_Icon: {fileID: 0}
-  m_NavMeshLayer: 0
-  m_StaticEditorFlags: 0
-  m_IsActive: 1
---- !u!4 &7766356361576799017
-Transform:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1166163014131190816}
-  serializedVersion: 2
-  m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
-  m_LocalPosition: {x: 0.5, y: 3, z: -2.3909998}
-  m_LocalScale: {x: 3.27175, y: 3.1, z: 0.124989994}
-  m_ConstrainProportionsScale: 0
-  m_Children: []
-  m_Father: {fileID: 6157180487226148492}
-  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
---- !u!65 &7673746477866648224
-BoxCollider:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1166163014131190816}
-  m_Material: {fileID: 0}
-  m_IncludeLayers:
-    serializedVersion: 2
-    m_Bits: 0
-  m_ExcludeLayers:
-    serializedVersion: 2
-    m_Bits: 0
-  m_LayerOverridePriority: 0
-  m_IsTrigger: 0
-  m_ProvidesContacts: 0
-  m_Enabled: 1
-  serializedVersion: 3
-  m_Size: {x: 0.999, y: 0.999, z: 0.999}
-  m_Center: {x: 0, y: 0, z: 0}
 --- !u!1 &3153380645183778485
 GameObject:
   m_ObjectHideFlags: 0
@@ -499,6 +446,93 @@ BoxCollider:
   serializedVersion: 3
   m_Size: {x: 1, y: 1, z: 1}
   m_Center: {x: 0, y: 0, z: 0}
+--- !u!1 &4508727534075339900
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 5710810104737289690}
+  - component: {fileID: 6309729282719256912}
+  - component: {fileID: 7253530901285602214}
+  - component: {fileID: 5799001121203027333}
+  m_Layer: 10
+  m_Name: Runode Destroyer
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &5710810104737289690
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 4508727534075339900}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0.2182275, y: -0, z: -0, w: 0.97589797}
+  m_LocalPosition: {x: 0.473, y: 0.87, z: -0.33}
+  m_LocalScale: {x: 1, y: 1, z: 0.71843606}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 6157180487226148492}
+  m_LocalEulerAnglesHint: {x: 25.21, y: 0, z: 0}
+--- !u!65 &6309729282719256912
+BoxCollider:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 4508727534075339900}
+  m_Material: {fileID: 0}
+  m_IncludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_ExcludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_LayerOverridePriority: 0
+  m_IsTrigger: 1
+  m_ProvidesContacts: 0
+  m_Enabled: 1
+  serializedVersion: 3
+  m_Size: {x: 2.6, y: 0.3, z: 3.89}
+  m_Center: {x: 0, y: 0, z: 0}
+--- !u!114 &7253530901285602214
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 4508727534075339900}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: f8e0355d2b2c9884eaf65162bdb63c42, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::RunodeDestructionTrigger
+  runodeLayerMask:
+    serializedVersion: 2
+    m_Bits: 2048
+--- !u!114 &5799001121203027333
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 4508727534075339900}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: f22b6e255ed957a4ebc90a36830bbed2, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::TriggerMarker
+  targetCollider: {fileID: 6309729282719256912}
+  frameColor: {r: 1, g: 0.00000015298525, b: 0, a: 1}
+  icon: {fileID: 10913, guid: 0000000000000000f000000000000000, type: 0}
+  iconSize: 0.2
+  iconOffset: {x: 0.65, y: 0.65, z: 0}
 --- !u!1 &5713689815845193172
 GameObject:
   m_ObjectHideFlags: 0
@@ -583,7 +617,7 @@ Transform:
   m_Children:
   - {fileID: 3441453798032927788}
   - {fileID: 2361111290261714300}
-  - {fileID: 7766356361576799017}
+  - {fileID: 5710810104737289690}
   m_Father: {fileID: 4448202997604134570}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &8831692723062291248

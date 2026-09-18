@@ -8,8 +8,8 @@ public class RunodeBreaker : MonoBehaviour
     private const int DefaultGridResolution = 5;
     private const float DefaultDebrisLifetime = 3f;
     private const float DefaultExplosionForce = 1.5f;
-    private const float DefaultMinFadeStartTime = 1.5f;
-    private const float DefaultFadeDuration = 1f;
+    private const float DefaultFadeDuration = 2f;
+    private const float DefaultTimingRandomSpread = 0.5f;
 
     [Header("VISUAL SOURCE")]
     [SerializeField] private MeshRenderer cubeMeshRenderer;
@@ -19,8 +19,8 @@ public class RunodeBreaker : MonoBehaviour
     [SerializeField] private int gridResolution = DefaultGridResolution;
     [SerializeField] private float debrisLifetime = DefaultDebrisLifetime;
     [SerializeField] private float explosionForce = DefaultExplosionForce;
-    [SerializeField] private float minFadeStartTime = DefaultMinFadeStartTime;
     [SerializeField] private float fadeDuration = DefaultFadeDuration;
+    [SerializeField] private float timingRandomSpread = DefaultTimingRandomSpread;
 
     [Header("DEBUG")]
     [SerializeField] private bool breakOnKeyPress;
@@ -86,11 +86,13 @@ public class RunodeBreaker : MonoBehaviour
                         z * cellSize + halfCell - halfCube);
 
                     Vector3 worldPosition = cubeCenter + localOffset;
-                    Vector3 forceDirection = (worldPosition - cubeCenter).normalized;
+                    Vector3 forceDirection = new Vector3(localOffset.x, 0f, localOffset.z);
                     if (forceDirection.sqrMagnitude < 0.001f)
-                        forceDirection = Vector3.up;
+                        forceDirection = Vector3.right;
+                    else
+                        forceDirection.Normalize();
 
-                    Vector3 explosion = forceDirection * explosionForce + Vector3.up * (explosionForce * 0.25f);
+                    Vector3 explosion = forceDirection * explosionForce;
 
                     RunodeDebrisChunk chunk = RunodeDebrisPool.Instance.Get();
                     if (chunk == null)
@@ -103,8 +105,8 @@ public class RunodeBreaker : MonoBehaviour
                         debrisMaterial,
                         explosion,
                         debrisLifetime,
-                        minFadeStartTime,
-                        fadeDuration);
+                        fadeDuration,
+                        timingRandomSpread);
                 }
             }
         }

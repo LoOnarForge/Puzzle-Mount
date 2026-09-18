@@ -13,6 +13,7 @@ public class TriggerMarkerEditor : Editor
         EditorGUILayout.PropertyField(serializedObject.FindProperty("frameColor"));
         EditorGUILayout.PropertyField(serializedObject.FindProperty("icon"));
         EditorGUILayout.PropertyField(serializedObject.FindProperty("iconSize"));
+        EditorGUILayout.PropertyField(serializedObject.FindProperty("iconOffset"));
 
         serializedObject.ApplyModifiedProperties();
     }
@@ -66,11 +67,13 @@ static class TriggerMarkerSceneDrawer
 
         foreach (TriggerMarker marker in Object.FindObjectsByType<TriggerMarker>(FindObjectsInactive.Include, FindObjectsSortMode.None))
         {
-            Collider collider = marker.TargetCollider;
-            if (collider == null || !collider.enabled)
+            if (marker.Icon == null || marker.TargetCollider == null)
                 continue;
 
-            if (TryGetPickDistance(ray, collider, out float distance) && distance < bestDistance)
+            Vector3 iconPosition = GetIconWorldPosition(marker);
+            float pickRadius = Mathf.Max(0.05f, marker.IconSize * 0.5f);
+
+            if (TryPickSphere(ray, iconPosition, pickRadius, out float distance) && distance < bestDistance)
             {
                 bestDistance = distance;
                 bestMarker = marker;
@@ -85,7 +88,6 @@ static class TriggerMarkerSceneDrawer
 
         GameObject target = bestMarker.gameObject;
 
-        // Already selected — leave the click alone so move/rotate/scale handles work.
         if (IsInSelection(target) && !e.shift)
             return;
 
@@ -93,59 +95,16 @@ static class TriggerMarkerSceneDrawer
         e.Use();
     }
 
-    private static bool IsInSelection(GameObject target)
+    private static Vector3 GetIconWorldPosition(TriggerMarker marker)
     {
-        GameObject[] selected = Selection.gameObjects;
-        for (int i = 0; i < selected.Length; i++)
-        {
-            if (selected[i] == target)
-                return true;
-        }
-
-        return false;
+        Collider collider = marker.TargetCollider;
+        Vector3 worldOffset = marker.transform.TransformVector(marker.IconOffset);
+        return collider.bounds.center + worldOffset;
     }
 
-    private static bool TryGetPickDistance(Ray ray, Collider collider, out float distance)
-    {
-        if (collider.Raycast(ray, out RaycastHit hit, float.MaxValue))
-        {
-            distance = hit.distance;
-            return true;
-        }
-
-        switch (collider)
-        {
-            case BoxCollider box:
-                return RaycastBox(ray, box, out distance);
-            case SphereCollider sphere:
-                return RaycastSphere(ray, sphere, out distance);
-        }
-
-        return collider.bounds.IntersectRay(ray, out distance);
-    }
-
-    private static bool RaycastBox(Ray worldRay, BoxCollider box, out float distance)
+    private static bool TryPickSphere(Ray ray, Vector3 center, float radius, out float distance)
     {
         distance = float.MaxValue;
-        Transform transform = box.transform;
-        Vector3 localOrigin = transform.InverseTransformPoint(worldRay.origin);
-        Vector3 localDirection = transform.InverseTransformDirection(worldRay.direction);
-        Ray localRay = new Ray(localOrigin, localDirection);
-
-        Bounds localBounds = new Bounds(box.center, box.size);
-        if (!localBounds.IntersectRay(localRay, out float localDistance))
-            return false;
-
-        Vector3 worldHit = transform.TransformPoint(localOrigin + localDirection * localDistance);
-        distance = Vector3.Dot(worldHit - worldRay.origin, worldRay.direction.normalized);
-        return distance >= 0f;
-    }
-
-    private static bool RaycastSphere(Ray ray, SphereCollider sphere, out float distance)
-    {
-        distance = float.MaxValue;
-        Vector3 center = sphere.transform.TransformPoint(sphere.center);
-        float radius = sphere.radius * GetMaxAxisScale(sphere.transform);
         Vector3 offset = ray.origin - center;
 
         float b = Vector3.Dot(offset, ray.direction);
@@ -162,6 +121,18 @@ static class TriggerMarkerSceneDrawer
 
         distance = t;
         return true;
+    }
+
+    private static bool IsInSelection(GameObject target)
+    {
+        GameObject[] selected = Selection.gameObjects;
+        for (int i = 0; i < selected.Length; i++)
+        {
+            if (selected[i] == target)
+                return true;
+        }
+
+        return false;
     }
 
     private static void SelectMarker(GameObject target)
@@ -313,7 +284,7 @@ static class TriggerMarkerSceneDrawer
 
         Transform iconTransform = marker.GetOrCreateIconTransform();
         iconTransform.gameObject.SetActive(true);
-        iconTransform.position = collider.bounds.center;
+        iconTransform.position = GetIconWorldPosition(marker);
 
         if (sceneView != null && sceneView.camera != null)
             iconTransform.rotation = sceneView.camera.transform.rotation;

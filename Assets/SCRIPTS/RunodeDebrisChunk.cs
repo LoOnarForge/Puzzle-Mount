@@ -5,6 +5,8 @@ using UnityEngine.Rendering;
 [RequireComponent(typeof(Rigidbody))]
 public class RunodeDebrisChunk : MonoBehaviour
 {
+    private const float MinFadeDuration = 0.05f;
+
     private static readonly int BaseColorId = Shader.PropertyToID("_BaseColor");
     private static readonly int ColorId = Shader.PropertyToID("_Color");
     private static readonly int SurfaceId = Shader.PropertyToID("_Surface");
@@ -34,9 +36,9 @@ public class RunodeDebrisChunk : MonoBehaviour
         float size,
         Material material,
         Vector3 explosionForce,
-        float totalLifetime,
-        float minFadeStartTime,
-        float fadeDuration)
+        float debrisLifetime,
+        float fadeDuration,
+        float timingRandomSpread)
     {
         if (fadeCoroutine != null)
         {
@@ -60,7 +62,7 @@ public class RunodeDebrisChunk : MonoBehaviour
         rb.AddForce(explosionForce, ForceMode.Impulse);
         rb.AddTorque(Random.insideUnitSphere * explosionForce.magnitude * 0.25f, ForceMode.Impulse);
 
-        fadeCoroutine = StartCoroutine(FadeOutRoutine(totalLifetime, minFadeStartTime, fadeDuration));
+        fadeCoroutine = StartCoroutine(FadeOutRoutine(debrisLifetime, fadeDuration, timingRandomSpread));
     }
 
     // Returns the chunk to an inactive pooled state.
@@ -106,13 +108,15 @@ public class RunodeDebrisChunk : MonoBehaviour
         fadeMaterial = null;
     }
 
-    private IEnumerator FadeOutRoutine(float totalLifetime, float minFadeStartTime, float fadeDuration)
+    private IEnumerator FadeOutRoutine(float debrisLifetime, float fadeDuration, float timingRandomSpread)
     {
-        float latestFadeStart = totalLifetime - fadeDuration;
-        if (latestFadeStart < minFadeStartTime)
-            latestFadeStart = minFadeStartTime;
+        float chunkFadeDuration = fadeDuration + Random.Range(-timingRandomSpread, timingRandomSpread);
+        chunkFadeDuration = Mathf.Max(MinFadeDuration, chunkFadeDuration);
 
-        float fadeStartDelay = Random.Range(minFadeStartTime, latestFadeStart);
+        float disappearTime = debrisLifetime + Random.Range(-timingRandomSpread, timingRandomSpread);
+        disappearTime = Mathf.Max(disappearTime, chunkFadeDuration);
+
+        float fadeStartDelay = disappearTime - chunkFadeDuration;
         float elapsed = 0f;
 
         while (elapsed < fadeStartDelay)
@@ -122,10 +126,10 @@ public class RunodeDebrisChunk : MonoBehaviour
         }
 
         float fadeElapsed = 0f;
-        while (fadeElapsed < fadeDuration)
+        while (fadeElapsed < chunkFadeDuration)
         {
             fadeElapsed += Time.deltaTime;
-            float t = fadeElapsed / fadeDuration;
+            float t = fadeElapsed / chunkFadeDuration;
 
             transform.localScale = Vector3.Lerp(activeScale, Vector3.zero, t);
             SetMaterialAlpha(Mathf.Lerp(1f, 0f, t));
