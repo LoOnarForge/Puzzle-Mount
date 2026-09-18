@@ -10,6 +10,13 @@ namespace ColliderOptimizer.Gltfpack
 {
     static class GltfpackRunner
     {
+        const float SimplificationErrorMin = 0.01f;
+        const float SimplificationErrorMax = 1f;
+
+        // gltfpack defaults -se to 0.01; without raising this, -si cannot shrink below an error-limited tri floor.
+        public static float SimplificationErrorFromContraction(float __contraction) =>
+            Mathf.Lerp(SimplificationErrorMin, SimplificationErrorMax, Mathf.Clamp01(__contraction));
+
         static string FindBinary()
         {
 #if UNITY_EDITOR_WIN
@@ -52,13 +59,15 @@ namespace ColliderOptimizer.Gltfpack
         }
 #endif
 
-        public static bool Run(string __inPath, string __outPath, float __keepRatio, bool __aggressive = false, bool __permissive = false)
+        public static bool Run(
+            string __inPath, string __outPath, float __keepRatio,
+            bool __aggressive = false, bool __permissive = false, float __simplificationError = SimplificationErrorMin)
         {
             string exe = FindBinary();
             string args = string.Format(
                 CultureInfo.InvariantCulture,
-                "-i \"{0}\" -o \"{1}\" -si {2:0.###}",
-                __inPath, __outPath, Mathf.Clamp01(__keepRatio)
+                "-i \"{0}\" -o \"{1}\" -si {2:0.###} -se {3:0.#####}",
+                __inPath, __outPath, Mathf.Clamp01(__keepRatio), Mathf.Clamp(__simplificationError, SimplificationErrorMin, SimplificationErrorMax)
             );
             if (__aggressive) args += " -sa";
             if (__permissive) args += " -sp";

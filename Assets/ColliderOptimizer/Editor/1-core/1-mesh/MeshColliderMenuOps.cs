@@ -10,21 +10,26 @@ namespace ColliderOptimizer.Core.M
     {
         public void Optimize(MeshCollider __mc)
         {
-            var go = __mc.gameObject;
-            var mf = go.GetComponent<MeshFilter>();
-            var src = (mf && mf.sharedMesh) ? mf.sharedMesh : __mc.sharedMesh;
+            var src = __mc.sharedMesh;
+            if (!src)
+            {
+                var mf = __mc.GetComponent<MeshFilter>();
+                src = mf ? mf.sharedMesh : null;
+            }
             if (!src) { Debug.LogWarning("no source mesh found", __mc); return; }
 
             var p = OptSettings.MeshParams;
             Undo.RecordObject(__mc, "Optimize MeshCollider");
             MeshOptHelpers.ResetMesh(__mc, src, p);
 
-            float keep = 1f - Mathf.Clamp01(p.ContractionFactor);
+            float contraction = Mathf.Clamp01(p.ContractionFactor);
+            float keep = 1f - contraction;
+            float simplificationError = GltfpackRunner.SimplificationErrorFromContraction(contraction);
 
             Mesh simplified = MeshSimplifyGateway.SimplifyWithGltfpack(
                 src, keep, p.RecalcNormals,
                 "Assets/ColliderOptimizer/Editor/5-opt-out",
-                p.Aggressive, p.Permissive);
+                p.Aggressive, p.Permissive, simplificationError);
 
             if (!simplified) simplified = MeshOptHelpers.CloneMesh(src);
 
@@ -36,8 +41,12 @@ namespace ColliderOptimizer.Core.M
         }
         public void Reset(MeshCollider __mc)
         {
-            var mf = __mc.GetComponent<MeshFilter>();
-            var src = (mf && mf.sharedMesh) ? mf.sharedMesh : __mc.sharedMesh;
+            var src = __mc.sharedMesh;
+            if (!src)
+            {
+                var mf = __mc.GetComponent<MeshFilter>();
+                src = mf ? mf.sharedMesh : null;
+            }
             if (!src) { Debug.LogWarning("no authoring mesh found", __mc); return; }
             var p = OptSettings.MeshParams;
             Undo.RecordObject(__mc, "Reset MeshCollider");

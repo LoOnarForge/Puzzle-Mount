@@ -12,7 +12,8 @@ namespace ColliderOptimizer.Gltfpack
         public static Mesh SimplifyWithGltfpack(
            Mesh __src, float __keepRatio, bool __recalcNormals,
            string __saveDir = "Assets/ColliderOptimizer/Editor/5-opt-out",
-           bool __aggressive = false, bool __permissive = false
+           bool __aggressive = false, bool __permissive = false,
+           float __simplificationError = 0.01f
        )
         {
             if (!__src) return null;
@@ -30,7 +31,7 @@ namespace ColliderOptimizer.Gltfpack
             {
                 ObjExporter.WriteOBJ(__src, objPath);
 
-                if (!GltfpackRunner.Run(objPath, glbPath, __keepRatio, __aggressive, __permissive))
+                if (!GltfpackRunner.Run(objPath, glbPath, __keepRatio, __aggressive, __permissive, __simplificationError))
                     return null;
 
                 Directory.CreateDirectory(__saveDir);
