@@ -82,6 +82,7 @@ public class CameraFollow : MonoBehaviour
     private readonly Collider[] overlapResults = new Collider[32];
     private readonly Dictionary<Renderer, ShadowCastingMode> proximityHiddenRenderers = new Dictionary<Renderer, ShadowCastingMode>();
     private readonly HashSet<Renderer> frameHiddenRenderers = new HashSet<Renderer>();
+    private MeshCollider[] proximityMeshColliders;
 
     private float DampingTime => Mathf.Lerp(0.35f, 0.02f, cameraResponsiveness);
     private float RotationLerpSpeed => Mathf.Lerp(2f, 20f, cameraResponsiveness);
@@ -140,6 +141,21 @@ public class CameraFollow : MonoBehaviour
     {
         tim = FindAnyObjectByType<CharacterMovement>();
         if (findPlayerAutomatically && target == null && tim != null) target = tim.transform;
+        CacheProximityMeshColliders();
+    }
+
+    private void CacheProximityMeshColliders()
+    {
+        MeshCollider[] all = FindObjectsByType<MeshCollider>(FindObjectsSortMode.None);
+        var list = new List<MeshCollider>(all.Length);
+        int mask = proximityHideLayers.value;
+        for (int i = 0; i < all.Length; i++)
+        {
+            MeshCollider mc = all[i];
+            if (mc != null && (mask & (1 << mc.gameObject.layer)) != 0)
+                list.Add(mc);
+        }
+        proximityMeshColliders = list.ToArray();
     }
     
     private void LateUpdate()
@@ -294,28 +310,15 @@ public class CameraFollow : MonoBehaviour
         frameHiddenRenderers.Clear();
 
         for (int i = 0; i < hitCount; i++)
+            CollectProximityHideRenderers(overlapResults[i]);
+
+        if (proximityMeshColliders != null)
         {
-            Collider hit = overlapResults[i];
-            if (hit == null || hit == proximityVolume)
-                continue;
-
-            if (tim != null && hit.transform.IsChildOf(tim.transform))
-                continue;
-
-            Renderer[] childRenderers = hit.GetComponentsInChildren<Renderer>();
-            for (int r = 0; r < childRenderers.Length; r++)
+            for (int i = 0; i < proximityMeshColliders.Length; i++)
             {
-                Renderer renderer = childRenderers[r];
-                if (renderer != null)
-                    frameHiddenRenderers.Add(renderer);
-            }
-
-            Renderer[] parentRenderers = hit.GetComponentsInParent<Renderer>();
-            for (int r = 0; r < parentRenderers.Length; r++)
-            {
-                Renderer renderer = parentRenderers[r];
-                if (renderer != null)
-                    frameHiddenRenderers.Add(renderer);
+                MeshCollider mc = proximityMeshColliders[i];
+                if (mc != null && mc.enabled && mc.bounds.Contains(center))
+                    CollectProximityHideRenderers(mc);
             }
         }
 
@@ -339,6 +342,31 @@ public class CameraFollow : MonoBehaviour
 
             proximityHiddenRenderers[renderer] = renderer.shadowCastingMode;
             renderer.shadowCastingMode = ShadowCastingMode.ShadowsOnly;
+        }
+    }
+
+    private void CollectProximityHideRenderers(Collider hit)
+    {
+        if (hit == null || hit == proximityVolume)
+            return;
+
+        if (tim != null && hit.transform.IsChildOf(tim.transform))
+            return;
+
+        Renderer[] childRenderers = hit.GetComponentsInChildren<Renderer>();
+        for (int r = 0; r < childRenderers.Length; r++)
+        {
+            Renderer renderer = childRenderers[r];
+            if (renderer != null)
+                frameHiddenRenderers.Add(renderer);
+        }
+
+        Renderer[] parentRenderers = hit.GetComponentsInParent<Renderer>();
+        for (int r = 0; r < parentRenderers.Length; r++)
+        {
+            Renderer renderer = parentRenderers[r];
+            if (renderer != null)
+                frameHiddenRenderers.Add(renderer);
         }
     }
 
