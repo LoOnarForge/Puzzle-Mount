@@ -302,10 +302,18 @@ public class CameraFollow : MonoBehaviour
             if (tim != null && hit.transform.IsChildOf(tim.transform))
                 continue;
 
-            Renderer[] renderers = hit.GetComponentsInChildren<Renderer>();
-            for (int r = 0; r < renderers.Length; r++)
+            Renderer[] childRenderers = hit.GetComponentsInChildren<Renderer>();
+            for (int r = 0; r < childRenderers.Length; r++)
             {
-                Renderer renderer = renderers[r];
+                Renderer renderer = childRenderers[r];
+                if (renderer != null)
+                    frameHiddenRenderers.Add(renderer);
+            }
+
+            Renderer[] parentRenderers = hit.GetComponentsInParent<Renderer>();
+            for (int r = 0; r < parentRenderers.Length; r++)
+            {
+                Renderer renderer = parentRenderers[r];
                 if (renderer != null)
                     frameHiddenRenderers.Add(renderer);
             }
