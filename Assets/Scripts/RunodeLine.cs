@@ -98,7 +98,7 @@ public class RunodeLine : MonoBehaviour
         SetInitialReceiverAndGiverPorts(targetPort);
         StopPropagationCoroutines();
 
-        lineVisuals.PowerUp(color, powerPropagationDelay);
+        lineVisuals.PowerUp(color, powerPropagationDelay * 2f);
         powerUpSequenceCoroutine = StartCoroutine(PowerUpSequence());
     }
 
@@ -124,7 +124,7 @@ public class RunodeLine : MonoBehaviour
         powerIndex = -1;
         StopPropagationCoroutines();
 
-        lineVisuals.PowerDown(powerPropagationDelay);
+        lineVisuals.PowerDown(powerPropagationDelay * 2f);
         depowerSequenceCoroutine = StartCoroutine(DepowerSequence());
     }
 
@@ -188,7 +188,7 @@ public class RunodeLine : MonoBehaviour
 
     private IEnumerator PowerUpSequence()
     {
-        yield return new WaitForSeconds(powerPropagationDelay);
+        yield return new WaitForSeconds(powerPropagationDelay * 2f);
 
         foreach (LinePort port in linePorts)
         {
@@ -203,7 +203,7 @@ public class RunodeLine : MonoBehaviour
     }
     private IEnumerator DepowerSequence()
     {
-        yield return new WaitForSeconds(powerPropagationDelay);
+        yield return new WaitForSeconds(powerPropagationDelay * 2f);
 
         foreach (LinePort port in linePorts)
         {

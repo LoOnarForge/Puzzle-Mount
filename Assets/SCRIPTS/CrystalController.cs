@@ -178,7 +178,6 @@ public class CrystalController : MonoBehaviour
         lastAvailableMw = Mathf.Max(0, availableMw);
 
         int activeSetIndex = Mathf.Clamp(colorIndex, 0, CrystalColorTypeCount - 1);
-        int usedMw = Mathf.Max(0, lastMaxMw - lastAvailableMw);
 
         for (int setIndex = 0; setIndex < CrystalColorTypeCount; setIndex++)
         {
@@ -201,7 +200,7 @@ public class CrystalController : MonoBehaviour
                 if (!isActiveColorSet || !isEnabled)
                     continue;
 
-                bool useDarkColors = crystalIndex < usedMw;
+                bool useDarkColors = crystalIndex >= lastAvailableMw;
                 CrystalColorPair targetColors = useDarkColors ? set.darkColors : set.brightColors;
                 SetCrystalColorTarget(crystal, targetColors);
             }
