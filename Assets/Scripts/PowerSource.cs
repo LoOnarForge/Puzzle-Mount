@@ -39,14 +39,11 @@ public class PowerSource : MonoBehaviour
     [SerializeField] private LinePort leftPort;
 
     [Space(20)]
-    [Header("VISUAL ELEMENTS:")]
-    [SerializeField] private List<Renderer> colorElements = new List<Renderer>();
+    [Header("CRYSTALS:")]
+    [SerializeField] private CrystalController crystalController;
 
     private const int FirstReceiverPowerIndex = 1;
 
-    private static readonly int BaseColorProperty = Shader.PropertyToID("_BaseColor");
-    private static readonly int EmissionColorProperty = Shader.PropertyToID("_EmissionColor");
-    private MaterialPropertyBlock propertyBlock;
     private Color circuitColor;
 
     public int ColorIndex => colorIndex;
@@ -55,6 +52,7 @@ public class PowerSource : MonoBehaviour
     {
         availableMW = maxMW;
         circuitColor = ColorManager.Instance.GetColor(colorIndex);
+        RefreshCrystalController();
 
         upPort.SetPortType(PortType.Giver);
         rightPort.SetPortType(PortType.Giver);
@@ -65,6 +63,7 @@ public class PowerSource : MonoBehaviour
     private void Start()
     {
         RefreshGiverPorts();
+        RefreshCrystalController();
     }
 
     public void RefreshGiverPorts()
@@ -145,6 +144,7 @@ public class PowerSource : MonoBehaviour
         if (availableMW < maxMW)
             availableMW++;
 
+        RefreshCrystalController();
         EvaluateWaitingList();
     }
 
@@ -154,6 +154,7 @@ public class PowerSource : MonoBehaviour
             return false;
 
         availableMW--;
+        RefreshCrystalController();
         return true;
     }
 
@@ -409,36 +410,15 @@ public class PowerSource : MonoBehaviour
 
     private void OnValidate()
     {
-        SetStartingColorsOnPSObject();
+        RefreshCrystalController();
     }
 
-    private void SetStartingColorsOnPSObject()
+    // Pushes current MW and color to the attached crystal layout.
+    private void RefreshCrystalController()
     {
-        ColorManager colorManager = FindAnyObjectByType<ColorManager>();
-        if (colorManager == null || colorManager.colors.Count == 0)
+        if (crystalController == null)
             return;
 
-        int selectedColorIndex = Mathf.Clamp(colorIndex, 0, colorManager.colors.Count - 1);
-        Color selectedColor = colorManager.GetColor(selectedColorIndex);
-
-        if (propertyBlock == null)
-            propertyBlock = new MaterialPropertyBlock();
-
-        foreach (Renderer colorElement in colorElements)
-        {
-            if (colorElement == null)
-                continue;
-
-            colorElement.GetPropertyBlock(propertyBlock);
-            propertyBlock.SetColor(BaseColorProperty, selectedColor);
-            propertyBlock.SetColor(EmissionColorProperty, selectedColor * 2f);
-            colorElement.SetPropertyBlock(propertyBlock);
-
-            SpriteRenderer spriteRenderer = GetComponentInChildren<SpriteRenderer>();
-            if (spriteRenderer == null)
-                return;
-
-            spriteRenderer.color = selectedColor;
-        }
+        crystalController.ApplyPowerSourceState(colorIndex, maxMW, availableMW);
     }
 }

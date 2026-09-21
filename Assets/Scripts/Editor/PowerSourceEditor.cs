@@ -57,8 +57,8 @@ public class PowerSourceEditor : Editor
     private void DrawVisualElements()
     {
         EditorGUILayout.Space(20);
-        EditorGUILayout.LabelField("VISUAL ELEMENTS:", EditorStyles.boldLabel);
-        EditorGUILayout.PropertyField(serializedObject.FindProperty("colorElements"), true);
+        EditorGUILayout.LabelField("CRYSTALS:", EditorStyles.boldLabel);
+        EditorGUILayout.PropertyField(serializedObject.FindProperty("crystalController"));
     }
 
     private void DrawState()
