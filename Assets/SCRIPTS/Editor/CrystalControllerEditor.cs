@@ -23,6 +23,27 @@ public class CrystalControllerEditor : Editor
     {
         serializedObject.Update();
 
+        EditorGUILayout.LabelField("BOULDER BASE:", EditorStyles.boldLabel);
+        EditorGUILayout.PropertyField(serializedObject.FindProperty("boulderBase"), new GUIContent("Boulder Base"));
+        SerializedProperty boulderColor = serializedObject.FindProperty("boulderBaseColor");
+        boulderColor.colorValue = EditorGUILayout.ColorField(
+            new GUIContent("Boulder Base Color"),
+            boulderColor.colorValue,
+            true,
+            true,
+            true);
+        EditorGUILayout.Space(8);
+
+        EditorGUILayout.LabelField("LIGHT:", EditorStyles.boldLabel);
+        EditorGUILayout.PropertyField(serializedObject.FindProperty("crystalLight"));
+        EditorGUILayout.Space(8);
+
+        EditorGUILayout.LabelField("COLOR LERP:", EditorStyles.boldLabel);
+        EditorGUILayout.PropertyField(
+            serializedObject.FindProperty("colorLerpDuration"),
+            new GUIContent("Color Lerp Duration (seconds)"));
+        EditorGUILayout.Space(8);
+
         for (int i = 0; i < CrystalController.CrystalColorTypeCount; i++)
         {
             SerializedProperty setProperty = crystalSetsProperty.GetArrayElementAtIndex(i);
