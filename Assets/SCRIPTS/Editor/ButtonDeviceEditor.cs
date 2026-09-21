@@ -9,7 +9,7 @@ public class ButtonDeviceEditor : Editor
         serializedObject.Update();
 
         EditorGUILayout.Space(20);
-        EditorGUILayout.PropertyField(serializedObject.FindProperty("buttonCap"));
+        EditorGUILayout.PropertyField(serializedObject.FindProperty("skullButton"));
         EditorGUILayout.PropertyField(serializedObject.FindProperty("pressLocalYOffset"));
         EditorGUILayout.PropertyField(serializedObject.FindProperty("pressTrigger"));
 
@@ -21,4 +21,3 @@ public class ButtonDeviceEditor : Editor
         if (Application.isPlaying)
             Repaint();
     }
-}

@@ -338,14 +338,19 @@ public class TimCubeController : MonoBehaviour
         if (!mouseHitValid || mouseHitCube != null)
             return;
 
-        ButtonDevice buttonDevice = mouseHit.collider.GetComponentInParent<ButtonDevice>();
-        if (buttonDevice != null)
-        {
-            if (!IsInClickRange(buttonDevice.transform.position))
-                return;
-
-            buttonDevice.MouseClickDetected();
+        if (TryPressButtonFromClick(mouseHit.collider))
             return;
+
+        if (Mouse.current != null && Camera.main != null)
+        {
+            Ray ray = Camera.main.ScreenPointToRay(Mouse.current.position.ReadValue());
+            RaycastHit[] hits = Physics.RaycastAll(ray, 100f, interactionLayer, QueryTriggerInteraction.Collide);
+            System.Array.Sort(hits, (a, b) => a.distance.CompareTo(b.distance));
+            for (int i = 0; i < hits.Length; i++)
+            {
+                if (TryPressButtonFromClick(hits[i].collider))
+                    return;
+            }
         }
 
         Lever lever = mouseHit.collider.GetComponentInParent<Lever>();
@@ -362,6 +367,21 @@ public class TimCubeController : MonoBehaviour
     {
         float distance = Vector3.ProjectOnPlane(targetPosition - timTransform.position, Vector3.up).magnitude;
         return distance <= maxClickDistance;
+    }
+
+    private bool TryPressButtonFromClick(Collider clickedCollider)
+    {
+        if (clickedCollider == null)
+            return false;
+
+        ButtonDevice buttonDevice = clickedCollider.GetComponentInParent<ButtonDevice>();
+        if (buttonDevice == null)
+            return false;
+
+        if (!IsInClickRange(buttonDevice.transform.position))
+            return false;
+
+        return buttonDevice.MouseClickDetected(clickedCollider);
     }
 
     private void HandleMouseRotation(bool mouseHitValid, RaycastHit mouseHit, RunodeMovement mouseHitCube)

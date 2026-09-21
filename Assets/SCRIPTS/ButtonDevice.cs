@@ -16,7 +16,8 @@ public class ButtonDevice : MonoBehaviour
     private const float MaxHorizontalApproachSpeed = 0.5f;
     private const int OverlapBufferSize = 8;
 
-    [SerializeField] private Transform buttonCap;
+    [FormerlySerializedAs("buttonCap")]
+    [SerializeField] private Transform skullButton;
     [FormerlySerializedAs("buttonPressDepth")]
     [SerializeField] [Range(PressLocalYOffsetMin, PressLocalYOffsetMax)] private float pressLocalYOffset = -0.6f;
     [SerializeField] private Collider pressTrigger;
@@ -40,14 +41,22 @@ public class ButtonDevice : MonoBehaviour
         if (pressLocalYOffset > 0f)
             pressLocalYOffset = -pressLocalYOffset;
 
-        if (buttonCap != null)
-        {
-            buttonCapRestLocalPosition = buttonCap.localPosition;
-            buttonCapRestLocalRotation = buttonCap.localRotation;
-        }
-
         if (pressTrigger != null)
             Debug.Assert(pressTrigger.isTrigger, $"{nameof(ButtonDevice)} on {name} requires {nameof(pressTrigger)} to be a trigger.", this);
+    }
+
+    private void Start()
+    {
+        CacheButtonCapRestPose();
+    }
+
+    private void CacheButtonCapRestPose()
+    {
+        if (skullButton == null)
+            return;
+
+        buttonCapRestLocalPosition = skullButton.localPosition;
+        buttonCapRestLocalRotation = skullButton.localRotation;
     }
 
     private void FixedUpdate()
@@ -142,7 +151,7 @@ public class ButtonDevice : MonoBehaviour
     {
         isButtonMoving = true;
 
-        if (buttonCap == null)
+        if (skullButton == null)
         {
             isButtonMoving = false;
             NotifyConnectedDevices();
@@ -156,11 +165,11 @@ public class ButtonDevice : MonoBehaviour
         while (elapsed < ButtonPressDuration)
         {
             elapsed += Time.deltaTime;
-            buttonCap.localPosition = Vector3.Lerp(startPosition, endPosition, Mathf.Clamp01(elapsed / ButtonPressDuration));
+            skullButton.localPosition = Vector3.Lerp(startPosition, endPosition, Mathf.Clamp01(elapsed / ButtonPressDuration));
             yield return null;
         }
 
-        buttonCap.localPosition = endPosition;
+        skullButton.localPosition = endPosition;
 
         if (PauseAfterDescent > 0f)
             yield return new WaitForSeconds(PauseAfterDescent);
@@ -172,11 +181,11 @@ public class ButtonDevice : MonoBehaviour
         while (elapsed < ButtonRotateDuration)
         {
             elapsed += Time.deltaTime;
-            buttonCap.localRotation = Quaternion.Slerp(startRotation, endRotation, Mathf.Clamp01(elapsed / ButtonRotateDuration));
+            skullButton.localRotation = Quaternion.Slerp(startRotation, endRotation, Mathf.Clamp01(elapsed / ButtonRotateDuration));
             yield return null;
         }
 
-        buttonCap.localRotation = endRotation;
+        skullButton.localRotation = endRotation;
         isButtonMoving = false;
         NotifyConnectedDevices();
     }
