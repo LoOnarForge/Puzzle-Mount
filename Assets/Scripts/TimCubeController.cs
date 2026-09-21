@@ -335,7 +335,7 @@ public class TimCubeController : MonoBehaviour
 
     private void TryHandleLeverClick(bool mouseHitValid, RaycastHit mouseHit, RunodeMovement mouseHitCube)
     {
-        if (!mouseHitValid || mouseHitCube != null)
+        if (!mouseHitValid)
             return;
 
         if (TryPressButtonFromClick(mouseHit.collider))
@@ -352,6 +352,9 @@ public class TimCubeController : MonoBehaviour
                     return;
             }
         }
+
+        if (mouseHitCube != null)
+            return;
 
         Lever lever = mouseHit.collider.GetComponentInParent<Lever>();
         if (lever == null)

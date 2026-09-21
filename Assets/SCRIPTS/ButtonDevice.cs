@@ -5,12 +5,11 @@ using UnityEngine.Serialization;
 
 public class ButtonDevice : MonoBehaviour
 {
-    private const float ButtonPressDuration = 0.25f;
-    private const float PauseAfterDescent = 0.15f;
-    private const float ButtonRotateDuration = 0.25f;
-    private const float PressRotationDegreesX = 90f;
-    private const float PressLocalYOffsetMin = -3f;
-    private const float PressLocalYOffsetMax = 0f;
+    private const int PressPoseCount = 5;
+    private const float PressStepDurationMin = 0f;
+    private const float PressStepDurationMax = 1f;
+    private const float PauseBetweenMovesMin = 0f;
+    private const float PauseBetweenMovesMax = 1f;
     private const float GridAlignmentTolerance = 0.1f;
     private const float MinDescentSpeed = 0.1f;
     private const float MaxHorizontalApproachSpeed = 0.5f;
@@ -18,8 +17,13 @@ public class ButtonDevice : MonoBehaviour
 
     [FormerlySerializedAs("buttonCap")]
     [SerializeField] private Transform skullButton;
-    [FormerlySerializedAs("buttonPressDepth")]
-    [SerializeField] [Range(PressLocalYOffsetMin, PressLocalYOffsetMax)] private float pressLocalYOffset = -0.6f;
+    [SerializeField] private Transform pressPose0;
+    [SerializeField] private Transform pressPose1;
+    [SerializeField] private Transform pressPose2;
+    [SerializeField] private Transform pressPose3;
+    [SerializeField] private Transform pressPose4;
+    [SerializeField] [Range(PressStepDurationMin, PressStepDurationMax)] private float pressStepDuration = 0.25f;
+    [SerializeField] [Range(PauseBetweenMovesMin, PauseBetweenMovesMax)] private float pauseBetweenMoves = 0.15f;
     [SerializeField] private Collider pressTrigger;
     [SerializeField] private List<GameObject> connectedDevices = new List<GameObject>();
 
@@ -31,32 +35,13 @@ public class ButtonDevice : MonoBehaviour
 
     private bool isButtonMoving;
     private bool isPressed;
-    private Vector3 buttonCapRestLocalPosition;
-    private Quaternion buttonCapRestLocalRotation;
 
     private void Awake()
     {
         BuildConnectedDeviceLists();
 
-        if (pressLocalYOffset > 0f)
-            pressLocalYOffset = -pressLocalYOffset;
-
         if (pressTrigger != null)
             Debug.Assert(pressTrigger.isTrigger, $"{nameof(ButtonDevice)} on {name} requires {nameof(pressTrigger)} to be a trigger.", this);
-    }
-
-    private void Start()
-    {
-        CacheButtonCapRestPose();
-    }
-
-    private void CacheButtonCapRestPose()
-    {
-        if (skullButton == null)
-            return;
-
-        buttonCapRestLocalPosition = skullButton.localPosition;
-        buttonCapRestLocalRotation = skullButton.localRotation;
     }
 
     private void FixedUpdate()
@@ -88,10 +73,28 @@ public class ButtonDevice : MonoBehaviour
         }
     }
 
-    // Called when the player clicks this button within range.
-    public void MouseClickDetected()
+    // Called when the player clicks this button within range; returns true when the hit counts as this button.
+    public bool MouseClickDetected(Collider clickedCollider)
     {
+        if (!IsAllowedClickCollider(clickedCollider))
+            return false;
+
         TryPress();
+        return true;
+    }
+
+    private bool IsAllowedClickCollider(Collider clickedCollider)
+    {
+        if (clickedCollider == null)
+            return false;
+
+        if (skullButton != null)
+            return clickedCollider.transform == skullButton || clickedCollider.transform.IsChildOf(skullButton);
+
+        if (pressTrigger == null)
+            return false;
+
+        return clickedCollider == pressTrigger || clickedCollider.transform.IsChildOf(pressTrigger.transform);
     }
 
     // Runs one press if this button has not already been used.
@@ -146,7 +149,7 @@ public class ButtonDevice : MonoBehaviour
         return cubePosition.y > buttonPosition.y;
     }
 
-    // Moves the cap down along local Y, pauses, then rotates 90 degrees on local X.
+    // Lerps the skull through press pose transforms with pauses between each segment.
     private IEnumerator ButtonPressMovement()
     {
         isButtonMoving = true;
@@ -158,36 +161,58 @@ public class ButtonDevice : MonoBehaviour
             yield break;
         }
 
-        Vector3 startPosition = buttonCapRestLocalPosition;
-        Vector3 endPosition = buttonCapRestLocalPosition + new Vector3(0f, pressLocalYOffset, 0f);
-        float elapsed = 0f;
-
-        while (elapsed < ButtonPressDuration)
+        for (int i = 0; i < PressPoseCount - 1; i++)
         {
-            elapsed += Time.deltaTime;
-            skullButton.localPosition = Vector3.Lerp(startPosition, endPosition, Mathf.Clamp01(elapsed / ButtonPressDuration));
-            yield return null;
+            Transform fromPose = GetPressPose(i);
+            Transform toPose = GetPressPose(i + 1);
+            if (toPose == null)
+                break;
+
+            Vector3 startPosition = fromPose != null ? fromPose.position : skullButton.position;
+            Quaternion startRotation = fromPose != null ? fromPose.rotation : skullButton.rotation;
+            Vector3 endPosition = toPose.position;
+            Quaternion endRotation = toPose.rotation;
+            if (pressStepDuration <= 0f)
+            {
+                skullButton.position = endPosition;
+                skullButton.rotation = endRotation;
+            }
+            else
+            {
+                float elapsed = 0f;
+
+                while (elapsed < pressStepDuration)
+                {
+                    elapsed += Time.deltaTime;
+                    float t = Mathf.Clamp01(elapsed / pressStepDuration);
+                    skullButton.position = Vector3.Lerp(startPosition, endPosition, t);
+                    skullButton.rotation = Quaternion.Slerp(startRotation, endRotation, t);
+                    yield return null;
+                }
+
+                skullButton.position = endPosition;
+                skullButton.rotation = endRotation;
+            }
+
+            if (pauseBetweenMoves > 0f && i < PressPoseCount - 2)
+                yield return new WaitForSeconds(pauseBetweenMoves);
         }
 
-        skullButton.localPosition = endPosition;
-
-        if (PauseAfterDescent > 0f)
-            yield return new WaitForSeconds(PauseAfterDescent);
-
-        Quaternion startRotation = buttonCapRestLocalRotation;
-        Quaternion endRotation = buttonCapRestLocalRotation * Quaternion.Euler(PressRotationDegreesX, 0f, 0f);
-        elapsed = 0f;
-
-        while (elapsed < ButtonRotateDuration)
-        {
-            elapsed += Time.deltaTime;
-            skullButton.localRotation = Quaternion.Slerp(startRotation, endRotation, Mathf.Clamp01(elapsed / ButtonRotateDuration));
-            yield return null;
-        }
-
-        skullButton.localRotation = endRotation;
         isButtonMoving = false;
         NotifyConnectedDevices();
+    }
+
+    private Transform GetPressPose(int index)
+    {
+        switch (index)
+        {
+            case 0: return pressPose0;
+            case 1: return pressPose1;
+            case 2: return pressPose2;
+            case 3: return pressPose3;
+            case 4: return pressPose4;
+            default: return null;
+        }
     }
 
     // Calls OnLeverOperated on every cached connected device.

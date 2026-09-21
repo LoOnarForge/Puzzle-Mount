@@ -75,15 +75,3 @@ public class FrameRateDisplay : MonoBehaviour
         Application.targetFrameRate = GetTargetFrameRate();
     }
 }
-
-    private void ApplyFrameRateCap()
-    {
-        Application.targetFrameRate = GetTargetFrameRate();
-    }
-}
-
-    private void ApplyFrameRateCap()
-    {
-        Application.targetFrameRate = GetTargetFrameRate();
-    }
-}
