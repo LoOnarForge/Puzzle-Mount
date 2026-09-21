@@ -10,7 +10,7 @@ public class ButtonDeviceEditor : Editor
 
         EditorGUILayout.Space(20);
         EditorGUILayout.PropertyField(serializedObject.FindProperty("buttonCap"));
-        EditorGUILayout.PropertyField(serializedObject.FindProperty("buttonPressDepth"));
+        EditorGUILayout.PropertyField(serializedObject.FindProperty("pressLocalYOffset"));
         EditorGUILayout.PropertyField(serializedObject.FindProperty("pressTrigger"));
 
         EditorGUILayout.Space(20);

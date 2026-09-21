@@ -1,17 +1,24 @@
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
+using UnityEngine.Serialization;
 
 public class ButtonDevice : MonoBehaviour
 {
     private const float ButtonPressDuration = 0.25f;
+    private const float PauseAfterDescent = 0.15f;
+    private const float ButtonRotateDuration = 0.25f;
+    private const float PressRotationDegreesX = 90f;
+    private const float PressLocalYOffsetMin = -3f;
+    private const float PressLocalYOffsetMax = 0f;
     private const float GridAlignmentTolerance = 0.1f;
     private const float MinDescentSpeed = 0.1f;
     private const float MaxHorizontalApproachSpeed = 0.5f;
     private const int OverlapBufferSize = 8;
 
     [SerializeField] private Transform buttonCap;
-    [SerializeField] private float buttonPressDepth = 0.05f;
+    [FormerlySerializedAs("buttonPressDepth")]
+    [SerializeField] [Range(PressLocalYOffsetMin, PressLocalYOffsetMax)] private float pressLocalYOffset = -0.6f;
     [SerializeField] private Collider pressTrigger;
     [SerializeField] private List<GameObject> connectedDevices = new List<GameObject>();
 
@@ -24,13 +31,20 @@ public class ButtonDevice : MonoBehaviour
     private bool isButtonMoving;
     private bool isPressed;
     private Vector3 buttonCapRestLocalPosition;
+    private Quaternion buttonCapRestLocalRotation;
 
     private void Awake()
     {
         BuildConnectedDeviceLists();
 
+        if (pressLocalYOffset > 0f)
+            pressLocalYOffset = -pressLocalYOffset;
+
         if (buttonCap != null)
+        {
             buttonCapRestLocalPosition = buttonCap.localPosition;
+            buttonCapRestLocalRotation = buttonCap.localRotation;
+        }
 
         if (pressTrigger != null)
             Debug.Assert(pressTrigger.isTrigger, $"{nameof(ButtonDevice)} on {name} requires {nameof(pressTrigger)} to be a trigger.", this);
@@ -123,7 +137,7 @@ public class ButtonDevice : MonoBehaviour
         return cubePosition.y > buttonPosition.y;
     }
 
-    // Lerps the button cap inward once along local Y.
+    // Moves the cap down along local Y, pauses, then rotates 90 degrees on local X.
     private IEnumerator ButtonPressMovement()
     {
         isButtonMoving = true;
@@ -136,7 +150,7 @@ public class ButtonDevice : MonoBehaviour
         }
 
         Vector3 startPosition = buttonCapRestLocalPosition;
-        Vector3 endPosition = buttonCapRestLocalPosition + Vector3.down * buttonPressDepth;
+        Vector3 endPosition = buttonCapRestLocalPosition + new Vector3(0f, pressLocalYOffset, 0f);
         float elapsed = 0f;
 
         while (elapsed < ButtonPressDuration)
@@ -147,6 +161,22 @@ public class ButtonDevice : MonoBehaviour
         }
 
         buttonCap.localPosition = endPosition;
+
+        if (PauseAfterDescent > 0f)
+            yield return new WaitForSeconds(PauseAfterDescent);
+
+        Quaternion startRotation = buttonCapRestLocalRotation;
+        Quaternion endRotation = buttonCapRestLocalRotation * Quaternion.Euler(PressRotationDegreesX, 0f, 0f);
+        elapsed = 0f;
+
+        while (elapsed < ButtonRotateDuration)
+        {
+            elapsed += Time.deltaTime;
+            buttonCap.localRotation = Quaternion.Slerp(startRotation, endRotation, Mathf.Clamp01(elapsed / ButtonRotateDuration));
+            yield return null;
+        }
+
+        buttonCap.localRotation = endRotation;
         isButtonMoving = false;
         NotifyConnectedDevices();
     }
