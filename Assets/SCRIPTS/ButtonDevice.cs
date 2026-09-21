@@ -5,7 +5,8 @@ using UnityEngine.Serialization;
 
 public class ButtonDevice : MonoBehaviour
 {
-    private const int PressPoseCount = 5;
+    private const int PressPoseCount = 4;
+    private static readonly int EmissionColorId = Shader.PropertyToID("_EmissionColor");
     private const float PressStepDurationMin = 0f;
     private const float PressStepDurationMax = 1f;
     private const float PauseBetweenMovesMin = 0f;
@@ -14,6 +15,7 @@ public class ButtonDevice : MonoBehaviour
     private const float MinDescentSpeed = 0.1f;
     private const float MaxHorizontalApproachSpeed = 0.5f;
     private const int OverlapBufferSize = 8;
+    private const float EmissionChannelDropPower = 4f;
 
     [FormerlySerializedAs("buttonCap")]
     [SerializeField] private Transform skullButton;
@@ -21,9 +23,12 @@ public class ButtonDevice : MonoBehaviour
     [SerializeField] private Transform pressPose1;
     [SerializeField] private Transform pressPose2;
     [SerializeField] private Transform pressPose3;
-    [SerializeField] private Transform pressPose4;
     [SerializeField] [Range(PressStepDurationMin, PressStepDurationMax)] private float pressStepDuration = 0.25f;
     [SerializeField] [Range(PauseBetweenMovesMin, PauseBetweenMovesMax)] private float pauseBetweenMoves = 0.15f;
+    [SerializeField] private Renderer eyesRenderer;
+    [ColorUsage(true, true)]
+    [SerializeField] private Color pressedEyeEmissionColor = Color.white;
+    [SerializeField] private ParticleSystem pressParticleSystem;
     [SerializeField] private Collider pressTrigger;
     [SerializeField] private List<GameObject> connectedDevices = new List<GameObject>();
 
@@ -35,10 +40,12 @@ public class ButtonDevice : MonoBehaviour
 
     private bool isButtonMoving;
     private bool isPressed;
+    private MaterialPropertyBlock eyesPropertyBlock;
 
     private void Awake()
     {
         BuildConnectedDeviceLists();
+        eyesPropertyBlock = new MaterialPropertyBlock();
 
         if (pressTrigger != null)
             Debug.Assert(pressTrigger.isTrigger, $"{nameof(ButtonDevice)} on {name} requires {nameof(pressTrigger)} to be a trigger.", this);
@@ -198,8 +205,98 @@ public class ButtonDevice : MonoBehaviour
                 yield return new WaitForSeconds(pauseBetweenMoves);
         }
 
+        EnablePressParticleSystem();
+        yield return LerpEyeEmissionToPressed();
+
         isButtonMoving = false;
         NotifyConnectedDevices();
+    }
+
+    private IEnumerator LerpEyeEmissionToPressed()
+    {
+        if (eyesRenderer == null)
+            yield break;
+
+        if (!TryGetEyeEmissionAtStart(out Color startEmission))
+            yield break;
+
+        Color endEmission = pressedEyeEmissionColor;
+
+        if (pressStepDuration <= 0f)
+        {
+            ApplyEyeEmission(endEmission);
+            yield break;
+        }
+
+        ApplyEyeEmission(startEmission);
+
+        float elapsed = 0f;
+        while (elapsed < pressStepDuration)
+        {
+            elapsed += Time.deltaTime;
+            float t = Mathf.Clamp01(elapsed / pressStepDuration);
+            ApplyEyeEmission(LerpEmissionColor(startEmission, endEmission, t));
+            yield return null;
+        }
+
+        ApplyEyeEmission(endEmission);
+    }
+
+    private bool TryGetEyeEmissionAtStart(out Color emission)
+    {
+        emission = Color.black;
+        if (eyesRenderer == null)
+            return false;
+
+        eyesRenderer.GetPropertyBlock(eyesPropertyBlock);
+        if (eyesPropertyBlock.HasColor(EmissionColorId))
+        {
+            emission = eyesPropertyBlock.GetColor(EmissionColorId);
+            return true;
+        }
+
+        // sharedMaterial is the project asset; per-button tint lives on the renderer material instance.
+        Material material = eyesRenderer.material;
+        if (material == null || !material.HasProperty(EmissionColorId))
+            return false;
+
+        emission = material.GetColor(EmissionColorId);
+        return true;
+    }
+
+    // When a channel drops (e.g. white -> red), ease it off faster so G/B do not stay high and read as white.
+    private static Color LerpEmissionColor(Color from, Color to, float t)
+    {
+        t = Mathf.Clamp01(t);
+        return new Color(
+            Mathf.Lerp(from.r, to.r, EmissionChannelT(from.r, to.r, t)),
+            Mathf.Lerp(from.g, to.g, EmissionChannelT(from.g, to.g, t)),
+            Mathf.Lerp(from.b, to.b, EmissionChannelT(from.b, to.b, t)),
+            Mathf.Lerp(from.a, to.a, t));
+    }
+
+    private static float EmissionChannelT(float from, float to, float t)
+    {
+        if (to < from - 1e-6f)
+            return 1f - Mathf.Pow(1f - t, EmissionChannelDropPower);
+
+        return t;
+    }
+
+    private void ApplyEyeEmission(Color emissionColor)
+    {
+        eyesRenderer.GetPropertyBlock(eyesPropertyBlock);
+        eyesPropertyBlock.SetColor(EmissionColorId, emissionColor);
+        eyesRenderer.SetPropertyBlock(eyesPropertyBlock);
+    }
+
+    private void EnablePressParticleSystem()
+    {
+        if (pressParticleSystem == null)
+            return;
+
+        pressParticleSystem.gameObject.SetActive(true);
+        pressParticleSystem.Play();
     }
 
     private Transform GetPressPose(int index)
@@ -210,7 +307,6 @@ public class ButtonDevice : MonoBehaviour
             case 1: return pressPose1;
             case 2: return pressPose2;
             case 3: return pressPose3;
-            case 4: return pressPose4;
             default: return null;
         }
     }
