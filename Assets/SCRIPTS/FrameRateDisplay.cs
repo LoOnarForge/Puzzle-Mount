@@ -3,8 +3,14 @@ using UnityEngine;
 public class FrameRateDisplay : MonoBehaviour
 {
     [SerializeField] private bool capAt60Fps;
+    [SerializeField] private bool capAt30Fps;
+    [SerializeField] private bool capAt15Fps;
 
     private const float UpdateInterval = 0.1f;
+    private const int UncappedFrameRate = -1;
+    private const int Cap60Fps = 60;
+    private const int Cap30Fps = 30;
+    private const int Cap15Fps = 15;
 
     private float intervalTimer;
     private int framesInInterval;
@@ -55,7 +61,13 @@ public class FrameRateDisplay : MonoBehaviour
 
     private int GetTargetFrameRate()
     {
-        return capAt60Fps ? 60 : -1;
+        if (capAt60Fps)
+            return Cap60Fps;
+        if (capAt30Fps)
+            return Cap30Fps;
+        if (capAt15Fps)
+            return Cap15Fps;
+        return UncappedFrameRate;
     }
 
     private void ApplyFrameRateCap()
