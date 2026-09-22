@@ -35,7 +35,8 @@ public class CrystalControllerEditor : Editor
         EditorGUILayout.Space(8);
 
         EditorGUILayout.LabelField("LIGHT:", EditorStyles.boldLabel);
-        EditorGUILayout.PropertyField(serializedObject.FindProperty("crystalLight"));
+        EditorGUILayout.PropertyField(serializedObject.FindProperty("crystalLight"), new GUIContent("Crystal Light"));
+        DrawDefaultLightIntensities();
         EditorGUILayout.Space(8);
 
         EditorGUILayout.LabelField("COLOR LERP:", EditorStyles.boldLabel);
@@ -90,6 +91,27 @@ public class CrystalControllerEditor : Editor
         EditorGUILayout.EndFoldoutHeaderGroup();
 
         serializedObject.ApplyModifiedProperties();
+    }
+
+    private void DrawDefaultLightIntensities()
+    {
+        SerializedProperty intensities = serializedObject.FindProperty("defaultLightIntensityPerType");
+        if (intensities == null || !intensities.isArray)
+            return;
+
+        if (intensities.arraySize != CrystalController.CrystalColorTypeCount)
+            intensities.arraySize = CrystalController.CrystalColorTypeCount;
+
+        EditorGUI.indentLevel++;
+        for (int i = 0; i < CrystalController.CrystalColorTypeCount; i++)
+        {
+            SerializedProperty element = intensities.GetArrayElementAtIndex(i);
+            element.floatValue = EditorGUILayout.FloatField(
+                new GUIContent($"{CrystalController.GetSetHeaderLabel(i)} Default Intensity"),
+                element.floatValue);
+        }
+
+        EditorGUI.indentLevel--;
     }
 
     private static void DrawColorPair(SerializedProperty pairProperty, string groupLabel)

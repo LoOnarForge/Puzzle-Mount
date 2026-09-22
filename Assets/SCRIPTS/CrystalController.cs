@@ -65,8 +65,8 @@ public class CrystalController : MonoBehaviour
     [SerializeField] private Renderer boulderBase;
     [SerializeField] private Color boulderBaseColor = Color.white;
 
-    [Header("LIGHT:")]
     [SerializeField] private Light crystalLight;
+    [SerializeField] private float[] defaultLightIntensityPerType = new float[CrystalColorTypeCount];
 
     [Header("COLOR LERP:")]
     [SerializeField] [Range(MinColorLerpDuration, MaxColorLerpDuration)] private float colorLerpDuration = 0.25f;
@@ -135,6 +135,7 @@ public class CrystalController : MonoBehaviour
     {
         colorLerpDuration = Mathf.Clamp(colorLerpDuration, MinColorLerpDuration, MaxColorLerpDuration);
         EnsureCrystalSetCount();
+        EnsureDefaultLightIntensityCount();
 
         ApplyBoulderBaseColor();
 
@@ -218,10 +219,14 @@ public class CrystalController : MonoBehaviour
         if (lightLerpState != null)
             return;
 
+        float initialIntensity = lastColorIndex >= 0
+            ? GetDefaultLightIntensity(lastColorIndex)
+            : lightIntensityAtPlayStart;
+
         lightLerpState = new CrystalLightLerpState
         {
             currentColor = lightColorAtPlayStart,
-            currentIntensity = lightIntensityAtPlayStart,
+            currentIntensity = initialIntensity,
             elapsed = MaxColorLerpDuration
         };
     }
@@ -240,7 +245,8 @@ public class CrystalController : MonoBehaviour
         Color brightLightColor = GetLightColorFromPair(activeSet.brightColors);
         Color darkLightColor = GetLightColorFromPair(activeSet.darkColors);
         Color targetColor = Color.Lerp(darkLightColor, brightLightColor, brightRatio);
-        float targetIntensity = lightIntensityAtPlayStart * brightRatio;
+        int colorTypeIndex = Mathf.Clamp(lastColorIndex, 0, CrystalColorTypeCount - 1);
+        float targetIntensity = GetDefaultLightIntensity(colorTypeIndex) * brightRatio;
 
         SetLightTarget(targetColor, targetIntensity);
     }
@@ -470,6 +476,19 @@ public class CrystalController : MonoBehaviour
             && Mathf.Approximately(a.g, b.g)
             && Mathf.Approximately(a.b, b.b)
             && Mathf.Approximately(a.a, b.a);
+    }
+
+    private float GetDefaultLightIntensity(int colorIndex)
+    {
+        EnsureDefaultLightIntensityCount();
+        int i = Mathf.Clamp(colorIndex, 0, CrystalColorTypeCount - 1);
+        return defaultLightIntensityPerType[i];
+    }
+
+    private void EnsureDefaultLightIntensityCount()
+    {
+        if (defaultLightIntensityPerType == null || defaultLightIntensityPerType.Length != CrystalColorTypeCount)
+            defaultLightIntensityPerType = new float[CrystalColorTypeCount];
     }
 
     private void EnsureCrystalSetCount()
