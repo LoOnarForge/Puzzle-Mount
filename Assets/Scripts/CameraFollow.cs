@@ -66,6 +66,8 @@ public class CameraFollow : MonoBehaviour
     private float lastRotationTime;
     
     private const float BaseZoomDistance = 10f;
+    private const float PitchDownHeadroomScrollTicks = 6f;
+    private const float ExtraCloseScrollTickBonus = 2f;
 
     private Vector3[] presetOffsets = new Vector3[]
     {
@@ -86,7 +88,8 @@ public class CameraFollow : MonoBehaviour
 
     private float DampingTime => Mathf.Lerp(0.35f, 0.02f, cameraResponsiveness);
     private float RotationLerpSpeed => Mathf.Lerp(2f, 20f, cameraResponsiveness);
-    private float MaxPitchDownAmount => Mathf.Max(0f, cameraHeight - 2f * scrollZoomStep);
+    private float MaxPitchDownAmount => Mathf.Max(0f, cameraHeight - PitchDownHeadroomScrollTicks * scrollZoomStep);
+    private float MaxExtraCloseDistance => maxExtraCloseDistance + ExtraCloseScrollTickBonus * scrollZoomStep;
 
     private void Awake()
     {
@@ -102,7 +105,7 @@ public class CameraFollow : MonoBehaviour
     private void OnValidate()
     {
         zoomDistance = Mathf.Clamp(zoomDistance, minZoomDistance, maxZoomDistance);
-        extraCloseDistance = Mathf.Clamp(extraCloseDistance, 0f, maxExtraCloseDistance);
+        extraCloseDistance = Mathf.Clamp(extraCloseDistance, 0f, MaxExtraCloseDistance);
         pitchDownAmount = Mathf.Clamp(pitchDownAmount, 0f, MaxPitchDownAmount);
         if (presetOffsets != null && presetOffsets.Length > 0)
             ApplyCurrentOffset();
@@ -220,7 +223,7 @@ public class CameraFollow : MonoBehaviour
                 return;
             }
 
-            extraCloseDistance = Mathf.Min(maxExtraCloseDistance, extraCloseDistance + scrollZoomStep);
+            extraCloseDistance = Mathf.Min(MaxExtraCloseDistance, extraCloseDistance + scrollZoomStep);
         }
         else
         {

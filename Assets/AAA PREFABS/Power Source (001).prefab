@@ -314,8 +314,8 @@ MonoBehaviour:
   crystalLight: {fileID: 7871110294841004557}
   defaultLightIntensityPerType:
   - 0.2
-  - 0.05
   - 0.1
+  - 0.4
   - 0.05
   - 0.05
   - 0.05
@@ -1219,7 +1219,6 @@ GameObject:
   - component: {fileID: 6692703118725566631}
   - component: {fileID: 7871110294841004557}
   - component: {fileID: 7011145316349034338}
-  - component: {fileID: 7072730130846313244}
   m_Layer: 13
   m_Name: Crystal Light
   m_TagString: Untagged
@@ -1236,7 +1235,7 @@ Transform:
   m_GameObject: {fileID: 7862525286507423982}
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 0, y: 0.585, z: 0}
+  m_LocalPosition: {x: 0, y: 1, z: 0}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
@@ -1336,27 +1335,6 @@ MonoBehaviour:
   m_ShadowLayerMask: 1
   m_RenderingLayers: 1
   m_ShadowRenderingLayers: 1
---- !u!65 &7072730130846313244
-BoxCollider:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 7862525286507423982}
-  m_Material: {fileID: 0}
-  m_IncludeLayers:
-    serializedVersion: 2
-    m_Bits: 0
-  m_ExcludeLayers:
-    serializedVersion: 2
-    m_Bits: 0
-  m_LayerOverridePriority: 0
-  m_IsTrigger: 0
-  m_ProvidesContacts: 0
-  m_Enabled: 1
-  serializedVersion: 3
-  m_Size: {x: 0.7, y: 0.7, z: 0.7}
-  m_Center: {x: 0, y: -0.3, z: 0}
 --- !u!1 &8063022537368755528
 GameObject:
   m_ObjectHideFlags: 0
