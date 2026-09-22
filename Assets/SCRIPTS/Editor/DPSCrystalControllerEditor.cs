@@ -2,10 +2,10 @@ using UnityEditor;
 using UnityEditorInternal;
 using UnityEngine;
 
-[CustomEditor(typeof(CrystalController))]
-public class CrystalControllerEditor : Editor
+[CustomEditor(typeof(DPSCrystalController))]
+public class DPSCrystalControllerEditor : Editor
 {
-    private const string FoldoutEditorPrefsPrefix = "CrystalController_SetFoldout_";
+    private const string FoldoutEditorPrefsPrefix = "DPSCrystalController_SetFoldout_";
 
     private SerializedProperty crystalSetsProperty;
     private ReorderableList[] crystalLists;
@@ -23,17 +23,6 @@ public class CrystalControllerEditor : Editor
     {
         serializedObject.Update();
 
-        EditorGUILayout.LabelField("BOULDER BASE:", EditorStyles.boldLabel);
-        EditorGUILayout.PropertyField(serializedObject.FindProperty("boulderBase"), new GUIContent("Boulder Base"));
-        SerializedProperty boulderColor = serializedObject.FindProperty("boulderBaseColor");
-        boulderColor.colorValue = EditorGUILayout.ColorField(
-            new GUIContent("Boulder Base Color"),
-            boulderColor.colorValue,
-            true,
-            true,
-            true);
-        EditorGUILayout.Space(8);
-
         EditorGUILayout.LabelField("LIGHT:", EditorStyles.boldLabel);
         EditorGUILayout.PropertyField(serializedObject.FindProperty("crystalLight"), new GUIContent("Crystal Light"));
         DrawDefaultLightIntensities();
@@ -45,14 +34,14 @@ public class CrystalControllerEditor : Editor
             new GUIContent("Color Lerp Duration (seconds)"));
         EditorGUILayout.Space(8);
 
-        for (int i = 0; i < CrystalController.CrystalColorTypeCount; i++)
+        for (int i = 0; i < DPSCrystalController.CrystalColorTypeCount; i++)
         {
             SerializedProperty setProperty = crystalSetsProperty.GetArrayElementAtIndex(i);
 
             bool wasExpanded = setFoldouts[i];
             setFoldouts[i] = EditorGUILayout.BeginFoldoutHeaderGroup(
                 setFoldouts[i],
-                CrystalController.GetSetHeaderLabel(i));
+                DPSCrystalController.GetSetHeaderLabel(i));
 
             if (setFoldouts[i])
             {
@@ -77,14 +66,14 @@ public class CrystalControllerEditor : Editor
             EditorGUILayout.Space(4);
         }
 
-        lastUpdateFoldout = EditorGUILayout.BeginFoldoutHeaderGroup(lastUpdateFoldout, "LAST POWER SOURCE UPDATE");
+        lastUpdateFoldout = EditorGUILayout.BeginFoldoutHeaderGroup(lastUpdateFoldout, "LAST DEVICE SOCKET UPDATE");
         if (lastUpdateFoldout)
         {
             using (new EditorGUI.DisabledScope(true))
             {
                 EditorGUILayout.PropertyField(serializedObject.FindProperty("lastColorIndex"), new GUIContent("Color Index"));
-                EditorGUILayout.PropertyField(serializedObject.FindProperty("lastMaxMw"), new GUIContent("Max MW"));
-                EditorGUILayout.PropertyField(serializedObject.FindProperty("lastAvailableMw"), new GUIContent("Available MW"));
+                EditorGUILayout.PropertyField(serializedObject.FindProperty("lastRequiredMw"), new GUIContent("Required MW"));
+                EditorGUILayout.PropertyField(serializedObject.FindProperty("lastAllocatedMw"), new GUIContent("Allocated MW"));
             }
         }
 
@@ -99,15 +88,15 @@ public class CrystalControllerEditor : Editor
         if (intensities == null || !intensities.isArray)
             return;
 
-        if (intensities.arraySize != CrystalController.CrystalColorTypeCount)
-            intensities.arraySize = CrystalController.CrystalColorTypeCount;
+        if (intensities.arraySize != DPSCrystalController.CrystalColorTypeCount)
+            intensities.arraySize = DPSCrystalController.CrystalColorTypeCount;
 
         EditorGUI.indentLevel++;
-        for (int i = 0; i < CrystalController.CrystalColorTypeCount; i++)
+        for (int i = 0; i < DPSCrystalController.CrystalColorTypeCount; i++)
         {
             SerializedProperty element = intensities.GetArrayElementAtIndex(i);
             element.floatValue = EditorGUILayout.FloatField(
-                new GUIContent(CrystalController.GetLightIntensityFieldLabel(i)),
+                new GUIContent(DPSCrystalController.GetLightIntensityFieldLabel(i)),
                 element.floatValue);
         }
 
@@ -138,21 +127,30 @@ public class CrystalControllerEditor : Editor
     private static void DrawCrystalListCount(SerializedProperty crystalsProperty)
     {
         int newCount = EditorGUILayout.IntField("Crystal Count", crystalsProperty.arraySize);
+        newCount = Mathf.Clamp(newCount, 0, DPSCrystalController.MaxCrystalSlots);
         if (newCount != crystalsProperty.arraySize)
-            crystalsProperty.arraySize = Mathf.Max(0, newCount);
+            crystalsProperty.arraySize = newCount;
     }
 
     private void BuildReorderableLists()
     {
-        crystalLists = new ReorderableList[CrystalController.CrystalColorTypeCount];
+        crystalLists = new ReorderableList[DPSCrystalController.CrystalColorTypeCount];
 
-        for (int i = 0; i < CrystalController.CrystalColorTypeCount; i++)
+        for (int i = 0; i < DPSCrystalController.CrystalColorTypeCount; i++)
         {
             SerializedProperty setProperty = crystalSetsProperty.GetArrayElementAtIndex(i);
             SerializedProperty crystalsProperty = setProperty.FindPropertyRelative("crystals");
 
             ReorderableList list = new ReorderableList(serializedObject, crystalsProperty, true, false, true, true)
             {
+                onAddCallback = reorderableList =>
+                {
+                    if (crystalsProperty.arraySize >= DPSCrystalController.MaxCrystalSlots)
+                        return;
+
+                    crystalsProperty.arraySize++;
+                    reorderableList.index = crystalsProperty.arraySize - 1;
+                },
                 drawElementCallback = (rect, index, active, focused) =>
                 {
                     SerializedProperty element = crystalsProperty.GetArrayElementAtIndex(index);
@@ -169,7 +167,7 @@ public class CrystalControllerEditor : Editor
 
     private void LoadFoldoutStates()
     {
-        setFoldouts = new bool[CrystalController.CrystalColorTypeCount];
+        setFoldouts = new bool[DPSCrystalController.CrystalColorTypeCount];
         int targetId = target.GetInstanceID();
 
         for (int i = 0; i < setFoldouts.Length; i++)

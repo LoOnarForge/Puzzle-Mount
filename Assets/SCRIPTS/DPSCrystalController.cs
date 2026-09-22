@@ -2,9 +2,10 @@ using System;
 using System.Collections.Generic;
 using UnityEngine;
 
-public class CrystalController : MonoBehaviour
+public class DPSCrystalController : MonoBehaviour
 {
     public const int CrystalColorTypeCount = 6;
+    public const int MaxCrystalSlots = 10;
 
     private const float MinColorLerpDuration = 0f;
     private const float MaxColorLerpDuration = 2f;
@@ -71,9 +72,6 @@ public class CrystalController : MonoBehaviour
         public float elapsed;
     }
 
-    [SerializeField] private Renderer boulderBase;
-    [SerializeField] private Color boulderBaseColor = Color.white;
-
     [SerializeField] private Light crystalLight;
     [SerializeField] private float[] defaultLightIntensityPerType = new float[CrystalColorTypeCount];
 
@@ -82,12 +80,10 @@ public class CrystalController : MonoBehaviour
     [SerializeField] private CrystalTypeList[] crystalSets = new CrystalTypeList[CrystalColorTypeCount];
 
     [SerializeField] private int lastColorIndex = -1;
-    [SerializeField] private int lastMaxMw;
-    [SerializeField] private int lastAvailableMw;
+    [SerializeField] private int lastRequiredMw;
+    [SerializeField] private int lastAllocatedMw;
 
-    private static readonly int BaseColorPropertyId = Shader.PropertyToID("_BaseColor");
     private static readonly int BaseColorTintPropertyId = Shader.PropertyToID("_BaseColorTint");
-    private static readonly int RockColorPropertyId = Shader.PropertyToID("_RockColor");
     private static readonly int FresnelColorPropertyId = Shader.PropertyToID("_FresnelColor");
     private static readonly int ParallaxColorPropertyId = Shader.PropertyToID("_ParallaxColor");
 
@@ -103,7 +99,6 @@ public class CrystalController : MonoBehaviour
     private void Awake()
     {
         propertyBlock = new MaterialPropertyBlock();
-        ApplyBoulderBaseColor();
         SnapshotLightAtPlayStart();
         EnsureLightLerpStateInitialized();
     }
@@ -153,26 +148,6 @@ public class CrystalController : MonoBehaviour
         colorLerpDuration = Mathf.Clamp(colorLerpDuration, MinColorLerpDuration, MaxColorLerpDuration);
         EnsureCrystalSetCount();
         EnsureDefaultLightIntensityCount();
-
-        ApplyBoulderBaseColor();
-
-        if (!Application.isPlaying && lastColorIndex >= 0)
-            ApplyPowerSourceState(lastColorIndex, lastMaxMw, lastMaxMw);
-    }
-
-    // Applies the boulder base tint via MaterialPropertyBlock.
-    private void ApplyBoulderBaseColor()
-    {
-        if (boulderBase == null)
-            return;
-
-        if (propertyBlock == null)
-            propertyBlock = new MaterialPropertyBlock();
-
-        boulderBase.GetPropertyBlock(propertyBlock);
-        propertyBlock.SetColor(RockColorPropertyId, boulderBaseColor);
-        propertyBlock.SetColor(BaseColorPropertyId, boulderBaseColor);
-        boulderBase.SetPropertyBlock(propertyBlock);
     }
 
     private void SnapshotLightAtPlayStart()
@@ -186,14 +161,14 @@ public class CrystalController : MonoBehaviour
         lightPlaySnapshotTaken = true;
     }
 
-    // Updates which crystals are active for a Power Source (capacity = maxMw, color picks the list).
-    public void ApplyPowerSourceState(int colorIndex, int maxMw, int availableMw)
+    // Updates which crystals are active for a Device Power Socket (requiredMw slots, allocatedMw lit from list start).
+    public void ApplyDeviceSocketState(int colorIndex, int requiredMw, int allocatedMw)
     {
         EnsureCrystalSetCount();
 
         lastColorIndex = colorIndex;
-        lastMaxMw = Mathf.Max(0, maxMw);
-        lastAvailableMw = Mathf.Max(0, availableMw);
+        lastRequiredMw = Mathf.Clamp(Mathf.Max(0, requiredMw), 0, MaxCrystalSlots);
+        lastAllocatedMw = Mathf.Clamp(Mathf.Max(0, allocatedMw), 0, lastRequiredMw);
 
         int activeSetIndex = Mathf.Clamp(colorIndex, 0, CrystalColorTypeCount - 1);
 
@@ -204,7 +179,7 @@ public class CrystalController : MonoBehaviour
                 continue;
 
             bool isActiveColorSet = setIndex == activeSetIndex;
-            int enabledCount = isActiveColorSet ? lastMaxMw : 0;
+            int enabledCount = isActiveColorSet ? lastRequiredMw : 0;
 
             for (int crystalIndex = 0; crystalIndex < set.crystals.Count; crystalIndex++)
             {
@@ -218,7 +193,7 @@ public class CrystalController : MonoBehaviour
                 if (!isActiveColorSet || !isEnabled)
                     continue;
 
-                bool useDarkColors = crystalIndex >= lastAvailableMw;
+                bool useDarkColors = crystalIndex >= lastAllocatedMw;
                 CrystalColorPair targetColors = useDarkColors ? set.darkColors : set.brightColors;
                 SetCrystalColorTarget(crystal, targetColors);
             }
@@ -228,7 +203,7 @@ public class CrystalController : MonoBehaviour
             return;
 
         CrystalTypeList activeSet = crystalSets[activeSetIndex];
-        UpdateLightFromPowerSourceState(activeSet, lastAvailableMw, lastMaxMw);
+        UpdateLightFromDeviceSocketState(activeSet, lastAllocatedMw, lastRequiredMw);
     }
 
     private void EnsureLightLerpStateInitialized()
@@ -248,7 +223,7 @@ public class CrystalController : MonoBehaviour
         };
     }
 
-    private void UpdateLightFromPowerSourceState(CrystalTypeList activeSet, int brightCrystalCount, int activeCrystalCount)
+    private void UpdateLightFromDeviceSocketState(CrystalTypeList activeSet, int brightCrystalCount, int activeCrystalCount)
     {
         if (crystalLight == null || activeSet == null)
             return;

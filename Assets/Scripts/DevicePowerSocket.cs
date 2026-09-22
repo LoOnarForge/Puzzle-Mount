@@ -13,6 +13,10 @@ public class DevicePowerSocket : MonoBehaviour
     [SerializeField] private GameObject socketSpriteObject;
 
     [Space(20)]
+    [Header("CRYSTALS:")]
+    [SerializeField] private DPSCrystalController dpsCrystalController;
+
+    [Space(20)]
     [Header("STATE:")]
     [SerializeField] private int allocatedMw;
     [SerializeField] private PowerSource powerSource;
@@ -68,6 +72,12 @@ public class DevicePowerSocket : MonoBehaviour
         port.ParentDevicePowerSocket = this;
         port.SetPortType(PortType.Receiver);
         RefreshVisual();
+        RefreshDPSCrystalController();
+    }
+
+    private void Start()
+    {
+        RefreshDPSCrystalController();
     }
 
     private void RefreshVisual()
@@ -119,6 +129,7 @@ public class DevicePowerSocket : MonoBehaviour
         ownerIndex = index;
         colorIndex = color;
         requiredMw = mw;
+        RefreshDPSCrystalController();
         UpdateSocketStateChangeToOwner();
     }
 
@@ -145,6 +156,7 @@ public class DevicePowerSocket : MonoBehaviour
         }
 
         RefreshVisual();
+        RefreshDPSCrystalController();
 
         UpdateSocketStateChangeToOwner();
         return allocatedMw >= requiredMw;
@@ -169,6 +181,7 @@ public class DevicePowerSocket : MonoBehaviour
         }
 
         givingLine?.RefreshFaceAndPortsStates();
+        RefreshDPSCrystalController();
         UpdateSocketStateChangeToOwner();
     }
 
@@ -263,6 +276,16 @@ public class DevicePowerSocket : MonoBehaviour
         powerColor = Color.white;
         powerIndex = -1;
         RefreshVisual();
+        RefreshDPSCrystalController();
+    }
+
+    // Pushes required color and MW allocation to the attached crystal layout.
+    private void RefreshDPSCrystalController()
+    {
+        if (dpsCrystalController == null)
+            return;
+
+        dpsCrystalController.ApplyDeviceSocketState(colorIndex, requiredMw, allocatedMw);
     }
 
     private IEnumerator ClearPowerSequence()
