@@ -139,8 +139,8 @@ public class CrystalController : MonoBehaviour
 
         ApplyBoulderBaseColor();
 
-        if (lastColorIndex >= 0)
-            ApplyPowerSourceState(lastColorIndex, lastMaxMw, lastAvailableMw);
+        if (!Application.isPlaying && lastColorIndex >= 0)
+            ApplyPowerSourceState(lastColorIndex, lastMaxMw, lastMaxMw);
     }
 
     // Applies the boulder base tint via MaterialPropertyBlock.
@@ -192,7 +192,7 @@ public class CrystalController : MonoBehaviour
             for (int crystalIndex = 0; crystalIndex < set.crystals.Count; crystalIndex++)
             {
                 GameObject crystal = set.crystals[crystalIndex];
-                if (crystal == null)
+                if (crystal == null || !IsCrystalUnderThisController(crystal))
                     continue;
 
                 bool isEnabled = crystalIndex < enabledCount;
@@ -476,6 +476,11 @@ public class CrystalController : MonoBehaviour
             && Mathf.Approximately(a.g, b.g)
             && Mathf.Approximately(a.b, b.b)
             && Mathf.Approximately(a.a, b.a);
+    }
+
+    private bool IsCrystalUnderThisController(GameObject crystal)
+    {
+        return crystal.transform.IsChildOf(transform);
     }
 
     private float GetDefaultLightIntensity(int colorIndex)

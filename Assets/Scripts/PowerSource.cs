@@ -3,6 +3,9 @@ using UnityEngine;
 
 public class PowerSource : MonoBehaviour
 {
+    public const int MinMaxMw = 0;
+    public const int MaxMaxMw = 20;
+
     [System.Serializable]
     private class CircuitMember
     {
@@ -23,7 +26,7 @@ public class PowerSource : MonoBehaviour
 
     [Header("POWER SOURCE:")]
     [SerializeField] private int colorIndex;
-    [SerializeField] private int maxMW = 10;
+    [SerializeField] [Range(MinMaxMw, MaxMaxMw)] private int maxMW = 10;
 
     [Space(20)]
     [Header("STATE:")]
@@ -39,6 +42,10 @@ public class PowerSource : MonoBehaviour
     [SerializeField] private LinePort leftPort;
 
     [Space(20)]
+    [Header("VISUAL:")]
+    [SerializeField] private SpriteRenderer circuitSprite;
+
+    [Space(20)]
     [Header("CRYSTALS:")]
     [SerializeField] private CrystalController crystalController;
 
@@ -51,7 +58,8 @@ public class PowerSource : MonoBehaviour
     private void Awake()
     {
         availableMW = maxMW;
-        circuitColor = ColorManager.Instance.GetColor(colorIndex);
+        circuitColor = GetCircuitColor();
+        ApplyCircuitSpriteColor();
         RefreshCrystalController();
 
         upPort.SetPortType(PortType.Giver);
@@ -410,7 +418,44 @@ public class PowerSource : MonoBehaviour
 
     private void OnValidate()
     {
-        RefreshCrystalController();
+        maxMW = Mathf.Clamp(maxMW, MinMaxMw, MaxMaxMw);
+        availableMW = Mathf.Clamp(availableMW, MinMaxMw, maxMW);
+
+        circuitColor = GetCircuitColor();
+        ApplyCircuitSpriteColor();
+
+        if (!Application.isPlaying)
+            RefreshCrystalController();
+    }
+
+    private Color GetCircuitColor()
+    {
+        ColorManager manager = ColorManager.Instance;
+
+#if UNITY_EDITOR
+        if (manager == null)
+        {
+            foreach (ColorManager candidate in Resources.FindObjectsOfTypeAll<ColorManager>())
+            {
+                if (candidate != null && candidate.gameObject.scene.IsValid())
+                {
+                    manager = candidate;
+                    break;
+                }
+            }
+        }
+#endif
+
+        return manager != null ? manager.GetColor(colorIndex) : Color.white;
+    }
+
+    private void ApplyCircuitSpriteColor()
+    {
+        if (circuitSprite == null)
+            circuitSprite = GetComponentInChildren<SpriteRenderer>(true);
+
+        if (circuitSprite != null)
+            circuitSprite.color = circuitColor;
     }
 
     // Pushes current MW and color to the attached crystal layout.
@@ -419,6 +464,7 @@ public class PowerSource : MonoBehaviour
         if (crystalController == null)
             return;
 
-        crystalController.ApplyPowerSourceState(colorIndex, maxMW, availableMW);
+        int availableForCrystals = Application.isPlaying ? availableMW : maxMW;
+        crystalController.ApplyPowerSourceState(colorIndex, maxMW, availableForCrystals);
     }
 }

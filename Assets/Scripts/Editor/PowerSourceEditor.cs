@@ -41,7 +41,7 @@ public class PowerSourceEditor : Editor
             EditorGUILayout.HelpBox("No ColorManager was found in the open scene.", MessageType.Info);
         }
 
-        EditorGUILayout.PropertyField(maxMW);
+        maxMW.intValue = EditorGUILayout.IntSlider("Max MW", maxMW.intValue, PowerSource.MinMaxMw, PowerSource.MaxMaxMw);
     }
 
     private void DrawPowerSourcePorts()
@@ -56,6 +56,10 @@ public class PowerSourceEditor : Editor
 
     private void DrawVisualElements()
     {
+        EditorGUILayout.Space(20);
+        EditorGUILayout.LabelField("VISUAL:", EditorStyles.boldLabel);
+        EditorGUILayout.PropertyField(serializedObject.FindProperty("circuitSprite"), new GUIContent("Circuit Sprite"));
+
         EditorGUILayout.Space(20);
         EditorGUILayout.LabelField("CRYSTALS:", EditorStyles.boldLabel);
         EditorGUILayout.PropertyField(serializedObject.FindProperty("crystalController"));
