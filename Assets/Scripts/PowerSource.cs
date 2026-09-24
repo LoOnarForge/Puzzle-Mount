@@ -128,6 +128,20 @@ public class PowerSource : MonoBehaviour
                 return true;
             }
 
+            RunodeMovement targetRunode = targetLine.GetComponentInParent<RunodeMovement>();
+            if (targetRunode != null && !targetRunode.IsGrounded)
+            {
+                mwStillNeeded = targetLine.RemainingMwNeeded;
+
+                if (mwStillNeeded > 0)
+                {
+                    AddWaitingEntry(givingLine, targetPort, sourcePort, receiverPowerIndex);
+                    return false;
+                }
+
+                return true;
+            }
+
             if (TakeMW())
             {
                 targetLine.PowerUpLine(this, givingLine, targetPort, circuitColor, receiverPowerIndex);

@@ -76,6 +76,10 @@ public class RunodeLine : MonoBehaviour
         if (propagationHalted)
             return;
 
+        RunodeMovement runodeMovement = GetComponentInParent<RunodeMovement>();
+        if (runodeMovement != null && !runodeMovement.IsGrounded)
+            return;
+
         if (isPowered)
         {
             ReportShortCircuit(source);

@@ -21,6 +21,7 @@ public class RunodeMovement : MonoBehaviour
     [SerializeField] private bool isGrounded;
     public bool isRotating { get; private set; }
 
+    public bool IsGrounded => CheckGroundedWithRaycast();
     public bool IsBusy => isMovingPos || isRotating;
 
     [Header("PHYSICS LAYERS:")]
@@ -64,7 +65,7 @@ public class RunodeMovement : MonoBehaviour
 
     private void FixedUpdate()
     {
-        isGrounded = IsGrounded();
+        isGrounded = CheckGroundedWithRaycast();
 
         if (!wasGrounded && isGrounded && runodeCube != null)
         {
@@ -119,7 +120,7 @@ public class RunodeMovement : MonoBehaviour
     public bool CanPushSingle(Vector3 direction)
     {
         if (isMovingPos) return false;
-        if (!IsGrounded()) return false;
+        if (!CheckGroundedWithRaycast()) return false;
 
         Vector3 pushDir = GetGridDirection(direction);
         if (pushDir == Vector3.zero) return false;
@@ -136,7 +137,7 @@ public class RunodeMovement : MonoBehaviour
         StartCoroutine(MoveTo(snappedStart + pushDir, pushDir));
     }
 
-    private bool IsGrounded()
+    private bool CheckGroundedWithRaycast()
     {
         int mask = groundCheckMask == 0 ? ~0 : groundCheckMask;
         return Physics.Raycast(transform.position + Vector3.up * 0.1f, Vector3.down, 0.8f, mask);
