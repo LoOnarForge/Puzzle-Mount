@@ -15,7 +15,11 @@ public class ButtonDevice : MonoBehaviour
     private const float MinDescentSpeed = 0.1f;
     private const float MaxHorizontalApproachSpeed = 0.5f;
     private const int OverlapBufferSize = 8;
-    private const float EmissionChannelDropPower = 4f;
+    private const float EyeFadeOutEnd = 0.52f;
+    private const float EyeFadeInStart = 0.48f;
+    private const float EyeFlashDurationMin = 0f;
+    private const float EyeFlashDurationMax = 1f;
+    private const float EyeFlashBoost = 2.5f;
 
     [FormerlySerializedAs("buttonCap")]
     [SerializeField] private Transform skullButton;
@@ -27,7 +31,12 @@ public class ButtonDevice : MonoBehaviour
     [SerializeField] [Range(PauseBetweenMovesMin, PauseBetweenMovesMax)] private float pauseBetweenMoves = 0.15f;
     [SerializeField] private Renderer eyesRenderer;
     [ColorUsage(true, true)]
-    [SerializeField] private Color pressedEyeEmissionColor = Color.white;
+    [SerializeField] private Color defaultEyeColor = Color.white;
+    [ColorUsage(true, true)]
+    [FormerlySerializedAs("pressedEyeEmissionColor")]
+    [SerializeField] private Color pressedEyeColor = Color.white;
+    [FormerlySerializedAs("eyeFlashHalfWidth")]
+    [SerializeField] [Range(EyeFlashDurationMin, EyeFlashDurationMax)] private float eyeFlashDuration = 0.075f;
     [SerializeField] private ParticleSystem pressParticleSystem;
     [SerializeField] private Collider pressTrigger;
     [SerializeField] private List<GameObject> connectedDevices = new List<GameObject>();
@@ -46,6 +55,7 @@ public class ButtonDevice : MonoBehaviour
     {
         BuildConnectedDeviceLists();
         eyesPropertyBlock = new MaterialPropertyBlock();
+        ApplyEyeEmission(defaultEyeColor);
 
         if (pressTrigger != null)
             Debug.Assert(pressTrigger.isTrigger, $"{nameof(ButtonDevice)} on {name} requires {nameof(pressTrigger)} to be a trigger.", this);
@@ -217,10 +227,8 @@ public class ButtonDevice : MonoBehaviour
         if (eyesRenderer == null)
             yield break;
 
-        if (!TryGetEyeEmissionAtStart(out Color startEmission))
-            yield break;
-
-        Color endEmission = pressedEyeEmissionColor;
+        Color startEmission = defaultEyeColor;
+        Color endEmission = pressedEyeColor;
 
         if (pressStepDuration <= 0f)
         {
@@ -235,52 +243,35 @@ public class ButtonDevice : MonoBehaviour
         {
             elapsed += Time.deltaTime;
             float t = Mathf.Clamp01(elapsed / pressStepDuration);
-            ApplyEyeEmission(LerpEmissionColor(startEmission, endEmission, t));
+            ApplyEyeEmission(LerpEyeColorWithFlash(startEmission, endEmission, t));
             yield return null;
         }
 
         ApplyEyeEmission(endEmission);
     }
 
-    private bool TryGetEyeEmissionAtStart(out Color emission)
-    {
-        emission = Color.black;
-        if (eyesRenderer == null)
-            return false;
-
-        eyesRenderer.GetPropertyBlock(eyesPropertyBlock);
-        if (eyesPropertyBlock.HasColor(EmissionColorId))
-        {
-            emission = eyesPropertyBlock.GetColor(EmissionColorId);
-            return true;
-        }
-
-        // sharedMaterial is the project asset; per-button tint lives on the renderer material instance.
-        Material material = eyesRenderer.material;
-        if (material == null || !material.HasProperty(EmissionColorId))
-            return false;
-
-        emission = material.GetColor(EmissionColorId);
-        return true;
-    }
-
-    // When a channel drops (e.g. white -> red), ease it off faster so G/B do not stay high and read as white.
-    private static Color LerpEmissionColor(Color from, Color to, float t)
+    // Only A or B at a time (no mixed hue). Flash is extra brightness on that same color at the handoff — never additive white/RGB mix.
+    private Color LerpEyeColorWithFlash(Color from, Color to, float t)
     {
         t = Mathf.Clamp01(t);
-        return new Color(
-            Mathf.Lerp(from.r, to.r, EmissionChannelT(from.r, to.r, t)),
-            Mathf.Lerp(from.g, to.g, EmissionChannelT(from.g, to.g, t)),
-            Mathf.Lerp(from.b, to.b, EmissionChannelT(from.b, to.b, t)),
-            Mathf.Lerp(from.a, to.a, t));
-    }
 
-    private static float EmissionChannelT(float from, float to, float t)
-    {
-        if (to < from - 1e-6f)
-            return 1f - Mathf.Pow(1f - t, EmissionChannelDropPower);
+        float flashPhase = Mathf.Clamp01((t - (0.5f - eyeFlashDuration)) / (eyeFlashDuration * 2f));
+        float flashMul = 1f + EyeFlashBoost * Mathf.Sin(flashPhase * Mathf.PI);
 
-        return t;
+        Color result;
+        if (t < 0.5f)
+        {
+            float fade = 1f - Mathf.SmoothStep(0f, EyeFadeOutEnd, t);
+            result = from * (fade * flashMul);
+        }
+        else
+        {
+            float fade = Mathf.SmoothStep(EyeFadeInStart, 1f, t);
+            result = to * (fade * flashMul);
+        }
+
+        result.a = Mathf.Lerp(from.a, to.a, t);
+        return result;
     }
 
     private void ApplyEyeEmission(Color emissionColor)

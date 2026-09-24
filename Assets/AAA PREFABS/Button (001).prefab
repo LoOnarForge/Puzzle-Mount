@@ -5429,7 +5429,7 @@ MeshRenderer:
   m_RenderingLayerMask: 1
   m_RendererPriority: 0
   m_Materials:
-  - {fileID: 2100000, guid: 770e4cb6219efc848ad6ac8fa8d8e0b9, type: 2}
+  - {fileID: 2100000, guid: 67ac5003f8d8c3043ba85f9d94a63a1f, type: 2}
   m_StaticBatchInfo:
     firstSubMesh: 0
     subMeshCount: 0
@@ -5658,7 +5658,9 @@ MonoBehaviour:
   pressStepDuration: 0.5
   pauseBetweenMoves: 0.3
   eyesRenderer: {fileID: 1442944090738073695}
-  pressedEyeEmissionColor: {r: 5.9921565, g: 0, b: 0.019351335, a: 1}
+  defaultEyeColor: {r: 0, g: 5.992157, b: 0, a: 1}
+  pressedEyeColor: {r: 5.9921565, g: 0, b: 0.019351335, a: 1}
+  eyeFlashDuration: 0.3
   pressParticleSystem: {fileID: 6489517626453026249}
   pressTrigger: {fileID: 5347180018789963306}
   connectedDevices:

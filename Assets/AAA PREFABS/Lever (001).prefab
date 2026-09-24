@@ -279,6 +279,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 1831671950245460486}
+  - component: {fileID: 3945498028203332359}
   - component: {fileID: 4624342839287044031}
   - component: {fileID: 9026633834479805249}
   - component: {fileID: 1297577891710287719}
@@ -305,6 +306,21 @@ Transform:
   - {fileID: 5576267237900242638}
   m_Father: {fileID: 4978818627398781714}
   m_LocalEulerAnglesHint: {x: 8.208, y: -184.149, z: 0.904}
+--- !u!114 &3945498028203332359
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1566922334886346973}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 03372685cd8e4304fac3fafb256b86e5, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::SkullBehaviour
+  emissionRenderer: {fileID: 360898635625452085}
+  emissionColor: {r: 8, g: 1.6310921, b: 0, a: 1}
+  emissionIntensity: 1
 --- !u!33 &4624342839287044031
 MeshFilter:
   m_ObjectHideFlags: 0
@@ -453,6 +469,7 @@ MonoBehaviour:
   colorIndex: 0
   requiredMw: 1
   socketSpriteObject: {fileID: 599439131678012996}
+  dpsCrystalController: {fileID: 0}
   allocatedMw: 0
   powerSource: {fileID: 0}
   poweredByLine: {fileID: 0}
@@ -462,7 +479,9 @@ MonoBehaviour:
   ownerForgottenGate: {fileID: 0}
   ownerLever: {fileID: 8828515927793236645}
   ownerElevator: {fileID: 0}
-  ownerPiston: {fileID: 0}
+  ownerPistonHorizontal: {fileID: 0}
+  ownerPistonVertical: {fileID: 0}
+  ownerTorchRunode: {fileID: 0}
 --- !u!114 &3613463653204303134
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -790,7 +809,7 @@ MeshRenderer:
   m_RenderingLayerMask: 1
   m_RendererPriority: 0
   m_Materials:
-  - {fileID: 2100000, guid: 770e4cb6219efc848ad6ac8fa8d8e0b9, type: 2}
+  - {fileID: 2100000, guid: 67ac5003f8d8c3043ba85f9d94a63a1f, type: 2}
   m_StaticBatchInfo:
     firstSubMesh: 0
     subMeshCount: 0
@@ -861,7 +880,7 @@ Transform:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 8526102275491710381}
   serializedVersion: 2
-  m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
   m_LocalPosition: {x: 0, y: 0, z: 0}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
