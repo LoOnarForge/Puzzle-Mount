@@ -310,8 +310,9 @@ public class LeyasCamera : MonoBehaviour
             }
         }
 
+        float timY = timTransform.position.y;
         float nextY = transform.position.y + movement.y;
-        if ((nextY > timTransform.position.y + maxHeightOffset && movement.y > 0) || (nextY < timTransform.position.y && movement.y < 0))
+        if ((nextY > timY + maxHeightOffset && movement.y > 0) || (nextY < timY - maxHeightOffset && movement.y < 0))
         {
             movement.y = 0;
             currentVelocity.y = 0;

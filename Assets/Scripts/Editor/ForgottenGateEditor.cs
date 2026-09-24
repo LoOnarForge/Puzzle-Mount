@@ -19,9 +19,13 @@ public class ForgottenGateEditor : Editor
         for (int i = 0; i < SocketCount; i++)
             DrawSocket($"SOCKET {(i + 1):D2}", sockets.GetArrayElementAtIndex(i), colorManager);
 
+        DrawColorDecor(colorManager);
+
         EditorGUILayout.Space(20);
         EditorGUILayout.PropertyField(serializedObject.FindProperty("portalObject"));
-        EditorGUILayout.PropertyField(serializedObject.FindProperty("portalScaleDuration"));
+        EditorGUILayout.PropertyField(serializedObject.FindProperty("portalLight"), new GUIContent("Portal Light"));
+        EditorGUILayout.PropertyField(serializedObject.FindProperty("powerUpTimer"), new GUIContent("Power Up Timer"));
+        EditorGUILayout.PropertyField(serializedObject.FindProperty("depowerTimer"), new GUIContent("Depower Timer"));
 
         EditorGUILayout.Space(20);
         EditorGUILayout.PropertyField(serializedObject.FindProperty("isGateActive"));
@@ -31,6 +35,36 @@ public class ForgottenGateEditor : Editor
 
         if (Application.isPlaying)
             Repaint();
+    }
+
+    private void DrawColorDecor(ColorManager colorManager)
+    {
+        EditorGUILayout.Space(20);
+        EditorGUILayout.LabelField("COLOR DECOR", EditorStyles.boldLabel);
+
+        SerializedProperty spawnTransforms = serializedObject.FindProperty("spawnTransforms");
+        if (spawnTransforms.arraySize != 4)
+            spawnTransforms.arraySize = 4;
+
+        for (int i = 0; i < spawnTransforms.arraySize; i++)
+        {
+            EditorGUILayout.PropertyField(
+                spawnTransforms.GetArrayElementAtIndex(i),
+                new GUIContent($"Spawn Transform {(i + 1):D2}"));
+        }
+
+        SerializedProperty colorPrefabs = serializedObject.FindProperty("colorPrefabs");
+        if (colorPrefabs.arraySize != 6)
+            colorPrefabs.arraySize = 6;
+
+        for (int i = 0; i < colorPrefabs.arraySize; i++)
+        {
+            string label = colorManager != null && i < colorManager.colors.Count
+                ? $"Prefab — {colorManager.GetColorNames()[i]}"
+                : $"Prefab — Color Index {i}";
+
+            EditorGUILayout.PropertyField(colorPrefabs.GetArrayElementAtIndex(i), new GUIContent(label));
+        }
     }
 
     private void DrawSocket(string sectionLabel, SerializedProperty slot, ColorManager colorManager)
