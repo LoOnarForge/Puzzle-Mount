@@ -6,7 +6,9 @@ public class Elevator : MonoBehaviour
 {
     private const int SocketCount = 2;
     private const float DefaultMoveSpeed = 2f;
-    private const float PlatformTopTolerance = 0.1f;
+    private const float GridUnit = 1f;
+    private const float PlatformOccupancyHeight = GridUnit * 2f;
+    private const float PlatformOccupancyXZ = GridUnit - 0.1f;
 
     [System.Serializable]
     private class SocketSlot
@@ -41,11 +43,17 @@ public class Elevator : MonoBehaviour
     private CharacterMovement tim;
     private Vector3 currentMoveDirection;
     private readonly Collider[] crushOverlapResults = new Collider[8];
+    private readonly Collider[] platformOccupancyResults = new Collider[16];
+    private int platformOccupancyMask;
+    private int timJonesLayer;
 
     private void Awake()
     {
         if (platform != null)
             platformCollider = platform.GetComponent<Collider>();
+
+        platformOccupancyMask = LayerMask.GetMask("Runodes", "TimJones");
+        timJonesLayer = LayerMask.NameToLayer("TimJones");
 
         if (platform != null && stops.Count > 0)
         {
@@ -78,6 +86,9 @@ public class Elevator : MonoBehaviour
     public void OnLeverOperated()
     {
         if ((!isSelfPowered && !isPowered) || isElevatorMoving || platform == null || stops.Count < 2)
+            return;
+
+        if (IsPlatformOccupancyBlocked(out _))
             return;
 
         int nextStopIndex = (currentStopIndex + 1) % stops.Count;
@@ -158,8 +169,15 @@ public class Elevator : MonoBehaviour
         float distance = Vector3.Distance(startPosition, endPosition);
         currentMoveDirection = distance > 0.001f ? (endPosition - startPosition).normalized : Vector3.zero;
 
-        List<Elevator> carriedElevators = GetElevatorsOnPlatform();
-        List<RunodeMovement> carriedRunodes = GetAllCarriedRunodes(carriedElevators);
+        if (IsPlatformOccupancyBlocked(out RunodeMovement carriedRunode))
+        {
+            isElevatorMoving = false;
+            yield break;
+        }
+
+        List<RunodeMovement> carriedRunodes = new List<RunodeMovement>();
+        if (carriedRunode != null)
+            carriedRunodes.Add(carriedRunode);
 
         foreach (RunodeMovement runode in carriedRunodes)
             runode.SetKinematic(true);
@@ -179,7 +197,6 @@ public class Elevator : MonoBehaviour
 
                 platform.position = newPosition;
                 MoveCarriedRunodes(carriedRunodes, delta);
-                MoveCarriedElevators(carriedElevators, delta);
                 // TryCrushTim();
 
                 previousPosition = newPosition;
@@ -190,7 +207,6 @@ public class Elevator : MonoBehaviour
         Vector3 finalDelta = endPosition - platform.position;
         platform.position = endPosition;
         MoveCarriedRunodes(carriedRunodes, finalDelta);
-        MoveCarriedElevators(carriedElevators, finalDelta);
 
         foreach (RunodeMovement runode in carriedRunodes)
         {
@@ -242,104 +258,88 @@ public class Elevator : MonoBehaviour
             runode.transform.position += delta;
     }
 
-    private List<RunodeMovement> GetRunodesOnPlatform()
+    // True when Tim is in the platform stack volume or more than one Runode is.
+    private bool IsPlatformOccupancyBlocked(out RunodeMovement singleRunode)
     {
-        List<RunodeMovement> carriedRunodes = new List<RunodeMovement>();
-        AppendRunodesOnCollider(platformCollider, carriedRunodes);
-        return carriedRunodes;
-    }
+        singleRunode = null;
 
-    private List<RunodeMovement> GetAllCarriedRunodes(List<Elevator> carriedElevators)
-    {
-        List<RunodeMovement> carriedRunodes = GetRunodesOnPlatform();
+        if (platformCollider == null || platform == null)
+            return true;
 
-        foreach (Elevator carriedElevator in carriedElevators)
-            AppendRunodesOnCollider(carriedElevator.platformCollider, carriedRunodes);
+        if (!TryGetPlatformOccupancyBox(out Vector3 center, out Vector3 halfExtents, out Quaternion orientation))
+            return true;
 
-        return carriedRunodes;
-    }
+        int hitCount = Physics.OverlapBoxNonAlloc(
+            center,
+            halfExtents,
+            platformOccupancyResults,
+            orientation,
+            platformOccupancyMask,
+            QueryTriggerInteraction.Collide);
 
-    private static void AppendRunodesOnCollider(Collider carrierCollider, List<RunodeMovement> carriedRunodes)
-    {
-        if (carrierCollider == null)
-            return;
+        RunodeMovement foundRunode = null;
+        int runodeCount = 0;
 
-        Bounds bounds = carrierCollider.bounds;
-        RunodeMovement[] allRunodes = Object.FindObjectsByType<RunodeMovement>();
-
-        foreach (RunodeMovement runode in allRunodes)
+        for (int i = 0; i < hitCount; i++)
         {
-            if (carriedRunodes.Contains(runode))
+            Collider hit = platformOccupancyResults[i];
+            if (hit == null)
                 continue;
 
-            Vector3 position = runode.transform.position;
+            if (IsTimOnPlatform(hit))
+                return true;
 
-            bool overPlatform =
-                position.x >= bounds.min.x && position.x <= bounds.max.x &&
-                position.z >= bounds.min.z && position.z <= bounds.max.z;
-
-            bool onOrAbovePlatform =
-                position.y >= bounds.max.y - PlatformTopTolerance;
-
-            if (overPlatform && onOrAbovePlatform)
-                carriedRunodes.Add(runode);
-        }
-    }
-
-    private List<Elevator> GetElevatorsOnPlatform()
-    {
-        List<Elevator> carriedElevators = new List<Elevator>();
-        HashSet<Elevator> scanned = new HashSet<Elevator> { this };
-        Queue<Elevator> platformSources = new Queue<Elevator>();
-        platformSources.Enqueue(this);
-
-        while (platformSources.Count > 0)
-        {
-            Elevator source = platformSources.Dequeue();
-            if (source.platformCollider == null)
+            if (!TryGetRunodeFromCollider(hit, out RunodeMovement runode))
                 continue;
 
-            Bounds bounds = source.platformCollider.bounds;
+            if (foundRunode == runode)
+                continue;
 
-            foreach (Elevator candidate in Object.FindObjectsByType<Elevator>())
-            {
-                if (candidate == this || carriedElevators.Contains(candidate) || candidate.IsMoving)
-                    continue;
+            runodeCount++;
+            if (runodeCount > 1)
+                return true;
 
-                if (!IsRestingOnPlatform(candidate, bounds))
-                    continue;
-
-                carriedElevators.Add(candidate);
-
-                if (scanned.Add(candidate))
-                    platformSources.Enqueue(candidate);
-            }
+            foundRunode = runode;
         }
 
-        return carriedElevators;
+        singleRunode = foundRunode;
+        return false;
     }
 
-    private static bool IsRestingOnPlatform(Elevator elevator, Bounds carrierBounds)
+    private bool TryGetPlatformOccupancyBox(out Vector3 center, out Vector3 halfExtents, out Quaternion orientation)
     {
-        Collider otherCollider = elevator.platformCollider;
-        if (otherCollider == null)
+        center = default;
+        halfExtents = default;
+        orientation = Quaternion.identity;
+
+        if (platformCollider == null || platform == null)
             return false;
 
-        Bounds otherBounds = otherCollider.bounds;
+        Bounds platformBounds = platformCollider.bounds;
+        float halfHeight = PlatformOccupancyHeight * 0.5f;
+        float halfXZ = PlatformOccupancyXZ * 0.5f;
 
-        bool overPlatform =
-            otherBounds.center.x >= carrierBounds.min.x && otherBounds.center.x <= carrierBounds.max.x &&
-            otherBounds.center.z >= carrierBounds.min.z && otherBounds.center.z <= carrierBounds.max.z;
+        center = new Vector3(
+            platformBounds.center.x,
+            platformBounds.max.y + halfHeight,
+            platformBounds.center.z);
 
-        bool onOrAbovePlatform =
-            otherBounds.min.y >= carrierBounds.max.y - PlatformTopTolerance;
-
-        return overPlatform && onOrAbovePlatform;
+        halfExtents = new Vector3(halfXZ, halfHeight, halfXZ);
+        orientation = platform.rotation;
+        return true;
     }
 
-    private static void MoveCarriedElevators(List<Elevator> carriedElevators, Vector3 delta)
+    private bool IsTimOnPlatform(Collider hit)
     {
-        foreach (Elevator carriedElevator in carriedElevators)
-            carriedElevator.transform.position += delta;
+        if (hit.gameObject.layer == timJonesLayer)
+            return true;
+
+        return hit.GetComponentInParent<CharacterMovement>() != null;
+    }
+
+    private static bool TryGetRunodeFromCollider(Collider hit, out RunodeMovement runode)
+    {
+        runode = hit.GetComponentInParent<RunodeMovement>();
+        return runode != null;
     }
 }
