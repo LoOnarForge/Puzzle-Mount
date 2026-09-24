@@ -4,7 +4,8 @@ using UnityEngine;
 public class PowerSource : MonoBehaviour
 {
     public const int MinMaxMw = 0;
-    public const int MaxMaxMw = 20;
+    public const int MaxMaxMw = 40;
+    public const int MaxCrystalVisualMw = 20;
 
     [System.Serializable]
     private class CircuitMember
@@ -465,6 +466,11 @@ public class PowerSource : MonoBehaviour
             return;
 
         int availableForCrystals = Application.isPlaying ? availableMW : maxMW;
-        crystalController.ApplyPowerSourceState(colorIndex, maxMW, availableForCrystals);
+        int visualMaxMw = Mathf.Min(maxMW, MaxCrystalVisualMw);
+        int visualAvailableMw = availableForCrystals >= MaxCrystalVisualMw
+            ? visualMaxMw
+            : Mathf.Min(availableForCrystals, visualMaxMw);
+
+        crystalController.ApplyPowerSourceState(colorIndex, visualMaxMw, visualAvailableMw);
     }
 }

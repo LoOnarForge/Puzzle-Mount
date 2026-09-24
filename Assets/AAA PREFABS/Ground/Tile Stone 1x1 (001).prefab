@@ -62,7 +62,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 4055134661448258737}
-  - component: {fileID: 6425959806066712983}
+  - component: {fileID: 3298009613249249181}
   m_Layer: 10
   m_Name: Tile Stone 1x1 (001)
   m_TagString: Untagged
@@ -87,7 +87,7 @@ Transform:
   - {fileID: 3535688068542832104}
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
---- !u!114 &6425959806066712983
+--- !u!114 &3298009613249249181
 MonoBehaviour:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
@@ -96,19 +96,24 @@ MonoBehaviour:
   m_GameObject: {fileID: 4749535481230366501}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: cfaaefc5e4fe6c94888dd4f07aa246da, type: 3}
+  m_Script: {fileID: 11500000, guid: ea86a571c1f67c84a964a0e7a9cbf445, type: 3}
   m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::RunodeStaticCubeVisualRandomizer
-  isRandomMesh: 0
+  m_EditorClassIdentifier: Assembly-CSharp::BlockMeshRandomizer
+  isRandomMesh: 1
   isRandomMaterial: 1
-  meshes: []
+  isRandomRotation: 1
+  isUniformForAll: 0
+  rotationMode: 1
+  meshes:
+  - {fileID: 4300000, guid: 6815de382fbed5c47a64105d791a7195, type: 2}
   materials:
   - {fileID: 2100000, guid: 083306651d8a9f246ba58ab6b43f29af, type: 2}
   - {fileID: 2100000, guid: 7ea2f40ce5bb5f544b4b47866e908624, type: 2}
   - {fileID: 2100000, guid: 2761a180deeaf8445ab31845de3f0db1, type: 2}
   - {fileID: 2100000, guid: 776c45e3e59593e44a0d5edfb91b183b, type: 2}
   - {fileID: 2100000, guid: 8f35cff12e2edac43a92cc314bc11c1a, type: 2}
-  meshFilter: {fileID: 5925589988755653887}
+  meshFilters:
+  - {fileID: 5925589988755653887}
 --- !u!1 &5724259905235088312
 GameObject:
   m_ObjectHideFlags: 0

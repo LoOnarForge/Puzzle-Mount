@@ -1,9 +1,11 @@
 using System.Collections;
 using UnityEngine;
+using UnityEngine.Serialization;
 
 public class ForgottenGate : MonoBehaviour
 {
     private const int SocketCount = 4;
+    private const float MinPortalScaleDuration = 0.01f;
 
     [System.Serializable]
     private class SocketSlot
@@ -24,33 +26,33 @@ public class ForgottenGate : MonoBehaviour
         new SocketSlot()
     };
 
-    [SerializeField] private SpriteRenderer portalSurface;
-    [SerializeField] private float pulseSpeed = 2f;
-    [SerializeField] private float minAlpha = 0.2f;
-    [SerializeField] private float maxAlpha = 0.9f;
-    [SerializeField] private float scalePulseAmount = 0.06f;
-    [SerializeField] private float bloomMin = 0.75f;
-    [SerializeField] private float bloomMax = 1.25f;
+    [FormerlySerializedAs("portalSurface")]
+    [SerializeField] private GameObject portalObject;
+    [SerializeField] private float portalScaleDuration = 1f;
 
     [SerializeField] private bool isGateActive;
     [SerializeField] private bool levelCompleted;
 
-    private Coroutine portalPulseCoroutine;
+    private Coroutine portalScaleCoroutine;
     private Collider portalTrigger;
     private CharacterController timController;
-    private Vector3 portalBaseScale;
-    private Color portalBaseColor;
+    private Vector3 portalOriginalLocalScale;
 
     private void Awake()
     {
         CachePortalDefaults();
 
-        Debug.Assert(portalSurface != null, $"{nameof(ForgottenGate)} on {name} requires a portal surface.", this);
-        Debug.Assert(portalTrigger != null, $"{nameof(ForgottenGate)} on {name} requires a collider on the portal surface.", this);
+        Debug.Assert(portalObject != null, $"{nameof(ForgottenGate)} on {name} requires a portal object.", this);
+        Debug.Assert(portalTrigger != null, $"{nameof(ForgottenGate)} on {name} requires a collider on the portal object.", this);
         Debug.Assert(sockets != null && sockets.Length == SocketCount, $"{nameof(ForgottenGate)} on {name} requires {SocketCount} socket slots.", this);
-        
+
         SetPortalHidden();
         InitialSocketConfiguration();
+    }
+
+    private void OnValidate()
+    {
+        portalScaleDuration = Mathf.Max(MinPortalScaleDuration, portalScaleDuration);
     }
 
     private void Start()
@@ -127,19 +129,20 @@ public class ForgottenGate : MonoBehaviour
         isGateActive = hasEnabledSocket && allPowered;
 
         if (isGateActive && !wasGateActive)
-            StartPortalPulse();
+            StartPortalScaleIn();
         else if (!isGateActive && wasGateActive)
-            StopPortalPulse();
+            StopPortalScaleIn();
     }
 
     private void CachePortalDefaults()
     {
-        if (portalSurface == null)
+        if (portalObject == null)
             return;
 
-        portalBaseScale = portalSurface.transform.localScale;
-        portalBaseColor = portalSurface.color;
-        portalTrigger = portalSurface.GetComponent<Collider>();
+        portalOriginalLocalScale = portalObject.transform.localScale;
+        portalTrigger = portalObject.GetComponent<Collider>();
+        if (portalTrigger == null)
+            portalTrigger = portalObject.GetComponentInChildren<Collider>();
 
         if (portalTrigger != null)
             portalTrigger.isTrigger = true;
@@ -147,33 +150,32 @@ public class ForgottenGate : MonoBehaviour
 
     private void SetPortalHidden()
     {
-        if (portalSurface == null)
+        if (portalObject == null)
             return;
 
-        portalSurface.transform.localScale = portalBaseScale;
-        portalSurface.color = portalBaseColor;
-        portalSurface.gameObject.SetActive(false);
+        portalObject.transform.localScale = Vector3.zero;
+        portalObject.SetActive(false);
     }
 
-    private void StartPortalPulse()
+    private void StartPortalScaleIn()
     {
-        if (portalSurface == null)
+        if (portalObject == null)
             return;
 
-        if (portalPulseCoroutine != null)
-            StopCoroutine(portalPulseCoroutine);
+        if (portalScaleCoroutine != null)
+            StopCoroutine(portalScaleCoroutine);
 
-        portalSurface.gameObject.SetActive(true);
-        portalSurface.enabled = true;
-        portalPulseCoroutine = StartCoroutine(PortalPulseLoop());
+        portalObject.SetActive(true);
+        portalObject.transform.localScale = Vector3.zero;
+        portalScaleCoroutine = StartCoroutine(PortalScaleInRoutine());
     }
 
-    private void StopPortalPulse()
+    private void StopPortalScaleIn()
     {
-        if (portalPulseCoroutine != null)
+        if (portalScaleCoroutine != null)
         {
-            StopCoroutine(portalPulseCoroutine);
-            portalPulseCoroutine = null;
+            StopCoroutine(portalScaleCoroutine);
+            portalScaleCoroutine = null;
         }
 
         SetPortalHidden();
@@ -184,7 +186,7 @@ public class ForgottenGate : MonoBehaviour
         if (levelCompleted || portalTrigger == null || timController == null)
             return;
 
-        if (!portalSurface.gameObject.activeInHierarchy)
+        if (!portalObject.activeInHierarchy)
             return;
 
         if (!portalTrigger.bounds.Intersects(timController.bounds))
@@ -194,25 +196,26 @@ public class ForgottenGate : MonoBehaviour
         Debug.Log("Level completed.");
     }
 
-    private IEnumerator PortalPulseLoop()
+    private IEnumerator PortalScaleInRoutine()
     {
-        while (true)
+        float elapsed = 0f;
+
+        while (elapsed < portalScaleDuration)
         {
-            float pulse = (Mathf.Sin(Time.time * pulseSpeed) + 1f) * 0.5f;
-            float alpha = Mathf.Lerp(minAlpha, maxAlpha, pulse);
-            float bloom = Mathf.Lerp(bloomMin, bloomMax, pulse);
-            float scaleMultiplier = 1f + Mathf.Lerp(-scalePulseAmount, scalePulseAmount, pulse);
-
-            Color color = portalBaseColor;
-            color.r = Mathf.Min(color.r * bloom, 1f);
-            color.g = Mathf.Min(color.g * bloom, 1f);
-            color.b = Mathf.Min(color.b * bloom, 1f);
-            color.a = alpha;
-
-            portalSurface.color = color;
-            portalSurface.transform.localScale = portalBaseScale * scaleMultiplier;
-
+            elapsed += Time.deltaTime;
+            float t = Mathf.Clamp01(elapsed / portalScaleDuration);
+            float eased = EaseOutCubic(t);
+            portalObject.transform.localScale = Vector3.LerpUnclamped(Vector3.zero, portalOriginalLocalScale, eased);
             yield return null;
         }
+
+        portalObject.transform.localScale = portalOriginalLocalScale;
+        portalScaleCoroutine = null;
+    }
+
+    private static float EaseOutCubic(float t)
+    {
+        float oneMinusT = 1f - t;
+        return 1f - oneMinusT * oneMinusT * oneMinusT;
     }
 }

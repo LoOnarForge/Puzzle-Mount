@@ -20,13 +20,8 @@ public class ForgottenGateEditor : Editor
             DrawSocket($"SOCKET {(i + 1):D2}", sockets.GetArrayElementAtIndex(i), colorManager);
 
         EditorGUILayout.Space(20);
-        EditorGUILayout.PropertyField(serializedObject.FindProperty("portalSurface"));
-        EditorGUILayout.PropertyField(serializedObject.FindProperty("pulseSpeed"));
-        EditorGUILayout.PropertyField(serializedObject.FindProperty("minAlpha"));
-        EditorGUILayout.PropertyField(serializedObject.FindProperty("maxAlpha"));
-        EditorGUILayout.PropertyField(serializedObject.FindProperty("scalePulseAmount"));
-        EditorGUILayout.PropertyField(serializedObject.FindProperty("bloomMin"));
-        EditorGUILayout.PropertyField(serializedObject.FindProperty("bloomMax"));
+        EditorGUILayout.PropertyField(serializedObject.FindProperty("portalObject"));
+        EditorGUILayout.PropertyField(serializedObject.FindProperty("portalScaleDuration"));
 
         EditorGUILayout.Space(20);
         EditorGUILayout.PropertyField(serializedObject.FindProperty("isGateActive"));

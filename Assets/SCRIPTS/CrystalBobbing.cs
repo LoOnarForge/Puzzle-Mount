@@ -12,22 +12,31 @@ public class CrystalBobbing : MonoBehaviour
 
     private const float MinBobCycleDuration = 0.01f;
     private const float MinExtremityPauseDuration = 0f;
+    private const float CycleParameterRandomnessMin = 0.9f;
+    private const float CycleParameterRandomnessMax = 1.1f;
 
     [Header("BOBBING")]
     [SerializeField] private float bobAmplitude = 0.1f;
     [SerializeField] private float bobCycleDuration = 2f;
     [SerializeField] private float extremityPauseDuration = 0.2f;
+    [SerializeField] private bool bobWorldX;
+    [SerializeField] private bool bobWorldY = true;
+    [SerializeField] private bool bobWorldZ;
 
-    private Vector3 restLocalPosition;
+    private Vector3 restWorldPosition;
     private BobPhase phase = BobPhase.MovingUp;
     private float phaseElapsed;
+    private float activeAmplitude;
+    private float activeCycleDuration;
+    private float activeExtremityPauseDuration;
 
-    private float HalfCycleDuration => bobCycleDuration * 0.5f;
+    private float HalfCycleDuration => activeCycleDuration * 0.5f;
 
     private void Awake()
     {
-        restLocalPosition = transform.localPosition;
-        ApplyVerticalOffset(-bobAmplitude);
+        restWorldPosition = transform.position;
+        RollActiveCycleParameters();
+        ApplyBobOffset(-activeAmplitude);
     }
 
     private void OnValidate()
@@ -44,22 +53,22 @@ public class CrystalBobbing : MonoBehaviour
         switch (phase)
         {
             case BobPhase.MovingUp:
-                if (UpdateMove(-bobAmplitude, bobAmplitude, HalfCycleDuration))
+                if (UpdateMove(-activeAmplitude, activeAmplitude, HalfCycleDuration))
                     BeginPhase(BobPhase.PauseAtTop);
                 break;
 
             case BobPhase.PauseAtTop:
-                if (phaseElapsed >= extremityPauseDuration)
+                if (phaseElapsed >= activeExtremityPauseDuration)
                     BeginPhase(BobPhase.MovingDown);
                 break;
 
             case BobPhase.MovingDown:
-                if (UpdateMove(bobAmplitude, -bobAmplitude, HalfCycleDuration))
+                if (UpdateMove(activeAmplitude, -activeAmplitude, HalfCycleDuration))
                     BeginPhase(BobPhase.PauseAtBottom);
                 break;
 
             case BobPhase.PauseAtBottom:
-                if (phaseElapsed >= extremityPauseDuration)
+                if (phaseElapsed >= activeExtremityPauseDuration)
                     BeginPhase(BobPhase.MovingUp);
                 break;
         }
@@ -67,8 +76,18 @@ public class CrystalBobbing : MonoBehaviour
 
     private void BeginPhase(BobPhase nextPhase)
     {
+        if (nextPhase == BobPhase.MovingUp)
+            RollActiveCycleParameters();
+
         phase = nextPhase;
         phaseElapsed = 0f;
+    }
+
+    private void RollActiveCycleParameters()
+    {
+        activeAmplitude = bobAmplitude * Random.Range(CycleParameterRandomnessMin, CycleParameterRandomnessMax);
+        activeCycleDuration = bobCycleDuration * Random.Range(CycleParameterRandomnessMin, CycleParameterRandomnessMax);
+        activeExtremityPauseDuration = extremityPauseDuration * Random.Range(CycleParameterRandomnessMin, CycleParameterRandomnessMax);
     }
 
     // Returns true when the move segment has finished.
@@ -77,15 +96,21 @@ public class CrystalBobbing : MonoBehaviour
         float t = Mathf.Clamp01(phaseElapsed / duration);
         float eased = Mathf.SmoothStep(0f, 1f, t);
         float offset = Mathf.Lerp(fromOffset, toOffset, eased);
-        ApplyVerticalOffset(offset);
+        ApplyBobOffset(offset);
 
         return phaseElapsed >= duration;
     }
 
-    private void ApplyVerticalOffset(float verticalOffset)
+    private void ApplyBobOffset(float offset)
     {
-        Vector3 position = restLocalPosition;
-        position.y += verticalOffset;
-        transform.localPosition = position;
+        Vector3 delta = Vector3.zero;
+        if (bobWorldX)
+            delta.x = offset;
+        if (bobWorldY)
+            delta.y = offset;
+        if (bobWorldZ)
+            delta.z = offset;
+
+        transform.position = restWorldPosition + delta;
     }
 }
