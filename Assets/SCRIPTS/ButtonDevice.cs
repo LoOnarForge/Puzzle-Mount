@@ -6,7 +6,6 @@ using UnityEngine.Serialization;
 public class ButtonDevice : MonoBehaviour
 {
     private const int PressPoseCount = 4;
-    private static readonly int EmissionColorId = Shader.PropertyToID("_EmissionColor");
     private const float PressStepDurationMin = 0f;
     private const float PressStepDurationMax = 1f;
     private const float PauseBetweenMovesMin = 0f;
@@ -15,12 +14,6 @@ public class ButtonDevice : MonoBehaviour
     private const float MinDescentSpeed = 0.1f;
     private const float MaxHorizontalApproachSpeed = 0.5f;
     private const int OverlapBufferSize = 8;
-    private const float EyeFadeOutEnd = 0.52f;
-    private const float EyeFadeInStart = 0.48f;
-    private const float EyeFlashDurationMin = 0f;
-    private const float EyeFlashDurationMax = 1f;
-    private const float EyeFlashBoost = 2.5f;
-
     [FormerlySerializedAs("buttonCap")]
     [SerializeField] private Transform skullButton;
     [SerializeField] private Transform pressPose0;
@@ -29,15 +22,7 @@ public class ButtonDevice : MonoBehaviour
     [SerializeField] private Transform pressPose3;
     [SerializeField] [Range(PressStepDurationMin, PressStepDurationMax)] private float pressStepDuration = 0.25f;
     [SerializeField] [Range(PauseBetweenMovesMin, PauseBetweenMovesMax)] private float pauseBetweenMoves = 0.15f;
-    [SerializeField] private Renderer eyesRenderer;
-    [ColorUsage(true, true)]
-    [SerializeField] private Color defaultEyeColor = Color.white;
-    [ColorUsage(true, true)]
-    [FormerlySerializedAs("pressedEyeEmissionColor")]
-    [SerializeField] private Color pressedEyeColor = Color.white;
-    [FormerlySerializedAs("eyeFlashHalfWidth")]
-    [SerializeField] [Range(EyeFlashDurationMin, EyeFlashDurationMax)] private float eyeFlashDuration = 0.075f;
-    [SerializeField] private ParticleSystem pressParticleSystem;
+    [SerializeField] private SkullBehaviour skullBehaviour;
     [SerializeField] private Collider pressTrigger;
     [SerializeField] private List<GameObject> connectedDevices = new List<GameObject>();
 
@@ -49,13 +34,13 @@ public class ButtonDevice : MonoBehaviour
 
     private bool isButtonMoving;
     private bool isPressed;
-    private MaterialPropertyBlock eyesPropertyBlock;
 
     private void Awake()
     {
         BuildConnectedDeviceLists();
-        eyesPropertyBlock = new MaterialPropertyBlock();
-        ApplyEyeEmission(defaultEyeColor);
+
+        if (skullBehaviour == null)
+            skullBehaviour = GetComponentInChildren<SkullBehaviour>(true);
 
         if (pressTrigger != null)
             Debug.Assert(pressTrigger.isTrigger, $"{nameof(ButtonDevice)} on {name} requires {nameof(pressTrigger)} to be a trigger.", this);
@@ -215,79 +200,11 @@ public class ButtonDevice : MonoBehaviour
                 yield return new WaitForSeconds(pauseBetweenMoves);
         }
 
-        EnablePressParticleSystem();
-        yield return LerpEyeEmissionToPressed();
+        if (skullBehaviour != null)
+            yield return skullBehaviour.TransitionDefaultToClosed();
 
         isButtonMoving = false;
         NotifyConnectedDevices();
-    }
-
-    private IEnumerator LerpEyeEmissionToPressed()
-    {
-        if (eyesRenderer == null)
-            yield break;
-
-        Color startEmission = defaultEyeColor;
-        Color endEmission = pressedEyeColor;
-
-        if (pressStepDuration <= 0f)
-        {
-            ApplyEyeEmission(endEmission);
-            yield break;
-        }
-
-        ApplyEyeEmission(startEmission);
-
-        float elapsed = 0f;
-        while (elapsed < pressStepDuration)
-        {
-            elapsed += Time.deltaTime;
-            float t = Mathf.Clamp01(elapsed / pressStepDuration);
-            ApplyEyeEmission(LerpEyeColorWithFlash(startEmission, endEmission, t));
-            yield return null;
-        }
-
-        ApplyEyeEmission(endEmission);
-    }
-
-    // Only A or B at a time (no mixed hue). Flash is extra brightness on that same color at the handoff — never additive white/RGB mix.
-    private Color LerpEyeColorWithFlash(Color from, Color to, float t)
-    {
-        t = Mathf.Clamp01(t);
-
-        float flashPhase = Mathf.Clamp01((t - (0.5f - eyeFlashDuration)) / (eyeFlashDuration * 2f));
-        float flashMul = 1f + EyeFlashBoost * Mathf.Sin(flashPhase * Mathf.PI);
-
-        Color result;
-        if (t < 0.5f)
-        {
-            float fade = 1f - Mathf.SmoothStep(0f, EyeFadeOutEnd, t);
-            result = from * (fade * flashMul);
-        }
-        else
-        {
-            float fade = Mathf.SmoothStep(EyeFadeInStart, 1f, t);
-            result = to * (fade * flashMul);
-        }
-
-        result.a = Mathf.Lerp(from.a, to.a, t);
-        return result;
-    }
-
-    private void ApplyEyeEmission(Color emissionColor)
-    {
-        eyesRenderer.GetPropertyBlock(eyesPropertyBlock);
-        eyesPropertyBlock.SetColor(EmissionColorId, emissionColor);
-        eyesRenderer.SetPropertyBlock(eyesPropertyBlock);
-    }
-
-    private void EnablePressParticleSystem()
-    {
-        if (pressParticleSystem == null)
-            return;
-
-        pressParticleSystem.gameObject.SetActive(true);
-        pressParticleSystem.Play();
     }
 
     private Transform GetPressPose(int index)

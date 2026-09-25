@@ -21,11 +21,7 @@ public class ButtonDeviceEditor : Editor
         EditorGUILayout.PropertyField(serializedObject.FindProperty("pauseBetweenMoves"));
 
         EditorGUILayout.Space(20);
-        EditorGUILayout.PropertyField(serializedObject.FindProperty("eyesRenderer"));
-        EditorGUILayout.PropertyField(serializedObject.FindProperty("defaultEyeColor"));
-        EditorGUILayout.PropertyField(serializedObject.FindProperty("pressedEyeColor"));
-        EditorGUILayout.PropertyField(serializedObject.FindProperty("eyeFlashDuration"));
-        EditorGUILayout.PropertyField(serializedObject.FindProperty("pressParticleSystem"));
+        EditorGUILayout.PropertyField(serializedObject.FindProperty("skullBehaviour"));
 
         EditorGUILayout.Space(20);
         EditorGUILayout.PropertyField(serializedObject.FindProperty("connectedDevices"), true);
