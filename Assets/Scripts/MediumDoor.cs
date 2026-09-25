@@ -5,12 +5,9 @@ using UnityEngine;
 public class MediumDoor : MonoBehaviour
 {
     private const int DoorPieceCount = 5;
-    private const float JoltTimeFraction = 0.1f;
-    private const float JoltSpeedMultiplier = 1.2f;
-    private const float PauseTimeFraction = 0.05f;
-    private const float MainEaseInPower = 1.75f;
-    private const float CloseEaseOutPower = 1.75f;
-    private const float MinMainMoveDuration = 0.01f;
+    private const float MovementEaseInOutPower = 2.5f;
+    private const float SkullTransitionLeadTime = 0.5f;
+    private const float MinPieceTravelDuration = 0.05f;
 
     [Serializable]
     private struct DoorPieceMotion
@@ -122,8 +119,12 @@ public class MediumDoor : MonoBehaviour
     {
         isDoorMoving = true;
 
+        float piecePhaseDuration = GetLongestPieceAnimationDuration();
+
         for (int i = 0; i < DoorPieceCount; i++)
             pieceAnimateCoroutines[i] = StartCoroutine(AnimatePieceToState(i, opening));
+
+        Coroutine skullSequence = StartCoroutine(RunSkullTransitionsWithLead(opening, piecePhaseDuration));
 
         for (int i = 0; i < DoorPieceCount; i++)
         {
@@ -131,7 +132,7 @@ public class MediumDoor : MonoBehaviour
             pieceAnimateCoroutines[i] = null;
         }
 
-        yield return TransitionAllSkulls(opening);
+        yield return skullSequence;
 
         isDoorOpen = opening;
         isDoorMoving = false;
@@ -172,13 +173,13 @@ public class MediumDoor : MonoBehaviour
             : pieceClosedWorldRotations[pieceIndex];
 
         if (travelDuration <= 0f)
-            travelDuration = 0.05f;
+            travelDuration = MinPieceTravelDuration;
 
         float elapsed = 0f;
         while (elapsed < travelDuration)
         {
             elapsed += Time.deltaTime;
-            float pathT = SampleMovementPathT(Mathf.Clamp(elapsed, 0f, travelDuration), travelDuration, opening);
+            float pathT = SampleMovementPathT(Mathf.Clamp(elapsed, 0f, travelDuration), travelDuration);
             piece.position = Vector3.Lerp(startPosition, endPosition, pathT);
             piece.rotation = Quaternion.Slerp(startRotation, endRotation, pathT);
             yield return null;
@@ -186,6 +187,34 @@ public class MediumDoor : MonoBehaviour
 
         piece.position = endPosition;
         piece.rotation = endRotation;
+    }
+
+    private float GetLongestPieceAnimationDuration()
+    {
+        float longest = 0f;
+
+        for (int i = 0; i < DoorPieceCount; i++)
+        {
+            DoorPieceMotion motion = doorPieces[i];
+            float travelDuration = motion.TravelDuration;
+            if (travelDuration <= 0f)
+                travelDuration = MinPieceTravelDuration;
+
+            float total = motion.StartDelay + travelDuration;
+            if (total > longest)
+                longest = total;
+        }
+
+        return longest;
+    }
+
+    private IEnumerator RunSkullTransitionsWithLead(bool opening, float piecePhaseDuration)
+    {
+        float wait = Mathf.Max(0f, piecePhaseDuration - SkullTransitionLeadTime);
+        if (wait > 0f)
+            yield return new WaitForSeconds(wait);
+
+        yield return StartCoroutine(TransitionAllSkulls(opening));
     }
 
     private IEnumerator TransitionAllSkulls(bool opening)
@@ -215,37 +244,14 @@ public class MediumDoor : MonoBehaviour
         }
     }
 
-    private static float SampleMovementPathT(float elapsed, float travelDuration, bool opening)
+    private static float SampleMovementPathT(float elapsed, float travelDuration)
     {
-        if (!opening)
-        {
-            float t = travelDuration > 0f ? elapsed / travelDuration : 1f;
-            t = Mathf.Clamp01(t);
-            return 1f - Mathf.Pow(1f - t, CloseEaseOutPower);
-        }
+        float t = travelDuration > 0f ? elapsed / travelDuration : 1f;
+        t = Mathf.Clamp01(t);
 
-        float joltDuration = travelDuration * JoltTimeFraction;
-        float pauseDuration = travelDuration * PauseTimeFraction;
-        float mainDuration = travelDuration - joltDuration - pauseDuration;
-        if (mainDuration < MinMainMoveDuration)
-            mainDuration = MinMainMoveDuration;
+        if (t < 0.5f)
+            return 0.5f * Mathf.Pow(2f * t, MovementEaseInOutPower);
 
-        float joltPathEnd = JoltTimeFraction * JoltSpeedMultiplier;
-
-        if (elapsed <= joltDuration)
-        {
-            float joltT = joltDuration > 0f ? elapsed / joltDuration : 1f;
-            float easedJolt = Mathf.SmoothStep(0f, 1f, joltT);
-            return easedJolt * joltPathEnd;
-        }
-
-        elapsed -= joltDuration;
-        if (elapsed <= pauseDuration)
-            return joltPathEnd;
-
-        elapsed -= pauseDuration;
-        float mainT = Mathf.Clamp01(elapsed / mainDuration);
-        float easedMain = Mathf.Pow(mainT, MainEaseInPower);
-        return joltPathEnd + (1f - joltPathEnd) * easedMain;
+        return 1f - 0.5f * Mathf.Pow(2f * (1f - t), MovementEaseInOutPower);
     }
 }
