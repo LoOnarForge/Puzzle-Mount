@@ -42,7 +42,7 @@ public class TimCrushEvaluator : MonoBehaviour
             Destroy(probeTransform.gameObject);
     }
 
-    private void FixedUpdate()
+    private void LateUpdate()
     {
         if (characterMovement == null || characterMovement.IsDead)
             return;
