@@ -60,6 +60,22 @@ public class CameraFollow : MonoBehaviour
     public bool IsInspectionMode => isInspectionMode;
     public int CurrentAngleIndex => currentAngleIndex;
 
+    // 0 at default zoom, 1 when fully scrolled in toward the target (for occlusion volume depth).
+    public float ZoomCloseAmount
+    {
+        get
+        {
+            if (pitchDownAmount > 0f)
+                return 0f;
+
+            float zoomPart = Mathf.Clamp01(Mathf.InverseLerp(BaseZoomDistance, minZoomDistance, zoomDistance));
+            float extraPart = MaxExtraCloseDistance > 0f
+                ? Mathf.Clamp01(extraCloseDistance / MaxExtraCloseDistance)
+                : 0f;
+            return 0.5f * zoomPart + 0.5f * extraPart;
+        }
+    }
+
     private Vector3 velocity = Vector3.zero;
     private CharacterMovement tim;
     private Camera actionCamera;
