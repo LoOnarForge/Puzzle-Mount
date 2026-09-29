@@ -52,10 +52,12 @@ public class CameraFollow : MonoBehaviour
     public LeyasCamera leyaController;
 
     [Header("Occlusion volume")]
+    public bool enableOcclusionMeshHide = true;
+
     [Tooltip("Full size toward the target: width (right), height (up), depth at default zoom.")]
     public Vector3 volumeSize = new Vector3(1f, 2f, 8f);
 
-    [Tooltip("Near end of the box from the camera. X=right, Y=up, Z=forward toward the target.")]
+    [Tooltip("Near end of the box from the camera. X=horizontal right, Y=world up, Z=horizontal toward Tim (no camera pitch).")]
     public Vector3 volumeStartOffset = Vector3.zero;
 
     [Tooltip("When off, Volume Size is used exactly (no scroll-based depth change).")]
@@ -355,6 +357,12 @@ public class CameraFollow : MonoBehaviour
 
     private void UpdateOcclusionVolumeMeshHide()
     {
+        if (!enableOcclusionMeshHide)
+        {
+            RestoreAllHiddenMeshes();
+            return;
+        }
+
         if (!TryGetOcclusionVolumeFrame(out Vector3 volumeOrigin, out Vector3 boxCenter, out Quaternion orientation, out Vector3 halfExtents, out Vector3 aimDir))
         {
             RestoreAllHiddenMeshes();
@@ -422,8 +430,7 @@ public class CameraFollow : MonoBehaviour
             return false;
 
         Vector3 camPos = transform.position;
-        Vector3 aimPoint = followTarget.position + lookAtOffset;
-        Vector3 toTarget = aimPoint - camPos;
+        Vector3 toTarget = followTarget.position - camPos;
         if (toTarget.sqrMagnitude < 0.001f)
             return false;
 
