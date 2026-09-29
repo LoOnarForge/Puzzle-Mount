@@ -4,6 +4,15 @@ using UnityEngine;
 [CustomEditor(typeof(PistonHorizontal))]
 public class PistonHorizontalEditor : PistonEditor
 {
+    protected override void DrawRequiredMwField(SerializedProperty slot)
+    {
+        SerializedProperty requiredMw = slot.FindPropertyRelative("requiredMw");
+        requiredMw.intValue = EditorGUILayout.IntSlider(
+            "Required MW",
+            requiredMw.intValue,
+            0,
+            PistonHorizontal.MaxRequiredMw);
+    }
 }
 
 [CustomEditor(typeof(PistonVertical))]
@@ -14,6 +23,11 @@ public class PistonVerticalEditor : PistonEditor
 public class PistonEditor : Editor
 {
     private const int SocketCount = 2;
+
+    protected virtual void DrawRequiredMwField(SerializedProperty slot)
+    {
+        EditorGUILayout.PropertyField(slot.FindPropertyRelative("requiredMw"), new GUIContent("Required MW"));
+    }
 
     public override void OnInspectorGUI()
     {
@@ -82,7 +96,7 @@ public class PistonEditor : Editor
             EditorGUILayout.HelpBox("No ColorManager was found in the open scene.", MessageType.Info);
         }
 
-        EditorGUILayout.PropertyField(slot.FindPropertyRelative("requiredMw"), new GUIContent("Required MW"));
+        DrawRequiredMwField(slot);
 
         using (new EditorGUI.DisabledScope(true))
         {

@@ -5,6 +5,8 @@ using UnityEngine;
 public class PistonHorizontal : MonoBehaviour
 {
     private const int SocketCount = 2;
+    private const int MinRequiredMw = 0;
+    public const int MaxRequiredMw = 10;
     private const float GridUnit = 1f;
     private const float DefaultMoveSpeed = 5f;
     private const string ExtensionDirectionName = "Extension Direction";
@@ -18,7 +20,7 @@ public class PistonHorizontal : MonoBehaviour
         public GameObject socketObject;
         public bool isEnabled;
         public int requiredColorIndex;
-        public int requiredMw = 1;
+        [Range(MinRequiredMw, MaxRequiredMw)] public int requiredMw = 1;
         public int allocatedMw;
         public PowerSource poweringSource; 
     }
@@ -80,6 +82,12 @@ public class PistonHorizontal : MonoBehaviour
     {
         maxStage = Mathf.Max(0, maxStage);
         startingStage = Mathf.Clamp(startingStage, 0, maxStage);
+
+        if (sockets == null)
+            return;
+
+        for (int i = 0; i < sockets.Length; i++)
+            sockets[i].requiredMw = Mathf.Clamp(sockets[i].requiredMw, MinRequiredMw, MaxRequiredMw);
     }
 
     private Vector3 GetTravelAxisLocal()
@@ -201,18 +209,14 @@ public class PistonHorizontal : MonoBehaviour
     // Claims assigned sockets once and pushes required color and MW to each.
     private void InitialSocketConfiguration()
     {
-        if (isSelfPowered)
-        {
-            isPowered = true;
-            return;
-        }
-
         for (int i = 0; i < sockets.Length; i++)
         {
             SocketSlot slot = sockets[i];
 
             if (slot.socketObject == null)
                 continue;
+
+            slot.requiredMw = Mathf.Clamp(slot.requiredMw, MinRequiredMw, MaxRequiredMw);
 
             if (!slot.isEnabled)
             {
@@ -230,7 +234,10 @@ public class PistonHorizontal : MonoBehaviour
             device.InitialSocketConfiguration(i, slot.requiredColorIndex, slot.requiredMw);
         }
 
-        RefreshPistonState();
+        if (isSelfPowered)
+            isPowered = true;
+        else
+            RefreshPistonState();
     }
 
     private void RefreshPistonState()
