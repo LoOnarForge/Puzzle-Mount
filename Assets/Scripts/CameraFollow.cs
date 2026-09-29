@@ -51,12 +51,28 @@ public class CameraFollow : MonoBehaviour
     [Header("INSPECTION MODE (LEYA)")]
     public LeyasCamera leyaController;
 
-    [Header("Proximity Mesh Hide")]
-    [Tooltip("Trigger collider (child of camera). Its size sets hide radius; center follows this object.")]
-    public Collider proximityVolume;
-    [Tooltip("Layers whose meshes are hidden (shadows-only) when overlapping the volume.")]
-    public LayerMask proximityHideLayers = ~0;
-    
+    [Header("Occlusion volume")]
+    [Tooltip("Full size toward the target: width (right), height (up), depth at default zoom.")]
+    public Vector3 volumeSize = new Vector3(1f, 2f, 8f);
+
+    [Tooltip("Near end of the box from the camera. X=right, Y=up, Z=forward toward the target.")]
+    public Vector3 volumeStartOffset = Vector3.zero;
+
+    [Tooltip("When off, Volume Size is used exactly (no scroll-based depth change).")]
+    public bool scaleBoxDepthWithScroll = true;
+
+    [Range(0.1f, 1f)]
+    [Tooltip("Box depth at max scroll-in, as a fraction of Volume Size Z. Default zoom and first half of scroll-in stay 100%; only the second half of scroll-in lerps down to this.")]
+    public float volumeDepthScaleAtMaxZoom = 0.7f;
+
+    [Tooltip("Layers whose colliders are tested for occlusion.")]
+    public LayerMask occlusionHideLayers = ~0;
+
+    [Tooltip("Draw occlusion box wireframe in play mode.")]
+    public bool showVolumeBox;
+
+    public Color volumeGizmoColor = new Color(1f, 0.85f, 0.1f, 1f);
+
     public bool IsInspectionMode => isInspectionMode;
     public int CurrentAngleIndex => currentAngleIndex;
 
@@ -97,10 +113,16 @@ public class CameraFollow : MonoBehaviour
     private int originalAngleIndex = 0;
     private bool isInspectionMode = false;
 
-    private readonly Collider[] overlapResults = new Collider[32];
+    private const int VolumeEdgeCount = 12;
+    private static readonly int[] VolumeEdgeCornerA = { 0, 1, 3, 2, 4, 5, 7, 6, 0, 1, 2, 3 };
+    private static readonly int[] VolumeEdgeCornerB = { 1, 3, 2, 0, 5, 7, 6, 4, 4, 5, 6, 7 };
+
+    private LineRenderer[] volumeEdgeLines;
+    private Material volumeLineMaterial;
+    private readonly Vector3[] volumeCorners = new Vector3[8];
+    private readonly Collider[] overlapColliders = new Collider[64];
     private readonly Dictionary<Renderer, ShadowCastingMode> proximityHiddenRenderers = new Dictionary<Renderer, ShadowCastingMode>();
     private readonly HashSet<Renderer> frameHiddenRenderers = new HashSet<Renderer>();
-    private MeshCollider[] proximityMeshColliders;
 
     private float DampingTime => Mathf.Lerp(0.35f, 0.02f, cameraResponsiveness);
     private float RotationLerpSpeed => Mathf.Lerp(2f, 20f, cameraResponsiveness);
@@ -116,6 +138,27 @@ public class CameraFollow : MonoBehaviour
     private void OnDisable()
     {
         RestoreAllHiddenMeshes();
+        SetVolumeLinesVisible(false);
+    }
+
+    private void OnDestroy()
+    {
+        if (volumeLineMaterial != null)
+            Destroy(volumeLineMaterial);
+    }
+
+    private void OnDrawGizmos()
+    {
+        if (!showVolumeBox)
+            return;
+
+        if (!TryGetOcclusionVolumeFrame(out Vector3 boxCenter, out Quaternion orientation, out Vector3 halfExtents))
+            return;
+
+        BuildVolumeCorners(boxCenter, orientation, halfExtents, volumeCorners);
+        Gizmos.color = volumeGizmoColor;
+        for (int i = 0; i < VolumeEdgeCount; i++)
+            Gizmos.DrawLine(volumeCorners[VolumeEdgeCornerA[i]], volumeCorners[VolumeEdgeCornerB[i]]);
     }
 
     private void OnValidate()
@@ -160,21 +203,6 @@ public class CameraFollow : MonoBehaviour
     {
         tim = FindAnyObjectByType<CharacterMovement>();
         if (findPlayerAutomatically && target == null && tim != null) target = tim.transform;
-        CacheProximityMeshColliders();
-    }
-
-    private void CacheProximityMeshColliders()
-    {
-        MeshCollider[] all = FindObjectsByType<MeshCollider>(FindObjectsSortMode.None);
-        var list = new List<MeshCollider>(all.Length);
-        int mask = proximityHideLayers.value;
-        for (int i = 0; i < all.Length; i++)
-        {
-            MeshCollider mc = all[i];
-            if (mc != null && (mask & (1 << mc.gameObject.layer)) != 0)
-                list.Add(mc);
-        }
-        proximityMeshColliders = list.ToArray();
     }
     
     private void LateUpdate()
@@ -186,7 +214,7 @@ public class CameraFollow : MonoBehaviour
         if (!isInspectionMode)
         {
             UpdateActionMode();
-            UpdateProximityMeshHide();
+            UpdateOcclusionVolumeMeshHide();
         }
         else
         {
@@ -309,37 +337,49 @@ public class CameraFollow : MonoBehaviour
         }
     }
 
-    private void UpdateProximityMeshHide()
+    private float GetEffectiveOcclusionDepth()
     {
-        if (proximityVolume == null)
+        if (!scaleBoxDepthWithScroll)
+            return volumeSize.z;
+
+        float closeAmount = ZoomCloseAmount;
+        float depthScale = 1f;
+        if (closeAmount > 0.5f)
+        {
+            float secondHalf = (closeAmount - 0.5f) / 0.5f;
+            depthScale = Mathf.Lerp(1f, volumeDepthScaleAtMaxZoom, secondHalf);
+        }
+
+        return volumeSize.z * depthScale;
+    }
+
+    private void UpdateOcclusionVolumeMeshHide()
+    {
+        if (!TryGetOcclusionVolumeFrame(out Vector3 volumeOrigin, out Vector3 boxCenter, out Quaternion orientation, out Vector3 halfExtents, out Vector3 aimDir))
         {
             RestoreAllHiddenMeshes();
+            SetVolumeLinesVisible(false);
             return;
         }
 
-        Vector3 center = proximityVolume.bounds.center;
-        float radius = GetProximityRadius();
-        int hitCount = Physics.OverlapSphereNonAlloc(
-            center,
-            radius,
-            overlapResults,
-            proximityHideLayers,
-            QueryTriggerInteraction.Ignore);
-
+        float effectiveDepth = GetEffectiveOcclusionDepth();
         frameHiddenRenderers.Clear();
 
-        for (int i = 0; i < hitCount; i++)
-            CollectProximityHideRenderers(overlapResults[i]);
+        int hitCount = Physics.OverlapBoxNonAlloc(
+            boxCenter,
+            halfExtents,
+            overlapColliders,
+            orientation,
+            occlusionHideLayers,
+            QueryTriggerInteraction.Ignore);
 
-        if (proximityMeshColliders != null)
-        {
-            for (int i = 0; i < proximityMeshColliders.Length; i++)
-            {
-                MeshCollider mc = proximityMeshColliders[i];
-                if (mc != null && mc.enabled && mc.bounds.Contains(center))
-                    CollectProximityHideRenderers(mc);
-            }
-        }
+        for (int i = 0; i < hitCount; i++)
+            AddOcclusionRenderersForCollider(overlapColliders[i], volumeOrigin, aimDir, boxCenter, halfExtents, orientation, effectiveDepth);
+
+        if (showVolumeBox)
+            DrawVolumeWireframePlayMode(boxCenter, orientation, halfExtents);
+        else
+            SetVolumeLinesVisible(false);
 
         if (proximityHiddenRenderers.Count > 0)
         {
@@ -364,29 +404,193 @@ public class CameraFollow : MonoBehaviour
         }
     }
 
-    private void CollectProximityHideRenderers(Collider hit)
+    private bool TryGetOcclusionVolumeFrame(
+        out Vector3 volumeOrigin,
+        out Vector3 boxCenter,
+        out Quaternion orientation,
+        out Vector3 halfExtents,
+        out Vector3 aimDir)
     {
-        if (hit == null || hit == proximityVolume)
+        volumeOrigin = default;
+        boxCenter = default;
+        orientation = Quaternion.identity;
+        halfExtents = default;
+        aimDir = default;
+
+        Transform followTarget = tim != null ? tim.CameraFollowTarget : target;
+        if (followTarget == null)
+            return false;
+
+        Vector3 camPos = transform.position;
+        Vector3 aimPoint = followTarget.position + lookAtOffset;
+        Vector3 toTarget = aimPoint - camPos;
+        if (toTarget.sqrMagnitude < 0.001f)
+            return false;
+
+        aimDir = toTarget.normalized;
+        GetOcclusionVolumeAxes(aimDir, out _, out Vector3 squareUp);
+        orientation = Quaternion.LookRotation(aimDir, squareUp);
+
+        volumeOrigin = camPos + orientation * volumeStartOffset;
+        float effectiveDepth = GetEffectiveOcclusionDepth();
+        halfExtents = new Vector3(volumeSize.x * 0.5f, volumeSize.y * 0.5f, effectiveDepth * 0.5f);
+        boxCenter = volumeOrigin + aimDir * halfExtents.z;
+        return true;
+    }
+
+    private bool TryGetOcclusionVolumeFrame(out Vector3 boxCenter, out Quaternion orientation, out Vector3 halfExtents)
+    {
+        return TryGetOcclusionVolumeFrame(out _, out boxCenter, out orientation, out halfExtents, out _);
+    }
+
+    private void AddOcclusionRenderersForCollider(
+        Collider collider,
+        Vector3 volumeOrigin,
+        Vector3 aimDir,
+        Vector3 boxCenter,
+        Vector3 halfExtents,
+        Quaternion boxOrientation,
+        float effectiveDepth)
+    {
+        if (collider == null)
             return;
 
-        if (tim != null && hit.transform.IsChildOf(tim.transform))
+        Transform hitTransform = collider.transform;
+        if (tim != null && hitTransform.IsChildOf(tim.transform))
             return;
 
-        Renderer[] childRenderers = hit.GetComponentsInChildren<Renderer>();
-        for (int r = 0; r < childRenderers.Length; r++)
-        {
-            Renderer renderer = childRenderers[r];
-            if (renderer != null)
-                frameHiddenRenderers.Add(renderer);
-        }
+        Transform searchRoot = hitTransform.parent != null ? hitTransform.parent : hitTransform;
+        Renderer[] candidates = searchRoot.GetComponentsInChildren<Renderer>();
 
-        Renderer[] parentRenderers = hit.GetComponentsInParent<Renderer>();
-        for (int r = 0; r < parentRenderers.Length; r++)
+        for (int i = 0; i < candidates.Length; i++)
         {
-            Renderer renderer = parentRenderers[r];
-            if (renderer != null)
-                frameHiddenRenderers.Add(renderer);
+            Renderer candidate = candidates[i];
+            if (candidate == null || !candidate.enabled)
+                continue;
+
+            float depthAlongAim = Vector3.Dot(candidate.bounds.center - volumeOrigin, aimDir);
+            if (depthAlongAim < 0f || depthAlongAim > effectiveDepth)
+                continue;
+
+            if (!RendererBoundsOverlapOrientedBox(candidate.bounds, boxCenter, halfExtents, boxOrientation))
+                continue;
+
+            frameHiddenRenderers.Add(candidate);
         }
+    }
+
+    private static bool RendererBoundsOverlapOrientedBox(
+        Bounds rendererBounds,
+        Vector3 boxCenter,
+        Vector3 boxHalfExtents,
+        Quaternion boxOrientation)
+    {
+        Vector3 localCenter = Quaternion.Inverse(boxOrientation) * (rendererBounds.center - boxCenter);
+        Vector3 rendererExtents = rendererBounds.extents;
+
+        return Mathf.Abs(localCenter.x) <= boxHalfExtents.x + rendererExtents.x
+            && Mathf.Abs(localCenter.y) <= boxHalfExtents.y + rendererExtents.y
+            && Mathf.Abs(localCenter.z) <= boxHalfExtents.z + rendererExtents.z;
+    }
+
+    private static void BuildVolumeCorners(Vector3 boxCenter, Quaternion orientation, Vector3 halfExtents, Vector3[] corners)
+    {
+        corners[0] = boxCenter + orientation * new Vector3(-halfExtents.x, -halfExtents.y, -halfExtents.z);
+        corners[1] = boxCenter + orientation * new Vector3(halfExtents.x, -halfExtents.y, -halfExtents.z);
+        corners[2] = boxCenter + orientation * new Vector3(-halfExtents.x, halfExtents.y, -halfExtents.z);
+        corners[3] = boxCenter + orientation * new Vector3(halfExtents.x, halfExtents.y, -halfExtents.z);
+        corners[4] = boxCenter + orientation * new Vector3(-halfExtents.x, -halfExtents.y, halfExtents.z);
+        corners[5] = boxCenter + orientation * new Vector3(halfExtents.x, -halfExtents.y, halfExtents.z);
+        corners[6] = boxCenter + orientation * new Vector3(-halfExtents.x, halfExtents.y, halfExtents.z);
+        corners[7] = boxCenter + orientation * new Vector3(halfExtents.x, halfExtents.y, halfExtents.z);
+    }
+
+    private void DrawVolumeWireframePlayMode(Vector3 boxCenter, Quaternion orientation, Vector3 halfExtents)
+    {
+        EnsureVolumeEdgeLines();
+        BuildVolumeCorners(boxCenter, orientation, halfExtents, volumeCorners);
+
+        for (int i = 0; i < VolumeEdgeCount; i++)
+        {
+            LineRenderer line = volumeEdgeLines[i];
+            if (line == null)
+                continue;
+
+            line.startColor = volumeGizmoColor;
+            line.endColor = volumeGizmoColor;
+            line.enabled = true;
+            line.SetPosition(0, volumeCorners[VolumeEdgeCornerA[i]]);
+            line.SetPosition(1, volumeCorners[VolumeEdgeCornerB[i]]);
+        }
+    }
+
+    private void EnsureVolumeEdgeLines()
+    {
+        if (volumeEdgeLines != null && volumeEdgeLines.Length == VolumeEdgeCount)
+            return;
+
+        volumeEdgeLines = new LineRenderer[VolumeEdgeCount];
+        EnsureVolumeLineMaterial();
+
+        for (int i = 0; i < VolumeEdgeCount; i++)
+        {
+            Transform existing = transform.Find("CameraFollowVolumeEdge_" + i);
+            GameObject lineObject = existing != null ? existing.gameObject : new GameObject("CameraFollowVolumeEdge_" + i);
+            lineObject.transform.SetParent(transform, false);
+
+            LineRenderer line = lineObject.GetComponent<LineRenderer>();
+            if (line == null)
+                line = lineObject.AddComponent<LineRenderer>();
+
+            line.useWorldSpace = true;
+            line.positionCount = 2;
+            line.startWidth = 0.015f;
+            line.endWidth = 0.015f;
+            line.shadowCastingMode = ShadowCastingMode.Off;
+            line.receiveShadows = false;
+            line.material = volumeLineMaterial;
+            line.enabled = false;
+
+            volumeEdgeLines[i] = line;
+        }
+    }
+
+    private void EnsureVolumeLineMaterial()
+    {
+        if (volumeLineMaterial != null)
+            return;
+
+        Shader shader = Shader.Find("Universal Render Pipeline/Unlit");
+        if (shader == null)
+            shader = Shader.Find("Unlit/Color");
+        if (shader == null)
+            shader = Shader.Find("Sprites/Default");
+
+        volumeLineMaterial = new Material(shader);
+        volumeLineMaterial.color = volumeGizmoColor;
+        if (volumeLineMaterial.HasProperty("_BaseColor"))
+            volumeLineMaterial.SetColor("_BaseColor", volumeGizmoColor);
+    }
+
+    private void SetVolumeLinesVisible(bool visible)
+    {
+        if (volumeEdgeLines == null)
+            return;
+
+        for (int i = 0; i < volumeEdgeLines.Length; i++)
+        {
+            if (volumeEdgeLines[i] != null)
+                volumeEdgeLines[i].enabled = visible;
+        }
+    }
+
+    private void GetOcclusionVolumeAxes(Vector3 aimDir, out Vector3 squareRight, out Vector3 squareUp)
+    {
+        squareRight = Vector3.Cross(aimDir, Vector3.up);
+        if (squareRight.sqrMagnitude < 0.0001f)
+            squareRight = Vector3.Cross(aimDir, Vector3.forward);
+        squareRight.Normalize();
+        squareUp = Vector3.Cross(squareRight, aimDir).normalized;
     }
 
     private void RestoreProximityHiddenRenderer(Renderer renderer)
@@ -398,17 +602,6 @@ public class CameraFollow : MonoBehaviour
     }
 
     private readonly List<Renderer> tempRestoreList = new List<Renderer>();
-
-    private float GetProximityRadius()
-    {
-        if (proximityVolume is SphereCollider sphere)
-        {
-            Vector3 scale = proximityVolume.transform.lossyScale;
-            return sphere.radius * Mathf.Max(scale.x, scale.y, scale.z);
-        }
-
-        return proximityVolume.bounds.extents.magnitude;
-    }
 
     private void RestoreAllHiddenMeshes()
     {
