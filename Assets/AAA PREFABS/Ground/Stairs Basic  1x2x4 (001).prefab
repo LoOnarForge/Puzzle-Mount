@@ -1,39 +1,5 @@
 %YAML 1.1
 %TAG !u! tag:unity3d.com,2011:
---- !u!1 &852607228869769333
-GameObject:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  serializedVersion: 6
-  m_Component:
-  - component: {fileID: 4475389142962284495}
-  m_Layer: 10
-  m_Name: Visual PC
-  m_TagString: Untagged
-  m_Icon: {fileID: 0}
-  m_NavMeshLayer: 0
-  m_StaticEditorFlags: 2147483647
-  m_IsActive: 1
---- !u!4 &4475389142962284495
-Transform:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 852607228869769333}
-  serializedVersion: 2
-  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 0, y: 0, z: 0}
-  m_LocalScale: {x: 1, y: 1, z: 1}
-  m_ConstrainProportionsScale: 0
-  m_Children:
-  - {fileID: 5834846573438114180}
-  - {fileID: 6874119714327735653}
-  - {fileID: 5407260384264758989}
-  m_Father: {fileID: 6574014025431030063}
-  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &975244132307874973
 GameObject:
   m_ObjectHideFlags: 0
@@ -62,11 +28,11 @@ Transform:
   m_GameObject: {fileID: 975244132307874973}
   serializedVersion: 2
   m_LocalRotation: {x: 0.23993947, y: -0, z: -0, w: 0.9707879}
-  m_LocalPosition: {x: 0, y: 0.887, z: -0.38}
-  m_LocalScale: {x: 0.4, y: 0.53006405, z: 0.6930126}
+  m_LocalPosition: {x: 0, y: 0.887, z: -0.3800001}
+  m_LocalScale: {x: 0.4, y: 0.5300641, z: 0.6930126}
   m_ConstrainProportionsScale: 0
   m_Children: []
-  m_Father: {fileID: 4475389142962284495}
+  m_Father: {fileID: 6574014025431030063}
   m_LocalEulerAnglesHint: {x: 27.766, y: 0, z: 0}
 --- !u!65 &7493174136023908371
 BoxCollider:
@@ -307,12 +273,12 @@ Transform:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 4577512221082509996}
   serializedVersion: 2
-  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 0, y: -0.5, z: -0.5265}
+  m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
+  m_LocalPosition: {x: 0, y: -0.5, z: -0.52649975}
   m_LocalScale: {x: 0.46923774, y: 1, z: 0.9732601}
   m_ConstrainProportionsScale: 0
   m_Children: []
-  m_Father: {fileID: 4475389142962284495}
+  m_Father: {fileID: 6574014025431030063}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!33 &3438199862058402646
 MeshFilter:
@@ -403,6 +369,7 @@ GameObject:
   m_Component:
   - component: {fileID: 6574014025431030063}
   - component: {fileID: 4662342877263587920}
+  - component: {fileID: 7451288907279663051}
   m_Layer: 10
   m_Name: Stairs Basic  1x2x4 (001)
   m_TagString: Untagged
@@ -423,7 +390,9 @@ Transform:
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children:
-  - {fileID: 4475389142962284495}
+  - {fileID: 5834846573438114180}
+  - {fileID: 6874119714327735653}
+  - {fileID: 5407260384264758989}
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!114 &4662342877263587920
@@ -453,6 +422,21 @@ MonoBehaviour:
   - {fileID: 0}
   meshRenderers:
   - {fileID: 1542182523914092953}
+--- !u!114 &7451288907279663051
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 4580787420583951192}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 5832c0c7817e6d1408eaf35f969a0bf9, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::ZFightingRandomizer
+  meshTransforms:
+  - {fileID: 6874119714327735653}
+  digitUnit: 0.0001
 --- !u!1 &6371893404257712058
 GameObject:
   m_ObjectHideFlags: 0
@@ -584,8 +568,8 @@ Transform:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 7066285435495371981}
   serializedVersion: 2
-  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 0, y: -0.5, z: -0.5178}
+  m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
+  m_LocalPosition: {x: 0, y: -0.5, z: -0.51780033}
   m_LocalScale: {x: 0.46923774, y: 1, z: 0.9689}
   m_ConstrainProportionsScale: 0
   m_Children:
@@ -596,7 +580,7 @@ Transform:
   - {fileID: 4041137793181099715}
   - {fileID: 6186922975032418842}
   - {fileID: 5312076686344310398}
-  m_Father: {fileID: 4475389142962284495}
+  m_Father: {fileID: 6574014025431030063}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!64 &3582551476723580113
 MeshCollider:
