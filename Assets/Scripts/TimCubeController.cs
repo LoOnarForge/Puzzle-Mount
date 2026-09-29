@@ -345,7 +345,7 @@ public class TimCubeController : MonoBehaviour
         if (!mouseHitValid)
             return;
 
-        if (TryPressButtonFromClick(mouseHit.collider))
+        if (TryPressButtonFromClick(mouseHit.collider, mouseHit.point))
             return;
 
         if (Mouse.current != null && Camera.main != null)
@@ -355,7 +355,7 @@ public class TimCubeController : MonoBehaviour
             System.Array.Sort(hits, (a, b) => a.distance.CompareTo(b.distance));
             for (int i = 0; i < hits.Length; i++)
             {
-                if (TryPressButtonFromClick(hits[i].collider))
+                if (TryPressButtonFromClick(hits[i].collider, hits[i].point))
                     return;
             }
         }
@@ -367,19 +367,13 @@ public class TimCubeController : MonoBehaviour
         if (lever == null)
             return;
 
-        if (!IsInClickRange(lever.transform.position))
+        if (!CanTimInteractWithClickableDevice(lever.transform, mouseHit.point))
             return;
 
         lever.MouseClickDetected();
     }
 
-    private bool IsInClickRange(Vector3 targetPosition)
-    {
-        float distance = Vector3.ProjectOnPlane(targetPosition - timTransform.position, Vector3.up).magnitude;
-        return distance <= maxClickDistance;
-    }
-
-    private bool TryPressButtonFromClick(Collider clickedCollider)
+    private bool TryPressButtonFromClick(Collider clickedCollider, Vector3 clickPoint)
     {
         if (clickedCollider == null)
             return false;
@@ -388,10 +382,100 @@ public class TimCubeController : MonoBehaviour
         if (buttonDevice == null)
             return false;
 
-        if (!IsInClickRange(buttonDevice.transform.position))
+        if (!CanTimInteractWithClickableDevice(buttonDevice.transform, clickPoint))
             return false;
 
         return buttonDevice.MouseClickDetected(clickedCollider);
+    }
+
+    // Same horizontal reach, vertical band, and grounded rule as cube rotation; sight rays aim at the click point on the device.
+    private bool CanTimInteractWithClickableDevice(Transform deviceRoot, Vector3 clickPoint)
+    {
+        if (deviceRoot == null)
+            return false;
+
+        if (characterMovement != null && !characterMovement.IsGrounded)
+            return false;
+
+        Vector3 targetPosition = deviceRoot.position;
+
+        float dist = Vector3.ProjectOnPlane(targetPosition - timTransform.position, Vector3.up).magnitude;
+        if (dist > maxRotationDistance)
+            return false;
+
+        float verticalDist = targetPosition.y - timTransform.position.y;
+        if (verticalDist < DeviceInteractVerticalMin || verticalDist > DeviceInteractVerticalMax)
+            return false;
+
+        return CanTimSeeClickableDevice(clickPoint, deviceRoot);
+    }
+
+    private bool CanTimSeeClickableDevice(Vector3 clickPoint, Transform deviceRoot)
+    {
+        Vector3 right = timTransform.right;
+        Vector3 back = -timTransform.forward;
+
+        Vector3[] origins = new Vector3[]
+        {
+            timTransform.position + Vector3.up * 1.7f,
+            timTransform.position + Vector3.up * 1.0f,
+            timTransform.position + Vector3.up * 1.0f + right * 0.35f + back * 0.3f,
+            timTransform.position + Vector3.up * 1.0f - right * 0.35f + back * 0.3f,
+            timTransform.position + Vector3.up * 1.35f + right * 0.35f + back * 0.2f,
+            timTransform.position + Vector3.up * 0.75f - right * 0.35f + back * 0.2f,
+        };
+
+        int hitCount = 0;
+
+        foreach (Vector3 origin in origins)
+        {
+            Vector3 dir = clickPoint - origin;
+            float maxDist = dir.magnitude;
+            if (maxDist <= 0.001f)
+                continue;
+
+            Vector3 rayDir = dir / maxDist;
+            Vector3 currentOrigin = origin;
+            float remainingDist = maxDist + DeviceSightRayExtension;
+
+            for (int i = 0; i < DeviceSightRayIterations; i++)
+            {
+                if (remainingDist <= 0f)
+                    break;
+
+                if (!Physics.Raycast(currentOrigin, rayDir, out RaycastHit hit, remainingDist, interactionLayer))
+                    break;
+
+                if (hit.collider.transform.IsChildOf(timTransform))
+                {
+                    remainingDist -= hit.distance;
+                    currentOrigin = hit.point + rayDir * DeviceSightRayStep;
+                    continue;
+                }
+
+                if (IsColliderPartOfClickableDevice(hit.collider, deviceRoot))
+                {
+                    hitCount++;
+                    break;
+                }
+
+                break;
+            }
+
+            if (hitCount >= DeviceSightRaysRequired)
+                return true;
+        }
+
+        return hitCount >= DeviceSightRaysRequired;
+    }
+
+    private static bool IsColliderPartOfClickableDevice(Collider collider, Transform deviceRoot)
+    {
+        if (collider == null || deviceRoot == null)
+            return false;
+
+        Transform hitTransform = collider.transform;
+        return hitTransform == deviceRoot || hitTransform.IsChildOf(deviceRoot);
     }
 
     private void HandleMouseRotation(bool mouseHitValid, RaycastHit mouseHit, RunodeMovement mouseHitCube)
