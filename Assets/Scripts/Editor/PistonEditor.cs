@@ -18,6 +18,15 @@ public class PistonHorizontalEditor : PistonEditor
 [CustomEditor(typeof(PistonVertical))]
 public class PistonVerticalEditor : PistonEditor
 {
+    protected override void DrawRequiredMwField(SerializedProperty slot)
+    {
+        SerializedProperty requiredMw = slot.FindPropertyRelative("requiredMw");
+        requiredMw.intValue = EditorGUILayout.IntSlider(
+            "Required MW",
+            requiredMw.intValue,
+            0,
+            PistonVertical.MaxRequiredMw);
+    }
 }
 
 public class PistonEditor : Editor

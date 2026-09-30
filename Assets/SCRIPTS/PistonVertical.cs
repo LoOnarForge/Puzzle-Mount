@@ -5,6 +5,10 @@ using UnityEngine;
 public class PistonVertical : MonoBehaviour
 {
     private const int SocketCount = 2;
+    private const int MinRequiredMw = 0;
+    public const int MaxRequiredMw = 10;
+    private const int MinRequiredMw = 0;
+    public const int MaxRequiredMw = 10;
     private const float GridUnit = 1f;
     private const float DefaultMoveSpeed = 5f;
     private const float FaceTopTolerance = 0.1f;
@@ -19,7 +23,7 @@ public class PistonVertical : MonoBehaviour
     private class SocketSlot
     {
         public GameObject socketObject;
-        public bool isEnabled;
+        [Range(MinRequiredMw, MaxRequiredMw)] public int requiredMw = 1;
         public int requiredColorIndex;
         public int requiredMw = 1;
         public int allocatedMw;
@@ -80,6 +84,12 @@ public class PistonVertical : MonoBehaviour
 
     private void OnValidate()
     {
+
+        if (sockets == null)
+            return;
+
+        for (int i = 0; i < sockets.Length; i++)
+            sockets[i].requiredMw = Mathf.Clamp(sockets[i].requiredMw, MinRequiredMw, MaxRequiredMw);
         maxStage = Mathf.Max(0, maxStage);
         startingStage = Mathf.Clamp(startingStage, 0, maxStage);
     }
@@ -222,6 +232,7 @@ public class PistonVertical : MonoBehaviour
 
             DevicePowerSocket device = slot.socketObject.GetComponent<DevicePowerSocket>();
             if (device == null)
+            slot.requiredMw = Mathf.Clamp(slot.requiredMw, MinRequiredMw, MaxRequiredMw);
                 continue;
 
             DevicePowerSocket.SetSocketHierarchyActive(slot.socketObject, true);
