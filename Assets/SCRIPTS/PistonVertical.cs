@@ -54,6 +54,9 @@ public class PistonVertical : MonoBehaviour
     private readonly HashSet<RunodeMovement> pushedCubesThisMove = new HashSet<RunodeMovement>();
 
     private bool extendBlocked;
+    private bool stepCompleted = true;
+    private Vector3 stepTargetGridCell;
+    private readonly HashSet<GameObject> primaryCubeSnapshot = new HashSet<GameObject>();
     private Vector3 cachedWorldExtendDirection;
     private Vector3 cachedTravelAxisInFaceParentLocal;
     private int probeQueryMask;
@@ -301,6 +304,8 @@ public class PistonVertical : MonoBehaviour
 
         while (currentStage < targetStage)
         {
+            CapturePrimaryCubeSnapshot();
+
             if (!TryPrepareExtendStep(carriedRunodes, out bool hardBlock))
             {
                 if (hardBlock)
@@ -309,7 +314,7 @@ public class PistonVertical : MonoBehaviour
             }
 
             yield return AnimateOneGridStep(carriedRunodes);
-            if (extendBlocked)
+            if (extendBlocked || !stepCompleted)
                 break;
 
             currentStage++;
@@ -329,24 +334,30 @@ public class PistonVertical : MonoBehaviour
     // Runs probe checks before one 1 m step.
     private bool TryPrepareExtendStep(List<RunodeMovement> carriedRunodes, out bool hardBlock)
     {
+        hardBlock = false;
+
         if (!extendsUpward)
         {
             hardBlock = PrimaryFlatBlocked(null);
             return !hardBlock;
         }
 
-        hardBlock = PrimaryFlatBlocked(carriedRunodes);
-        if (hardBlock)
-            return false;
+        bool hasLoad = carriedRunodes != null && carriedRunodes.Count > 0;
 
-        if (TryPrepareVerticalUpStep(carriedRunodes))
+        if (hasLoad)
         {
-            hardBlock = false;
-            return true;
+            if (IsBlockedByStackedCubes(carriedRunodes))
+            {
+                hardBlock = true;
+                return false;
+            }
+
+            hardBlock = IsPrimaryCubePlanningBlocked(carriedRunodes);
+            return !hardBlock;
         }
 
-        hardBlock = true;
-        return false;
+        hardBlock = IsPrimaryFlatPlanningBlocked(carriedRunodes);
+        return !hardBlock;
     }
 
     private bool IsBlockedByStackedCubes(List<RunodeMovement> carriedRunodes)
@@ -357,12 +368,152 @@ public class PistonVertical : MonoBehaviour
         return carriedRunodes != null && carriedRunodes.Count > 1;
     }
 
-    private bool TryPrepareVerticalUpStep(List<RunodeMovement> carriedRunodes)
+    private void CapturePrimaryCubeSnapshot()
     {
-        if (IsBlockedByStackedCubes(carriedRunodes))
-            return false;
+        primaryCubeSnapshot.Clear();
 
-        return !ProbeHasBlockingObstruction(primaryCubeProbe, carriedRunodes, null);
+        foreach (Collider hit in GetProbeHits(primaryCubeProbe))
+        {
+            if (TryGetProbeEntityRoot(hit, out GameObject root))
+                primaryCubeSnapshot.Add(root);
+        }
+    }
+
+    private bool IsPrimaryFlatPlanningBlocked(List<RunodeMovement> carriedRunodes)
+    {
+        foreach (Collider hit in GetProbeHits(primaryFlatProbe))
+        {
+            if (TryGetCarriedCube(hit, carriedRunodes, out _))
+                continue;
+
+            if (TryGetCube(hit, out _))
+                continue;
+
+            if (TryGetPiston(hit, out _))
+                return true;
+
+            if (IsStaticObstruction(hit))
+                return true;
+        }
+
+        return false;
+    }
+
+    private bool IsPrimaryCubePlanningBlocked(List<RunodeMovement> carriedRunodes)
+    {
+        foreach (Collider hit in GetProbeHits(primaryCubeProbe))
+        {
+            if (TryGetCarriedCube(hit, carriedRunodes, out _))
+                continue;
+
+            if (TryGetCube(hit, out _))
+                continue;
+
+            if (TryGetPiston(hit, out _))
+                return true;
+
+            if (IsStaticObstruction(hit))
+                return true;
+        }
+
+        return false;
+    }
+
+    private bool HasPrimaryFlatUnexpectedContact(List<RunodeMovement> carriedRunodes)
+    {
+        foreach (Collider hit in GetProbeHits(primaryFlatProbe))
+        {
+            if (TryGetCarriedCube(hit, carriedRunodes, out _))
+                continue;
+
+            if (!TryGetProbeEntityRoot(hit, out GameObject root))
+                return true;
+
+            if (primaryCubeSnapshot.Contains(root))
+                continue;
+
+            if (TryGetCube(hit, out RunodeMovement cube) && cube.IsBusy)
+                return true;
+
+            if (GetGridCell(hit.bounds.center) != stepTargetGridCell)
+                continue;
+
+            return true;
+        }
+
+        return false;
+    }
+
+    private bool HasPrimaryCubeUnexpectedContact(List<RunodeMovement> carriedRunodes)
+    {
+        foreach (Collider hit in GetProbeHits(primaryCubeProbe))
+        {
+            if (TryGetCarriedCube(hit, carriedRunodes, out _))
+                continue;
+
+            if (!TryGetProbeEntityRoot(hit, out GameObject root))
+                return true;
+
+            if (primaryCubeSnapshot.Contains(root))
+                continue;
+
+            if (TryGetCube(hit, out RunodeMovement cube) && cube.IsBusy)
+                return true;
+
+            if (GetGridCell(hit.bounds.center) != stepTargetGridCell)
+                continue;
+
+            return true;
+        }
+
+        return false;
+    }
+
+    private static Vector3 GetGridCell(Vector3 worldPosition)
+    {
+        return new Vector3(
+            Mathf.Round(worldPosition.x),
+            Mathf.Round(worldPosition.y),
+            Mathf.Round(worldPosition.z));
+    }
+
+    private bool TryGetProbeEntityRoot(Collider hit, out GameObject root)
+    {
+        if (TryGetCube(hit, out RunodeMovement cube))
+        {
+            root = cube.gameObject;
+            return true;
+        }
+
+        Piston legacyPiston = hit.GetComponentInParent<Piston>();
+        if (legacyPiston != null)
+        {
+            root = legacyPiston.gameObject;
+            return true;
+        }
+
+        PistonHorizontal horizontal = hit.GetComponentInParent<PistonHorizontal>();
+        if (horizontal != null)
+        {
+            root = horizontal.gameObject;
+            return true;
+        }
+
+        PistonVertical vertical = hit.GetComponentInParent<PistonVertical>();
+        if (vertical != null && vertical != this)
+        {
+            root = vertical.gameObject;
+            return true;
+        }
+
+        if (IsStaticObstruction(hit))
+        {
+            root = hit.gameObject;
+            return true;
+        }
+
+        root = null;
+        return false;
     }
 
     private RunodeMovement GetCubeInProbe(BoxCollider probe, List<RunodeMovement> carriedRunodes)
@@ -377,39 +528,6 @@ public class PistonVertical : MonoBehaviour
         }
 
         return null;
-    }
-
-    private bool ProbeHasBlockingObstruction(BoxCollider probe, List<RunodeMovement> carriedRunodes, RunodeMovement ignoredCube)
-    {
-        foreach (Collider hit in GetProbeHits(probe))
-        {
-            if (TryGetCarriedCube(hit, carriedRunodes, out _))
-                continue;
-
-            if (TryGetCube(hit, out RunodeMovement cube))
-            {
-                if (ignoredCube != null && cube == ignoredCube)
-                    continue;
-
-                if (pushedCubesThisMove.Contains(cube))
-                    continue;
-
-                return true;
-            }
-
-            if (TryGetPiston(hit, out _))
-                return true;
-
-            if (IsStaticObstruction(hit))
-                return true;
-        }
-
-        return false;
-    }
-
-    private bool HasVerticalUpCubeProbeSlideObstruction(List<RunodeMovement> carriedRunodes)
-    {
-        return ProbeHasBlockingObstruction(primaryCubeProbe, carriedRunodes, null);
     }
 
     private bool PrimaryFlatBlocked(List<RunodeMovement> carriedRunodes, RunodeMovement ignoredCube = null)
@@ -538,9 +656,12 @@ public class PistonVertical : MonoBehaviour
     {
         Vector3 start = pistonFace.localPosition;
         Vector3 end = start + GetTravelAxisLocal() * GridUnit;
+        stepTargetGridCell = GetGridCell(pistonFace.parent.TransformPoint(end));
         Vector3 previousWorldPosition = pistonFace.position;
         float duration = moveSpeed > 0f ? GridUnit / moveSpeed : 0f;
         bool stoppedEarly = false;
+        stepCompleted = true;
+        bool hasLoad = extendsUpward && carriedRunodes != null && carriedRunodes.Count > 0;
 
         for (float elapsed = 0f; elapsed < duration; elapsed += Time.deltaTime)
         {
@@ -555,25 +676,26 @@ public class PistonVertical : MonoBehaviour
 
             if (extendsUpward)
             {
-                RunodeMovement cubeInPushCell = GetCubeInProbe(primaryCubeProbe, carriedRunodes);
-
-                if (moveProgress < PrimaryFlatSlideCheckEndProgress
-                    && PrimaryFlatBlocked(carriedRunodes, cubeInPushCell))
+                if (hasLoad)
                 {
-                    stoppedEarly = true;
-                    break;
+                    if (HasPrimaryCubeUnexpectedContact(carriedRunodes))
+                    {
+                        stoppedEarly = true;
+                        extendBlocked = true;
+                        break;
+                    }
                 }
-
-                if (carriedRunodes != null && carriedRunodes.Count > 0
-                    && HasVerticalUpCubeProbeSlideObstruction(carriedRunodes))
+                else if (HasPrimaryFlatUnexpectedContact(carriedRunodes))
                 {
                     stoppedEarly = true;
+                    extendBlocked = true;
                     break;
                 }
             }
             else if (moveProgress < PrimaryFlatSlideCheckEndProgress && PrimaryFlatBlocked(null))
             {
                 stoppedEarly = true;
+                extendBlocked = true;
                 break;
             }
 
@@ -583,7 +705,7 @@ public class PistonVertical : MonoBehaviour
         if (!stoppedEarly)
             pistonFace.localPosition = end;
         else
-            extendBlocked = true;
+            stepCompleted = false;
 
         if (carriedRunodes != null && !stoppedEarly)
         {
