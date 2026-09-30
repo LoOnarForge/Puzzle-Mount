@@ -7,8 +7,6 @@ public class PistonVertical : MonoBehaviour
     private const int SocketCount = 2;
     private const int MinRequiredMw = 0;
     public const int MaxRequiredMw = 10;
-    private const int MinRequiredMw = 0;
-    public const int MaxRequiredMw = 10;
     private const float GridUnit = 1f;
     private const float DefaultMoveSpeed = 5f;
     private const float FaceTopTolerance = 0.1f;
@@ -23,9 +21,9 @@ public class PistonVertical : MonoBehaviour
     private class SocketSlot
     {
         public GameObject socketObject;
-        [Range(MinRequiredMw, MaxRequiredMw)] public int requiredMw = 1;
+        public bool isEnabled;
         public int requiredColorIndex;
-        public int requiredMw = 1;
+        [Range(MinRequiredMw, MaxRequiredMw)] public int requiredMw = 1;
         public int allocatedMw;
         public PowerSource poweringSource;
     }
@@ -84,14 +82,14 @@ public class PistonVertical : MonoBehaviour
 
     private void OnValidate()
     {
+        maxStage = Mathf.Max(0, maxStage);
+        startingStage = Mathf.Clamp(startingStage, 0, maxStage);
 
         if (sockets == null)
             return;
 
         for (int i = 0; i < sockets.Length; i++)
             sockets[i].requiredMw = Mathf.Clamp(sockets[i].requiredMw, MinRequiredMw, MaxRequiredMw);
-        maxStage = Mathf.Max(0, maxStage);
-        startingStage = Mathf.Clamp(startingStage, 0, maxStage);
     }
 
     private Vector3 GetTravelAxisLocal()
@@ -232,9 +230,9 @@ public class PistonVertical : MonoBehaviour
 
             DevicePowerSocket device = slot.socketObject.GetComponent<DevicePowerSocket>();
             if (device == null)
-            slot.requiredMw = Mathf.Clamp(slot.requiredMw, MinRequiredMw, MaxRequiredMw);
                 continue;
 
+            slot.requiredMw = Mathf.Clamp(slot.requiredMw, MinRequiredMw, MaxRequiredMw);
             DevicePowerSocket.SetSocketHierarchyActive(slot.socketObject, true);
             device.InitialSocketConfiguration(i, slot.requiredColorIndex, slot.requiredMw);
         }
@@ -342,7 +340,10 @@ public class PistonVertical : MonoBehaviour
             return false;
 
         if (TryPrepareVerticalUpStep(carriedRunodes))
+        {
+            hardBlock = false;
             return true;
+        }
 
         hardBlock = true;
         return false;
