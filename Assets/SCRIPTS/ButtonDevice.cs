@@ -27,9 +27,7 @@ public class ButtonDevice : MonoBehaviour
     [SerializeField] private List<GameObject> connectedDevices = new List<GameObject>();
 
     private readonly List<MediumDoor> mediumDoors = new List<MediumDoor>();
-    private readonly List<Elevator> elevators = new List<Elevator>();
-    private readonly List<PistonHorizontal> pistonHorizontals = new List<PistonHorizontal>();
-    private readonly List<PistonVertical> pistonVerticals = new List<PistonVertical>();
+    private readonly List<Bridge> bridges = new List<Bridge>();
     private readonly Collider[] overlapBuffer = new Collider[OverlapBufferSize];
 
     private bool isButtonMoving;
@@ -219,29 +217,21 @@ public class ButtonDevice : MonoBehaviour
         }
     }
 
-    // Calls OnLeverOperated on every cached connected device.
+    // One-shot press reverses connected doors and bridges (including mid-animation).
     private void NotifyConnectedDevices()
     {
         foreach (MediumDoor mediumDoor in mediumDoors)
-            mediumDoor.OnLeverOperated();
+            mediumDoor.ApplyActivatorReverse();
 
-        foreach (Elevator elevator in elevators)
-            elevator.OnLeverOperated();
-
-        foreach (PistonHorizontal pistonHorizontal in pistonHorizontals)
-            pistonHorizontal.OnLeverOperated();
-
-        foreach (PistonVertical pistonVertical in pistonVerticals)
-            pistonVertical.OnLeverOperated();
+        foreach (Bridge bridge in bridges)
+            bridge.ApplyActivatorReverse();
     }
 
     // Builds typed device lists once from the inspector object list.
     private void BuildConnectedDeviceLists()
     {
         mediumDoors.Clear();
-        elevators.Clear();
-        pistonHorizontals.Clear();
-        pistonVerticals.Clear();
+        bridges.Clear();
 
         foreach (GameObject deviceObject in connectedDevices)
         {
@@ -250,19 +240,19 @@ public class ButtonDevice : MonoBehaviour
 
             MediumDoor mediumDoor = deviceObject.GetComponent<MediumDoor>();
             if (mediumDoor != null)
+            {
                 mediumDoors.Add(mediumDoor);
+                continue;
+            }
 
-            Elevator elevator = deviceObject.GetComponent<Elevator>();
-            if (elevator != null)
-                elevators.Add(elevator);
+            Bridge bridge = deviceObject.GetComponent<Bridge>();
+            if (bridge != null)
+            {
+                bridges.Add(bridge);
+                continue;
+            }
 
-            PistonHorizontal pistonHorizontal = deviceObject.GetComponent<PistonHorizontal>();
-            if (pistonHorizontal != null)
-                pistonHorizontals.Add(pistonHorizontal);
-
-            PistonVertical pistonVertical = deviceObject.GetComponent<PistonVertical>();
-            if (pistonVertical != null)
-                pistonVerticals.Add(pistonVertical);
+            Debug.Log($"[{nameof(ButtonDevice)}] '{name}' ignored connected object '{deviceObject.name}' — only {nameof(MediumDoor)} and {nameof(Bridge)} are supported.", this);
         }
     }
 }

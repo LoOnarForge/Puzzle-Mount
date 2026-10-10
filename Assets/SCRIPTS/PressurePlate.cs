@@ -7,8 +7,6 @@ public class PressurePlate : MonoBehaviour
     private const float PlateSwitchDuration = 0.25f;
     private const float PressDetectionDelay = 0.2f;
     private const int OverlapBufferSize = 16;
-    private const int MaxSupportedPistonMaxStage = 1;
-    private const int MaxSupportedElevatorStops = 2;
     private const string RunodesLayerName = "Runodes";
     private const string TimLayerName = "TimJones";
 
@@ -19,10 +17,7 @@ public class PressurePlate : MonoBehaviour
     [SerializeField] private List<GameObject> connectedDevices = new List<GameObject>();
 
     private readonly List<MediumDoor> mediumDoors = new List<MediumDoor>();
-    private readonly List<Elevator> elevators = new List<Elevator>();
-    private readonly List<Piston> pistons = new List<Piston>();
-    private readonly List<PistonHorizontal> pistonHorizontals = new List<PistonHorizontal>();
-    private readonly List<PistonVertical> pistonVerticals = new List<PistonVertical>();
+    private readonly List<Bridge> bridges = new List<Bridge>();
     private readonly Collider[] overlapBuffer = new Collider[OverlapBufferSize];
     private readonly HashSet<Collider> countedWeightColliders = new HashSet<Collider>();
 
@@ -55,10 +50,20 @@ public class PressurePlate : MonoBehaviour
 
     private void FixedUpdate()
     {
-        if (isPlateMoving || weightTrigger == null)
+        if (weightTrigger == null)
             return;
 
         bool hasWeight = HasWeightOnPlate();
+
+        if (!hasWeight && isPressed)
+        {
+            isPressed = false;
+            StartCoroutine(PlateSwitchingMovement(false));
+            NotifyConnectedDevices(false);
+        }
+
+        if (isPlateMoving)
+            return;
 
         if (hasWeight && !isPressed && pendingPressCoroutine == null)
         {
@@ -68,12 +73,6 @@ public class PressurePlate : MonoBehaviour
         {
             StopCoroutine(pendingPressCoroutine);
             pendingPressCoroutine = null;
-        }
-        else if (!hasWeight && isPressed)
-        {
-            isPressed = false;
-            StartCoroutine(PlateSwitchingMovement(false));
-            NotifyConnectedDevices(false);
         }
     }
 
@@ -176,25 +175,16 @@ public class PressurePlate : MonoBehaviour
         return triggerBounds.Intersects(controller.bounds);
     }
 
-    // State-aware doors follow plate pressure; other devices toggle on each notify.
+    // Each press and release reverses connected doors and bridges (including mid-animation).
     private void NotifyConnectedDevices(bool pressed)
     {
         ApplySkullPressedState(pressed);
 
         foreach (MediumDoor mediumDoor in mediumDoors)
-            mediumDoor.ApplyOpenState(pressed);
+            mediumDoor.ApplyActivatorReverse();
 
-        foreach (Elevator elevator in elevators)
-            elevator.OnLeverOperated();
-
-        foreach (Piston piston in pistons)
-            piston.OnLeverOperated();
-
-        foreach (PistonHorizontal pistonHorizontal in pistonHorizontals)
-            pistonHorizontal.OnLeverOperated();
-
-        foreach (PistonVertical pistonVertical in pistonVerticals)
-            pistonVertical.OnLeverOperated();
+        foreach (Bridge bridge in bridges)
+            bridge.ApplyActivatorReverse();
     }
 
     // Matches MediumDoor skull timing: pressed = closed to open, released = default to closed.
@@ -218,10 +208,7 @@ public class PressurePlate : MonoBehaviour
     private void BuildConnectedDeviceLists()
     {
         mediumDoors.Clear();
-        elevators.Clear();
-        pistons.Clear();
-        pistonHorizontals.Clear();
-        pistonVerticals.Clear();
+        bridges.Clear();
 
         foreach (GameObject deviceObject in connectedDevices)
         {
@@ -230,55 +217,19 @@ public class PressurePlate : MonoBehaviour
 
             MediumDoor mediumDoor = deviceObject.GetComponent<MediumDoor>();
             if (mediumDoor != null)
+            {
                 mediumDoors.Add(mediumDoor);
-
-            Elevator elevator = deviceObject.GetComponent<Elevator>();
-            if (elevator != null)
-            {
-                if (elevator.StageCount > MaxSupportedElevatorStops)
-                {
-                    Debug.Log($"[{nameof(PressurePlate)}] '{name}' ignored connected elevator '{deviceObject.name}' because it has {elevator.StageCount} stops (maximum is {MaxSupportedElevatorStops}).", this);
-                    continue;
-                }
-
-                elevators.Add(elevator);
+                continue;
             }
 
-            Piston piston = deviceObject.GetComponent<Piston>();
-            if (piston != null)
+            Bridge bridge = deviceObject.GetComponent<Bridge>();
+            if (bridge != null)
             {
-                if (piston.MaxStage > MaxSupportedPistonMaxStage)
-                {
-                    Debug.Log($"[{nameof(PressurePlate)}] '{name}' ignored connected piston '{deviceObject.name}' because maxStage is {piston.MaxStage} (maximum is {MaxSupportedPistonMaxStage}).", this);
-                    continue;
-                }
-
-                pistons.Add(piston);
+                bridges.Add(bridge);
+                continue;
             }
 
-            PistonHorizontal pistonHorizontal = deviceObject.GetComponent<PistonHorizontal>();
-            if (pistonHorizontal != null)
-            {
-                if (pistonHorizontal.MaxStage > MaxSupportedPistonMaxStage)
-                {
-                    Debug.Log($"[{nameof(PressurePlate)}] '{name}' ignored connected piston '{deviceObject.name}' because maxStage is {pistonHorizontal.MaxStage} (maximum is {MaxSupportedPistonMaxStage}).", this);
-                    continue;
-                }
-
-                pistonHorizontals.Add(pistonHorizontal);
-            }
-
-            PistonVertical pistonVertical = deviceObject.GetComponent<PistonVertical>();
-            if (pistonVertical != null)
-            {
-                if (pistonVertical.MaxStage > MaxSupportedPistonMaxStage)
-                {
-                    Debug.Log($"[{nameof(PressurePlate)}] '{name}' ignored connected piston '{deviceObject.name}' because maxStage is {pistonVertical.MaxStage} (maximum is {MaxSupportedPistonMaxStage}).", this);
-                    continue;
-                }
-
-                pistonVerticals.Add(pistonVertical); 
-            }
+            Debug.Log($"[{nameof(PressurePlate)}] '{name}' ignored connected object '{deviceObject.name}' — only {nameof(MediumDoor)} and {nameof(Bridge)} are supported.", this);
         }
     }
 }

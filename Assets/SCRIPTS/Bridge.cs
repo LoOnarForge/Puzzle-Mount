@@ -13,6 +13,7 @@ public class Bridge : MonoBehaviour
     private const float ShrinkEasePower = 2.5f;
     private const float MinPopSpeed = 0.01f;
     private const float SamePositionLimit = 0.0001f;
+    private const float VisibleCubeScaleThreshold = 0.01f;
 
     [System.Serializable]
     private class SocketSlot
@@ -72,6 +73,7 @@ public class Bridge : MonoBehaviour
     private bool isBridgeOpen;
     private bool isSequenceRunning;
     private bool isClosing;
+    private bool activatorDemandsOpen;
 
     private void Awake()
     {
@@ -96,10 +98,42 @@ public class Bridge : MonoBehaviour
         if (!hasValidLayout || (!isSelfPowered && !isPowered) || isSequenceRunning)
             return;
 
-        if (isBridgeOpen)
-            BeginClose();
-        else
+        ApplyOpenState(!isBridgeOpen);
+    }
+
+    // Reverses settled state or in-progress motion — used by pressure plates and buttons.
+    public void ApplyActivatorReverse()
+    {
+        ApplyOpenState(!IsEffectivelyOpenOrOpening());
+    }
+
+    // Drives toward explicit open or closed (also used internally after reverse).
+    public void ApplyOpenState(bool isOpen)
+    {
+        activatorDemandsOpen = isOpen;
+
+        if (!hasValidLayout)
+            return;
+
+        if (isOpen)
+        {
+            if (!isSelfPowered && !isPowered)
+                return;
+
+            if (isBridgeOpen)
+                return;
+
+            if (isSequenceRunning && !isClosing)
+                return;
+
             BeginOpen();
+            return;
+        }
+
+        if (!IsEffectivelyOpenOrOpening())
+            return;
+
+        ForceBeginClose();
     }
 
     // Claims assigned sockets once and pushes required color and MW to each.
@@ -166,7 +200,7 @@ public class Bridge : MonoBehaviour
         isPowered = poweredNow;
 
         if (lostPower)
-            BeginClose();
+            ForceBeginClose();
     }
 
     private bool TryBuildLayout()
@@ -205,9 +239,15 @@ public class Bridge : MonoBehaviour
         sequenceRoutine = StartCoroutine(OpenSequence(sequenceId));
     }
 
-    private void BeginClose()
+    private void ForceBeginClose()
     {
-        if (isClosing || (!isSequenceRunning && !isBridgeOpen))
+        if (!hasValidLayout)
+            return;
+
+        if (!isSequenceRunning && !isBridgeOpen && !HasPartialGapBridge())
+            return;
+
+        if (isClosing && isSequenceRunning)
             return;
 
         isClosing = true;
@@ -237,6 +277,9 @@ public class Bridge : MonoBehaviour
             if (id != sequenceId)
                 yield break;
 
+            if (!activatorDemandsOpen)
+                yield break;
+
             elapsed += Time.deltaTime;
             EnableReadyRows(elapsed);
 
@@ -256,6 +299,9 @@ public class Bridge : MonoBehaviour
         if (id != sequenceId)
             yield break;
 
+        if (!activatorDemandsOpen)
+            yield break;
+
         EnableReadyRows(totalDuration);
 
         for (int i = 0; i < gapCubes.Count; i++)
@@ -266,6 +312,7 @@ public class Bridge : MonoBehaviour
 
         isBridgeOpen = true;
         isSequenceRunning = false;
+        isClosing = false;
         sequenceRoutine = null;
     }
 
@@ -279,7 +326,8 @@ public class Bridge : MonoBehaviour
             cube.startScale = cube.visual != null ? cube.visual.localScale : Vector3.zero;
         }
 
-        float longestDelay = AssignDelays(fromEnd: true);
+        int leadingColumn = GetLeadingVisibleColumn();
+        float longestDelay = AssignCloseDelays(leadingColumn);
         float totalDuration = longestDelay + shrinkDuration;
         float elapsed = 0f;
 
@@ -295,6 +343,9 @@ public class Bridge : MonoBehaviour
             {
                 GapCube cube = gapCubes[i];
                 if (cube.visual == null)
+                    continue;
+
+                if (cube.startScale.x <= VisibleCubeScaleThreshold)
                     continue;
 
                 float time = elapsed - cube.delay;
@@ -366,6 +417,77 @@ public class Bridge : MonoBehaviour
         SyncRowDelaysToColumnCubes();
 
         return longestDelay;
+    }
+
+    // Close wave runs from the current growth front back toward the start (matches lever when fully open).
+    private float AssignCloseDelays(int leadingColumn)
+    {
+        float longestDelay = 0f;
+
+        for (int i = 0; i < gapCubes.Count; i++)
+        {
+            GapCube cube = gapCubes[i];
+            int column = leadingColumn - cube.columnFromStart;
+            if (column < 0)
+                column = 0;
+
+            float delay = column * columnWaveDelay;
+
+            if (cubeRandomDelay > 0f)
+                delay += Random.Range(0f, cubeRandomDelay);
+
+            cube.delay = delay;
+
+            if (delay > longestDelay)
+                longestDelay = delay;
+        }
+
+        SyncRowDelaysToColumnCubes();
+
+        return longestDelay;
+    }
+
+    private int GetLeadingVisibleColumn()
+    {
+        int leadingColumn = 0;
+
+        for (int i = 0; i < gapCubes.Count; i++)
+        {
+            GapCube cube = gapCubes[i];
+            if (cube.startScale.x <= VisibleCubeScaleThreshold)
+                continue;
+
+            if (cube.columnFromStart > leadingColumn)
+                leadingColumn = cube.columnFromStart;
+        }
+
+        return leadingColumn;
+    }
+
+    private bool IsEffectivelyOpenOrOpening()
+    {
+        if (isSequenceRunning)
+            return !isClosing;
+
+        if (isBridgeOpen)
+            return true;
+
+        return HasPartialGapBridge();
+    }
+
+    private bool HasPartialGapBridge()
+    {
+        for (int i = 0; i < gapCubes.Count; i++)
+        {
+            Transform visual = gapCubes[i].visual;
+            if (visual == null)
+                continue;
+
+            if (visual.localScale.x > VisibleCubeScaleThreshold)
+                return true;
+        }
+
+        return false;
     }
 
     // Row colliders use the earliest cube delay in that column so they match the visual wave.

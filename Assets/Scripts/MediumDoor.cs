@@ -8,6 +8,7 @@ public class MediumDoor : MonoBehaviour
     private const float MovementEaseInOutPower = 2.5f;
     private const float SkullTransitionLeadTime = 0.5f;
     private const float MinPieceTravelDuration = 0.05f;
+    private const float ClosedPositionTolerance = 0.02f;
 
     [Serializable]
     private struct DoorPieceMotion
@@ -32,7 +33,9 @@ public class MediumDoor : MonoBehaviour
 
     private bool isDoorMoving;
     private bool isDoorOpen;
+    private bool doorMotionTargetOpen;
     private Coroutine doorSequenceCoroutine;
+    private Coroutine doorSkullSequenceCoroutine;
 
     private void Awake()
     {
@@ -103,16 +106,56 @@ public class MediumDoor : MonoBehaviour
         ApplyOpenState(!isDoorOpen);
     }
 
-    // State-aware activation — sets open or closed to match activator state (e.g. pressure plate held down).
+    // Reverses settled state or in-progress motion — used by pressure plates and buttons.
+    public void ApplyActivatorReverse()
+    {
+        bool effectivelyOpen = isDoorMoving ? doorMotionTargetOpen : isDoorOpen || IsVisuallyAwayFromClosed();
+        ApplyOpenState(!effectivelyOpen);
+    }
+
+    // Drives toward explicit open or closed (also used internally after reverse).
     public void ApplyOpenState(bool isOpen)
     {
+        if (!isDoorMoving && isOpen == isDoorOpen)
+        {
+            if (!(!isOpen && IsVisuallyAwayFromClosed()))
+                return;
+        }
+
+        if (isDoorMoving && isOpen == doorMotionTargetOpen)
+            return;
+
         if (isDoorMoving)
-            return;
+            StopDoorMotion();
 
-        if (isOpen == isDoorOpen)
-            return;
-
+        doorMotionTargetOpen = isOpen;
         doorSequenceCoroutine = StartCoroutine(AnimateDoorToState(isOpen));
+    }
+
+    private void StopDoorMotion()
+    {
+        if (doorSequenceCoroutine != null)
+        {
+            StopCoroutine(doorSequenceCoroutine);
+            doorSequenceCoroutine = null;
+        }
+
+        if (doorSkullSequenceCoroutine != null)
+        {
+            StopCoroutine(doorSkullSequenceCoroutine);
+            doorSkullSequenceCoroutine = null;
+        }
+
+        for (int i = 0; i < DoorPieceCount; i++)
+        {
+            if (pieceAnimateCoroutines[i] == null)
+                continue;
+
+            StopCoroutine(pieceAnimateCoroutines[i]);
+            pieceAnimateCoroutines[i] = null;
+        }
+
+        isDoorMoving = false;
     }
 
     private IEnumerator AnimateDoorToState(bool opening)
@@ -124,7 +167,7 @@ public class MediumDoor : MonoBehaviour
         for (int i = 0; i < DoorPieceCount; i++)
             pieceAnimateCoroutines[i] = StartCoroutine(AnimatePieceToState(i, opening));
 
-        Coroutine skullSequence = StartCoroutine(RunSkullTransitionsWithLead(opening, piecePhaseDuration));
+        doorSkullSequenceCoroutine = StartCoroutine(RunSkullTransitionsWithLead(opening, piecePhaseDuration));
 
         for (int i = 0; i < DoorPieceCount; i++)
         {
@@ -132,7 +175,8 @@ public class MediumDoor : MonoBehaviour
             pieceAnimateCoroutines[i] = null;
         }
 
-        yield return skullSequence;
+        yield return doorSkullSequenceCoroutine;
+        doorSkullSequenceCoroutine = null;
 
         isDoorOpen = opening;
         isDoorMoving = false;
@@ -253,5 +297,22 @@ public class MediumDoor : MonoBehaviour
             return 0.5f * Mathf.Pow(2f * t, MovementEaseInOutPower);
 
         return 1f - 0.5f * Mathf.Pow(2f * (1f - t), MovementEaseInOutPower);
+    }
+
+    private bool IsVisuallyAwayFromClosed()
+    {
+        float toleranceSqr = ClosedPositionTolerance * ClosedPositionTolerance;
+
+        for (int i = 0; i < DoorPieceCount; i++)
+        {
+            Transform piece = doorPieces[i].Piece;
+            if (piece == null)
+                continue;
+
+            if (Vector3.SqrMagnitude(piece.position - pieceClosedWorldPositions[i]) > toleranceSqr)
+                return true;
+        }
+
+        return false;
     }
 }
