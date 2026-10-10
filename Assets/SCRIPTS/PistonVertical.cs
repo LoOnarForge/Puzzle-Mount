@@ -303,7 +303,7 @@ public class PistonVertical : MonoBehaviour
 
         while (currentStage < targetStage)
         {
-            CapturePrimaryCubeSnapshot();
+            CapturePrimaryCubeSnapshot(carriedRunodes);
 
             if (!TryPrepareExtendStep(carriedRunodes, out bool hardBlock))
             {
@@ -367,15 +367,17 @@ public class PistonVertical : MonoBehaviour
         return carriedRunodes != null && carriedRunodes.Count > 1;
     }
 
-    private void CapturePrimaryCubeSnapshot()
+    private void CapturePrimaryCubeSnapshot(List<RunodeMovement> carriedRunodes)
     {
         primaryCubeSnapshot.Clear();
 
-        foreach (Collider hit in GetProbeHits(primaryCubeProbe))
-        {
-            if (IsObstructingCollider(hit))
-                continue;
+        BoxCollider snapshotProbe = extendsUpward ? primaryCubeProbe : primaryFlatProbe;
 
+        if (snapshotProbe == null)
+            return;
+
+        foreach (Collider hit in GetProbeHits(snapshotProbe))
+        {
             if (TryGetProbeEntityRoot(hit, out GameObject root))
                 primaryCubeSnapshot.Add(root);
         }
@@ -428,9 +430,6 @@ public class PistonVertical : MonoBehaviour
             if (TryGetCarriedCube(hit, carriedRunodes, out _))
                 continue;
 
-            if (IsObstructingCollider(hit))
-                return true;
-
             if (!TryGetProbeEntityRoot(hit, out GameObject root))
                 return true;
 
@@ -455,9 +454,6 @@ public class PistonVertical : MonoBehaviour
         {
             if (TryGetCarriedCube(hit, carriedRunodes, out _))
                 continue;
-
-            if (IsObstructingCollider(hit))
-                return true;
 
             if (!TryGetProbeEntityRoot(hit, out GameObject root))
                 return true;
