@@ -24,6 +24,7 @@ public class Lever : MonoBehaviour
     [SerializeField] private bool isPowered;
 
     private readonly List<MediumDoor> mediumDoors = new List<MediumDoor>();
+    private readonly List<Bridge> bridges = new List<Bridge>();
     private readonly List<Elevator> elevators = new List<Elevator>();
     private readonly List<PistonHorizontal> pistonHorizontals = new List<PistonHorizontal>();
     private readonly List<PistonVertical> pistonVerticals = new List<PistonVertical>();
@@ -97,6 +98,9 @@ public class Lever : MonoBehaviour
         foreach (MediumDoor mediumDoor in mediumDoors)
             mediumDoor.OnLeverOperated();
 
+        foreach (Bridge bridge in bridges)
+            bridge.OnLeverOperated();
+
         foreach (Elevator elevator in elevators)
             elevator.OnLeverOperated();
 
@@ -111,6 +115,7 @@ public class Lever : MonoBehaviour
     private void BuildConnectedDeviceLists()
     {
         mediumDoors.Clear();
+        bridges.Clear();
         elevators.Clear();
         pistonHorizontals.Clear();
         pistonVerticals.Clear();
@@ -123,6 +128,10 @@ public class Lever : MonoBehaviour
             MediumDoor mediumDoor = deviceObject.GetComponent<MediumDoor>();
             if (mediumDoor != null)
                 mediumDoors.Add(mediumDoor);
+
+            Bridge bridge = deviceObject.GetComponent<Bridge>();
+            if (bridge != null)
+                bridges.Add(bridge);
 
             Elevator elevator = deviceObject.GetComponent<Elevator>();
             if (elevator != null)

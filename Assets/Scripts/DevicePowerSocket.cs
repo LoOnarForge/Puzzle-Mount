@@ -28,6 +28,7 @@ public class DevicePowerSocket : MonoBehaviour
     [SerializeField] private ForgottenGate ownerForgottenGate;
     [SerializeField] private Lever ownerLever;
     [SerializeField] private Elevator ownerElevator;
+    [SerializeField] private Bridge ownerBridge;
     [SerializeField] private PistonHorizontal ownerPistonHorizontal;
     [SerializeField] private PistonVertical ownerPistonVertical;
     [FormerlySerializedAs("ownerRuneTorch")]
@@ -121,6 +122,22 @@ public class DevicePowerSocket : MonoBehaviour
             parent.gameObject.SetActive(active);
         else
             socketObject.SetActive(active);
+    }
+
+    // Points this socket at the bridge that owns it.
+    public void SetBridgeOwner(Bridge bridge)
+    {
+        Debug.Assert(
+            ownerForgottenGate == null &&
+            ownerLever == null &&
+            ownerElevator == null &&
+            ownerPistonHorizontal == null &&
+            ownerPistonVertical == null &&
+            ownerTorchRunode == null,
+            $"Power socket on {name} already has another owner. Clear that owner before using it on a bridge.",
+            bridge);
+
+        ownerBridge = bridge;
     }
 
     // Sets socket index, required color, and required MW from the owning device. Called once.
@@ -237,6 +254,12 @@ public class DevicePowerSocket : MonoBehaviour
         if (ownerElevator != null)
         {
             ownerElevator.UpdateSocketStateToOwner(ownerIndex, allocatedMw, powerSource);
+            return;
+        }
+
+        if (ownerBridge != null)
+        {
+            ownerBridge.UpdateSocketStateToOwner(ownerIndex, allocatedMw, powerSource);
             return;
         }
 
