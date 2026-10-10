@@ -1055,6 +1055,12 @@ public class Piston : MonoBehaviour
 
 
 
+        if (PistonProbeObstructionExempt.AppliesTo(hit))
+
+            return true;
+
+
+
         return IsProbeCollider(hit);
 
     }
@@ -1144,6 +1150,12 @@ public class Piston : MonoBehaviour
     private bool IsStaticObstruction(Collider hit)
 
     {
+
+        if (PistonProbeObstructionExempt.AppliesTo(hit))
+
+            return false;
+
+
 
         if (TryGetTim(hit, out _))
 

@@ -27,10 +27,10 @@ public class MediumDoor : MonoBehaviour
 
     [SerializeField] private DoorPieceMotion[] doorPieces;
     [SerializeField] private SkullBehaviour[] skullBehaviours;
-    [FormerlySerializedAs("closeObstructionVolume")]
-    [SerializeField] private Collider doorObstructionTrigger;
     [FormerlySerializedAs("closeObstructionMask")]
     [SerializeField] private LayerMask doorObstructionMask;
+    [SerializeField] private Vector3 closeObstructionBoxCenter = new Vector3(0f, 0.537f, 0f);
+    [SerializeField] private Vector3 closeObstructionBoxSize = new Vector3(1.04f, 2f, 0.46f);
 
     private const int ObstructionOverlapBufferSize = 16;
 
@@ -229,15 +229,17 @@ public class MediumDoor : MonoBehaviour
 
     private bool IsClosePathObstructed()
     {
-        if (doorObstructionTrigger == null || doorObstructionMask.value == 0)
+        if (doorObstructionMask.value == 0)
             return false;
 
-        Bounds bounds = doorObstructionTrigger.bounds;
+        Vector3 center = transform.TransformPoint(closeObstructionBoxCenter);
+        Vector3 halfExtents = Vector3.Scale(closeObstructionBoxSize, transform.lossyScale) * 0.5f;
+
         int hitCount = Physics.OverlapBoxNonAlloc(
-            bounds.center,
-            bounds.extents,
+            center,
+            halfExtents,
             obstructionOverlapBuffer,
-            doorObstructionTrigger.transform.rotation,
+            transform.rotation,
             doorObstructionMask,
             QueryTriggerInteraction.Collide);
 
@@ -252,7 +254,7 @@ public class MediumDoor : MonoBehaviour
 
     private bool IsCloseObstructionHit(Collider hit)
     {
-        if (hit == null || hit == doorObstructionTrigger)
+        if (hit == null)
             return false;
 
         if (hit.transform.IsChildOf(transform))

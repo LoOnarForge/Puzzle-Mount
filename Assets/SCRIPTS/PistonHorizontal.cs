@@ -576,6 +576,9 @@ public class PistonHorizontal : MonoBehaviour
         if (hit.transform.IsChildOf(transform))
             return true;
 
+        if (PistonProbeObstructionExempt.AppliesTo(hit))
+            return true;
+
         return IsProbeCollider(hit);
     }
 
@@ -625,6 +628,9 @@ public class PistonHorizontal : MonoBehaviour
 
     private bool IsStaticObstruction(Collider hit)
     {
+        if (PistonProbeObstructionExempt.AppliesTo(hit))
+            return false;
+
         if ((obstructionMask.value & (1 << hit.gameObject.layer)) == 0)
             return false;
 
