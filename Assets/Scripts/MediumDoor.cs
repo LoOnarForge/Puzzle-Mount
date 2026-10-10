@@ -232,6 +232,8 @@ public class MediumDoor : MonoBehaviour
         if (doorObstructionMask.value == 0)
             return false;
 
+        Physics.SyncTransforms();
+
         Vector3 center = transform.TransformPoint(closeObstructionBoxCenter);
         Vector3 halfExtents = Vector3.Scale(closeObstructionBoxSize, transform.lossyScale) * 0.5f;
 
@@ -258,6 +260,9 @@ public class MediumDoor : MonoBehaviour
             return false;
 
         if (hit.transform.IsChildOf(transform))
+            return false;
+
+        if (!hit.enabled)
             return false;
 
         return true;

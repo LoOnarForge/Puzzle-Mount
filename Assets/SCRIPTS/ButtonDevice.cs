@@ -29,7 +29,6 @@ public class ButtonDevice : MonoBehaviour
     private readonly List<MediumDoor> mediumDoors = new List<MediumDoor>();
     private readonly List<Bridge> bridges = new List<Bridge>();
     private readonly Collider[] overlapBuffer = new Collider[OverlapBufferSize];
-
     private bool isButtonMoving;
     private bool isPressed;
 

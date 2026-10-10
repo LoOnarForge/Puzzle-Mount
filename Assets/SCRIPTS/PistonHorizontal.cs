@@ -56,6 +56,7 @@ public class PistonHorizontal : MonoBehaviour
     private Vector3 cachedTravelAxisInFaceParentLocal;
     private Vector3 stepTargetGridCell;
     private int probeQueryMask;
+    private int probePhysicsSyncFrame = -1;
     private BoxCollider primaryFlatProbe;
     private BoxCollider primaryCubeProbe;
     private BoxCollider secondaryCubeProbe;
@@ -549,6 +550,8 @@ public class PistonHorizontal : MonoBehaviour
         if (probe == null)
             yield break;
 
+        SyncPhysicsForProbeQueries();
+
         Bounds bounds = probe.bounds;
         int count = Physics.OverlapBoxNonAlloc(
             bounds.center,
@@ -624,6 +627,15 @@ public class PistonHorizontal : MonoBehaviour
 
         piston = null;
         return false;
+    }
+
+    private void SyncPhysicsForProbeQueries()
+    {
+        if (Time.frameCount == probePhysicsSyncFrame)
+            return;
+
+        Physics.SyncTransforms();
+        probePhysicsSyncFrame = Time.frameCount;
     }
 
     private bool IsStaticObstruction(Collider hit)
