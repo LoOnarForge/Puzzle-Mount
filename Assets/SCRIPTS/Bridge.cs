@@ -48,7 +48,7 @@ public class Bridge : MonoBehaviour
         new SocketSlot()
     };
 
-    [SerializeField] private int bridgeWidth = 2;
+    [SerializeField, Range(1, 4)] private int bridgeWidth = 2;
     [SerializeField] private Transform startPlatform;
     [SerializeField] private Transform endPlatform;
     [SerializeField] private GameObject cubePrefab;
@@ -280,7 +280,7 @@ public class Bridge : MonoBehaviour
         }
 
         float longestDelay = AssignDelays(fromEnd: true);
-        float totalDuration = longestDelay + Mathf.Max(shrinkDuration, ColliderDisableDelay);
+        float totalDuration = longestDelay + shrinkDuration;
         float elapsed = 0f;
 
         while (elapsed < totalDuration)
@@ -363,14 +363,34 @@ public class Bridge : MonoBehaviour
                 longestDelay = delay;
         }
 
-        for (int i = 0; i < gapRows.Count; i++)
-        {
-            GapRow row = gapRows[i];
-            int column = fromEnd ? lastColumn - row.columnFromStart : row.columnFromStart;
-            row.delay = column * columnWaveDelay;
-        }
+        SyncRowDelaysToColumnCubes();
 
         return longestDelay;
+    }
+
+    // Row colliders use the earliest cube delay in that column so they match the visual wave.
+    private void SyncRowDelaysToColumnCubes()
+    {
+        for (int r = 0; r < gapRows.Count; r++)
+        {
+            GapRow row = gapRows[r];
+            float columnDelay = float.MaxValue;
+            bool found = false;
+
+            for (int c = 0; c < gapCubes.Count; c++)
+            {
+                GapCube cube = gapCubes[c];
+                if (cube.columnFromStart != row.columnFromStart)
+                    continue;
+
+                found = true;
+                if (cube.delay < columnDelay)
+                    columnDelay = cube.delay;
+            }
+
+            if (found)
+                row.delay = columnDelay;
+        }
     }
 
     private void SpawnGapCubes()

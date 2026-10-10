@@ -15,6 +15,7 @@ public class PressurePlate : MonoBehaviour
     [SerializeField] private Transform plateTop;
     [SerializeField] private float platePressDepth = 0.05f;
     [SerializeField] private Collider weightTrigger;
+    [SerializeField] private SkullBehaviour skullBehaviour;
     [SerializeField] private List<GameObject> connectedDevices = new List<GameObject>();
 
     private readonly List<MediumDoor> mediumDoors = new List<MediumDoor>();
@@ -31,6 +32,7 @@ public class PressurePlate : MonoBehaviour
     private bool isPlateMoving;
     private bool isPressed;
     private Coroutine pendingPressCoroutine;
+    private Coroutine skullTransitionCoroutine;
 
     private Vector3 plateTopRestLocalPosition;
 
@@ -46,6 +48,9 @@ public class PressurePlate : MonoBehaviour
 
         if (weightTrigger != null)
             Debug.Assert(weightTrigger.isTrigger, $"{nameof(PressurePlate)} on {name} requires {nameof(weightTrigger)} to be a trigger.", this);
+
+        if (skullBehaviour == null)
+            skullBehaviour = GetComponentInChildren<SkullBehaviour>(true);
     }
 
     private void FixedUpdate()
@@ -174,6 +179,8 @@ public class PressurePlate : MonoBehaviour
     // State-aware doors follow plate pressure; other devices toggle on each notify.
     private void NotifyConnectedDevices(bool pressed)
     {
+        ApplySkullPressedState(pressed);
+
         foreach (MediumDoor mediumDoor in mediumDoors)
             mediumDoor.ApplyOpenState(pressed);
 
@@ -188,6 +195,23 @@ public class PressurePlate : MonoBehaviour
 
         foreach (PistonVertical pistonVertical in pistonVerticals)
             pistonVertical.OnLeverOperated();
+    }
+
+    // Matches MediumDoor skull timing: pressed = closed to open, released = default to closed.
+    private void ApplySkullPressedState(bool pressed)
+    {
+        if (skullBehaviour == null)
+            return;
+
+        if (skullTransitionCoroutine != null)
+        {
+            StopCoroutine(skullTransitionCoroutine);
+            skullTransitionCoroutine = null;
+        }
+
+        skullTransitionCoroutine = StartCoroutine(pressed
+            ? skullBehaviour.TransitionClosedToOpen()
+            : skullBehaviour.TransitionDefaultToClosed());
     }
 
     // Builds typed device lists once from the inspector object list.
