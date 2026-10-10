@@ -1,9 +1,10 @@
+using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 
 public class Bridge : MonoBehaviour
 {
-    private const int SocketIndex = 0;
+    private const int SocketCount = 2;
     private const float GridUnit = 1f;
     private const float PlatformDepthInCenterSpan = 1f;
     private const float ColliderDisableDelay = 0.2f;
@@ -16,7 +17,8 @@ public class Bridge : MonoBehaviour
     [System.Serializable]
     private class SocketSlot
     {
-        public GameObject powerSocket;
+        public GameObject socketObject;
+        public bool isEnabled;
         public int requiredColorIndex;
         public int requiredMw = 1;
         public int allocatedMw;
@@ -31,10 +33,24 @@ public class Bridge : MonoBehaviour
         public Vector3 startScale;
     }
 
-    [SerializeField] private SocketSlot socket = new SocketSlot();
+    private class GapRow
+    {
+        public BoxCollider box;
+        public int columnFromStart;
+        public float delay;
+    }
+
+    [SerializeField] private bool isSelfPowered;
+
+    [SerializeField] private SocketSlot[] sockets = new SocketSlot[SocketCount]
+    {
+        new SocketSlot(),
+        new SocketSlot()
+    };
+
+    [SerializeField] private int bridgeWidth = 2;
     [SerializeField] private Transform startPlatform;
     [SerializeField] private Transform endPlatform;
-    [SerializeField] private GameObject gapColliderObject;
     [SerializeField] private GameObject cubePrefab;
 
     [SerializeField, Range(1f, 40f)] private float cubePopSpeed = 10f;
@@ -45,11 +61,10 @@ public class Bridge : MonoBehaviour
     [SerializeField] private bool isPowered;
 
     private readonly List<GapCube> gapCubes = new List<GapCube>();
+    private readonly List<GapRow> gapRows = new List<GapRow>();
 
-    private BoxCollider gapCollider;
     private Coroutine sequenceRoutine;
     private Vector3 lengthDirection;
-    private Vector3 widthDirection;
     private int lengthCount;
     private int widthCount;
     private int sequenceId;
@@ -61,31 +76,24 @@ public class Bridge : MonoBehaviour
     private void Awake()
     {
         hasValidLayout = TryBuildLayout();
-
-        if (hasValidLayout)
-        {
-            ApplyColliderShape();
-            SetGapColliderEnabled(false);
-        }
-
         InitialSocketConfiguration();
     }
 
     // Called by a DevicePowerSocket when its power state changes.
     public void UpdateSocketStateToOwner(int ownerIndex, int allocatedMw, PowerSource poweringSource)
     {
-        if (ownerIndex != SocketIndex)
+        if (ownerIndex < 0 || ownerIndex >= sockets.Length)
             return;
 
-        socket.allocatedMw = allocatedMw;
-        socket.poweringSource = poweringSource;
-        RefreshBridgePower();
+        sockets[ownerIndex].allocatedMw = allocatedMw;
+        sockets[ownerIndex].poweringSource = poweringSource;
+        RefreshBridgeState();
     }
 
     // Called by a powered Lever when the player operates it.
     public void OnLeverOperated()
     {
-        if (!hasValidLayout || !isPowered || isSequenceRunning)
+        if (!hasValidLayout || (!isSelfPowered && !isPowered) || isSequenceRunning)
             return;
 
         if (isBridgeOpen)
@@ -94,27 +102,66 @@ public class Bridge : MonoBehaviour
             BeginOpen();
     }
 
-    // Claims the assigned socket once and pushes required color and MW to it.
+    // Claims assigned sockets once and pushes required color and MW to each.
     private void InitialSocketConfiguration()
     {
-        if (socket.powerSocket == null)
+        if (isSelfPowered)
         {
-            Debug.Assert(false, $"{nameof(Bridge)} on {name} requires a power socket.", this);
+            isPowered = true;
             return;
         }
 
-        DevicePowerSocket device = socket.powerSocket.GetComponent<DevicePowerSocket>();
-        Debug.Assert(device != null, $"{nameof(Bridge)} on {name} requires a {nameof(DevicePowerSocket)} on the assigned power socket.", this);
-        if (device == null)
-            return;
+        for (int i = 0; i < sockets.Length; i++)
+        {
+            SocketSlot slot = sockets[i];
 
-        device.SetBridgeOwner(this);
-        device.InitialSocketConfiguration(SocketIndex, socket.requiredColorIndex, socket.requiredMw);
+            if (slot.socketObject == null)
+                continue;
+
+            if (!slot.isEnabled)
+            {
+                DevicePowerSocket.SetSocketHierarchyActive(slot.socketObject, false);
+                slot.allocatedMw = 0;
+                slot.poweringSource = null;
+                continue;
+            }
+
+            DevicePowerSocket device = slot.socketObject.GetComponent<DevicePowerSocket>();
+            Debug.Assert(device != null, $"{nameof(Bridge)} on {name} requires a {nameof(DevicePowerSocket)} on socket {(i + 1):D2}.", this);
+            if (device == null)
+                continue;
+
+            DevicePowerSocket.SetSocketHierarchyActive(slot.socketObject, true);
+            device.SetBridgeOwner(this);
+            device.InitialSocketConfiguration(i, slot.requiredColorIndex, slot.requiredMw);
+        }
+
+        RefreshBridgeState();
     }
 
-    private void RefreshBridgePower()
+    private void RefreshBridgeState()
     {
-        bool poweredNow = socket.allocatedMw >= socket.requiredMw;
+        if (isSelfPowered)
+        {
+            isPowered = true;
+            return;
+        }
+
+        bool hasEnabledSocket = false;
+        bool allPowered = true;
+
+        foreach (SocketSlot slot in sockets)
+        {
+            if (!slot.isEnabled || slot.socketObject == null)
+                continue;
+
+            hasEnabledSocket = true;
+
+            if (slot.allocatedMw < slot.requiredMw)
+                allPowered = false;
+        }
+
+        bool poweredNow = hasEnabledSocket && allPowered;
         bool lostPower = isPowered && !poweredNow;
         isPowered = poweredNow;
 
@@ -126,70 +173,24 @@ public class Bridge : MonoBehaviour
     {
         Debug.Assert(startPlatform != null, $"{nameof(Bridge)} on {name} requires a start platform.", this);
         Debug.Assert(endPlatform != null, $"{nameof(Bridge)} on {name} requires an end platform.", this);
-        Debug.Assert(gapColliderObject != null, $"{nameof(Bridge)} on {name} requires a gap collider object.", this);
         Debug.Assert(cubePrefab != null, $"{nameof(Bridge)} on {name} requires a cube prefab.", this);
 
-        if (startPlatform == null || endPlatform == null || gapColliderObject == null || cubePrefab == null)
-            return false;
-
-        Debug.Assert((transform.lossyScale - Vector3.one).sqrMagnitude < SamePositionLimit, $"{nameof(Bridge)} on {name} must stay at scale 1,1,1.", this);
-        Debug.Assert((startPlatform.position - transform.position).sqrMagnitude < SamePositionLimit, $"{nameof(Bridge)} on {name} start platform must sit on the bridge object.", this);
-        Debug.Assert(Mathf.Abs(startPlatform.position.y - endPlatform.position.y) < 0.01f, $"{nameof(Bridge)} on {name} start and end must be at the same height.", this);
-
-        gapCollider = gapColliderObject.GetComponent<BoxCollider>();
-        Debug.Assert(gapCollider != null, $"{nameof(Bridge)} on {name} gap collider object needs a {nameof(BoxCollider)}.", this);
-        if (gapCollider == null)
+        if (startPlatform == null || endPlatform == null || cubePrefab == null)
             return false;
 
         Vector3 offset = endPlatform.position - startPlatform.position;
         offset.y = 0f;
 
         if (offset.sqrMagnitude < SamePositionLimit)
-        {
-            Debug.Assert(false, $"{nameof(Bridge)} on {name} end platform must be away from the start.", this);
             return false;
-        }
 
         lengthDirection = offset.normalized;
-        widthDirection = Vector3.Cross(Vector3.up, lengthDirection).normalized;
 
         int centerSteps = Mathf.RoundToInt(offset.magnitude / GridUnit);
         lengthCount = centerSteps - Mathf.RoundToInt(PlatformDepthInCenterSpan);
-        widthCount = MeasureWidthCount();
-
-        Debug.Assert(lengthCount >= 1, $"{nameof(Bridge)} on {name} gap is shorter than 1 metre.", this);
-        Debug.Assert(widthCount >= 1, $"{nameof(Bridge)} on {name} start platform width is under 1 metre.", this);
+        widthCount = bridgeWidth;
 
         return lengthCount >= 1 && widthCount >= 1;
-    }
-
-    private int MeasureWidthCount()
-    {
-        Vector3 localX = startPlatform.TransformDirection(Vector3.right);
-        Vector3 localZ = startPlatform.TransformDirection(Vector3.forward);
-        bool lengthUsesLocalX = Mathf.Abs(Vector3.Dot(localX, lengthDirection)) > Mathf.Abs(Vector3.Dot(localZ, lengthDirection));
-        Vector3 widthVector = lengthUsesLocalX
-            ? startPlatform.TransformVector(Vector3.forward)
-            : startPlatform.TransformVector(Vector3.right);
-
-        return Mathf.RoundToInt(widthVector.magnitude);
-    }
-
-    private void ApplyColliderShape()
-    {
-        Vector3 center = (startPlatform.position + endPlatform.position) * 0.5f;
-        center.y = startPlatform.position.y;
-
-        Transform colliderTransform = gapCollider.transform;
-        colliderTransform.SetPositionAndRotation(center, Quaternion.LookRotation(lengthDirection, Vector3.up));
-        colliderTransform.localScale = Vector3.one;
-        gapCollider.center = Vector3.zero;
-        gapCollider.size = new Vector3(widthCount * GridUnit, GridUnit, lengthCount * GridUnit);
-    }
-
-    private void SetGapColliderEnabled(bool enabled)
-    {
-        gapCollider.enabled = enabled;
     }
 
     private void BeginOpen()
@@ -222,8 +223,6 @@ public class Bridge : MonoBehaviour
     private IEnumerator OpenSequence(int id)
     {
         SpawnGapCubes();
-        ApplyColliderShape();
-        SetGapColliderEnabled(true);
 
         float growDuration = 1f / Mathf.Max(cubePopSpeed, MinPopSpeed);
         float settleDuration = growDuration * SettleDurationShare;
@@ -231,6 +230,7 @@ public class Bridge : MonoBehaviour
         float longestDelay = AssignDelays(fromEnd: false);
         float totalDuration = longestDelay + growDuration + settleDuration;
         float elapsed = 0f;
+        EnableReadyRows(elapsed);
 
         while (elapsed < totalDuration)
         {
@@ -238,6 +238,7 @@ public class Bridge : MonoBehaviour
                 yield break;
 
             elapsed += Time.deltaTime;
+            EnableReadyRows(elapsed);
 
             for (int i = 0; i < gapCubes.Count; i++)
             {
@@ -254,6 +255,8 @@ public class Bridge : MonoBehaviour
 
         if (id != sequenceId)
             yield break;
+
+        EnableReadyRows(totalDuration);
 
         for (int i = 0; i < gapCubes.Count; i++)
         {
@@ -277,9 +280,8 @@ public class Bridge : MonoBehaviour
         }
 
         float longestDelay = AssignDelays(fromEnd: true);
-        float totalDuration = Mathf.Max(ColliderDisableDelay, longestDelay + shrinkDuration);
+        float totalDuration = longestDelay + Mathf.Max(shrinkDuration, ColliderDisableDelay);
         float elapsed = 0f;
-        bool colliderDisabled = false;
 
         while (elapsed < totalDuration)
         {
@@ -287,12 +289,7 @@ public class Bridge : MonoBehaviour
                 yield break;
 
             elapsed += Time.deltaTime;
-
-            if (!colliderDisabled && elapsed >= ColliderDisableDelay)
-            {
-                SetGapColliderEnabled(false);
-                colliderDisabled = true;
-            }
+            DisableReadyRows(elapsed);
 
             for (int i = 0; i < gapCubes.Count; i++)
             {
@@ -315,12 +312,35 @@ public class Bridge : MonoBehaviour
         if (id != sequenceId)
             yield break;
 
-        SetGapColliderEnabled(false);
+        DisableReadyRows(totalDuration);
         ClearCubes();
         isBridgeOpen = false;
         isClosing = false;
         isSequenceRunning = false;
         sequenceRoutine = null;
+    }
+
+    private static float SampleOpenScale(float time, float growDuration, float settleDuration, float overshootScale)
+    {
+        if (time <= 0f)
+            return 0f;
+
+        if (time < growDuration)
+        {
+            float growT = time / growDuration;
+            float eased = 1f - Mathf.Pow(1f - growT, GrowEasePower);
+            return Mathf.Lerp(0f, overshootScale, eased);
+        }
+
+        float settleTime = time - growDuration;
+        if (settleTime < settleDuration)
+        {
+            float settleT = settleDuration > 0f ? settleTime / settleDuration : 1f;
+            float eased = Mathf.Pow(settleT, GrowEasePower);
+            return Mathf.Lerp(overshootScale, 1f, eased);
+        }
+
+        return 1f;
     }
 
     private float AssignDelays(bool fromEnd)
@@ -343,6 +363,13 @@ public class Bridge : MonoBehaviour
                 longestDelay = delay;
         }
 
+        for (int i = 0; i < gapRows.Count; i++)
+        {
+            GapRow row = gapRows[i];
+            int column = fromEnd ? lastColumn - row.columnFromStart : row.columnFromStart;
+            row.delay = column * columnWaveDelay;
+        }
+
         return longestDelay;
     }
 
@@ -352,6 +379,8 @@ public class Bridge : MonoBehaviour
 
         for (int column = 0; column < lengthCount; column++)
         {
+            SpawnRowCollider(column);
+
             for (int across = 0; across < widthCount; across++)
             {
                 GameObject cubeObject = Instantiate(cubePrefab, GetCubePosition(column, across), transform.rotation, transform);
@@ -367,11 +396,64 @@ public class Bridge : MonoBehaviour
         }
     }
 
+    private void SpawnRowCollider(int column)
+    {
+        GameObject rowObject = new GameObject("Bridge Row");
+        rowObject.layer = LayerMask.NameToLayer("Devices");
+        rowObject.transform.SetParent(transform, false);
+        rowObject.transform.SetPositionAndRotation(GetRowColliderPosition(column), Quaternion.LookRotation(lengthDirection, Vector3.up));
+        rowObject.transform.localScale = Vector3.one;
+
+        BoxCollider box = rowObject.AddComponent<BoxCollider>();
+        box.size = new Vector3(widthCount * GridUnit, GridUnit, GridUnit);
+        box.enabled = false;
+
+        gapRows.Add(new GapRow
+        {
+            box = box,
+            columnFromStart = column
+        });
+    }
+
+    private Vector3 GetRowColliderPosition(int column)
+    {
+        float along = (column + 1) * GridUnit;
+        float side = (widthCount - 1) * 0.5f * GridUnit;
+        Vector3 position = startPlatform.position + lengthDirection * along + transform.right * side;
+        position.y = startPlatform.position.y;
+        return position;
+    }
+
+    private void EnableReadyRows(float elapsed)
+    {
+        for (int i = 0; i < gapRows.Count; i++)
+        {
+            GapRow row = gapRows[i];
+            if (row.box == null || row.box.enabled)
+                continue;
+
+            if (elapsed >= row.delay)
+                row.box.enabled = true;
+        }
+    }
+
+    private void DisableReadyRows(float elapsed)
+    {
+        for (int i = 0; i < gapRows.Count; i++)
+        {
+            GapRow row = gapRows[i];
+            if (row.box == null || !row.box.enabled)
+                continue;
+
+            if (elapsed >= row.delay + ColliderDisableDelay)
+                row.box.enabled = false;
+        }
+    }
+
     private Vector3 GetCubePosition(int column, int across)
     {
         float along = (column + 1) * GridUnit;
-        float side = (across - (widthCount - 1) * 0.5f) * GridUnit;
-        Vector3 position = startPlatform.position + lengthDirection * along + widthDirection * side;
+        Vector3 position = startPlatform.position + lengthDirection * along + transform.right * (across * GridUnit);
         position.y = startPlatform.position.y;
         return position;
     }
@@ -393,5 +475,13 @@ public class Bridge : MonoBehaviour
         }
 
         gapCubes.Clear();
+
+        for (int i = 0; i < gapRows.Count; i++)
+        {
+            if (gapRows[i].box != null)
+                Destroy(gapRows[i].box.gameObject);
+        }
+
+        gapRows.Clear();
     }
 }

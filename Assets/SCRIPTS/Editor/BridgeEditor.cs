@@ -4,17 +4,30 @@ using UnityEngine;
 [CustomEditor(typeof(Bridge))]
 public class BridgeEditor : Editor
 {
+    private const int SocketCount = 2;
+
     public override void OnInspectorGUI()
     {
         serializedObject.Update();
 
+        EditorGUILayout.PropertyField(serializedObject.FindProperty("isSelfPowered"), new GUIContent("Is Self Powered"));
+
+        EditorGUILayout.Space(20);
         ColorManager colorManager = Object.FindAnyObjectByType<ColorManager>();
-        DrawSocket(serializedObject.FindProperty("socket"), colorManager);
+        SerializedProperty sockets = serializedObject.FindProperty("sockets");
+
+        if (sockets.arraySize != SocketCount)
+            sockets.arraySize = SocketCount;
+
+        for (int i = 0; i < SocketCount; i++)
+            DrawSocket(i, sockets.GetArrayElementAtIndex(i), colorManager);
+
+        EditorGUILayout.Space(20);
+        EditorGUILayout.PropertyField(serializedObject.FindProperty("bridgeWidth"));
 
         EditorGUILayout.Space(20);
         EditorGUILayout.PropertyField(serializedObject.FindProperty("startPlatform"));
         EditorGUILayout.PropertyField(serializedObject.FindProperty("endPlatform"));
-        EditorGUILayout.PropertyField(serializedObject.FindProperty("gapColliderObject"));
         EditorGUILayout.PropertyField(serializedObject.FindProperty("cubePrefab"));
 
         EditorGUILayout.Space(20);
@@ -35,12 +48,13 @@ public class BridgeEditor : Editor
             Repaint();
     }
 
-    private static void DrawSocket(SerializedProperty slot, ColorManager colorManager)
+    private static void DrawSocket(int socketIndex, SerializedProperty slot, ColorManager colorManager)
     {
         EditorGUILayout.Space(20);
-        EditorGUILayout.LabelField("SOCKET 01:", EditorStyles.boldLabel);
+        EditorGUILayout.LabelField($"SOCKET {(socketIndex + 1):D2}:", EditorStyles.boldLabel);
 
-        EditorGUILayout.PropertyField(slot.FindPropertyRelative("powerSocket"), new GUIContent("Power Socket"));
+        EditorGUILayout.PropertyField(slot.FindPropertyRelative("socketObject"), new GUIContent($"Power Socket {(socketIndex + 1):D2}"));
+        EditorGUILayout.PropertyField(slot.FindPropertyRelative("isEnabled"), new GUIContent("Is Enabled"));
 
         SerializedProperty colorIndex = slot.FindPropertyRelative("requiredColorIndex");
 

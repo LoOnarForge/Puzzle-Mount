@@ -127,16 +127,6 @@ public class DevicePowerSocket : MonoBehaviour
     // Points this socket at the bridge that owns it.
     public void SetBridgeOwner(Bridge bridge)
     {
-        Debug.Assert(
-            ownerForgottenGate == null &&
-            ownerLever == null &&
-            ownerElevator == null &&
-            ownerPistonHorizontal == null &&
-            ownerPistonVertical == null &&
-            ownerTorchRunode == null,
-            $"Power socket on {name} already has another owner. Clear that owner before using it on a bridge.",
-            bridge);
-
         ownerBridge = bridge;
     }
 
