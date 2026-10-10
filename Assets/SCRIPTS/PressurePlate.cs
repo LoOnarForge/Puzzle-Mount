@@ -9,6 +9,7 @@ public class PressurePlate : MonoBehaviour
     private const int OverlapBufferSize = 16;
     private const string RunodesLayerName = "Runodes";
     private const string TimLayerName = "TimJones";
+    private const string DevicesLayerName = "Devices";
 
     [SerializeField] private Transform plateTop;
     [SerializeField] private float platePressDepth = 0.05f;
@@ -24,6 +25,7 @@ public class PressurePlate : MonoBehaviour
     private int weightLayerMask;
     private int runodesLayer;
     private int timLayer;
+    private int devicesLayer;
     private bool isPlateMoving;
     private bool isPressed;
     private Coroutine pendingPressCoroutine;
@@ -33,9 +35,10 @@ public class PressurePlate : MonoBehaviour
 
     private void Awake()
     {
-        weightLayerMask = LayerMask.GetMask(RunodesLayerName, TimLayerName);
+        weightLayerMask = LayerMask.GetMask(RunodesLayerName, TimLayerName, DevicesLayerName);
         runodesLayer = LayerMask.NameToLayer(RunodesLayerName);
         timLayer = LayerMask.NameToLayer(TimLayerName);
+        devicesLayer = LayerMask.NameToLayer(DevicesLayerName);
         BuildConnectedDeviceLists();
 
         if (plateTop != null)
@@ -147,11 +150,11 @@ public class PressurePlate : MonoBehaviour
         return HasTimCharacterControllerInsideTrigger(triggerBounds);
     }
 
-    // Returns true for any collider on the Runodes or TimJones layer.
+    // Returns true for any collider on the Runodes, TimJones, or Devices layer.
     private bool IsValidWeightCollider(Collider hit)
     {
         int layer = hit.gameObject.layer;
-        if (layer != runodesLayer && layer != timLayer)
+        if (layer != runodesLayer && layer != timLayer && layer != devicesLayer)
             return false;
 
         CharacterMovement tim = hit.GetComponentInParent<CharacterMovement>();
