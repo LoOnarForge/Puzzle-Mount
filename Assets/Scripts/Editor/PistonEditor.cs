@@ -18,6 +18,13 @@ public class PistonHorizontalEditor : PistonEditor
 [CustomEditor(typeof(PistonVertical))]
 public class PistonVerticalEditor : PistonEditor
 {
+    protected override void DrawDirectionFields()
+    {
+        EditorGUILayout.PropertyField(
+            serializedObject.FindProperty("extendsUpward"),
+            new GUIContent("Extends Upward"));
+    }
+
     protected override void DrawRequiredMwField(SerializedProperty slot)
     {
         SerializedProperty requiredMw = slot.FindPropertyRelative("requiredMw");
@@ -38,6 +45,10 @@ public class PistonEditor : Editor
         EditorGUILayout.PropertyField(slot.FindPropertyRelative("requiredMw"), new GUIContent("Required MW"));
     }
 
+    protected virtual void DrawDirectionFields()
+    {
+    }
+
     public override void OnInspectorGUI()
     {
         serializedObject.Update();
@@ -55,6 +66,7 @@ public class PistonEditor : Editor
 
         EditorGUILayout.Space(20);
         EditorGUILayout.PropertyField(serializedObject.FindProperty("pistonFace"));
+        DrawDirectionFields();
 
         SerializedProperty maxStage = serializedObject.FindProperty("maxStage");
         SerializedProperty startingStage = serializedObject.FindProperty("startingStage");
