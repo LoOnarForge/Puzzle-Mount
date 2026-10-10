@@ -372,7 +372,7 @@ public class PistonHorizontal : MonoBehaviour
                 return false;
             }
 
-            if (IsStaticObstruction(hit))
+            if (IsObstructingCollider(hit))
             {
                 hardBlock = true;
                 return false;
@@ -426,7 +426,7 @@ public class PistonHorizontal : MonoBehaviour
             if (TryGetPiston(hit, out _))
                 return true;
 
-            if (IsStaticObstruction(hit))
+            if (IsObstructingCollider(hit))
                 return true;
         }
 
@@ -522,7 +522,7 @@ public class PistonHorizontal : MonoBehaviour
             return true;
         }
 
-        if (IsStaticObstruction(hit))
+        if (IsObstructingCollider(hit))
         {
             root = hit.gameObject;
             return true;
@@ -577,9 +577,6 @@ public class PistonHorizontal : MonoBehaviour
             return true;
 
         if (hit.transform.IsChildOf(transform))
-            return true;
-
-        if (PistonProbeObstructionExempt.AppliesTo(hit))
             return true;
 
         return IsProbeCollider(hit);
@@ -638,9 +635,9 @@ public class PistonHorizontal : MonoBehaviour
         probePhysicsSyncFrame = Time.frameCount;
     }
 
-    private bool IsStaticObstruction(Collider hit)
+    private bool IsObstructingCollider(Collider hit)
     {
-        if (PistonProbeObstructionExempt.AppliesTo(hit))
+        if (hit == null || !hit.enabled)
             return false;
 
         if ((obstructionMask.value & (1 << hit.gameObject.layer)) == 0)

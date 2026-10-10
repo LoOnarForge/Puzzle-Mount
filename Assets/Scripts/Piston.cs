@@ -707,7 +707,7 @@ public class Piston : MonoBehaviour
 
 
 
-            if (IsStaticObstruction(hit))
+            if (IsObstructingCollider(hit))
 
                 return true;
 
@@ -801,7 +801,7 @@ public class Piston : MonoBehaviour
 
 
 
-            if (IsStaticObstruction(hit))
+            if (IsObstructingCollider(hit))
 
                 return false;
 
@@ -885,7 +885,7 @@ public class Piston : MonoBehaviour
 
 
 
-            if (IsStaticObstruction(hit))
+            if (IsObstructingCollider(hit))
 
                 return true;
 
@@ -951,7 +951,7 @@ public class Piston : MonoBehaviour
 
 
 
-            if (IsStaticObstruction(hit))
+            if (IsObstructingCollider(hit))
 
                 return true;
 
@@ -1055,12 +1055,6 @@ public class Piston : MonoBehaviour
 
 
 
-        if (PistonProbeObstructionExempt.AppliesTo(hit))
-
-            return true;
-
-
-
         return IsProbeCollider(hit);
 
     }
@@ -1147,42 +1141,24 @@ public class Piston : MonoBehaviour
 
 
 
-    private bool IsStaticObstruction(Collider hit)
-
+    private bool IsObstructingCollider(Collider hit)
     {
-
-        if (PistonProbeObstructionExempt.AppliesTo(hit))
-
+        if (hit == null || !hit.enabled)
             return false;
-
-
 
         if (TryGetTim(hit, out _))
-
             return false;
-
-
 
         if ((obstructionMask.value & (1 << hit.gameObject.layer)) == 0)
-
             return false;
-
-
 
         if (TryGetCube(hit, out _))
-
             return false;
-
-
 
         if (TryGetPiston(hit, out _))
-
             return false;
 
-
-
         return true;
-
     }
 
 
