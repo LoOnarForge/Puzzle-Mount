@@ -454,6 +454,9 @@ public class PistonHorizontal : MonoBehaviour
 
         foreach (Collider hit in GetProbeHits(primaryCubeProbe))
         {
+            if (IsObstructingCollider(hit))
+                continue;
+
             if (TryGetProbeEntityRoot(hit, out GameObject root))
                 primaryCubeSnapshot.Add(root);
         }
@@ -466,6 +469,9 @@ public class PistonHorizontal : MonoBehaviour
         {
             if (TryGetCarriedCube(hit, carriedRunodes, out _))
                 continue;
+
+            if (IsObstructingCollider(hit))
+                return true;
 
             if (!TryGetProbeEntityRoot(hit, out GameObject root))
                 return true;

@@ -20,8 +20,8 @@ public class ButtonDevice : MonoBehaviour
     [SerializeField] private Transform pressPose1;
     [SerializeField] private Transform pressPose2;
     [SerializeField] private Transform pressPose3;
-    [SerializeField] [Range(PressStepDurationMin, PressStepDurationMax)] private float pressStepDuration = 0.25f;
-    [SerializeField] [Range(PauseBetweenMovesMin, PauseBetweenMovesMax)] private float pauseBetweenMoves = 0.15f;
+    [SerializeField][Range(PressStepDurationMin, PressStepDurationMax)] private float pressStepDuration = 0.25f;
+    [SerializeField][Range(PauseBetweenMovesMin, PauseBetweenMovesMax)] private float pauseBetweenMoves = 0.15f;
     [SerializeField] private SkullBehaviour skullBehaviour;
     [SerializeField] private Collider pressTrigger;
     [SerializeField] private List<GameObject> connectedDevices = new List<GameObject>();

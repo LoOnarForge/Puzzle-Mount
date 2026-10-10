@@ -141,7 +141,7 @@ public class MediumDoor : MonoBehaviour
             StopDoorMotion();
 
         doorMotionTargetOpen = isOpen;
-        doorSequenceCoroutine = StartCoroutine(AnimateDoorToState(isOpen));
+        doorSequenceCoroutine = StartCoroutine(AnimateDoorToState(isOpen, runSkullTransition: true));
     }
 
     private void StopDoorMotion()
@@ -176,7 +176,7 @@ public class MediumDoor : MonoBehaviour
         isDoorMoving = false;
     }
 
-    private IEnumerator AnimateDoorToState(bool opening)
+    private IEnumerator AnimateDoorToState(bool opening, bool runSkullTransition)
     {
         isDoorMoving = true;
 
@@ -184,11 +184,11 @@ public class MediumDoor : MonoBehaviour
 
         if (!opening)
             closeObstructionMonitorCoroutine = StartCoroutine(MonitorCloseObstructionDuringMotion());
+        else if (runSkullTransition)
+            doorSkullSequenceCoroutine = StartCoroutine(RunSkullTransitionsWithLead(true, piecePhaseDuration));
 
         for (int i = 0; i < DoorPieceCount; i++)
             pieceAnimateCoroutines[i] = StartCoroutine(AnimatePieceToState(i, opening));
-
-        doorSkullSequenceCoroutine = StartCoroutine(RunSkullTransitionsWithLead(opening, piecePhaseDuration));
 
         for (int i = 0; i < DoorPieceCount; i++)
         {
@@ -196,8 +196,13 @@ public class MediumDoor : MonoBehaviour
             pieceAnimateCoroutines[i] = null;
         }
 
-        yield return doorSkullSequenceCoroutine;
-        doorSkullSequenceCoroutine = null;
+        if (!opening)
+            yield return StartCoroutine(TransitionAllSkulls(false));
+        else if (runSkullTransition)
+        {
+            yield return doorSkullSequenceCoroutine;
+            doorSkullSequenceCoroutine = null;
+        }
 
         if (closeObstructionMonitorCoroutine != null)
         {
@@ -219,7 +224,7 @@ public class MediumDoor : MonoBehaviour
                 StopDoorMotion();
                 isDoorOpen = true;
                 doorMotionTargetOpen = true;
-                doorSequenceCoroutine = StartCoroutine(AnimateDoorToState(true));
+                doorSequenceCoroutine = StartCoroutine(AnimateDoorToState(true, runSkullTransition: false));
                 yield break;
             }
 

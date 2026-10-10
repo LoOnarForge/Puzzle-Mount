@@ -115,7 +115,7 @@ public class Bridge : MonoBehaviour
         ApplyOpenState(!IsEffectivelyOpenOrOpening());
     }
 
-    // Drives toward explicit open or closed (also used internally after reverse).
+    // Drives toward explicit open or closed (pressure plate: held = extend, released = retract).
     public void ApplyOpenState(bool isOpen)
     {
         activatorDemandsOpen = isOpen;
@@ -131,17 +131,11 @@ public class Bridge : MonoBehaviour
             if (isBridgeOpen)
                 return;
 
-            if (isSequenceRunning && !isClosing)
-                return;
-
-            BeginOpen();
+            BeginOpenMotion();
             return;
         }
 
-        if (!IsEffectivelyOpenOrOpening())
-            return;
-
-        ForceBeginClose();
+        BeginCloseMotion();
     }
 
     // Claims assigned sockets once and pushes required color and MW to each.
@@ -235,10 +229,19 @@ public class Bridge : MonoBehaviour
         return lengthCount >= 1 && widthCount >= 1;
     }
 
-    private void BeginOpen()
+    private void BeginOpenMotion()
     {
-        isSequenceRunning = true;
+        if (isBridgeOpen)
+            return;
+
+        if (isSequenceRunning && !isClosing)
+            return;
+
+        if (gapCubes.Count == 0)
+            SpawnGapCubes();
+
         isClosing = false;
+        isSequenceRunning = true;
         sequenceId++;
 
         if (sequenceRoutine != null)
@@ -247,18 +250,16 @@ public class Bridge : MonoBehaviour
         sequenceRoutine = StartCoroutine(OpenSequence(sequenceId));
     }
 
-    private void ForceBeginClose()
+    private void BeginCloseMotion()
     {
-        if (!hasValidLayout)
+        if (!isBridgeOpen && !isSequenceRunning && !HasPartialGapBridge())
             return;
 
-        if (!isSequenceRunning && !isBridgeOpen && !HasPartialGapBridge())
-            return;
-
-        if (isClosing && isSequenceRunning)
+        if (isSequenceRunning && isClosing)
             return;
 
         isClosing = true;
+        isBridgeOpen = false;
         isSequenceRunning = true;
         sequenceId++;
 
@@ -268,16 +269,20 @@ public class Bridge : MonoBehaviour
         sequenceRoutine = StartCoroutine(CloseSequence(sequenceId));
     }
 
+    private void ForceBeginClose()
+    {
+        activatorDemandsOpen = false;
+        BeginCloseMotion();
+    }
+
     private IEnumerator OpenSequence(int id)
     {
-        SpawnGapCubes();
-
         float growDuration = 1f / Mathf.Max(cubePopSpeed, MinPopSpeed);
         float settleDuration = growDuration * SettleDurationShare;
         float overshootScale = 1f + overshootPercent * 0.01f;
         float longestDelay = AssignDelays(fromEnd: false);
         float totalDuration = longestDelay + growDuration + settleDuration;
-        float elapsed = 0f;
+        float elapsed = HasPartialGapBridge() ? ComputeOpenElapsedFromCurrentCubes() : 0f;
 
         while (elapsed < totalDuration)
         {
@@ -290,7 +295,7 @@ public class Bridge : MonoBehaviour
             if (EnableReadyRows(elapsed))
             {
                 activatorDemandsOpen = false;
-                ForceBeginClose();
+                BeginCloseMotion();
                 yield break;
             }
 
@@ -318,7 +323,7 @@ public class Bridge : MonoBehaviour
         if (EnableReadyRows(totalDuration))
         {
             activatorDemandsOpen = false;
-            ForceBeginClose();
+            BeginCloseMotion();
             yield break;
         }
 
@@ -412,6 +417,55 @@ public class Bridge : MonoBehaviour
         return 1f;
     }
 
+    private float ComputeOpenElapsedFromCurrentCubes()
+    {
+        float growDuration = 1f / Mathf.Max(cubePopSpeed, MinPopSpeed);
+        float settleDuration = growDuration * SettleDurationShare;
+        float overshootScale = 1f + overshootPercent * 0.01f;
+        float elapsed = 0f;
+
+        for (int i = 0; i < gapCubes.Count; i++)
+        {
+            GapCube cube = gapCubes[i];
+            if (cube.visual == null)
+                continue;
+
+            float scale = cube.visual.localScale.x;
+            if (scale <= VisibleCubeScaleThreshold)
+                continue;
+
+            float openTime = InverseOpenScale(scale, growDuration, settleDuration, overshootScale);
+            float candidate = openTime + cube.delay;
+            if (candidate > elapsed)
+                elapsed = candidate;
+        }
+
+        return elapsed;
+    }
+
+    private static float InverseOpenScale(float scale, float growDuration, float settleDuration, float overshootScale)
+    {
+        scale = Mathf.Clamp(scale, 0f, overshootScale);
+        if (scale <= 0f)
+            return 0f;
+
+        if (scale >= 1f)
+        {
+            if (scale >= overshootScale || settleDuration <= 0f)
+                return growDuration + settleDuration;
+
+            float settleT = (scale - 1f) / (overshootScale - 1f);
+            settleT = Mathf.Clamp01(settleT);
+            settleT = Mathf.Pow(settleT, 1f / GrowEasePower);
+            return growDuration + settleT * settleDuration;
+        }
+
+        float growT = scale / overshootScale;
+        growT = Mathf.Clamp01(growT);
+        growT = 1f - Mathf.Pow(1f - growT, 1f / GrowEasePower);
+        return growT * growDuration;
+    }
+
     private float AssignDelays(bool fromEnd)
     {
         float longestDelay = 0f;
@@ -484,10 +538,7 @@ public class Bridge : MonoBehaviour
 
     private bool IsEffectivelyOpenOrOpening()
     {
-        if (isSequenceRunning)
-            return !isClosing;
-
-        if (isBridgeOpen)
+        if (isSequenceRunning || isBridgeOpen)
             return true;
 
         return HasPartialGapBridge();
