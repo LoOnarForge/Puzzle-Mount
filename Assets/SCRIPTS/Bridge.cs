@@ -1,6 +1,7 @@
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
+using UnityEngine.Serialization;
 
 public class Bridge : MonoBehaviour
 {
@@ -14,6 +15,8 @@ public class Bridge : MonoBehaviour
     private const float MinPopSpeed = 0.01f;
     private const float SamePositionLimit = 0.0001f;
     private const float VisibleCubeScaleThreshold = 0.01f;
+    private const float MeshPositionJitter = 0.04f;
+    private const float RowObstructionOverlapScale = 0.95f;
 
     [System.Serializable]
     private class SocketSlot
@@ -58,11 +61,16 @@ public class Bridge : MonoBehaviour
     [SerializeField, Range(0f, 50f)] private float overshootPercent = 10f;
     [SerializeField, Range(0f, 1f)] private float columnWaveDelay = 0.04f;
     [SerializeField, Range(0f, 0.5f)] private float cubeRandomDelay = 0.03f;
+    [FormerlySerializedAs("openObstructionMask")]
+    [SerializeField] private LayerMask bridgeObstructionMask;
 
     [SerializeField] private bool isPowered;
 
+    private const int ObstructionOverlapBufferSize = 16;
+
     private readonly List<GapCube> gapCubes = new List<GapCube>();
     private readonly List<GapRow> gapRows = new List<GapRow>();
+    private readonly Collider[] obstructionOverlapBuffer = new Collider[ObstructionOverlapBufferSize];
 
     private Coroutine sequenceRoutine;
     private Vector3 lengthDirection;
@@ -270,7 +278,6 @@ public class Bridge : MonoBehaviour
         float longestDelay = AssignDelays(fromEnd: false);
         float totalDuration = longestDelay + growDuration + settleDuration;
         float elapsed = 0f;
-        EnableReadyRows(elapsed);
 
         while (elapsed < totalDuration)
         {
@@ -280,8 +287,14 @@ public class Bridge : MonoBehaviour
             if (!activatorDemandsOpen)
                 yield break;
 
+            if (EnableReadyRows(elapsed))
+            {
+                activatorDemandsOpen = false;
+                ForceBeginClose();
+                yield break;
+            }
+
             elapsed += Time.deltaTime;
-            EnableReadyRows(elapsed);
 
             for (int i = 0; i < gapCubes.Count; i++)
             {
@@ -302,7 +315,12 @@ public class Bridge : MonoBehaviour
         if (!activatorDemandsOpen)
             yield break;
 
-        EnableReadyRows(totalDuration);
+        if (EnableReadyRows(totalDuration))
+        {
+            activatorDemandsOpen = false;
+            ForceBeginClose();
+            yield break;
+        }
 
         for (int i = 0; i < gapCubes.Count; i++)
         {
@@ -528,6 +546,7 @@ public class Bridge : MonoBehaviour
                 GameObject cubeObject = Instantiate(cubePrefab, GetCubePosition(column, across), transform.rotation, transform);
                 cubeObject.transform.localScale = Vector3.zero;
                 RemoveColliders(cubeObject);
+                ApplyMeshPositionJitter(cubeObject.transform);
 
                 gapCubes.Add(new GapCube
                 {
@@ -566,7 +585,7 @@ public class Bridge : MonoBehaviour
         return position;
     }
 
-    private void EnableReadyRows(float elapsed)
+    private bool EnableReadyRows(float elapsed)
     {
         for (int i = 0; i < gapRows.Count; i++)
         {
@@ -574,9 +593,43 @@ public class Bridge : MonoBehaviour
             if (row.box == null || row.box.enabled)
                 continue;
 
-            if (elapsed >= row.delay)
-                row.box.enabled = true;
+            if (elapsed < row.delay)
+                continue;
+
+            if (IsRowObstructed(row.box))
+                return true;
+
+            row.box.enabled = true;
         }
+
+        return false;
+    }
+
+    private bool IsRowObstructed(BoxCollider rowBox)
+    {
+        if (rowBox == null || bridgeObstructionMask.value == 0)
+            return false;
+
+        Transform rowTransform = rowBox.transform;
+        Vector3 center = rowTransform.TransformPoint(rowBox.center);
+        Vector3 halfExtents = Vector3.Scale(rowBox.size, rowTransform.lossyScale) * 0.5f * RowObstructionOverlapScale;
+
+        int hitCount = Physics.OverlapBoxNonAlloc(
+            center,
+            halfExtents,
+            obstructionOverlapBuffer,
+            rowTransform.rotation,
+            bridgeObstructionMask,
+            QueryTriggerInteraction.Collide);
+
+        for (int i = 0; i < hitCount; i++)
+        {
+            Collider hit = obstructionOverlapBuffer[i];
+            if (hit != null && !hit.transform.IsChildOf(transform))
+                return true;
+        }
+
+        return false;
     }
 
     private void DisableReadyRows(float elapsed)
@@ -606,6 +659,24 @@ public class Bridge : MonoBehaviour
 
         for (int i = 0; i < colliders.Length; i++)
             Destroy(colliders[i]);
+    }
+
+    // Offsets mesh renderers only (local X/Z), independent per cube.
+    private static void ApplyMeshPositionJitter(Transform cubeRoot)
+    {
+        MeshRenderer[] meshRenderers = cubeRoot.GetComponentsInChildren<MeshRenderer>(true);
+
+        for (int i = 0; i < meshRenderers.Length; i++)
+        {
+            Transform meshTransform = meshRenderers[i].transform;
+            if (meshTransform == cubeRoot)
+                continue;
+
+            Vector3 localPosition = meshTransform.localPosition;
+            localPosition.x += Random.Range(-MeshPositionJitter, MeshPositionJitter);
+            localPosition.z += Random.Range(-MeshPositionJitter, MeshPositionJitter);
+            meshTransform.localPosition = localPosition;
+        }
     }
 
     private void ClearCubes()

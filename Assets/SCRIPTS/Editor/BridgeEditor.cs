@@ -37,6 +37,12 @@ public class BridgeEditor : Editor
         EditorGUILayout.PropertyField(serializedObject.FindProperty("cubeRandomDelay"));
 
         EditorGUILayout.Space(20);
+        EditorGUILayout.LabelField("Obstruction", EditorStyles.boldLabel);
+        EditorGUILayout.PropertyField(
+            serializedObject.FindProperty("bridgeObstructionMask"),
+            new GUIContent("Bridge Obstruction Mask"));
+
+        EditorGUILayout.Space(20);
         using (new EditorGUI.DisabledScope(true))
         {
             EditorGUILayout.PropertyField(serializedObject.FindProperty("isPowered"));

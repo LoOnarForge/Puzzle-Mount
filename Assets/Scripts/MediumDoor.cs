@@ -1,6 +1,7 @@
 using System;
 using System.Collections;
 using UnityEngine;
+using UnityEngine.Serialization;
 
 public class MediumDoor : MonoBehaviour
 {
@@ -26,6 +27,12 @@ public class MediumDoor : MonoBehaviour
 
     [SerializeField] private DoorPieceMotion[] doorPieces;
     [SerializeField] private SkullBehaviour[] skullBehaviours;
+    [FormerlySerializedAs("closeObstructionVolume")]
+    [SerializeField] private Collider doorObstructionTrigger;
+    [FormerlySerializedAs("closeObstructionMask")]
+    [SerializeField] private LayerMask doorObstructionMask;
+
+    private const int ObstructionOverlapBufferSize = 16;
 
     private Vector3[] pieceClosedWorldPositions;
     private Quaternion[] pieceClosedWorldRotations;
@@ -36,6 +43,8 @@ public class MediumDoor : MonoBehaviour
     private bool doorMotionTargetOpen;
     private Coroutine doorSequenceCoroutine;
     private Coroutine doorSkullSequenceCoroutine;
+    private Coroutine closeObstructionMonitorCoroutine;
+    private readonly Collider[] obstructionOverlapBuffer = new Collider[ObstructionOverlapBufferSize];
 
     private void Awake()
     {
@@ -125,6 +134,9 @@ public class MediumDoor : MonoBehaviour
         if (isDoorMoving && isOpen == doorMotionTargetOpen)
             return;
 
+        if (!isOpen && IsClosePathObstructed())
+            return;
+
         if (isDoorMoving)
             StopDoorMotion();
 
@@ -146,6 +158,12 @@ public class MediumDoor : MonoBehaviour
             doorSkullSequenceCoroutine = null;
         }
 
+        if (closeObstructionMonitorCoroutine != null)
+        {
+            StopCoroutine(closeObstructionMonitorCoroutine);
+            closeObstructionMonitorCoroutine = null;
+        }
+
         for (int i = 0; i < DoorPieceCount; i++)
         {
             if (pieceAnimateCoroutines[i] == null)
@@ -164,6 +182,9 @@ public class MediumDoor : MonoBehaviour
 
         float piecePhaseDuration = GetLongestPieceAnimationDuration();
 
+        if (!opening)
+            closeObstructionMonitorCoroutine = StartCoroutine(MonitorCloseObstructionDuringMotion());
+
         for (int i = 0; i < DoorPieceCount; i++)
             pieceAnimateCoroutines[i] = StartCoroutine(AnimatePieceToState(i, opening));
 
@@ -178,9 +199,66 @@ public class MediumDoor : MonoBehaviour
         yield return doorSkullSequenceCoroutine;
         doorSkullSequenceCoroutine = null;
 
+        if (closeObstructionMonitorCoroutine != null)
+        {
+            StopCoroutine(closeObstructionMonitorCoroutine);
+            closeObstructionMonitorCoroutine = null;
+        }
+
         isDoorOpen = opening;
         isDoorMoving = false;
         doorSequenceCoroutine = null;
+    }
+
+    private IEnumerator MonitorCloseObstructionDuringMotion()
+    {
+        while (isDoorMoving && !doorMotionTargetOpen)
+        {
+            if (IsClosePathObstructed())
+            {
+                StopDoorMotion();
+                isDoorOpen = true;
+                doorMotionTargetOpen = true;
+                doorSequenceCoroutine = StartCoroutine(AnimateDoorToState(true));
+                yield break;
+            }
+
+            yield return null;
+        }
+    }
+
+    private bool IsClosePathObstructed()
+    {
+        if (doorObstructionTrigger == null || doorObstructionMask.value == 0)
+            return false;
+
+        Bounds bounds = doorObstructionTrigger.bounds;
+        int hitCount = Physics.OverlapBoxNonAlloc(
+            bounds.center,
+            bounds.extents,
+            obstructionOverlapBuffer,
+            doorObstructionTrigger.transform.rotation,
+            doorObstructionMask,
+            QueryTriggerInteraction.Collide);
+
+        for (int i = 0; i < hitCount; i++)
+        {
+            if (IsCloseObstructionHit(obstructionOverlapBuffer[i]))
+                return true;
+        }
+
+        return false;
+    }
+
+    private bool IsCloseObstructionHit(Collider hit)
+    {
+        if (hit == null || hit == doorObstructionTrigger)
+            return false;
+
+        if (hit.transform.IsChildOf(transform))
+            return false;
+
+        return true;
     }
 
     private IEnumerator AnimatePieceToState(int pieceIndex, bool opening)
