@@ -10,7 +10,6 @@ public class PistonVertical : MonoBehaviour
     private const float GridUnit = 1f;
     private const float DefaultMoveSpeed = 5f;
     private const float FaceTopTolerance = 0.1f;
-    private const float PrimaryFlatSlideCheckEndProgress = 0.8f;
     private const string ExtensionDirectionName = "Extension Direction";
     private const string PrimaryFlatProbeName = "Primary Flat Trigger";
     private const string PrimaryCubeProbeName = "Primary Cube Trigger";
@@ -338,7 +337,7 @@ public class PistonVertical : MonoBehaviour
 
         if (!extendsUpward)
         {
-            hardBlock = PrimaryFlatBlocked(null);
+            hardBlock = IsPrimaryFlatPlanningBlocked(null);
             return !hardBlock;
         }
 
@@ -530,34 +529,6 @@ public class PistonVertical : MonoBehaviour
         return null;
     }
 
-    private bool PrimaryFlatBlocked(List<RunodeMovement> carriedRunodes, RunodeMovement ignoredCube = null)
-    {
-        foreach (Collider hit in GetProbeHits(primaryFlatProbe))
-        {
-            if (TryGetCarriedCube(hit, carriedRunodes, out _))
-                continue;
-
-            if (TryGetCube(hit, out RunodeMovement cube))
-            {
-                if (pushedCubesThisMove.Contains(cube))
-                    continue;
-
-                if (ignoredCube != null && cube == ignoredCube)
-                    continue;
-
-                return true;
-            }
-
-            if (TryGetPiston(hit, out _))
-                return true;
-
-            if (IsStaticObstruction(hit))
-                return true;
-        }
-
-        return false;
-    }
-
     private IEnumerable<Collider> GetProbeHits(BoxCollider probe)
     {
         if (probe == null)
@@ -692,7 +663,7 @@ public class PistonVertical : MonoBehaviour
                     break;
                 }
             }
-            else if (moveProgress < PrimaryFlatSlideCheckEndProgress && PrimaryFlatBlocked(null))
+            else if (HasPrimaryFlatUnexpectedContact(null))
             {
                 stoppedEarly = true;
                 extendBlocked = true;
