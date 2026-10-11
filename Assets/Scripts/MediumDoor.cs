@@ -45,9 +45,11 @@ public class MediumDoor : MonoBehaviour
     private Coroutine doorSkullSequenceCoroutine;
     private Coroutine closeObstructionMonitorCoroutine;
     private readonly Collider[] obstructionOverlapBuffer = new Collider[ObstructionOverlapBufferSize];
+    private int timJonesLayer;
 
     private void Awake()
     {
+        timJonesLayer = LayerMask.NameToLayer("TimJones");
         EnsureDoorPieceSlots();
 
         pieceClosedWorldPositions = new Vector3[DoorPieceCount];
@@ -268,6 +270,9 @@ public class MediumDoor : MonoBehaviour
             return false;
 
         if (!hit.enabled)
+            return false;
+
+        if (timJonesLayer >= 0 && hit.gameObject.layer == timJonesLayer)
             return false;
 
         return true;

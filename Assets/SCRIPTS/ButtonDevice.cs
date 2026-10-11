@@ -27,6 +27,7 @@ public class ButtonDevice : MonoBehaviour
     [SerializeField] private List<GameObject> connectedDevices = new List<GameObject>();
 
     private readonly List<MediumDoor> mediumDoors = new List<MediumDoor>();
+    private readonly List<TrapDoor> trapDoors = new List<TrapDoor>();
     private readonly List<Bridge> bridges = new List<Bridge>();
     private readonly Collider[] overlapBuffer = new Collider[OverlapBufferSize];
     private bool isButtonMoving;
@@ -222,6 +223,9 @@ public class ButtonDevice : MonoBehaviour
         foreach (MediumDoor mediumDoor in mediumDoors)
             mediumDoor.ApplyActivatorReverse();
 
+        foreach (TrapDoor trapDoor in trapDoors)
+            trapDoor.ApplyActivatorReverse();
+
         foreach (Bridge bridge in bridges)
             bridge.ApplyActivatorReverse();
     }
@@ -230,6 +234,7 @@ public class ButtonDevice : MonoBehaviour
     private void BuildConnectedDeviceLists()
     {
         mediumDoors.Clear();
+        trapDoors.Clear();
         bridges.Clear();
 
         foreach (GameObject deviceObject in connectedDevices)
@@ -244,6 +249,13 @@ public class ButtonDevice : MonoBehaviour
                 continue;
             }
 
+            TrapDoor trapDoor = deviceObject.GetComponent<TrapDoor>();
+            if (trapDoor != null)
+            {
+                trapDoors.Add(trapDoor);
+                continue;
+            }
+
             Bridge bridge = deviceObject.GetComponent<Bridge>();
             if (bridge != null)
             {
@@ -251,7 +263,7 @@ public class ButtonDevice : MonoBehaviour
                 continue;
             }
 
-            Debug.Log($"[{nameof(ButtonDevice)}] '{name}' ignored connected object '{deviceObject.name}' — only {nameof(MediumDoor)} and {nameof(Bridge)} are supported.", this);
+            Debug.Log($"[{nameof(ButtonDevice)}] '{name}' ignored connected object '{deviceObject.name}' — only {nameof(MediumDoor)}, {nameof(TrapDoor)}, and {nameof(Bridge)} are supported.", this);
         }
     }
 }
