@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using UnityEngine;
 
+[RequireComponent(typeof(ActivatorConnectionLinesHover))]
 public class LineRendererGenerator : MonoBehaviour
 {
     [SerializeField] private GameObject lineRendererPrefab;

@@ -340,6 +340,9 @@ public class TimCubeController : MonoBehaviour
 
     public bool IsActuallyRotatable(RunodeMovement cube, Vector3 hitPoint) => IsCubeRotatable(cube, hitPoint);
 
+    public bool CanInteractWithActivatorAtPoint(Transform activatorRoot, Vector3 hitPoint) =>
+        CanTimInteractWithClickableDevice(activatorRoot, hitPoint);
+
     private void TryHandleLeverClick(bool mouseHitValid, RaycastHit mouseHit, RunodeMovement mouseHitCube)
     {
         if (!mouseHitValid)

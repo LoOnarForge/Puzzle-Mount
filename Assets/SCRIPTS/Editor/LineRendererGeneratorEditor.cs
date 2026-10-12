@@ -7,6 +7,8 @@ public class LineRendererGeneratorEditor : Editor
 {
     private const int DefaultZigzagAmount = 0;
     private const int ZigzagAmountMax = 10;
+    private const string LinkChildNamePrefix = "ACTIVATOR LINK - ";
+    public const string ActivatorLinkEndChildName = "Activator Link End";
 
     public override void OnInspectorGUI()
     {
@@ -172,10 +174,8 @@ public class LineRendererGeneratorEditor : Editor
             return;
         }
 
-        string childName = entry.deviceName;
-        Transform existing = FindDirectChildByName(generator.transform, childName);
-        if (existing != null)
-            Undo.DestroyObjectImmediate(existing.gameObject);
+        string childName = GetLinkChildName(entry.deviceName);
+        DestroyLinkChildIfPresent(generator.transform, entry.deviceName);
 
         GameObject lineObject = (GameObject)PrefabUtility.InstantiatePrefab(prefab, generator.transform);
         Undo.RegisterCreatedObjectUndo(lineObject, "Create Line Renderer Connection");
@@ -186,7 +186,7 @@ public class LineRendererGeneratorEditor : Editor
             lineRenderer.useWorldSpace = true;
 
         Vector3 start = generator.transform.position;
-        Vector3 end = entry.device.transform.position;
+        Vector3 end = GetActivatorLinkEndPosition(entry.device);
         int variationSeed = Random.Range(int.MinValue, int.MaxValue);
         Vector3[] points = LineRendererPathBuilder.BuildPoints(
             start,
@@ -199,16 +199,22 @@ public class LineRendererGeneratorEditor : Editor
         lineRenderer.positionCount = points.Length;
         lineRenderer.SetPositions(points);
 
-        ActivatorConnectionCometPathDriver cometDriver = lineObject.GetComponent<ActivatorConnectionCometPathDriver>();
-        if (cometDriver == null)
-            cometDriver = Undo.AddComponent<ActivatorConnectionCometPathDriver>(lineObject);
+        ActivatorConnectionLineImpulse lineImpulse = lineObject.GetComponent<ActivatorConnectionLineImpulse>();
+        if (lineImpulse == null)
+            lineImpulse = Undo.AddComponent<ActivatorConnectionLineImpulse>(lineObject);
 
-        Undo.RecordObject(cometDriver, "Configure Comet Path Driver");
-        cometDriver.Configure(
-            generator.CometPrefab,
-            generator.CometSpawnInterval,
-            generator.CometSpeed);
-        EditorUtility.SetDirty(cometDriver);
+        Undo.RecordObject(lineImpulse, "Configure Line Impulse");
+        lineImpulse.Configure(generator.CometSpeed);
+        lineImpulse.CachePathFromLineRenderer();
+        lineImpulse.enabled = false;
+        EditorUtility.SetDirty(lineImpulse);
+
+        ActivatorConnectionLinesHover hover = generator.GetComponent<ActivatorConnectionLinesHover>();
+        if (hover == null)
+            hover = Undo.AddComponent<ActivatorConnectionLinesHover>(generator.gameObject);
+
+        if (Application.isPlaying)
+            hover.RefreshLineVisuals();
 
         EditorUtility.SetDirty(generator);
         EditorUtility.SetDirty(lineObject);
@@ -221,13 +227,58 @@ public class LineRendererGeneratorEditor : Editor
             return;
 
         LineRendererGeneratorLinkEntry entry = links[index];
-        Transform existing = FindDirectChildByName(generator.transform, entry.deviceName);
-        if (existing != null)
-            Undo.DestroyObjectImmediate(existing.gameObject);
+        DestroyLinkChildIfPresent(generator.transform, entry.deviceName);
 
         Undo.RecordObject(generator, "Remove Line Renderer Generator Link");
         links.RemoveAt(index);
         EditorUtility.SetDirty(generator);
+    }
+
+    private static string GetLinkChildName(string deviceName)
+    {
+        return LinkChildNamePrefix + deviceName;
+    }
+
+    private static Vector3 GetActivatorLinkEndPosition(GameObject device)
+    {
+        Transform linkEnd = FindActivatorLinkEndTransform(device.transform);
+        if (linkEnd != null)
+            return linkEnd.position;
+
+        Debug.LogWarning(
+            $"LineRendererGenerator: device '{device.name}' has no child '{ActivatorLinkEndChildName}'. Using device root position.",
+            device);
+        return device.transform.position;
+    }
+
+    private static Transform FindActivatorLinkEndTransform(Transform deviceRoot)
+    {
+        if (deviceRoot == null)
+            return null;
+
+        for (int i = 0; i < deviceRoot.childCount; i++)
+        {
+            Transform child = deviceRoot.GetChild(i);
+            if (child.name == ActivatorLinkEndChildName)
+                return child;
+
+            Transform nested = FindActivatorLinkEndTransform(child);
+            if (nested != null)
+                return nested;
+        }
+
+        return null;
+    }
+
+    private static void DestroyLinkChildIfPresent(Transform parent, string deviceName)
+    {
+        Transform prefixed = FindDirectChildByName(parent, GetLinkChildName(deviceName));
+        if (prefixed != null)
+            Undo.DestroyObjectImmediate(prefixed.gameObject);
+
+        Transform legacy = FindDirectChildByName(parent, deviceName);
+        if (legacy != null)
+            Undo.DestroyObjectImmediate(legacy.gameObject);
     }
 
     private static Transform FindDirectChildByName(Transform parent, string childName)
