@@ -1,11 +1,9 @@
-Shader "Custom/ActivatorConnectionCometLine"
+Shader "Custom/Link Line Renderer"
 {
     Properties
     {
         _MainTex ("Sprite", 2D) = "white" {}
         [HDR] _Color ("Color", Color) = (1, 1, 1, 1)
-        [HDR] _EmissionColor ("Emission Color", Color) = (1, 0.85, 0.5, 1)
-        _EmissionStrength ("Emission Strength", Float) = 3
     }
 
     SubShader
@@ -42,8 +40,6 @@ Shader "Custom/ActivatorConnectionCometLine"
             CBUFFER_START(UnityPerMaterial)
                 float4 _MainTex_ST;
                 half4 _Color;
-                half4 _EmissionColor;
-                half _EmissionStrength;
             CBUFFER_END
 
             struct Attributes
@@ -73,9 +69,8 @@ Shader "Custom/ActivatorConnectionCometLine"
             {
                 half4 sprite = SAMPLE_TEXTURE2D(_MainTex, sampler_MainTex, input.uv);
                 half alpha = _Color.a * input.color.a * sprite.a;
-                half3 baseRgb = _Color.rgb * input.color.rgb * sprite.rgb;
-                half3 emission = _EmissionColor.rgb * _EmissionStrength * alpha * input.color.rgb;
-                return half4(baseRgb + emission, alpha);
+                half3 rgb = _Color.rgb * input.color.rgb * sprite.rgb;
+                return half4(rgb, alpha);
             }
             ENDHLSL
         }

@@ -263,7 +263,7 @@ public class ActivatorConnectionLineVisual : MonoBehaviour
 
         if (cometLineMaterial == null)
         {
-            Shader shader = Shader.Find("Custom/ActivatorConnectionCometLine");
+            Shader shader = Shader.Find("Custom/Link Line Renderer");
             if (shader != null)
                 cometLineMaterial = new Material(shader);
         }
