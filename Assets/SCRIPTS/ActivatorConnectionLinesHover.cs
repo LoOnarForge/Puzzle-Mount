@@ -25,7 +25,6 @@ public class ActivatorConnectionLinesHover : MonoBehaviour
         public float PathMeters;
         public float DisplayAlpha;
         public float HideHoldTimer;
-        public bool LineImpulseEnabled;
     }
 
     private void Awake()
@@ -34,7 +33,6 @@ public class ActivatorConnectionLinesHover : MonoBehaviour
         ActivatorHoverTracker.EnsureExists();
         RefreshLineVisuals();
         ApplyAllLineVisuals();
-        SetAllLineImpulsesEnabled(false);
     }
 
     private void Update()
@@ -61,18 +59,17 @@ public class ActivatorConnectionLinesHover : MonoBehaviour
             float speed = targetAlpha > state.DisplayAlpha ? fadeInSpeed : fadeOutSpeed;
             state.DisplayAlpha = Mathf.MoveTowards(state.DisplayAlpha, targetAlpha, speed * Time.deltaTime);
 
+            if (state.LineImpulse != null)
+            {
+                state.LineImpulse.SetLoopWhileRequested(hovered);
+                if (hovered)
+                    state.LineImpulse.StartCycleIfIdle();
+
+                float beamAlpha = state.LineImpulse.IsRunning ? 1f : state.DisplayAlpha;
+                state.LineImpulse.SetExternalAlphaScale(beamAlpha);
+            }
+
             ApplyLineVisual(state);
-
-            if (state.LineImpulse != null)
-                state.LineImpulse.SetExternalAlphaScale(state.DisplayAlpha);
-
-            bool shouldRunImpulse = state.DisplayAlpha > 0.01f;
-            if (shouldRunImpulse == state.LineImpulseEnabled)
-                continue;
-
-            state.LineImpulseEnabled = shouldRunImpulse;
-            if (state.LineImpulse != null)
-                state.LineImpulse.enabled = shouldRunImpulse;
         }
 
         wasHovered = hovered;
@@ -116,10 +113,6 @@ public class ActivatorConnectionLinesHover : MonoBehaviour
             if (line == null)
                 continue;
 
-            ActivatorConnectionCometPathDriver legacyComet = line.GetComponent<ActivatorConnectionCometPathDriver>();
-            if (legacyComet != null)
-                legacyComet.enabled = false;
-
             ActivatorConnectionLineImpulse impulse = line.GetComponent<ActivatorConnectionLineImpulse>();
 
             var state = new LineVisualState
@@ -133,7 +126,6 @@ public class ActivatorConnectionLinesHover : MonoBehaviour
                 PathMeters = MeasureLinePathMeters(line),
                 DisplayAlpha = 0f,
                 HideHoldTimer = 0f,
-                LineImpulseEnabled = false
             };
 
             if (impulse != null)
@@ -172,7 +164,8 @@ public class ActivatorConnectionLinesHover : MonoBehaviour
             return;
 
         float alpha = state.DisplayAlpha;
-        bool visible = alpha > 0.001f;
+        bool beamPlaying = state.LineImpulse != null && state.LineImpulse.IsRunning;
+        bool visible = alpha > 0.001f || beamPlaying;
         state.LineRenderer.enabled = visible;
         if (!visible)
             return;
@@ -185,17 +178,6 @@ public class ActivatorConnectionLinesHover : MonoBehaviour
 
         state.LineRenderer.startWidth = state.BaseStartWidth * alpha;
         state.LineRenderer.endWidth = state.BaseEndWidth * alpha;
-    }
-
-    private void SetAllLineImpulsesEnabled(bool enabled)
-    {
-        for (int i = 0; i < lineVisuals.Count; i++)
-        {
-            LineVisualState state = lineVisuals[i];
-            state.LineImpulseEnabled = enabled;
-            if (state.LineImpulse != null)
-                state.LineImpulse.enabled = enabled;
-        }
     }
 
     private static Gradient CopyGradient(Gradient source)
