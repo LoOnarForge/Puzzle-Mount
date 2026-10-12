@@ -7,14 +7,14 @@ public class LineRendererGenerator : MonoBehaviour
 {
     [SerializeField] private GameObject lineRendererPrefab;
     [SerializeField] private GameObject cometPrefab;
-    [Min(0.01f)] [SerializeField] private float cometSpawnInterval = 2f;
-    [Min(0f)] [SerializeField] private float cometSpeed = 2.5f;
+    [Min(0f)] [SerializeField] private float beamSpeedMin = 2f;
+    [Min(0f)] [SerializeField] private float beamSpeedMax = 3f;
     [SerializeField] private List<LineRendererGeneratorLinkEntry> links = new List<LineRendererGeneratorLinkEntry>();
 
     public GameObject LineRendererPrefab => lineRendererPrefab;
     public GameObject CometPrefab => cometPrefab;
-    public float CometSpawnInterval => cometSpawnInterval;
-    public float CometSpeed => cometSpeed;
+    public float BeamSpeedMin => beamSpeedMin;
+    public float BeamSpeedMax => beamSpeedMax;
     public IReadOnlyList<LineRendererGeneratorLinkEntry> Links => links;
 
     public List<LineRendererGeneratorLinkEntry> LinksEditable => links;

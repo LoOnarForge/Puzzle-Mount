@@ -16,12 +16,12 @@ public class LineRendererGeneratorEditor : Editor
 
         EditorGUILayout.PropertyField(serializedObject.FindProperty("lineRendererPrefab"));
         EditorGUILayout.PropertyField(serializedObject.FindProperty("cometPrefab"));
-        EditorGUILayout.PropertyField(serializedObject.FindProperty("cometSpawnInterval"));
-        EditorGUILayout.PropertyField(serializedObject.FindProperty("cometSpeed"));
+        EditorGUILayout.PropertyField(serializedObject.FindProperty("beamSpeedMin"));
+        EditorGUILayout.PropertyField(serializedObject.FindProperty("beamSpeedMax"));
 
         LineRendererGenerator generator = (LineRendererGenerator)target;
         if (generator.CometPrefab == null)
-            EditorGUILayout.HelpBox("Assign Comet Prefab to spawn comets on lines.", MessageType.None);
+            EditorGUILayout.HelpBox("Comet Prefab is placed at the moving beam head.", MessageType.None);
         if (generator.LineRendererPrefab == null)
             EditorGUILayout.HelpBox("Assign the shared Line Renderer prefab used for all connection lines.", MessageType.Warning);
         else if (generator.LineRendererPrefab.GetComponent<LineRenderer>() == null)
@@ -204,7 +204,7 @@ public class LineRendererGeneratorEditor : Editor
             lineImpulse = Undo.AddComponent<ActivatorConnectionLineImpulse>(lineObject);
 
         Undo.RecordObject(lineImpulse, "Configure Line Impulse");
-        lineImpulse.Configure(generator.CometSpeed);
+        lineImpulse.ConfigureFromGenerator(generator.CometPrefab, generator.BeamSpeedMin, generator.BeamSpeedMax);
         lineImpulse.CachePathFromLineRenderer();
         lineImpulse.enabled = false;
         EditorUtility.SetDirty(lineImpulse);

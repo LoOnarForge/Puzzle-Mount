@@ -5,14 +5,8 @@ using UnityEngine;
 [RequireComponent(typeof(LineRendererGenerator))]
 public class ActivatorConnectionLinesHover : MonoBehaviour
 {
-    [SerializeField] private float fadeInSpeed = 5f;
-    [SerializeField] private float fadeOutSpeed = 3f;
-    [SerializeField] private float hideDelayBase = 1f;
-    [SerializeField] private float hideDelayPerMeter = 0.25f;
-
     private Transform activatorRoot;
     private readonly List<LineVisualState> lineVisuals = new List<LineVisualState>();
-    private bool wasHovered;
 
     private sealed class LineVisualState
     {
@@ -22,9 +16,6 @@ public class ActivatorConnectionLinesHover : MonoBehaviour
         public float BaseWidthMultiplier;
         public float BaseStartWidth;
         public float BaseEndWidth;
-        public float PathMeters;
-        public float DisplayAlpha;
-        public float HideHoldTimer;
     }
 
     private void Awake()
@@ -32,7 +23,7 @@ public class ActivatorConnectionLinesHover : MonoBehaviour
         activatorRoot = ResolveActivatorRoot();
         ActivatorHoverTracker.EnsureExists();
         RefreshLineVisuals();
-        ApplyAllLineVisuals();
+        ApplyAllLineVisuals(false);
     }
 
     private void Update()
@@ -42,48 +33,21 @@ public class ActivatorConnectionLinesHover : MonoBehaviour
         for (int i = 0; i < lineVisuals.Count; i++)
         {
             LineVisualState state = lineVisuals[i];
-            if (hovered)
-            {
-                state.HideHoldTimer = 0f;
-            }
-            else if (wasHovered)
-            {
-                state.HideHoldTimer = GetHideDelaySeconds(state.PathMeters);
-            }
-            else if (state.HideHoldTimer > 0f)
-            {
-                state.HideHoldTimer -= Time.deltaTime;
-            }
-
-            float targetAlpha = hovered || state.HideHoldTimer > 0f ? 1f : 0f;
-            float speed = targetAlpha > state.DisplayAlpha ? fadeInSpeed : fadeOutSpeed;
-            state.DisplayAlpha = Mathf.MoveTowards(state.DisplayAlpha, targetAlpha, speed * Time.deltaTime);
-
             if (state.LineImpulse != null)
             {
                 state.LineImpulse.SetLoopWhileRequested(hovered);
                 if (hovered)
                     state.LineImpulse.StartCycleIfIdle();
-
-                float beamAlpha = state.LineImpulse.IsRunning ? 1f : state.DisplayAlpha;
-                state.LineImpulse.SetExternalAlphaScale(beamAlpha);
             }
 
-            ApplyLineVisual(state);
+            ApplyLineVisual(state, hovered);
         }
-
-        wasHovered = hovered;
-    }
-
-    private float GetHideDelaySeconds(float pathMeters)
-    {
-        return hideDelayBase + hideDelayPerMeter * pathMeters;
     }
 
     public void RefreshLineVisuals()
     {
         CacheLineVisuals();
-        ApplyAllLineVisuals();
+        ApplyAllLineVisuals(false);
     }
 
     private Transform ResolveActivatorRoot()
@@ -106,6 +70,8 @@ public class ActivatorConnectionLinesHover : MonoBehaviour
     private void CacheLineVisuals()
     {
         lineVisuals.Clear();
+        LineRendererGenerator generator = activatorRoot.GetComponent<LineRendererGenerator>();
+
         LineRenderer[] lines = activatorRoot.GetComponentsInChildren<LineRenderer>(true);
         for (int i = 0; i < lines.Length; i++)
         {
@@ -123,61 +89,47 @@ public class ActivatorConnectionLinesHover : MonoBehaviour
                 BaseWidthMultiplier = line.widthMultiplier,
                 BaseStartWidth = line.startWidth,
                 BaseEndWidth = line.endWidth,
-                PathMeters = MeasureLinePathMeters(line),
-                DisplayAlpha = 0f,
-                HideHoldTimer = 0f,
             };
 
             if (impulse != null)
+            {
+                if (generator != null)
+                    impulse.ConfigureFromGenerator(generator.CometPrefab, generator.BeamSpeedMin, generator.BeamSpeedMax);
                 impulse.CachePathFromLineRenderer();
+            }
 
             lineVisuals.Add(state);
         }
     }
 
-    private static float MeasureLinePathMeters(LineRenderer line)
-    {
-        if (line == null || line.positionCount < 2)
-            return 0f;
-
-        float length = 0f;
-        Vector3 previous = line.GetPosition(0);
-        for (int i = 1; i < line.positionCount; i++)
-        {
-            Vector3 current = line.GetPosition(i);
-            length += Vector3.Distance(previous, current);
-            previous = current;
-        }
-
-        return length;
-    }
-
-    private void ApplyAllLineVisuals()
+    private void ApplyAllLineVisuals(bool hovered)
     {
         for (int i = 0; i < lineVisuals.Count; i++)
-            ApplyLineVisual(lineVisuals[i]);
+            ApplyLineVisual(lineVisuals[i], hovered);
     }
 
-    private void ApplyLineVisual(LineVisualState state)
+    private void ApplyLineVisual(LineVisualState state, bool hovered)
     {
         if (state.LineRenderer == null)
             return;
 
-        float alpha = state.DisplayAlpha;
         bool beamPlaying = state.LineImpulse != null && state.LineImpulse.IsRunning;
-        bool visible = alpha > 0.001f || beamPlaying;
+        bool visible = hovered || beamPlaying;
         state.LineRenderer.enabled = visible;
         if (!visible)
             return;
 
+        if (state.LineImpulse != null)
+            state.LineImpulse.SetExternalAlphaScale(1f);
+
         if (state.LineImpulse == null)
         {
-            state.LineRenderer.colorGradient = ScaleGradientAlpha(state.BaseGradient, alpha);
-            state.LineRenderer.widthMultiplier = state.BaseWidthMultiplier * alpha;
+            state.LineRenderer.colorGradient = state.BaseGradient;
+            state.LineRenderer.widthMultiplier = state.BaseWidthMultiplier;
         }
 
-        state.LineRenderer.startWidth = state.BaseStartWidth * alpha;
-        state.LineRenderer.endWidth = state.BaseEndWidth * alpha;
+        state.LineRenderer.startWidth = state.BaseStartWidth;
+        state.LineRenderer.endWidth = state.BaseEndWidth;
     }
 
     private static Gradient CopyGradient(Gradient source)
@@ -185,17 +137,5 @@ public class ActivatorConnectionLinesHover : MonoBehaviour
         var copy = new Gradient();
         copy.SetKeys(source.colorKeys, source.alphaKeys);
         return copy;
-    }
-
-    private static Gradient ScaleGradientAlpha(Gradient baseGradient, float alphaScale)
-    {
-        var scaled = new Gradient();
-        GradientAlphaKey[] alphaKeys = baseGradient.alphaKeys;
-        var scaledAlphas = new GradientAlphaKey[alphaKeys.Length];
-        for (int i = 0; i < alphaKeys.Length; i++)
-            scaledAlphas[i] = new GradientAlphaKey(alphaKeys[i].alpha * alphaScale, alphaKeys[i].time);
-
-        scaled.SetKeys(baseGradient.colorKeys, scaledAlphas);
-        return scaled;
     }
 }
