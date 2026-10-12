@@ -5,9 +5,7 @@ using UnityEngine;
 [CustomEditor(typeof(LineRendererGenerator))]
 public class LineRendererGeneratorEditor : Editor
 {
-    private const int DefaultPivotCount = 2;
-    private const int DefaultZigzagAmount = 3;
-    private const int PivotCountMax = 20;
+    private const int DefaultZigzagAmount = 0;
     private const int ZigzagAmountMax = 10;
 
     public override void OnInspectorGUI()
@@ -15,8 +13,13 @@ public class LineRendererGeneratorEditor : Editor
         serializedObject.Update();
 
         EditorGUILayout.PropertyField(serializedObject.FindProperty("lineRendererPrefab"));
+        EditorGUILayout.PropertyField(serializedObject.FindProperty("cometPrefab"));
+        EditorGUILayout.PropertyField(serializedObject.FindProperty("cometSpawnInterval"));
+        EditorGUILayout.PropertyField(serializedObject.FindProperty("cometSpeed"));
 
         LineRendererGenerator generator = (LineRendererGenerator)target;
+        if (generator.CometPrefab == null)
+            EditorGUILayout.HelpBox("Assign Comet Prefab to spawn comets on lines.", MessageType.None);
         if (generator.LineRendererPrefab == null)
             EditorGUILayout.HelpBox("Assign the shared Line Renderer prefab used for all connection lines.", MessageType.Warning);
         else if (generator.LineRendererPrefab.GetComponent<LineRenderer>() == null)
@@ -50,9 +53,7 @@ public class LineRendererGeneratorEditor : Editor
             EditorGUILayout.BeginVertical("box");
             EditorGUILayout.LabelField(entry.deviceName ?? "(missing name)", EditorStyles.boldLabel);
             entry.device = (GameObject)EditorGUILayout.ObjectField("Device", entry.device, typeof(GameObject), true);
-            entry.pivotCount = EditorGUILayout.IntSlider("Pivot Points", entry.pivotCount, 0, PivotCountMax);
-            entry.zigzagAmount = EditorGUILayout.IntSlider("Zigzag", entry.zigzagAmount, 0, ZigzagAmountMax);
-
+            entry.zigzagAmount = EditorGUILayout.IntSlider("Zigzag (extra 90° detours)", entry.zigzagAmount, 0, ZigzagAmountMax);
             EditorGUILayout.BeginHorizontal();
             if (GUILayout.Button("Create Line Renderer Child"))
                 CreateOrRecreateLineChild(generator, entry);
@@ -102,7 +103,6 @@ public class LineRendererGeneratorEditor : Editor
             {
                 deviceName = name,
                 device = device,
-                pivotCount = DefaultPivotCount,
                 zigzagAmount = DefaultZigzagAmount
             };
             links.Add(added);
@@ -187,15 +187,28 @@ public class LineRendererGeneratorEditor : Editor
 
         Vector3 start = generator.transform.position;
         Vector3 end = entry.device.transform.position;
+        int variationSeed = Random.Range(int.MinValue, int.MaxValue);
         Vector3[] points = LineRendererPathBuilder.BuildPoints(
             start,
             end,
             entry.deviceName,
-            entry.pivotCount,
-            entry.zigzagAmount);
+            0,
+            entry.zigzagAmount,
+            variationSeed);
 
         lineRenderer.positionCount = points.Length;
         lineRenderer.SetPositions(points);
+
+        ActivatorConnectionCometPathDriver cometDriver = lineObject.GetComponent<ActivatorConnectionCometPathDriver>();
+        if (cometDriver == null)
+            cometDriver = Undo.AddComponent<ActivatorConnectionCometPathDriver>(lineObject);
+
+        Undo.RecordObject(cometDriver, "Configure Comet Path Driver");
+        cometDriver.Configure(
+            generator.CometPrefab,
+            generator.CometSpawnInterval,
+            generator.CometSpeed);
+        EditorUtility.SetDirty(cometDriver);
 
         EditorUtility.SetDirty(generator);
         EditorUtility.SetDirty(lineObject);
