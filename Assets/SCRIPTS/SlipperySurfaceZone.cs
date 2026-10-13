@@ -1,0 +1,336 @@
+using System.Collections;
+using System.Collections.Generic;
+using UnityEngine;
+
+[DisallowMultipleComponent]
+[RequireComponent(typeof(BoxCollider))]
+public class SlipperySurfaceZone : MonoBehaviour
+{
+    private const string FloorMarkersChildName = "_SlipperyFloorMarkers";
+    private const float CellHalfExtent = 0.5f;
+    private const float FloorSpriteLift = 0.02f;
+
+    [SerializeField] private BoxCollider zoneTrigger;
+    [SerializeField] private Sprite floorMarkerSprite;
+
+    private Transform floorMarkersRoot;
+    private bool isRebuildingFloorMarkers;
+
+#if UNITY_EDITOR
+    private bool editorFloorRebuildQueued;
+#endif
+
+    private readonly HashSet<RunodeMovement> runodesInTrigger = new HashSet<RunodeMovement>();
+    private readonly Dictionary<RunodeMovement, RunodeTrackState> trackByRunode = new Dictionary<RunodeMovement, RunodeTrackState>();
+    private readonly HashSet<RunodeMovement> slidingStackBottoms = new HashSet<RunodeMovement>();
+
+    private struct RunodeTrackState
+    {
+        public bool WasMoving;
+        public Vector3 MoveStartGrid;
+        public bool HasMoveStart;
+    }
+
+    private void Reset()
+    {
+        zoneTrigger = GetComponent<BoxCollider>();
+        ConfigureTrigger();
+    }
+
+    private void Awake()
+    {
+        if (zoneTrigger == null)
+            zoneTrigger = GetComponent<BoxCollider>();
+        ConfigureTrigger();
+    }
+
+    private void OnValidate()
+    {
+        if (zoneTrigger == null)
+            zoneTrigger = GetComponent<BoxCollider>();
+
+#if UNITY_EDITOR
+        QueueEditorFloorRebuild();
+#endif
+    }
+
+    private void Start()
+    {
+        RebuildFloorMarkers();
+    }
+
+#if UNITY_EDITOR
+    private void QueueEditorFloorRebuild()
+    {
+        if (editorFloorRebuildQueued)
+            return;
+
+        editorFloorRebuildQueued = true;
+        UnityEditor.EditorApplication.delayCall += RunQueuedEditorFloorRebuild;
+    }
+
+    private void RunQueuedEditorFloorRebuild()
+    {
+        editorFloorRebuildQueued = false;
+        if (this == null)
+            return;
+
+        RebuildFloorMarkers();
+    }
+#endif
+
+    private void Update()
+    {
+        foreach (RunodeMovement runode in runodesInTrigger)
+        {
+            if (runode == null)
+                continue;
+
+            UpdateRunodeTracking(runode);
+        }
+    }
+
+    private void OnTriggerEnter(Collider other)
+    {
+        RunodeMovement runode = other.GetComponentInParent<RunodeMovement>();
+        if (runode != null)
+            runodesInTrigger.Add(runode);
+    }
+
+    private void OnTriggerExit(Collider other)
+    {
+        RunodeMovement runode = other.GetComponentInParent<RunodeMovement>();
+        if (runode == null)
+            return;
+
+        runodesInTrigger.Remove(runode);
+        trackByRunode.Remove(runode);
+    }
+
+    private void ConfigureTrigger()
+    {
+        if (zoneTrigger != null)
+            zoneTrigger.isTrigger = true;
+    }
+
+    private void UpdateRunodeTracking(RunodeMovement runode)
+    {
+        if (!trackByRunode.TryGetValue(runode, out RunodeTrackState state))
+            state = default;
+
+        bool isMoving = runode.isMovingPos;
+
+        if (isMoving && !state.HasMoveStart)
+        {
+            state.MoveStartGrid = SnapHorizontal(runode.transform.position);
+            state.HasMoveStart = true;
+        }
+        else if (state.WasMoving && !isMoving)
+        {
+            TryStartSlideAfterPush(runode, state);
+            state.HasMoveStart = false;
+        }
+
+        state.WasMoving = isMoving;
+        trackByRunode[runode] = state;
+    }
+
+    private void TryStartSlideAfterPush(RunodeMovement runode, RunodeTrackState state)
+    {
+        RunodeMovement[] stack = runode.GetStack();
+        if (stack.Length == 0 || stack[0] != runode || slidingStackBottoms.Contains(runode))
+            return;
+
+        Vector3 endGrid = SnapHorizontal(runode.transform.position);
+        if (!ContainsGridPosition(endGrid) || !state.HasMoveStart)
+            return;
+
+        Vector3 direction = CardinalDirection(endGrid - state.MoveStartGrid);
+        if (direction == Vector3.zero)
+            return;
+
+        StartCoroutine(SlideStack(runode, direction));
+    }
+
+    private IEnumerator SlideStack(RunodeMovement stackBottom, Vector3 direction)
+    {
+        slidingStackBottoms.Add(stackBottom);
+
+        while (ContainsGridPosition(SnapHorizontal(stackBottom.transform.position)))
+        {
+            RunodeMovement[] stack = stackBottom.GetStack();
+            Vector3 nextCell = SnapHorizontal(stackBottom.transform.position) + direction;
+
+            if (!StackCanStep(stack, direction))
+                break;
+
+            bool nextStillInZone = ContainsGridPosition(nextCell);
+
+            foreach (RunodeMovement cube in stack)
+                cube.PushSingle(direction);
+
+            yield return WaitForStack(stack);
+
+            if (!nextStillInZone)
+                break;
+        }
+
+        slidingStackBottoms.Remove(stackBottom);
+    }
+
+    private static bool StackCanStep(RunodeMovement[] stack, Vector3 direction)
+    {
+        foreach (RunodeMovement cube in stack)
+        {
+            if (cube == null || !cube.CanPushSingle(direction))
+                return false;
+        }
+
+        return true;
+    }
+
+    private static IEnumerator WaitForStack(RunodeMovement[] stack)
+    {
+        while (true)
+        {
+            bool moving = false;
+            foreach (RunodeMovement cube in stack)
+            {
+                if (cube != null && cube.isMovingPos)
+                {
+                    moving = true;
+                    break;
+                }
+            }
+
+            if (!moving)
+                yield break;
+
+            yield return null;
+        }
+    }
+
+    private bool ContainsGridPosition(Vector3 gridPosition)
+    {
+        if (zoneTrigger == null)
+            return false;
+
+        Bounds b = zoneTrigger.bounds;
+        float x = gridPosition.x;
+        float z = gridPosition.z;
+
+        return x + CellHalfExtent > b.min.x && x - CellHalfExtent < b.max.x &&
+               z + CellHalfExtent > b.min.z && z - CellHalfExtent < b.max.z;
+    }
+
+    private void RebuildFloorMarkers()
+    {
+        if (isRebuildingFloorMarkers || zoneTrigger == null || floorMarkerSprite == null)
+            return;
+
+        isRebuildingFloorMarkers = true;
+
+        Transform markersRoot = EnsureSingleFloorMarkersRoot();
+        ClearChildren(markersRoot);
+
+        Bounds b = zoneTrigger.bounds;
+        float floorY = b.min.y + FloorSpriteLift;
+        float spriteScale = 1f / Mathf.Max(floorMarkerSprite.bounds.size.x, 0.001f);
+
+        int minX = Mathf.FloorToInt(b.min.x + CellHalfExtent);
+        int maxX = Mathf.FloorToInt(b.max.x - CellHalfExtent);
+        int minZ = Mathf.FloorToInt(b.min.z + CellHalfExtent);
+        int maxZ = Mathf.FloorToInt(b.max.z - CellHalfExtent);
+
+        var placedCells = new HashSet<long>();
+
+        for (int x = minX; x <= maxX; x++)
+        {
+            for (int z = minZ; z <= maxZ; z++)
+            {
+                long cellKey = CellKey(x, z);
+                if (!placedCells.Add(cellKey))
+                    continue;
+
+                Vector3 cell = new Vector3(x, b.max.y, z);
+                if (!ContainsGridPosition(cell))
+                    continue;
+
+                GameObject marker = new GameObject($"FloorMarker_{x}_{z}");
+                marker.transform.SetParent(markersRoot, false);
+                marker.transform.SetPositionAndRotation(new Vector3(x, floorY, z), Quaternion.Euler(90f, 0f, 0f));
+                marker.transform.localScale = new Vector3(spriteScale, spriteScale, 1f);
+
+                SpriteRenderer renderer = marker.AddComponent<SpriteRenderer>();
+                renderer.sprite = floorMarkerSprite;
+            }
+        }
+
+        isRebuildingFloorMarkers = false;
+    }
+
+    private Transform EnsureSingleFloorMarkersRoot()
+    {
+        Transform keep = null;
+
+        for (int i = 0; i < transform.childCount; i++)
+        {
+            Transform child = transform.GetChild(i);
+            if (child.name != FloorMarkersChildName)
+                continue;
+
+            if (keep == null)
+                keep = child;
+            else
+                DestroyUnityObject(child.gameObject);
+        }
+
+        if (keep == null)
+        {
+            keep = new GameObject(FloorMarkersChildName).transform;
+            keep.SetParent(transform, false);
+        }
+
+        floorMarkersRoot = keep;
+        return keep;
+    }
+
+    private static long CellKey(int x, int z)
+    {
+        return ((long)x << 32) ^ (uint)z;
+    }
+
+    private static void DestroyUnityObject(Object target)
+    {
+        if (target == null)
+            return;
+
+        if (Application.isPlaying)
+            Destroy(target);
+        else
+            DestroyImmediate(target);
+    }
+
+    private static void ClearChildren(Transform parent)
+    {
+        for (int i = parent.childCount - 1; i >= 0; i--)
+            DestroyUnityObject(parent.GetChild(i).gameObject);
+    }
+
+    private static Vector3 SnapHorizontal(Vector3 position)
+    {
+        return new Vector3(Mathf.Round(position.x), position.y, Mathf.Round(position.z));
+    }
+
+    private static Vector3 CardinalDirection(Vector3 delta)
+    {
+        delta.y = 0f;
+        if (delta.sqrMagnitude < 0.01f)
+            return Vector3.zero;
+
+        if (Mathf.Abs(delta.x) > Mathf.Abs(delta.z))
+            return delta.x > 0f ? Vector3.right : Vector3.left;
+
+        return delta.z > 0f ? Vector3.forward : Vector3.back;
+    }
+}
