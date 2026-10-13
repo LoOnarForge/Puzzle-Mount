@@ -8,8 +8,10 @@ public class SlipperySurfaceZone : MonoBehaviour
     private const string FloorMarkersChildName = "_SlipperyFloorMarkers";
     private const float CellHalfExtent = 0.5f;
     private const float FloorSpriteLift = 0.02f;
+    private const float ZoneParticleHeightAboveBottom = 0.5f;
 
     [SerializeField] private BoxCollider zoneTrigger;
+    [SerializeField] private ParticleSystem zoneParticleSystem;
     [SerializeField] private Sprite floorMarkerSprite;
     [SerializeField] private Sprite floorMarkerSprite2;
     [SerializeField] private Color floorMarkerColor = Color.white;
@@ -41,10 +43,18 @@ public class SlipperySurfaceZone : MonoBehaviour
 #endif
     }
 
-    private void Start()
+    private void Awake()
     {
         ApplyEvenSizeColliderCenterOffset();
+        EnsureZoneParticleSystem();
+        SyncZoneParticleSystem();
+    }
+
+    private void Start()
+    {
         RebuildFloorMarkers();
+        SyncZoneParticleSystem();
+        RestartZoneParticleSystem();
     }
 
 #if UNITY_EDITOR
@@ -64,6 +74,7 @@ public class SlipperySurfaceZone : MonoBehaviour
             return;
 
         RebuildFloorMarkers();
+        SyncZoneParticleSystem();
     }
 #endif
 
@@ -308,31 +319,77 @@ public class SlipperySurfaceZone : MonoBehaviour
         ClearChildren(markersRoot);
 
         Bounds bounds = zoneTrigger.bounds;
-        Vector3 boxSize = zoneTrigger.size;
         float floorY = bounds.min.y + FloorSpriteLift;
+        float zoneWidth = bounds.size.x;
+        float zoneDepth = bounds.size.z;
+        Vector3 zoneCenter = new Vector3(bounds.center.x, floorY, bounds.center.z);
 
-        int cellsX = Mathf.RoundToInt(boxSize.x);
-        int cellsZ = Mathf.RoundToInt(boxSize.z);
-        float startX = bounds.min.x + CellHalfExtent;
-        float startZ = bounds.min.z + CellHalfExtent;
-        for (int cellX = 0; cellX < cellsX; cellX++)
-        {
-            for (int cellZ = 0; cellZ < cellsZ; cellZ++)
-            {
-                Vector3 worldCellCenter = new Vector3(startX + cellX, floorY, startZ + cellZ);
+        GameObject marker = new GameObject("FloorMarker");
+        marker.transform.SetParent(markersRoot, false);
+        marker.transform.SetPositionAndRotation(zoneCenter, Quaternion.Euler(90f, 0f, 0f));
 
-                GameObject marker = new GameObject($"FloorMarker_{cellX}_{cellZ}");
-                marker.transform.SetParent(markersRoot, false);
-                marker.transform.SetPositionAndRotation(worldCellCenter, Quaternion.Euler(90f, 0f, 0f));
+        AddFloorMarkerSpriteLayer(marker.transform, floorMarkerSprite, floorMarkerColor, 0, zoneWidth, zoneDepth);
 
-                AddFloorMarkerSpriteLayer(marker.transform, floorMarkerSprite, floorMarkerColor, 0);
-
-                if (floorMarkerSprite2 != null)
-                    AddFloorMarkerSpriteLayer(marker.transform, floorMarkerSprite2, floorMarkerColor2, 1);
-            }
-        }
+        if (floorMarkerSprite2 != null)
+            AddFloorMarkerSpriteLayer(marker.transform, floorMarkerSprite2, floorMarkerColor2, 1, zoneWidth, zoneDepth);
 
         isRebuildingFloorMarkers = false;
+    }
+
+    private void EnsureZoneParticleSystem()
+    {
+        if (zoneParticleSystem != null && zoneParticleSystem.gameObject.scene.IsValid())
+        {
+            zoneParticleSystem.gameObject.SetActive(true);
+            return;
+        }
+
+        ParticleSystem childSystem = GetComponentInChildren<ParticleSystem>(true);
+        if (childSystem != null)
+        {
+            zoneParticleSystem = childSystem;
+            zoneParticleSystem.gameObject.SetActive(true);
+            return;
+        }
+
+        if (zoneParticleSystem == null)
+            return;
+
+        GameObject instance = Instantiate(zoneParticleSystem.gameObject, transform);
+        instance.SetActive(true);
+        zoneParticleSystem = instance.GetComponent<ParticleSystem>();
+    }
+
+    private void SyncZoneParticleSystem()
+    {
+        if (zoneParticleSystem == null || zoneTrigger == null)
+            return;
+
+        Bounds bounds = zoneTrigger.bounds;
+        Vector3 anchorWorld = new Vector3(
+            bounds.center.x,
+            bounds.min.y + ZoneParticleHeightAboveBottom,
+            bounds.center.z);
+
+        Transform particleTransform = zoneParticleSystem.transform;
+        particleTransform.SetParent(transform, true);
+        particleTransform.localPosition = transform.InverseTransformPoint(anchorWorld);
+
+        ParticleSystem.ShapeModule shape = zoneParticleSystem.shape;
+        Vector3 shapeScale = shape.scale;
+        shape.scale = new Vector3(bounds.size.x, shapeScale.y, bounds.size.z);
+
+        ParticleSystem.TriggerModule trigger = zoneParticleSystem.trigger;
+        trigger.SetCollider(0, zoneTrigger);
+    }
+
+    private void RestartZoneParticleSystem()
+    {
+        if (zoneParticleSystem == null)
+            return;
+
+        zoneParticleSystem.Stop(true, ParticleSystemStopBehavior.StopEmittingAndClear);
+        zoneParticleSystem.Play(true);
     }
 
     private void UpdateFloorMarkerPulse()
@@ -353,19 +410,25 @@ public class SlipperySurfaceZone : MonoBehaviour
         }
     }
 
-    private void AddFloorMarkerSpriteLayer(Transform parent, Sprite sprite, Color color, int sortingOrder)
+    private void AddFloorMarkerSpriteLayer(
+        Transform parent,
+        Sprite sprite,
+        Color color,
+        int sortingOrder,
+        float targetWidth,
+        float targetDepth)
     {
         if (sprite == null)
             return;
 
-        float layerScale = 1f / Mathf.Max(sprite.bounds.size.x, 0.001f);
-
         GameObject layer = new GameObject(sprite.name);
         layer.transform.SetParent(parent, false);
-        layer.transform.localScale = new Vector3(layerScale, layerScale, 1f);
+        layer.transform.localScale = Vector3.one;
 
         SpriteRenderer renderer = layer.AddComponent<SpriteRenderer>();
         renderer.sprite = sprite;
+        renderer.drawMode = SpriteDrawMode.Sliced;
+        renderer.size = new Vector2(targetWidth, targetDepth);
         renderer.color = color;
         renderer.sortingOrder = sortingOrder;
     }
