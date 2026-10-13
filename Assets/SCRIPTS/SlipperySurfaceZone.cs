@@ -11,6 +11,10 @@ public class SlipperySurfaceZone : MonoBehaviour
 
     [SerializeField] private BoxCollider zoneTrigger;
     [SerializeField] private Sprite floorMarkerSprite;
+    [SerializeField] private Sprite floorMarkerSprite2;
+    [SerializeField] private Color floorMarkerColor = Color.white;
+    [SerializeField] private Color floorMarkerColor2 = Color.white;
+    [SerializeField] [Range(0.1f, 10f)] private float floorMarkerPulseCycleSeconds = 3f;
 
     private Transform floorMarkersRoot;
     private bool isRebuildingFloorMarkers;
@@ -72,6 +76,8 @@ public class SlipperySurfaceZone : MonoBehaviour
 
             UpdateRunodeTracking(runode);
         }
+
+        UpdateFloorMarkerPulse();
     }
 
     private void OnTriggerEnter(Collider other)
@@ -238,7 +244,7 @@ public class SlipperySurfaceZone : MonoBehaviour
         RunodeMovement bottom = runode;
         Vector3 basePos = runode.transform.position;
 
-        foreach (RunodeMovement cube in Object.FindObjectsByType<RunodeMovement>())
+        foreach (RunodeMovement cube in UnityEngine.Object.FindObjectsByType<RunodeMovement>())
         {
             if (cube == null || cube == runode)
                 continue;
@@ -304,14 +310,11 @@ public class SlipperySurfaceZone : MonoBehaviour
         Bounds bounds = zoneTrigger.bounds;
         Vector3 boxSize = zoneTrigger.size;
         float floorY = bounds.min.y + FloorSpriteLift;
-        float spriteScale = 1f / Mathf.Max(floorMarkerSprite.bounds.size.x, 0.001f);
 
         int cellsX = Mathf.RoundToInt(boxSize.x);
         int cellsZ = Mathf.RoundToInt(boxSize.z);
-
         float startX = bounds.min.x + CellHalfExtent;
         float startZ = bounds.min.z + CellHalfExtent;
-
         for (int cellX = 0; cellX < cellsX; cellX++)
         {
             for (int cellZ = 0; cellZ < cellsZ; cellZ++)
@@ -321,14 +324,65 @@ public class SlipperySurfaceZone : MonoBehaviour
                 GameObject marker = new GameObject($"FloorMarker_{cellX}_{cellZ}");
                 marker.transform.SetParent(markersRoot, false);
                 marker.transform.SetPositionAndRotation(worldCellCenter, Quaternion.Euler(90f, 0f, 0f));
-                marker.transform.localScale = new Vector3(spriteScale, spriteScale, 1f);
 
-                SpriteRenderer renderer = marker.AddComponent<SpriteRenderer>();
-                renderer.sprite = floorMarkerSprite;
+                AddFloorMarkerSpriteLayer(marker.transform, floorMarkerSprite, floorMarkerColor, 0);
+
+                if (floorMarkerSprite2 != null)
+                    AddFloorMarkerSpriteLayer(marker.transform, floorMarkerSprite2, floorMarkerColor2, 1);
             }
         }
 
         isRebuildingFloorMarkers = false;
+    }
+
+    private void UpdateFloorMarkerPulse()
+    {
+        if (floorMarkersRoot == null || floorMarkerSprite == null)
+            return;
+
+        Color layer1Color = floorMarkerColor;
+        layer1Color.a = EvaluatePulsingAlpha();
+
+        SpriteRenderer[] renderers = floorMarkersRoot.GetComponentsInChildren<SpriteRenderer>();
+        foreach (SpriteRenderer renderer in renderers)
+        {
+            if (renderer.sortingOrder >= 1)
+                renderer.color = floorMarkerColor2;
+            else
+                renderer.color = layer1Color;
+        }
+    }
+
+    private void AddFloorMarkerSpriteLayer(Transform parent, Sprite sprite, Color color, int sortingOrder)
+    {
+        if (sprite == null)
+            return;
+
+        float layerScale = 1f / Mathf.Max(sprite.bounds.size.x, 0.001f);
+
+        GameObject layer = new GameObject(sprite.name);
+        layer.transform.SetParent(parent, false);
+        layer.transform.localScale = new Vector3(layerScale, layerScale, 1f);
+
+        SpriteRenderer renderer = layer.AddComponent<SpriteRenderer>();
+        renderer.sprite = sprite;
+        renderer.color = color;
+        renderer.sortingOrder = sortingOrder;
+    }
+
+    private float EvaluatePulsingAlpha()
+    {
+        float baseAlpha = floorMarkerColor.a;
+        if (baseAlpha <= 0f || floorMarkerPulseCycleSeconds <= 0f)
+            return baseAlpha;
+
+        float cycleT = Mathf.Repeat(Time.time, floorMarkerPulseCycleSeconds) / floorMarkerPulseCycleSeconds;
+        float phaseT = cycleT < 0.5f ? cycleT * 2f : (cycleT - 0.5f) * 2f;
+
+        if (cycleT < 0.5f)
+            return Mathf.Lerp(baseAlpha, 0f, phaseT);
+
+        return Mathf.Lerp(0f, baseAlpha, phaseT);
     }
 
     private Transform EnsureSingleFloorMarkersRoot()
@@ -357,7 +411,7 @@ public class SlipperySurfaceZone : MonoBehaviour
         return keep;
     }
 
-    private static void DestroyUnityObject(Object target)
+    private static void DestroyUnityObject(UnityEngine.Object target)
     {
         if (target == null)
             return;
