@@ -1,0 +1,25 @@
+---
+description: Minimal fix if runodes don't relight after physics land (drop/off-edge)
+globs: Assets/Scripts/RunodeMovement.cs,Assets/Scripts/RunodeCube.cs,Assets/Scripts/LinePort.cs,Assets/Scripts/PowerSource.cs
+alwaysApply: false
+---
+
+# Runode land → power refresh (minimal fix that worked)
+
+**Symptom:** Ports overlap, PS has MW, faces stay dark after fall/land. Push-end refresh OK. `FixedUpdate` already calls `RefreshCubeAndAdjacentConnections()` on `!wasGrounded && isGrounded`.
+
+**Cause (not the ray):** (1) Refresh on first grounded frame before snap/sync like `MoveTo` end. (2) `RefreshPortConnections` only; stale `connectedPorts` → no `ReportNewConnection`. (3) `GivePower` while ungrounded → waiting list; not drained on land.
+
+**Minimal fix (4 touches, no TryGive, no EvaluateWaitingList on every RefreshGiverPorts):**
+
+1. **LinePort** `ReportValidConnections`: guard `if (type != PortType.Giver || !canReportConnections) return;` (prevents instant all-on if using full face refresh).
+
+2. **RunodeMovement** land: frame 1 → `SnapToGrid()`, `Physics.SyncTransforms()`, set pending flag. Next `FixedUpdate` while still grounded → refresh (not same frame as transition).
+
+3. **RunodeCube** `RefreshConnectionsAfterLand()`: `RefreshConnectionsNearPoint(position)` (same as `RefreshCubeAndAdjacentConnections`) + foreach PS in radius `EvaluateWaitingList()` once.
+
+4. **PowerSource** `EvaluateWaitingList()` public (only called from land path above).
+
+**Do not:** bulk `PowerConnectedPortFromSource` on every unpowered link; `EvaluateWaitingList()` inside `RefreshGiverPorts()` (power leak on connect/disconnect); land-only `RefreshFaceAndPortsStates` without `canReportConnections` guard.
+
+**If land works after revert:** check collider size vs ray (`CheckGroundedWithRaycast`: origin +0.1 up, distance 0.8 down) — user reported shrink may have changed timing; fix above is for when overlap is correct but power doesn't retry.

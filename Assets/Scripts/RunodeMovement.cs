@@ -144,7 +144,7 @@ public class RunodeMovement : MonoBehaviour
     private bool CheckGroundedWithRaycast()
     {
         int mask = groundCheckMask == 0 ? ~0 : groundCheckMask;
-        return Physics.Raycast(transform.position + Vector3.up * 0.1f, Vector3.down, 0.8f, mask);
+        return Physics.Raycast(transform.position + Vector3.up * 0.1f, Vector3.down, 0.7f, mask);
     }
 
     private Vector3 GetGridDirection(Vector3 direction)
