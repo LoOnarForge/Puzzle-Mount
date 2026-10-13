@@ -20,6 +20,8 @@ public class RunodeMovement : MonoBehaviour
     public bool isMovingPos = false;
     // Set by SlipperySurfaceZone during auto-slide; linear step lerp instead of SmoothStep.
     public bool isSlipping = false;
+    // 1 = normal step speed while slipping; zone ramps down over the slide trip.
+    public float slipSpeedMultiplier = 1f;
     [SerializeField] private bool isGrounded;
     public bool isRotating { get; private set; }
 
@@ -218,6 +220,8 @@ public class RunodeMovement : MonoBehaviour
 
         float elapsed = 0f;
         float moveTime = 1f / moveSpeed;
+        if (isSlipping)
+            moveTime /= Mathf.Max(slipSpeedMultiplier, 0.01f);
 
         while (elapsed < moveTime)
         {

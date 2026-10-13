@@ -134,7 +134,7 @@ public class SlipperySurfaceZone : MonoBehaviour
             TryStartSlideAfterPush(runode, state);
 
             if (!slidingStackBottoms.Contains(runode))
-                runode.isSlipping = false;
+                ResetSlipState(runode);
 
             state.HasMoveStart = false;
         }
@@ -159,7 +159,10 @@ public class SlipperySurfaceZone : MonoBehaviour
 
         Vector3 stepTarget = state.MoveStartGrid + direction;
         if (ContainsGridPosition(stepTarget))
+        {
             runode.isSlipping = true;
+            runode.slipSpeedMultiplier = 1f;
+        }
     }
 
     private void TryStartSlideAfterPush(RunodeMovement runode, RunodeTrackState state)
@@ -183,6 +186,12 @@ public class SlipperySurfaceZone : MonoBehaviour
     {
         slidingStackBottoms.Add(stackBottom);
         stackBottom.isSlipping = true;
+        stackBottom.slipSpeedMultiplier = 1f;
+
+        int cellsMoved = 0;
+        int expectedCells = CountZoneStepsUntilExit(SnapHorizontal(stackBottom.transform.position), direction);
+        if (expectedCells < 1)
+            expectedCells = 1;
 
         while (ContainsGridPosition(SnapHorizontal(stackBottom.transform.position)))
         {
@@ -193,16 +202,57 @@ public class SlipperySurfaceZone : MonoBehaviour
 
             bool nextStillInZone = ContainsGridPosition(nextCell);
 
+            stackBottom.slipSpeedMultiplier = GetSlipSpeedMultiplier(cellsMoved, expectedCells);
             stackBottom.PushSingle(direction);
 
             yield return WaitUntilRunodeIdle(stackBottom);
+
+            cellsMoved++;
 
             if (!nextStillInZone)
                 break;
         }
 
-        stackBottom.isSlipping = false;
+        ResetSlipState(stackBottom);
         slidingStackBottoms.Remove(stackBottom);
+    }
+
+    private static float GetSlipSpeedMultiplier(int cellsMovedSoFar, int expectedCellsInTrip)
+    {
+        if (expectedCellsInTrip <= 1)
+            return 1f;
+
+        float tripProgress = (float)cellsMovedSoFar / (expectedCellsInTrip - 1);
+        return Mathf.Lerp(1f, 0.5f, tripProgress);
+    }
+
+    private static void ResetSlipState(RunodeMovement runode)
+    {
+        if (runode == null)
+            return;
+
+        runode.isSlipping = false;
+        runode.slipSpeedMultiplier = 1f;
+    }
+
+    private int CountZoneStepsUntilExit(Vector3 startGrid, Vector3 direction)
+    {
+        const int maxZoneSteps = 64;
+        int steps = 0;
+        Vector3 grid = startGrid;
+
+        while (steps < maxZoneSteps)
+        {
+            Vector3 next = grid + direction;
+            steps++;
+
+            if (!ContainsGridPosition(next))
+                break;
+
+            grid = next;
+        }
+
+        return steps;
     }
 
     private static RunodeMovement GetColumnBottom(RunodeMovement runode)
