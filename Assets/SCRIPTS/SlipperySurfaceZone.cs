@@ -3,7 +3,6 @@ using System.Collections.Generic;
 using UnityEngine;
 
 [DisallowMultipleComponent]
-[RequireComponent(typeof(BoxCollider))]
 public class SlipperySurfaceZone : MonoBehaviour
 {
     private const string FloorMarkersChildName = "_SlipperyFloorMarkers";
@@ -31,24 +30,8 @@ public class SlipperySurfaceZone : MonoBehaviour
         public bool HasMoveStart;
     }
 
-    private void Reset()
-    {
-        zoneTrigger = GetComponent<BoxCollider>();
-        ConfigureTrigger();
-    }
-
-    private void Awake()
-    {
-        if (zoneTrigger == null)
-            zoneTrigger = GetComponent<BoxCollider>();
-        ConfigureTrigger();
-    }
-
     private void OnValidate()
     {
-        if (zoneTrigger == null)
-            zoneTrigger = GetComponent<BoxCollider>();
-
 #if UNITY_EDITOR
         QueueEditorFloorRebuild();
 #endif
@@ -56,6 +39,7 @@ public class SlipperySurfaceZone : MonoBehaviour
 
     private void Start()
     {
+        ApplyEvenSizeColliderCenterOffset();
         RebuildFloorMarkers();
     }
 
@@ -105,12 +89,6 @@ public class SlipperySurfaceZone : MonoBehaviour
 
         runodesInTrigger.Remove(runode);
         trackByRunode.Remove(runode);
-    }
-
-    private void ConfigureTrigger()
-    {
-        if (zoneTrigger != null)
-            zoneTrigger.isTrigger = true;
     }
 
     private void UpdateRunodeTracking(RunodeMovement runode)
@@ -280,6 +258,18 @@ public class SlipperySurfaceZone : MonoBehaviour
             yield return null;
     }
 
+    // Per axis: even size -> 0.5 local center; odd size -> 0. Keeps box + sprites on the 1m grid.
+    private void ApplyEvenSizeColliderCenterOffset()
+    {
+        Vector3 size = zoneTrigger.size;
+        Vector3 center = zoneTrigger.center;
+
+        center.x = Mathf.RoundToInt(size.x) % 2 == 0 ? 0.5f : 0f;
+        center.z = Mathf.RoundToInt(size.z) % 2 == 0 ? 0.5f : 0f;
+
+        zoneTrigger.center = center;
+    }
+
     private bool ContainsGridPosition(Vector3 gridPosition)
     {
         if (zoneTrigger == null)
@@ -295,40 +285,42 @@ public class SlipperySurfaceZone : MonoBehaviour
 
     private void RebuildFloorMarkers()
     {
-        if (isRebuildingFloorMarkers || zoneTrigger == null || floorMarkerSprite == null)
+        if (isRebuildingFloorMarkers || zoneTrigger == null)
             return;
 
         isRebuildingFloorMarkers = true;
 
+        ApplyEvenSizeColliderCenterOffset();
+
+        if (floorMarkerSprite == null)
+        {
+            isRebuildingFloorMarkers = false;
+            return;
+        }
+
         Transform markersRoot = EnsureSingleFloorMarkersRoot();
         ClearChildren(markersRoot);
 
-        Bounds b = zoneTrigger.bounds;
-        float floorY = b.min.y + FloorSpriteLift;
+        Bounds bounds = zoneTrigger.bounds;
+        Vector3 boxSize = zoneTrigger.size;
+        float floorY = bounds.min.y + FloorSpriteLift;
         float spriteScale = 1f / Mathf.Max(floorMarkerSprite.bounds.size.x, 0.001f);
 
-        int minX = Mathf.FloorToInt(b.min.x + CellHalfExtent);
-        int maxX = Mathf.FloorToInt(b.max.x - CellHalfExtent);
-        int minZ = Mathf.FloorToInt(b.min.z + CellHalfExtent);
-        int maxZ = Mathf.FloorToInt(b.max.z - CellHalfExtent);
+        int cellsX = Mathf.RoundToInt(boxSize.x);
+        int cellsZ = Mathf.RoundToInt(boxSize.z);
 
-        var placedCells = new HashSet<long>();
+        float startX = bounds.min.x + CellHalfExtent;
+        float startZ = bounds.min.z + CellHalfExtent;
 
-        for (int x = minX; x <= maxX; x++)
+        for (int cellX = 0; cellX < cellsX; cellX++)
         {
-            for (int z = minZ; z <= maxZ; z++)
+            for (int cellZ = 0; cellZ < cellsZ; cellZ++)
             {
-                long cellKey = CellKey(x, z);
-                if (!placedCells.Add(cellKey))
-                    continue;
+                Vector3 worldCellCenter = new Vector3(startX + cellX, floorY, startZ + cellZ);
 
-                Vector3 cell = new Vector3(x, b.max.y, z);
-                if (!ContainsGridPosition(cell))
-                    continue;
-
-                GameObject marker = new GameObject($"FloorMarker_{x}_{z}");
+                GameObject marker = new GameObject($"FloorMarker_{cellX}_{cellZ}");
                 marker.transform.SetParent(markersRoot, false);
-                marker.transform.SetPositionAndRotation(new Vector3(x, floorY, z), Quaternion.Euler(90f, 0f, 0f));
+                marker.transform.SetPositionAndRotation(worldCellCenter, Quaternion.Euler(90f, 0f, 0f));
                 marker.transform.localScale = new Vector3(spriteScale, spriteScale, 1f);
 
                 SpriteRenderer renderer = marker.AddComponent<SpriteRenderer>();
@@ -363,11 +355,6 @@ public class SlipperySurfaceZone : MonoBehaviour
 
         floorMarkersRoot = keep;
         return keep;
-    }
-
-    private static long CellKey(int x, int z)
-    {
-        return ((long)x << 32) ^ (uint)z;
     }
 
     private static void DestroyUnityObject(Object target)
