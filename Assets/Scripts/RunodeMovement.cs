@@ -18,6 +18,8 @@ public class RunodeMovement : MonoBehaviour
 
     [Header("DEBUG:")]
     public bool isMovingPos = false;
+    // Set by SlipperySurfaceZone during auto-slide; linear step lerp instead of SmoothStep.
+    public bool isSlipping = false;
     [SerializeField] private bool isGrounded;
     public bool isRotating { get; private set; }
 
@@ -220,7 +222,8 @@ public class RunodeMovement : MonoBehaviour
         while (elapsed < moveTime)
         {
             elapsed += Time.deltaTime;
-            float progress = Mathf.SmoothStep(0f, 1f, elapsed / moveTime);
+            float t = elapsed / moveTime;
+            float progress = isSlipping ? t : Mathf.SmoothStep(0f, 1f, t);
 
             Vector3 currentPos = Vector3.Lerp(startPos, targetPosition, progress);
             currentPos.y = startPos.y; // Strict vertical lock

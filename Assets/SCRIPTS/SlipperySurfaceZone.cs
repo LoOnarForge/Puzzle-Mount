@@ -125,14 +125,41 @@ public class SlipperySurfaceZone : MonoBehaviour
             state.MoveStartGrid = SnapHorizontal(runode.transform.position);
             state.HasMoveStart = true;
         }
+        else if (isMoving && state.HasMoveStart)
+        {
+            TryEnableSlipEasingForPushStep(runode, state);
+        }
         else if (state.WasMoving && !isMoving)
         {
             TryStartSlideAfterPush(runode, state);
+
+            if (!slidingStackBottoms.Contains(runode))
+                runode.isSlipping = false;
+
             state.HasMoveStart = false;
         }
 
         state.WasMoving = isMoving;
         trackByRunode[runode] = state;
+    }
+
+    // Linear push lerp for Tim's step when that step's target cell is on this zone (removes entry ease-out).
+    private void TryEnableSlipEasingForPushStep(RunodeMovement runode, RunodeTrackState state)
+    {
+        if (slidingStackBottoms.Contains(runode))
+            return;
+
+        RunodeMovement columnBottom = GetColumnBottom(runode);
+        if (runode != columnBottom || columnBottom.GetStack().Length != 1)
+            return;
+
+        Vector3 direction = CardinalDirection(runode.transform.position - state.MoveStartGrid);
+        if (direction == Vector3.zero)
+            return;
+
+        Vector3 stepTarget = state.MoveStartGrid + direction;
+        if (ContainsGridPosition(stepTarget))
+            runode.isSlipping = true;
     }
 
     private void TryStartSlideAfterPush(RunodeMovement runode, RunodeTrackState state)
@@ -155,6 +182,7 @@ public class SlipperySurfaceZone : MonoBehaviour
     private IEnumerator SlideStack(RunodeMovement stackBottom, Vector3 direction)
     {
         slidingStackBottoms.Add(stackBottom);
+        stackBottom.isSlipping = true;
 
         while (ContainsGridPosition(SnapHorizontal(stackBottom.transform.position)))
         {
@@ -173,6 +201,7 @@ public class SlipperySurfaceZone : MonoBehaviour
                 break;
         }
 
+        stackBottom.isSlipping = false;
         slidingStackBottoms.Remove(stackBottom);
     }
 
