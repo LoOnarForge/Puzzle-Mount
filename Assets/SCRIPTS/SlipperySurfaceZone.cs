@@ -137,8 +137,8 @@ public class SlipperySurfaceZone : MonoBehaviour
 
     private void TryStartSlideAfterPush(RunodeMovement runode, RunodeTrackState state)
     {
-        RunodeMovement[] stack = runode.GetStack();
-        if (stack.Length == 0 || stack[0] != runode || slidingStackBottoms.Contains(runode))
+        RunodeMovement columnBottom = GetColumnBottom(runode);
+        if (runode != columnBottom || columnBottom.GetStack().Length != 1 || slidingStackBottoms.Contains(runode))
             return;
 
         Vector3 endGrid = SnapHorizontal(runode.transform.position);
@@ -158,18 +158,16 @@ public class SlipperySurfaceZone : MonoBehaviour
 
         while (ContainsGridPosition(SnapHorizontal(stackBottom.transform.position)))
         {
-            RunodeMovement[] stack = stackBottom.GetStack();
             Vector3 nextCell = SnapHorizontal(stackBottom.transform.position) + direction;
 
-            if (!StackCanStep(stack, direction))
+            if (!stackBottom.CanPushSingle(direction))
                 break;
 
             bool nextStillInZone = ContainsGridPosition(nextCell);
 
-            foreach (RunodeMovement cube in stack)
-                cube.PushSingle(direction);
+            stackBottom.PushSingle(direction);
 
-            yield return WaitForStack(stack);
+            yield return WaitUntilRunodeIdle(stackBottom);
 
             if (!nextStillInZone)
                 break;
@@ -178,36 +176,29 @@ public class SlipperySurfaceZone : MonoBehaviour
         slidingStackBottoms.Remove(stackBottom);
     }
 
-    private static bool StackCanStep(RunodeMovement[] stack, Vector3 direction)
+    private static RunodeMovement GetColumnBottom(RunodeMovement runode)
     {
-        foreach (RunodeMovement cube in stack)
+        RunodeMovement bottom = runode;
+        Vector3 basePos = runode.transform.position;
+
+        foreach (RunodeMovement cube in Object.FindObjectsByType<RunodeMovement>())
         {
-            if (cube == null || !cube.CanPushSingle(direction))
-                return false;
+            if (cube == null || cube == runode)
+                continue;
+
+            Vector3 cubePos = cube.transform.position;
+            bool aligned = Mathf.Abs(cubePos.x - basePos.x) < 0.1f && Mathf.Abs(cubePos.z - basePos.z) < 0.1f;
+            if (aligned && cubePos.y < bottom.transform.position.y)
+                bottom = cube;
         }
 
-        return true;
+        return bottom;
     }
 
-    private static IEnumerator WaitForStack(RunodeMovement[] stack)
+    private static IEnumerator WaitUntilRunodeIdle(RunodeMovement runode)
     {
-        while (true)
-        {
-            bool moving = false;
-            foreach (RunodeMovement cube in stack)
-            {
-                if (cube != null && cube.isMovingPos)
-                {
-                    moving = true;
-                    break;
-                }
-            }
-
-            if (!moving)
-                yield break;
-
+        while (runode != null && runode.isMovingPos)
             yield return null;
-        }
     }
 
     private bool ContainsGridPosition(Vector3 gridPosition)
