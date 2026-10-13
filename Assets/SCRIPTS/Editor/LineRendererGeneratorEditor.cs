@@ -15,6 +15,8 @@ public class LineRendererGeneratorEditor : Editor
         serializedObject.Update();
 
         EditorGUILayout.PropertyField(serializedObject.FindProperty("lineRendererPrefab"));
+        EditorGUILayout.PropertyField(serializedObject.FindProperty("editorPreviewMaterial"));
+        EditorGUILayout.PropertyField(serializedObject.FindProperty("beamLineMaterial"));
         EditorGUILayout.PropertyField(serializedObject.FindProperty("cometPrefab"));
         EditorGUILayout.PropertyField(serializedObject.FindProperty("beamSpeedMin"));
         EditorGUILayout.PropertyField(serializedObject.FindProperty("beamSpeedMax"));
@@ -26,6 +28,10 @@ public class LineRendererGeneratorEditor : Editor
             EditorGUILayout.HelpBox("Assign the shared Line Renderer prefab used for all connection lines.", MessageType.Warning);
         else if (generator.LineRendererPrefab.GetComponent<LineRenderer>() == null)
             EditorGUILayout.HelpBox("Line Renderer Prefab must have a LineRenderer on its root.", MessageType.Warning);
+
+        EditorGUILayout.Space(12);
+        if (!Application.isPlaying && GUILayout.Button("Apply Editor Preview Materials To Link Lines"))
+            ApplyEditorPreviewMaterialsToLinks(generator);
 
         EditorGUILayout.Space(12);
         if (GUILayout.Button("Collect Devices List"))
@@ -65,6 +71,28 @@ public class LineRendererGeneratorEditor : Editor
 
             EditorGUILayout.EndVertical();
             EditorGUILayout.Space(6);
+        }
+    }
+
+    private static void ApplyEditorPreviewMaterialsToLinks(LineRendererGenerator generator)
+    {
+        Material editorMaterial = generator.EditorPreviewMaterial;
+        if (editorMaterial == null)
+        {
+            Debug.LogWarning($"LineRendererGenerator on '{generator.name}': assign Editor Preview Material first.", generator);
+            return;
+        }
+
+        LineRenderer[] lines = generator.GetComponentsInChildren<LineRenderer>(true);
+        for (int i = 0; i < lines.Length; i++)
+        {
+            LineRenderer line = lines[i];
+            if (line == null)
+                continue;
+
+            Undo.RecordObject(line, "Apply Editor Preview Material");
+            line.sharedMaterial = editorMaterial;
+            EditorUtility.SetDirty(line);
         }
     }
 
@@ -199,12 +227,19 @@ public class LineRendererGeneratorEditor : Editor
         lineRenderer.positionCount = points.Length;
         lineRenderer.SetPositions(points);
 
+        Material playMaterial = generator.BeamLineMaterial != null
+            ? generator.BeamLineMaterial
+            : prefab.GetComponent<LineRenderer>().sharedMaterial;
+        Material editorMaterial = generator.EditorPreviewMaterial;
+        if (editorMaterial != null)
+            lineRenderer.sharedMaterial = editorMaterial;
+
         ActivatorConnectionLineImpulse lineImpulse = lineObject.GetComponent<ActivatorConnectionLineImpulse>();
         if (lineImpulse == null)
             lineImpulse = Undo.AddComponent<ActivatorConnectionLineImpulse>(lineObject);
 
         Undo.RecordObject(lineImpulse, "Configure Line Impulse");
-        lineImpulse.ConfigureFromGenerator(generator.CometPrefab, generator.BeamSpeedMin, generator.BeamSpeedMax);
+        lineImpulse.ConfigureFromGenerator(generator.CometPrefab, playMaterial, generator.BeamSpeedMin, generator.BeamSpeedMax);
         lineImpulse.CachePathFromLineRenderer();
         lineImpulse.enabled = false;
         EditorUtility.SetDirty(lineImpulse);

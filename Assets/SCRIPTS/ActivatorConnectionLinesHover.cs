@@ -94,7 +94,11 @@ public class ActivatorConnectionLinesHover : MonoBehaviour
             if (impulse != null)
             {
                 if (generator != null)
-                    impulse.ConfigureFromGenerator(generator.CometPrefab, generator.BeamSpeedMin, generator.BeamSpeedMax);
+                    impulse.ConfigureFromGenerator(
+                        generator.CometPrefab,
+                        generator.BeamLineMaterial,
+                        generator.BeamSpeedMin,
+                        generator.BeamSpeedMax);
                 impulse.CachePathFromLineRenderer();
             }
 

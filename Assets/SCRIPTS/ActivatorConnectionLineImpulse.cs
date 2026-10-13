@@ -4,6 +4,7 @@ using UnityEngine.Rendering;
 
 [DisallowMultipleComponent]
 [RequireComponent(typeof(LineRenderer))]
+[ExecuteAlways]
 public class ActivatorConnectionLineImpulse : MonoBehaviour
 {
     private const float MinPathLength = 0.01f;
@@ -29,6 +30,7 @@ public class ActivatorConnectionLineImpulse : MonoBehaviour
 
     private GameObject headVisualPrefab;
     private Transform headVisual;
+    private Material playLineMaterial;
     private float speedMin;
     private float speedMax;
 
@@ -43,8 +45,28 @@ public class ActivatorConnectionLineImpulse : MonoBehaviour
     private void Awake()
     {
         lineRenderer = GetComponent<LineRenderer>();
-        CaptureHeadColorFromLineRenderer();
         ApplyLineRendererSettings();
+        if (Application.isPlaying)
+            ApplyPlayLineMaterial();
+        else
+            ApplyEditorPreviewMaterialFromGenerator();
+        CaptureHeadColorFromLineRenderer();
+    }
+
+    private void OnEnable()
+    {
+        if (Application.isPlaying)
+            ApplyPlayLineMaterial();
+        else
+            ApplyEditorPreviewMaterialFromGenerator();
+    }
+
+    private void OnValidate()
+    {
+        if (Application.isPlaying)
+            return;
+
+        ApplyEditorPreviewMaterialFromGenerator();
     }
 
     private void OnDestroy()
@@ -70,12 +92,55 @@ public class ActivatorConnectionLineImpulse : MonoBehaviour
         UpdateHeadVisual(Mathf.Min(headDistance, totalPathLength));
     }
 
-    // Assigns head prefab and random speed range from LineRendererGenerator.
-    public void ConfigureFromGenerator(GameObject prefab, float minSpeed, float maxSpeed)
+    // Assigns head prefab, play material, and random speed range from LineRendererGenerator.
+    public void ConfigureFromGenerator(GameObject prefab, Material beamMaterial, float minSpeed, float maxSpeed)
     {
         headVisualPrefab = prefab;
+        if (beamMaterial != null)
+            playLineMaterial = beamMaterial;
         speedMin = Mathf.Max(0f, minSpeed);
         speedMax = Mathf.Max(speedMin, maxSpeed);
+
+        if (Application.isPlaying)
+            ApplyPlayLineMaterial();
+    }
+
+    // Applies the bright beam material used during play mode.
+    public void ApplyPlayLineMaterial()
+    {
+        if (lineRenderer == null)
+            lineRenderer = GetComponent<LineRenderer>();
+
+        Material beamMaterial = ResolvePlayLineMaterial();
+        if (lineRenderer == null || beamMaterial == null)
+            return;
+
+        playLineMaterial = beamMaterial;
+        lineRenderer.sharedMaterial = beamMaterial;
+    }
+
+    private Material ResolvePlayLineMaterial()
+    {
+        if (playLineMaterial != null)
+            return playLineMaterial;
+
+        LineRendererGenerator generator = GetComponentInParent<LineRendererGenerator>();
+        if (generator != null)
+            return generator.BeamLineMaterial;
+
+        return null;
+    }
+
+    private void ApplyEditorPreviewMaterialFromGenerator()
+    {
+        if (lineRenderer == null)
+            lineRenderer = GetComponent<LineRenderer>();
+
+        LineRendererGenerator generator = GetComponentInParent<LineRendererGenerator>();
+        if (generator == null || generator.EditorPreviewMaterial == null)
+            return;
+
+        lineRenderer.sharedMaterial = generator.EditorPreviewMaterial;
     }
 
     // True while the cursor is over the activator — starts the next cycle when the current one finishes.
@@ -128,6 +193,7 @@ public class ActivatorConnectionLineImpulse : MonoBehaviour
 
     private void BeginCycle()
     {
+        ApplyPlayLineMaterial();
         RollTravelSpeed();
         headDistance = 0f;
         isRunning = true;

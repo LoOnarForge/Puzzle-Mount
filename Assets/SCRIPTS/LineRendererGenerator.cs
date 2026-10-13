@@ -6,18 +6,44 @@ using UnityEngine;
 public class LineRendererGenerator : MonoBehaviour
 {
     [SerializeField] private GameObject lineRendererPrefab;
+    [SerializeField] private Material editorPreviewMaterial;
+    [SerializeField] private Material beamLineMaterial;
     [SerializeField] private GameObject cometPrefab;
     [Min(0f)] [SerializeField] private float beamSpeedMin = 2f;
     [Min(0f)] [SerializeField] private float beamSpeedMax = 3f;
     [SerializeField] private List<LineRendererGeneratorLinkEntry> links = new List<LineRendererGeneratorLinkEntry>();
 
     public GameObject LineRendererPrefab => lineRendererPrefab;
+    public Material EditorPreviewMaterial => editorPreviewMaterial;
+    public Material BeamLineMaterial => beamLineMaterial;
     public GameObject CometPrefab => cometPrefab;
     public float BeamSpeedMin => beamSpeedMin;
     public float BeamSpeedMax => beamSpeedMax;
     public IReadOnlyList<LineRendererGeneratorLinkEntry> Links => links;
 
     public List<LineRendererGeneratorLinkEntry> LinksEditable => links;
+
+    private void Awake()
+    {
+        if (!Application.isPlaying)
+            return;
+
+        ConfigureAllLinkImpulses();
+    }
+
+    // Pushes generator settings (including beam material) to all link lines.
+    public void ConfigureAllLinkImpulses()
+    {
+        ActivatorConnectionLineImpulse[] impulses = GetComponentsInChildren<ActivatorConnectionLineImpulse>(true);
+        for (int i = 0; i < impulses.Length; i++)
+        {
+            ActivatorConnectionLineImpulse impulse = impulses[i];
+            if (impulse == null)
+                continue;
+
+            impulse.ConfigureFromGenerator(CometPrefab, beamLineMaterial, beamSpeedMin, beamSpeedMax);
+        }
+    }
 }
 
 [Serializable]
