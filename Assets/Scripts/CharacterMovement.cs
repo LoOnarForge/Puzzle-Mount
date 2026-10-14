@@ -3,7 +3,7 @@ using UnityEngine;
 using UnityEngine.InputSystem;
 
 [RequireComponent(typeof(CharacterController))]
-public class CharacterMovement : MonoBehaviour
+public partial class CharacterMovement : MonoBehaviour
 {
     [Header("MOVEMENT SETTINGS")]
     public float walkSpeed = 3f;
@@ -311,8 +311,10 @@ public class CharacterMovement : MonoBehaviour
         else
         {
             currentSpeed = CalculateMovementSpeed(shouldRun);
+            CaptureSlipperyCoastWhileMoving(shouldRun, moveDirection, currentSpeed);
             Vector3 movement = moveDirection * currentSpeed;
             controller.Move(movement * Time.deltaTime);
+            HandleSlipperySurfaceMovement();
         }
         
         if (moveDirection != Vector3.zero)
