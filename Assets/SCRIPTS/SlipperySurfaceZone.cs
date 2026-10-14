@@ -5,10 +5,9 @@ using UnityEngine;
 [DisallowMultipleComponent]
 public class SlipperySurfaceZone : MonoBehaviour
 {
-    private const string FloorMarkersChildName = "_SlipperyFloorMarkers";
+    private const string FloorSpriteObjectPrefix = "_ZoneFloorSprite";
     private const float CellHalfExtent = 0.5f;
     private const float FloorSpriteLift = 0.02f;
-    private const float ZoneParticleHeightAboveBottom = 0.5f;
 
     [SerializeField] private BoxCollider zoneTrigger;
     [SerializeField] private ParticleSystem zoneParticleSystem;
@@ -18,7 +17,6 @@ public class SlipperySurfaceZone : MonoBehaviour
     [SerializeField] private Color floorMarkerColor2 = Color.white;
     [SerializeField] [Range(0.1f, 10f)] private float floorMarkerPulseCycleSeconds = 3f;
 
-    private Transform floorMarkersRoot;
     private bool isRebuildingFloorMarkers;
 
 #if UNITY_EDITOR
@@ -309,29 +307,25 @@ public class SlipperySurfaceZone : MonoBehaviour
 
         ApplyEvenSizeColliderCenterOffset();
 
+        DestroyFloorMarkerObjects();
+
         if (floorMarkerSprite == null)
         {
             isRebuildingFloorMarkers = false;
             return;
         }
 
-        Transform markersRoot = EnsureSingleFloorMarkersRoot();
-        ClearChildren(markersRoot);
-
         Bounds bounds = zoneTrigger.bounds;
         float floorY = bounds.min.y + FloorSpriteLift;
         float zoneWidth = bounds.size.x;
         float zoneDepth = bounds.size.z;
         Vector3 zoneCenter = new Vector3(bounds.center.x, floorY, bounds.center.z);
+        Quaternion floorRotation = Quaternion.Euler(90f, 0f, 0f);
 
-        GameObject marker = new GameObject("FloorMarker");
-        marker.transform.SetParent(markersRoot, false);
-        marker.transform.SetPositionAndRotation(zoneCenter, Quaternion.Euler(90f, 0f, 0f));
-
-        AddFloorMarkerSpriteLayer(marker.transform, floorMarkerSprite, floorMarkerColor, 0, zoneWidth, zoneDepth);
+        AddFloorMarkerSpriteLayer(floorMarkerSprite, floorMarkerColor, 0, zoneWidth, zoneDepth, zoneCenter, floorRotation);
 
         if (floorMarkerSprite2 != null)
-            AddFloorMarkerSpriteLayer(marker.transform, floorMarkerSprite2, floorMarkerColor2, 1, zoneWidth, zoneDepth);
+            AddFloorMarkerSpriteLayer(floorMarkerSprite2, floorMarkerColor2, 1, zoneWidth, zoneDepth, zoneCenter, floorRotation);
 
         isRebuildingFloorMarkers = false;
     }
@@ -365,22 +359,43 @@ public class SlipperySurfaceZone : MonoBehaviour
         if (zoneParticleSystem == null || zoneTrigger == null)
             return;
 
-        Bounds bounds = zoneTrigger.bounds;
-        Vector3 anchorWorld = new Vector3(
-            bounds.center.x,
-            bounds.min.y + ZoneParticleHeightAboveBottom,
-            bounds.center.z);
-
         Transform particleTransform = zoneParticleSystem.transform;
         particleTransform.SetParent(transform, true);
-        particleTransform.localPosition = transform.InverseTransformPoint(anchorWorld);
+        particleTransform.position = zoneTrigger.transform.TransformPoint(zoneTrigger.center);
 
         ParticleSystem.ShapeModule shape = zoneParticleSystem.shape;
-        Vector3 shapeScale = shape.scale;
-        shape.scale = new Vector3(bounds.size.x, shapeScale.y, bounds.size.z);
+        shape.scale = GetParticleBoxScale(particleTransform);
 
         ParticleSystem.TriggerModule trigger = zoneParticleSystem.trigger;
         trigger.SetCollider(0, zoneTrigger);
+    }
+
+    private Vector3 GetParticleBoxScale(Transform particleTransform)
+    {
+        Vector3 zoneSize = zoneTrigger.size;
+        Quaternion zoneToParticle = Quaternion.Inverse(particleTransform.rotation) * zoneTrigger.transform.rotation;
+        Vector3 axisX = zoneToParticle * Vector3.right;
+        Vector3 axisY = zoneToParticle * Vector3.up;
+        Vector3 axisZ = zoneToParticle * Vector3.forward;
+
+        Vector3 shapeScale = new Vector3(
+            Mathf.Abs(axisX.x) * zoneSize.x + Mathf.Abs(axisY.x) * zoneSize.y + Mathf.Abs(axisZ.x) * zoneSize.z,
+            Mathf.Abs(axisX.y) * zoneSize.x + Mathf.Abs(axisY.y) * zoneSize.y + Mathf.Abs(axisZ.y) * zoneSize.z,
+            Mathf.Abs(axisX.z) * zoneSize.x + Mathf.Abs(axisY.z) * zoneSize.y + Mathf.Abs(axisZ.z) * zoneSize.z);
+
+        Vector3 particleScale = particleTransform.localScale;
+        shapeScale.x = DivideByScale(shapeScale.x, particleScale.x);
+        shapeScale.y = DivideByScale(shapeScale.y, particleScale.y);
+        shapeScale.z = DivideByScale(shapeScale.z, particleScale.z);
+        return shapeScale;
+    }
+
+    private static float DivideByScale(float size, float scale)
+    {
+        if (Mathf.Abs(scale) < 0.0001f)
+            return size;
+
+        return size / scale;
     }
 
     private void RestartZoneParticleSystem()
@@ -394,15 +409,22 @@ public class SlipperySurfaceZone : MonoBehaviour
 
     private void UpdateFloorMarkerPulse()
     {
-        if (floorMarkersRoot == null || floorMarkerSprite == null)
+        if (floorMarkerSprite == null)
             return;
 
         Color layer1Color = floorMarkerColor;
         layer1Color.a = EvaluatePulsingAlpha();
 
-        SpriteRenderer[] renderers = floorMarkersRoot.GetComponentsInChildren<SpriteRenderer>();
-        foreach (SpriteRenderer renderer in renderers)
+        for (int i = 0; i < transform.childCount; i++)
         {
+            Transform child = transform.GetChild(i);
+            if (!child.name.StartsWith(FloorSpriteObjectPrefix))
+                continue;
+
+            SpriteRenderer renderer = child.GetComponent<SpriteRenderer>();
+            if (renderer == null)
+                continue;
+
             if (renderer.sortingOrder >= 1)
                 renderer.color = floorMarkerColor2;
             else
@@ -411,18 +433,20 @@ public class SlipperySurfaceZone : MonoBehaviour
     }
 
     private void AddFloorMarkerSpriteLayer(
-        Transform parent,
         Sprite sprite,
         Color color,
         int sortingOrder,
         float targetWidth,
-        float targetDepth)
+        float targetDepth,
+        Vector3 worldPosition,
+        Quaternion worldRotation)
     {
         if (sprite == null)
             return;
 
-        GameObject layer = new GameObject(sprite.name);
-        layer.transform.SetParent(parent, false);
+        GameObject layer = new GameObject(FloorSpriteObjectPrefix + sortingOrder);
+        layer.transform.SetParent(transform, false);
+        layer.transform.SetPositionAndRotation(worldPosition, worldRotation);
         layer.transform.localScale = Vector3.one;
 
         SpriteRenderer renderer = layer.AddComponent<SpriteRenderer>();
@@ -431,6 +455,16 @@ public class SlipperySurfaceZone : MonoBehaviour
         renderer.size = new Vector2(targetWidth, targetDepth);
         renderer.color = color;
         renderer.sortingOrder = sortingOrder;
+    }
+
+    private void DestroyFloorMarkerObjects()
+    {
+        for (int i = transform.childCount - 1; i >= 0; i--)
+        {
+            Transform child = transform.GetChild(i);
+            if (child.name == "_SlipperyFloorMarkers" || child.name == "FloorMarker" || child.name.StartsWith(FloorSpriteObjectPrefix))
+                DestroyUnityObject(child.gameObject);
+        }
     }
 
     private float EvaluatePulsingAlpha()
@@ -448,32 +482,6 @@ public class SlipperySurfaceZone : MonoBehaviour
         return Mathf.Lerp(0f, baseAlpha, phaseT);
     }
 
-    private Transform EnsureSingleFloorMarkersRoot()
-    {
-        Transform keep = null;
-
-        for (int i = 0; i < transform.childCount; i++)
-        {
-            Transform child = transform.GetChild(i);
-            if (child.name != FloorMarkersChildName)
-                continue;
-
-            if (keep == null)
-                keep = child;
-            else
-                DestroyUnityObject(child.gameObject);
-        }
-
-        if (keep == null)
-        {
-            keep = new GameObject(FloorMarkersChildName).transform;
-            keep.SetParent(transform, false);
-        }
-
-        floorMarkersRoot = keep;
-        return keep;
-    }
-
     private static void DestroyUnityObject(UnityEngine.Object target)
     {
         if (target == null)
@@ -483,12 +491,6 @@ public class SlipperySurfaceZone : MonoBehaviour
             Destroy(target);
         else
             DestroyImmediate(target);
-    }
-
-    private static void ClearChildren(Transform parent)
-    {
-        for (int i = parent.childCount - 1; i >= 0; i--)
-            DestroyUnityObject(parent.GetChild(i).gameObject);
     }
 
     private static Vector3 SnapHorizontal(Vector3 position)
