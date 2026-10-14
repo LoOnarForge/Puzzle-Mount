@@ -303,17 +303,17 @@ public class SlipperySurfaceZone : MonoBehaviour
         if (isRebuildingFloorMarkers || zoneTrigger == null)
             return;
 
+        if (floorMarkerSprite == null)
+        {
+            DestroyEmptyRuntimeFloorSpriteObjects();
+            return;
+        }
+
         isRebuildingFloorMarkers = true;
 
         ApplyEvenSizeColliderCenterOffset();
 
         DestroyFloorMarkerObjects();
-
-        if (floorMarkerSprite == null)
-        {
-            isRebuildingFloorMarkers = false;
-            return;
-        }
 
         Bounds bounds = zoneTrigger.bounds;
         float floorY = bounds.min.y + FloorSpriteLift;
@@ -326,6 +326,8 @@ public class SlipperySurfaceZone : MonoBehaviour
 
         if (floorMarkerSprite2 != null)
             AddFloorMarkerSpriteLayer(floorMarkerSprite2, floorMarkerColor2, 1, zoneWidth, zoneDepth, zoneCenter, floorRotation);
+
+        DestroyEmptyRuntimeFloorSpriteObjects();
 
         isRebuildingFloorMarkers = false;
     }
@@ -422,7 +424,7 @@ public class SlipperySurfaceZone : MonoBehaviour
                 continue;
 
             SpriteRenderer renderer = child.GetComponent<SpriteRenderer>();
-            if (renderer == null)
+            if (renderer == null || renderer.sprite == null)
                 continue;
 
             if (renderer.sortingOrder >= 1)
@@ -444,12 +446,28 @@ public class SlipperySurfaceZone : MonoBehaviour
         if (sprite == null)
             return;
 
-        GameObject layer = new GameObject(FloorSpriteObjectPrefix + sortingOrder);
-        layer.transform.SetParent(transform, false);
+        string layerName = FloorSpriteObjectPrefix + sortingOrder;
+        Transform existing = transform.Find(layerName);
+        GameObject layer;
+        SpriteRenderer renderer;
+
+        if (existing != null)
+        {
+            layer = existing.gameObject;
+            renderer = layer.GetComponent<SpriteRenderer>();
+            if (renderer == null)
+                renderer = layer.AddComponent<SpriteRenderer>();
+        }
+        else
+        {
+            layer = new GameObject(layerName);
+            layer.transform.SetParent(transform, false);
+            renderer = layer.AddComponent<SpriteRenderer>();
+        }
+
         layer.transform.SetPositionAndRotation(worldPosition, worldRotation);
         layer.transform.localScale = Vector3.one;
 
-        SpriteRenderer renderer = layer.AddComponent<SpriteRenderer>();
         renderer.sprite = sprite;
         renderer.drawMode = SpriteDrawMode.Sliced;
         renderer.size = new Vector2(targetWidth, targetDepth);
@@ -464,6 +482,23 @@ public class SlipperySurfaceZone : MonoBehaviour
             Transform child = transform.GetChild(i);
             if (child.name == "_SlipperyFloorMarkers" || child.name == "FloorMarker" || child.name.StartsWith(FloorSpriteObjectPrefix))
                 DestroyUnityObject(child.gameObject);
+        }
+    }
+
+    // Removes runtime floor objects that have no visible sprite (empty hierarchy junk).
+    private void DestroyEmptyRuntimeFloorSpriteObjects()
+    {
+        for (int i = transform.childCount - 1; i >= 0; i--)
+        {
+            Transform child = transform.GetChild(i);
+            if (!child.name.StartsWith(FloorSpriteObjectPrefix))
+                continue;
+
+            SpriteRenderer renderer = child.GetComponent<SpriteRenderer>();
+            if (renderer != null && renderer.sprite != null)
+                continue;
+
+            DestroyUnityObject(child.gameObject);
         }
     }
 
