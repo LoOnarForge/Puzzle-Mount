@@ -327,7 +327,7 @@ public class SlipperySurfaceZone : MonoBehaviour
         hasFloorMarkerLayoutBounds = false;
     }
 
-    private void CaptureFloorMarkerLayoutBounds()
+    private void CaptureFloorMarkerLayoutBounds() 
     {
         if (zoneTrigger == null)
             return;
@@ -422,7 +422,8 @@ public class SlipperySurfaceZone : MonoBehaviour
             return;
 
         Transform particleTransform = zoneParticleSystem.transform;
-        particleTransform.SetParent(transform, true);
+        if (CanReparentTransformInEditor(particleTransform, transform))
+            particleTransform.SetParent(transform, true);
         particleTransform.position = zoneTrigger.transform.TransformPoint(zoneTrigger.center);
 
         ParticleSystem.ShapeModule shape = zoneParticleSystem.shape;
@@ -523,7 +524,8 @@ public class SlipperySurfaceZone : MonoBehaviour
             layer = new GameObject(layerName);
             renderer = layer.AddComponent<SpriteRenderer>();
             renderer.sprite = sprite;
-            layer.transform.SetParent(transform, false);
+            if (CanReparentTransformInEditor(layer.transform, transform))
+                layer.transform.SetParent(transform, false);
         }
 
         layer.transform.SetPositionAndRotation(worldPosition, worldRotation);
@@ -584,9 +586,31 @@ public class SlipperySurfaceZone : MonoBehaviour
             return;
 
         if (Application.isPlaying)
+        {
             Destroy(target);
-        else
-            DestroyImmediate(target);
+            return;
+        }
+
+#if UNITY_EDITOR
+        DestroyImmediate(target, true);
+#else
+        DestroyImmediate(target);
+#endif
+    }
+
+    private static bool CanReparentTransformInEditor(Transform child, Transform newParent)
+    {
+        if (child.parent == newParent)
+            return false;
+
+        if (Application.isPlaying)
+            return true;
+
+#if UNITY_EDITOR
+        if (UnityEditor.PrefabUtility.IsPartOfPrefabAsset(child.gameObject))
+            return false;
+#endif
+        return true;
     }
 
     private static Vector3 SnapHorizontal(Vector3 position)
