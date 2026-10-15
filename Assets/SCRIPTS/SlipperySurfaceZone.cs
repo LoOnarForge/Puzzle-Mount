@@ -8,6 +8,12 @@ public class SlipperySurfaceZone : MonoBehaviour
     private const string FloorSpriteObjectPrefix = "_ZoneFloorSprite";
     private const float CellHalfExtent = 0.5f;
     private const float FloorSpriteLift = 0.02f;
+    private const float PlayModeTriggerXZSizeReduction = 0.2f;
+
+    private Vector3 savedTriggerSize;
+    private bool hasSavedTriggerSize;
+    private Bounds floorMarkerLayoutBounds;
+    private bool hasFloorMarkerLayoutBounds;
 
     [SerializeField] private BoxCollider zoneTrigger;
     [SerializeField] private ParticleSystem zoneParticleSystem;
@@ -51,8 +57,20 @@ public class SlipperySurfaceZone : MonoBehaviour
     private void Start()
     {
         RebuildFloorMarkers();
+        CaptureFloorMarkerLayoutBounds();
         SyncZoneParticleSystem();
         RestartZoneParticleSystem();
+        ApplyPlayModeTriggerInset();
+    }
+
+    private void OnDestroy()
+    {
+        RestoreTriggerSizeAfterPlay();
+    }
+
+    private void OnDisable()
+    {
+        RestoreTriggerSizeAfterPlay();
     }
 
 #if UNITY_EDITOR
@@ -285,6 +303,47 @@ public class SlipperySurfaceZone : MonoBehaviour
         zoneTrigger.center = center;
     }
 
+    private void ApplyPlayModeTriggerInset()
+    {
+        if (!Application.isPlaying || zoneTrigger == null)
+            return;
+
+        savedTriggerSize = zoneTrigger.size;
+        hasSavedTriggerSize = true;
+
+        Vector3 insetSize = savedTriggerSize;
+        insetSize.x = Mathf.Max(insetSize.x - PlayModeTriggerXZSizeReduction, 0.01f);
+        insetSize.z = Mathf.Max(insetSize.z - PlayModeTriggerXZSizeReduction, 0.01f);
+        zoneTrigger.size = insetSize;
+    }
+
+    private void RestoreTriggerSizeAfterPlay()
+    {
+        if (!hasSavedTriggerSize || zoneTrigger == null)
+            return;
+
+        zoneTrigger.size = savedTriggerSize;
+        hasSavedTriggerSize = false;
+        hasFloorMarkerLayoutBounds = false;
+    }
+
+    private void CaptureFloorMarkerLayoutBounds()
+    {
+        if (zoneTrigger == null)
+            return;
+
+        floorMarkerLayoutBounds = zoneTrigger.bounds;
+        hasFloorMarkerLayoutBounds = true;
+    }
+
+    private Bounds GetFloorMarkerLayoutBounds()
+    {
+        if (Application.isPlaying && hasFloorMarkerLayoutBounds)
+            return floorMarkerLayoutBounds;
+
+        return zoneTrigger.bounds;
+    }
+
     private bool ContainsGridPosition(Vector3 gridPosition)
     {
         if (zoneTrigger == null)
@@ -311,11 +370,12 @@ public class SlipperySurfaceZone : MonoBehaviour
 
         isRebuildingFloorMarkers = true;
 
-        ApplyEvenSizeColliderCenterOffset();
+        if (!Application.isPlaying || !hasSavedTriggerSize)
+            ApplyEvenSizeColliderCenterOffset();
 
         DestroyFloorMarkerObjects();
 
-        Bounds bounds = zoneTrigger.bounds;
+        Bounds bounds = GetFloorMarkerLayoutBounds();
         float floorY = bounds.min.y + FloorSpriteLift;
         float zoneWidth = bounds.size.x;
         float zoneDepth = bounds.size.z;
