@@ -503,7 +503,7 @@ public class SlipperySurfaceZone : MonoBehaviour
         Vector3 worldPosition,
         Quaternion worldRotation)
     {
-        if (sprite == null)
+        if (sprite == null || targetWidth <= 0.01f || targetDepth <= 0.01f)
             return;
 
         string layerName = FloorSpriteObjectPrefix + sortingOrder;
@@ -521,8 +521,9 @@ public class SlipperySurfaceZone : MonoBehaviour
         else
         {
             layer = new GameObject(layerName);
-            layer.transform.SetParent(transform, false);
             renderer = layer.AddComponent<SpriteRenderer>();
+            renderer.sprite = sprite;
+            layer.transform.SetParent(transform, false);
         }
 
         layer.transform.SetPositionAndRotation(worldPosition, worldRotation);
