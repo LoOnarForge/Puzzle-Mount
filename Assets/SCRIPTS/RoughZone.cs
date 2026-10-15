@@ -11,6 +11,7 @@ public class RoughZone : MonoBehaviour
     private const float PlayModeTriggerXZSizeReduction = 0.2f;
 
     private static readonly List<RoughZone> activeZones = new List<RoughZone>();
+    private static int lastMoveSpeedApplyFrame = -1;
 
     private Vector3 savedTriggerSize;
     private bool hasSavedTriggerSize;
@@ -29,6 +30,10 @@ public class RoughZone : MonoBehaviour
     [SerializeField] private Color secondaryColor = Color.white;
     [FormerlySerializedAs("floorMarkerPulseCycleSeconds")]
     [SerializeField] [Range(0.1f, 10f)] private float framePulsingTimer = 3f;
+
+    [Header("PUSH SPEED ON ROUGH:")]
+    [SerializeField] private float normalMoveSpeed = 5f;
+    [SerializeField] private float roughMoveSpeed = 2.5f;
 
     private bool isRebuildingFloorMarkers;
 
@@ -84,6 +89,15 @@ public class RoughZone : MonoBehaviour
         UpdateFloorMarkerPulse();
     }
 
+    private void LateUpdate()
+    {
+        if (activeZones.Count == 0 || lastMoveSpeedApplyFrame == Time.frameCount)
+            return;
+
+        lastMoveSpeedApplyFrame = Time.frameCount;
+        ApplyRunodeMoveSpeeds();
+    }
+
 #if UNITY_EDITOR
     private void QueueEditorFloorRebuild()
     {
@@ -121,14 +135,35 @@ public class RoughZone : MonoBehaviour
             return false;
 
         Vector3 startGrid = SnapHorizontal(columnBottom.transform.position);
+        return IsAnyRoughGridCell(startGrid);
+    }
 
+    private static void ApplyRunodeMoveSpeeds()
+    {
+        if (activeZones.Count == 0)
+            return;
+
+        float normal = activeZones[0].normalMoveSpeed;
+        float rough = activeZones[0].roughMoveSpeed;
+
+        RunodeMovement[] runodes = Object.FindObjectsByType<RunodeMovement>();
+        for (int i = 0; i < runodes.Length; i++)
+        {
+            RunodeMovement runode = runodes[i];
+            if (runode == null)
+                continue;
+
+            Vector3 grid = SnapHorizontal(runode.transform.position);
+            runode.moveSpeed = IsAnyRoughGridCell(grid) ? rough : normal;
+        }
+    }
+
+    private static bool IsAnyRoughGridCell(Vector3 gridPosition)
+    {
         for (int i = 0; i < activeZones.Count; i++)
         {
             RoughZone zone = activeZones[i];
-            if (zone == null)
-                continue;
-
-            if (zone.ContainsGridPosition(startGrid))
+            if (zone != null && zone.ContainsGridPosition(gridPosition))
                 return true;
         }
 

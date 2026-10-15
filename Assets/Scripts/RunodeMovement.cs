@@ -138,6 +138,20 @@ public class RunodeMovement : MonoBehaviour
         // --- end RoughZone ---
 
         return IsPositionClear(destinationCell);
+
+        // --- RoughZone: multi-cube stacks cannot move on or through rough cells (see RoughZone.cs) ---
+        if (RoughZone.BlocksStackPush(this, snappedStart, destinationCell))
+            return false;
+        // --- end RoughZone ---
+
+        return IsPositionClear(destinationCell);
+
+        // --- RoughZone: multi-cube stacks cannot move on or through rough cells (see RoughZone.cs) ---
+        if (RoughZone.BlocksStackPush(this, snappedStart, destinationCell))
+            return false;
+        // --- end RoughZone ---
+
+        return IsPositionClear(destinationCell);
     }
 
     // Starts moving this cube one grid step in the given direction.
