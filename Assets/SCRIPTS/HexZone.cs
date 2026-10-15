@@ -5,7 +5,7 @@ using UnityEngine;
 /// Fills a zone with a honeycomb of hex sprites; styles, color, and fade visibility are configurable.
 /// </summary>
 [DisallowMultipleComponent]
-public class HexMeshTest : MonoBehaviour
+public class HexZone : MonoBehaviour
 {
     private const string HexContainerName = "_HexGrid";
 
@@ -27,10 +27,10 @@ public class HexMeshTest : MonoBehaviour
         public float WaitTimer;
     }
 
+    private const float FloorInsetFromBottom = 0.01f;
+
     [Header("Zone")]
     [SerializeField] private BoxCollider zoneTrigger;
-    [Tooltip("Height above the bottom of the zone trigger where hexes sit.")]
-    [SerializeField] private float floorInsetFromBottom = 0.1f;
 
     [Header("Hex styles")]
     [SerializeField] private Sprite[] hexStyleSprites;
@@ -83,7 +83,11 @@ public class HexMeshTest : MonoBehaviour
     [Tooltip("If on, scales each cell so the sprite size matches the grid math for hexRadius.")]
     [SerializeField] private bool scaleSpritesToHexRadius = true;
 
-    [SerializeField] private bool buildOnStart = true;
+    [Tooltip("When off, a parent zone must call BuildFromZoneBounds.")]
+    [SerializeField] private bool buildOnStart;
+
+    private bool hasLayoutBounds;
+    private Bounds layoutBounds;
 
     private readonly List<HexCell> _cells = new List<HexCell>();
 
@@ -109,19 +113,31 @@ public class HexMeshTest : MonoBehaviour
             UpdateCellVisibility(_cells[i], dt);
     }
 
-    // Builds the honeycomb grid and picks random styles/colors per cell.
+    /// <summary>
+    /// Builds the hex fill from world-space zone bounds and two endpoint colors, then removes this object's zone collider.
+    /// </summary>
+    public void BuildFromZoneBounds(Bounds worldZoneBounds, Color colorA, Color colorB)
+    {
+        hexColor = colorA;
+        hexColor2 = colorB;
+        layoutBounds = worldZoneBounds;
+        hasLayoutBounds = true;
+        BuildGrid();
+        RemoveLocalZoneCollider();
+    }
+
     [ContextMenu("Rebuild Grid")]
     public void BuildGrid()
     {
-        if (zoneTrigger == null)
+        if (!TryGetLayoutBounds(out Bounds zoneBounds))
         {
-            Debug.LogWarning($"{nameof(HexMeshTest)}: assign a BoxCollider on zoneTrigger.", this);
+            Debug.LogWarning($"{nameof(HexZone)}: no zone bounds (assign a BoxCollider or call BuildFromZoneBounds).", this);
             return;
         }
 
         if (!TryGetLayoutSprite(out Sprite layoutSprite))
         {
-            Debug.LogWarning($"{nameof(HexMeshTest)}: assign at least one hex style sprite.", this);
+            Debug.LogWarning($"{nameof(HexZone)}: assign at least one hex style sprite.", this);
             return;
         }
 
@@ -129,8 +145,7 @@ public class HexMeshTest : MonoBehaviour
         ClearChildren(root);
         _cells.Clear();
 
-        Bounds zoneBounds = zoneTrigger.bounds;
-        float floorY = zoneBounds.min.y + floorInsetFromBottom;
+        float floorY = zoneBounds.min.y + FloorInsetFromBottom;
         root.position = new Vector3(zoneBounds.center.x, floorY, zoneBounds.center.z);
         root.rotation = Quaternion.identity;
 
@@ -189,6 +204,43 @@ public class HexMeshTest : MonoBehaviour
         if (root != null)
             ClearChildren(root);
         _cells.Clear();
+    }
+
+    private bool TryGetLayoutBounds(out Bounds zoneBounds)
+    {
+        if (hasLayoutBounds)
+        {
+            zoneBounds = layoutBounds;
+            return true;
+        }
+
+        if (zoneTrigger == null)
+            zoneTrigger = GetComponent<BoxCollider>();
+
+        if (zoneTrigger != null)
+        {
+            zoneBounds = zoneTrigger.bounds;
+            return true;
+        }
+
+        zoneBounds = default;
+        return false;
+    }
+
+    private void RemoveLocalZoneCollider()
+    {
+        if (zoneTrigger == null)
+            zoneTrigger = GetComponent<BoxCollider>();
+
+        if (zoneTrigger == null)
+            return;
+
+        if (Application.isPlaying)
+            Destroy(zoneTrigger);
+        else
+            DestroyImmediate(zoneTrigger);
+
+        zoneTrigger = null;
     }
 
     private void InitializeCellAsHidden(HexCell cell)
@@ -604,15 +656,13 @@ public class HexMeshTest : MonoBehaviour
 #if UNITY_EDITOR
     private void OnDrawGizmosSelected()
     {
-        BoxCollider trigger = zoneTrigger != null ? zoneTrigger : GetComponent<BoxCollider>();
-        if (trigger == null)
+        if (!TryGetLayoutBounds(out Bounds zoneBounds))
             return;
 
-        Bounds zoneBounds = trigger.bounds;
         Gizmos.color = new Color(0.2f, 1f, 0.4f, 0.25f);
         Gizmos.DrawWireCube(zoneBounds.center, zoneBounds.size);
 
-        float floorY = zoneBounds.min.y + floorInsetFromBottom;
+        float floorY = zoneBounds.min.y + FloorInsetFromBottom;
         Gizmos.color = new Color(0f, 0.7f, 1f, 0.5f);
         Vector3 floorCenter = new Vector3(zoneBounds.center.x, floorY, zoneBounds.center.z);
         Gizmos.DrawLine(floorCenter + Vector3.left * 0.5f, floorCenter + Vector3.right * 0.5f);

@@ -1,13 +1,14 @@
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
+using UnityEngine.Serialization;
 
 [DisallowMultipleComponent]
 public class SlipperySurfaceZone : MonoBehaviour
 {
     private const string FloorSpriteObjectPrefix = "_ZoneFloorSprite";
     private const float CellHalfExtent = 0.5f;
-    private const float FloorSpriteLift = 0.02f;
+    private const float FloorSpriteLift = 0.01f;
     private const float PlayModeTriggerXZSizeReduction = 0.2f;
 
     private Vector3 savedTriggerSize;
@@ -16,12 +17,17 @@ public class SlipperySurfaceZone : MonoBehaviour
     private bool hasFloorMarkerLayoutBounds;
 
     [SerializeField] private BoxCollider zoneTrigger;
+    [SerializeField] private HexZone hexZone;
     [SerializeField] private ParticleSystem zoneParticleSystem;
-    [SerializeField] private Sprite floorMarkerSprite;
-    [SerializeField] private Sprite floorMarkerSprite2;
-    [SerializeField] private Color floorMarkerColor = Color.white;
-    [SerializeField] private Color floorMarkerColor2 = Color.white;
-    [SerializeField] [Range(0.1f, 10f)] private float floorMarkerPulseCycleSeconds = 3f;
+    [SerializeField] private bool isPSActive = true;
+    [FormerlySerializedAs("floorMarkerSprite")]
+    [SerializeField] private Sprite frameSprite;
+    [FormerlySerializedAs("floorMarkerColor")]
+    [SerializeField] private Color primaryColor = Color.white;
+    [FormerlySerializedAs("floorMarkerColor2")]
+    [SerializeField] private Color secondaryColor = Color.white;
+    [FormerlySerializedAs("floorMarkerPulseCycleSeconds")]
+    [SerializeField] [Range(0.1f, 10f)] private float framePulsingTimer = 3f;
 
     private bool isRebuildingFloorMarkers;
 
@@ -42,6 +48,7 @@ public class SlipperySurfaceZone : MonoBehaviour
 
     private void OnValidate()
     {
+        ApplyIsPSActive();
 #if UNITY_EDITOR
         QueueEditorFloorRebuild();
 #endif
@@ -57,9 +64,10 @@ public class SlipperySurfaceZone : MonoBehaviour
     private void Start()
     {
         RebuildFloorMarkers();
+        SyncHexZoneFromTrigger();
         CaptureFloorMarkerLayoutBounds();
         SyncZoneParticleSystem();
-        RestartZoneParticleSystem();
+        ApplyIsPSActive();
         ApplyPlayModeTriggerInset();
     }
 
@@ -90,7 +98,9 @@ public class SlipperySurfaceZone : MonoBehaviour
             return;
 
         RebuildFloorMarkers();
+        SyncHexZoneFromTrigger();
         SyncZoneParticleSystem();
+        ApplyIsPSActive();
     }
 #endif
 
@@ -362,7 +372,7 @@ public class SlipperySurfaceZone : MonoBehaviour
         if (isRebuildingFloorMarkers || zoneTrigger == null)
             return;
 
-        if (floorMarkerSprite == null)
+        if (frameSprite == null)
         {
             DestroyEmptyRuntimeFloorSpriteObjects();
             return;
@@ -382,21 +392,26 @@ public class SlipperySurfaceZone : MonoBehaviour
         Vector3 zoneCenter = new Vector3(bounds.center.x, floorY, bounds.center.z);
         Quaternion floorRotation = Quaternion.Euler(90f, 0f, 0f);
 
-        AddFloorMarkerSpriteLayer(floorMarkerSprite, floorMarkerColor, 0, zoneWidth, zoneDepth, zoneCenter, floorRotation);
-
-        if (floorMarkerSprite2 != null)
-            AddFloorMarkerSpriteLayer(floorMarkerSprite2, floorMarkerColor2, 1, zoneWidth, zoneDepth, zoneCenter, floorRotation);
+        AddFloorMarkerSpriteLayer(frameSprite, primaryColor, 0, zoneWidth, zoneDepth, zoneCenter, floorRotation);
 
         DestroyEmptyRuntimeFloorSpriteObjects();
 
         isRebuildingFloorMarkers = false;
     }
 
+    private void SyncHexZoneFromTrigger()
+    {
+        if (hexZone == null || zoneTrigger == null)
+            return;
+
+        hexZone.BuildFromZoneBounds(zoneTrigger.bounds, primaryColor, secondaryColor);
+    }
+
     private void EnsureZoneParticleSystem()
     {
         if (zoneParticleSystem != null && zoneParticleSystem.gameObject.scene.IsValid())
         {
-            zoneParticleSystem.gameObject.SetActive(true);
+            ApplyIsPSActive();
             return;
         }
 
@@ -404,7 +419,7 @@ public class SlipperySurfaceZone : MonoBehaviour
         if (childSystem != null)
         {
             zoneParticleSystem = childSystem;
-            zoneParticleSystem.gameObject.SetActive(true);
+            ApplyIsPSActive();
             return;
         }
 
@@ -412,8 +427,32 @@ public class SlipperySurfaceZone : MonoBehaviour
             return;
 
         GameObject instance = Instantiate(zoneParticleSystem.gameObject, transform);
-        instance.SetActive(true);
         zoneParticleSystem = instance.GetComponent<ParticleSystem>();
+        ApplyIsPSActive();
+    }
+
+    private void ApplyIsPSActive()
+    {
+        if (zoneParticleSystem == null)
+            return;
+
+        GameObject psObject = zoneParticleSystem.gameObject;
+        if (!isPSActive)
+        {
+            if (Application.isPlaying)
+                zoneParticleSystem.Stop(true, ParticleSystemStopBehavior.StopEmittingAndClear);
+
+            psObject.SetActive(false);
+            return;
+        }
+
+        psObject.SetActive(true);
+
+        if (Application.isPlaying)
+        {
+            zoneParticleSystem.Stop(true, ParticleSystemStopBehavior.StopEmittingAndClear);
+            zoneParticleSystem.Play(true);
+        }
     }
 
     private void SyncZoneParticleSystem()
@@ -461,22 +500,13 @@ public class SlipperySurfaceZone : MonoBehaviour
         return size / scale;
     }
 
-    private void RestartZoneParticleSystem()
-    {
-        if (zoneParticleSystem == null)
-            return;
-
-        zoneParticleSystem.Stop(true, ParticleSystemStopBehavior.StopEmittingAndClear);
-        zoneParticleSystem.Play(true);
-    }
-
     private void UpdateFloorMarkerPulse()
     {
-        if (floorMarkerSprite == null)
+        if (frameSprite == null)
             return;
 
-        Color layer1Color = floorMarkerColor;
-        layer1Color.a = EvaluatePulsingAlpha();
+        Color frameColor = primaryColor;
+        frameColor.a = EvaluatePulsingAlpha();
 
         for (int i = 0; i < transform.childCount; i++)
         {
@@ -488,10 +518,7 @@ public class SlipperySurfaceZone : MonoBehaviour
             if (renderer == null || renderer.sprite == null)
                 continue;
 
-            if (renderer.sortingOrder >= 1)
-                renderer.color = floorMarkerColor2;
-            else
-                renderer.color = layer1Color;
+            renderer.color = frameColor;
         }
     }
 
@@ -567,11 +594,11 @@ public class SlipperySurfaceZone : MonoBehaviour
 
     private float EvaluatePulsingAlpha()
     {
-        float baseAlpha = floorMarkerColor.a;
-        if (baseAlpha <= 0f || floorMarkerPulseCycleSeconds <= 0f)
+        float baseAlpha = primaryColor.a;
+        if (baseAlpha <= 0f || framePulsingTimer <= 0f)
             return baseAlpha;
 
-        float cycleT = Mathf.Repeat(Time.time, floorMarkerPulseCycleSeconds) / floorMarkerPulseCycleSeconds;
+        float cycleT = Mathf.Repeat(Time.time, framePulsingTimer) / framePulsingTimer;
         float phaseT = cycleT < 0.5f ? cycleT * 2f : (cycleT - 0.5f) * 2f;
 
         if (cycleT < 0.5f)

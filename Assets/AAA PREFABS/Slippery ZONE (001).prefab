@@ -1,5 +1,67 @@
 %YAML 1.1
 %TAG !u! tag:unity3d.com,2011:
+--- !u!1 &115677624271841686
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 913368650363512405}
+  - component: {fileID: 1722879497533197620}
+  m_Layer: 28
+  m_Name: Hex Zone
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 2147483647
+  m_IsActive: 1
+--- !u!4 &913368650363512405
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 115677624271841686}
+  serializedVersion: 2
+  m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 2423670138956204441}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &1722879497533197620
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 115677624271841686}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 0b53db7ddcf07ca4b80def9d517e712c, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::HexZone
+  zoneTrigger: {fileID: 0}
+  hexStyleSprites: []
+  hexColor: {r: 0.07058824, g: 0.60784316, b: 0.003921569, a: 0.38039216}
+  hexColor2: {r: 0.10562024, g: 0.47641498, b: 0.14153276, a: 0.12156863}
+  colorShadeVariation: 0.5
+  maxHexPercent: 70
+  maxPercentInTransition: 100
+  transitionDuration: 1
+  transitionDurationRandomRange: 0.5
+  minVisibleTime: 1
+  maxVisibleTime: 5
+  minHiddenTime: 1
+  maxHiddenTime: 5
+  hexRadius: 0.5
+  gridSpacingMultiplier: 1
+  spriteVisualScale: 1
+  scaleSpritesToHexRadius: 1
+  buildOnStart: 0
 --- !u!1 &6087410491791527682
 GameObject:
   m_ObjectHideFlags: 0
@@ -16,7 +78,7 @@ GameObject:
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
-  m_StaticEditorFlags: 0
+  m_StaticEditorFlags: 2147483647
   m_IsActive: 1
 --- !u!4 &2423670138956204441
 Transform:
@@ -31,6 +93,7 @@ Transform:
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children:
+  - {fileID: 913368650363512405}
   - {fileID: 1909224717545837796}
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
@@ -53,8 +116,8 @@ BoxCollider:
   m_ProvidesContacts: 0
   m_Enabled: 1
   serializedVersion: 3
-  m_Size: {x: 12, y: 1, z: 4}
-  m_Center: {x: 0.5, y: 0, z: 0.5}
+  m_Size: {x: 5, y: 0.8, z: 5}
+  m_Center: {x: 0, y: 0, z: 0}
 --- !u!114 &8771550681835574220
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -68,12 +131,13 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::SlipperySurfaceZone
   zoneTrigger: {fileID: 4829734686170511186}
+  hexZone: {fileID: 1722879497533197620}
   zoneParticleSystem: {fileID: 6492590519679452763}
-  floorMarkerSprite: {fileID: 21300000, guid: c0f6cbbe3d48d1c44b303ed178aa32ef, type: 3}
-  floorMarkerSprite2: {fileID: 21300000, guid: 0e5477347d1d35449bb66d27bc369213, type: 3}
-  floorMarkerColor: {r: 0, g: 0.92156863, b: 0.5058824, a: 0.1764706}
-  floorMarkerColor2: {r: 0.10562024, g: 0.47641498, b: 0.14153276, a: 0.12156863}
-  floorMarkerPulseCycleSeconds: 5
+  isPSActive: 1
+  frameSprite: {fileID: 21300000, guid: c0f6cbbe3d48d1c44b303ed178aa32ef, type: 3}
+  primaryColor: {r: 0.07058824, g: 0.60784316, b: 0.003921569, a: 0.38039216}
+  secondaryColor: {r: 0.10562024, g: 0.47641498, b: 0.14153276, a: 0.12156863}
+  framePulsingTimer: 5
 --- !u!1001 &5212113450789811861
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -86,17 +150,29 @@ PrefabInstance:
       propertyPath: m_Name
       value: Slippery ZONE PS
       objectReference: {fileID: 0}
+    - target: {fileID: 777386800450975835, guid: 2a30d4c6b6a773446a0fad341803576e, type: 3}
+      propertyPath: m_Layer
+      value: 28
+      objectReference: {fileID: 0}
+    - target: {fileID: 777386800450975835, guid: 2a30d4c6b6a773446a0fad341803576e, type: 3}
+      propertyPath: m_StaticEditorFlags
+      value: 2147483647
+      objectReference: {fileID: 0}
     - target: {fileID: 1319402117052281038, guid: 2a30d4c6b6a773446a0fad341803576e, type: 3}
       propertyPath: ShapeModule.m_Scale.x
-      value: 12
+      value: 5
       objectReference: {fileID: 0}
     - target: {fileID: 1319402117052281038, guid: 2a30d4c6b6a773446a0fad341803576e, type: 3}
       propertyPath: ShapeModule.m_Scale.y
-      value: 4.0000005
+      value: 5.0000005
       objectReference: {fileID: 0}
     - target: {fileID: 1319402117052281038, guid: 2a30d4c6b6a773446a0fad341803576e, type: 3}
       propertyPath: ShapeModule.m_Scale.z
-      value: 1.0000006
+      value: 0.8000007
+      objectReference: {fileID: 0}
+    - target: {fileID: 1319402117052281038, guid: 2a30d4c6b6a773446a0fad341803576e, type: 3}
+      propertyPath: TriggerModule.enabled
+      value: 0
       objectReference: {fileID: 0}
     - target: {fileID: 1319402117052281038, guid: 2a30d4c6b6a773446a0fad341803576e, type: 3}
       propertyPath: 'TriggerModule.primitives.Array.data[0]'
@@ -104,7 +180,7 @@ PrefabInstance:
       objectReference: {fileID: 4829734686170511186}
     - target: {fileID: 5921046391079805553, guid: 2a30d4c6b6a773446a0fad341803576e, type: 3}
       propertyPath: m_LocalPosition.x
-      value: 0.5
+      value: 0
       objectReference: {fileID: 0}
     - target: {fileID: 5921046391079805553, guid: 2a30d4c6b6a773446a0fad341803576e, type: 3}
       propertyPath: m_LocalPosition.y
@@ -112,7 +188,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 5921046391079805553, guid: 2a30d4c6b6a773446a0fad341803576e, type: 3}
       propertyPath: m_LocalPosition.z
-      value: 0.5
+      value: 0
       objectReference: {fileID: 0}
     - target: {fileID: 5921046391079805553, guid: 2a30d4c6b6a773446a0fad341803576e, type: 3}
       propertyPath: m_LocalRotation.w
