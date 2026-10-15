@@ -130,7 +130,14 @@ public class RunodeMovement : MonoBehaviour
         if (pushDir == Vector3.zero) return false;
 
         Vector3 snappedStart = new Vector3(Mathf.Round(transform.position.x), transform.position.y, Mathf.Round(transform.position.z));
-        return IsPositionClear(snappedStart + pushDir);
+        Vector3 destinationCell = snappedStart + pushDir;
+
+        // --- RoughZone: multi-cube stacks cannot move on or through rough cells (see RoughZone.cs) ---
+        if (RoughZone.BlocksStackPush(this, snappedStart, destinationCell))
+            return false;
+        // --- end RoughZone ---
+
+        return IsPositionClear(destinationCell);
     }
 
     // Starts moving this cube one grid step in the given direction.
