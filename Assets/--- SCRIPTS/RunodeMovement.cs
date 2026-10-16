@@ -137,6 +137,11 @@ public class RunodeMovement : MonoBehaviour
             return false;
         // --- end RoughZone ---
 
+        // --- OneWayZone: allowed push direction only on shark-skin cells (see OneWayZone.cs) ---
+        if (OneWayZone.BlocksPush(snappedStart, pushDir))
+            return false;
+        // --- end OneWayZone ---
+
         return IsPositionClear(destinationCell);
 
         // --- RoughZone: multi-cube stacks cannot move on or through rough cells (see RoughZone.cs) ---
