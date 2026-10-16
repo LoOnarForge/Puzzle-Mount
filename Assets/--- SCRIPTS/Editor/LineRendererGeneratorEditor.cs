@@ -66,17 +66,17 @@ public class LineRendererGeneratorEditor : Editor
             EditorGUILayout.BeginVertical("box");
             EditorGUILayout.LabelField(entry.deviceName ?? "(missing name)", EditorStyles.boldLabel);
             entry.device = (GameObject)EditorGUILayout.ObjectField("Device", entry.device, typeof(GameObject), true);
-            entry.zigzagAmount = EditorGUILayout.IntSlider("Zigzag (extra 90° detours)", entry.zigzagAmount, 0, ZigzagAmountMax);
+            entry.zigzagAmount = EditorGUILayout.IntSlider("ZigZag Complexity", entry.zigzagAmount, 0, ZigzagAmountMax);
             entry.routeVariantIndex = EditorGUILayout.IntField("Route variant", entry.routeVariantIndex);
             EditorGUILayout.BeginHorizontal();
-            if (GUILayout.Button("Create Line Renderer Child"))
-                CreateOrRecreateLineChild(generator, entry);
-            if (GUILayout.Button("Next Route + Recreate"))
+            if (GUILayout.Button("Create Link"))
+                CreateOrRecreateLineChild(entry);
+            if (GUILayout.Button("Next Route"))
             {
                 entry.routeVariantIndex++;
-                CreateOrRecreateLineChild(generator, entry);
+                CreateOrRecreateLineChild(entry);
             }
-            if (GUILayout.Button("Delete From LineRendererGenerator"))
+            if (GUILayout.Button("Delete Link"))
                 RemoveLinkAt(generator, i);
             EditorGUILayout.EndHorizontal();
 
@@ -192,8 +192,15 @@ public class LineRendererGeneratorEditor : Editor
         return null;
     }
 
-    private static void CreateOrRecreateLineChild(LineRendererGenerator generator, LineRendererGeneratorLinkEntry entry)
+    private void CreateOrRecreateLineChild(LineRendererGeneratorLinkEntry entry)
     {
+        serializedObject.ApplyModifiedProperties();
+
+        LineRendererGenerator generator = (LineRendererGenerator)target;
+        bool avoidObstacles = serializedObject.FindProperty("avoidObstaclesWhenGenerating").boolValue;
+        LayerMask obstacleLayers = serializedObject.FindProperty("pathObstacleLayers").intValue;
+        float clearanceRadius = serializedObject.FindProperty("pathClearanceRadius").floatValue;
+
         if (entry.device == null)
         {
             Debug.LogWarning($"LineRendererGenerator on '{generator.name}': no device assigned for '{entry.deviceName}'.", generator);
@@ -213,6 +220,47 @@ public class LineRendererGeneratorEditor : Editor
             return;
         }
 
+        Vector3 start = generator.transform.position;
+        Vector3 end = GetActivatorLinkEndPosition(entry.device);
+        LineRendererPathBuildOptions buildOptions = LineRendererPathBuildOptions.ForEditor(
+            entry.routeVariantIndex,
+            avoidObstacles,
+            obstacleLayers,
+            clearanceRadius);
+
+        Vector3[] points;
+        if (avoidObstacles && obstacleLayers.value != 0)
+        {
+            if (!LineRendererPathBuilder.TryBuildCollisionFreePoints(
+                    start,
+                    end,
+                    entry.deviceName,
+                    0,
+                    entry.zigzagAmount,
+                    buildOptions,
+                    LineRendererPathBuilder.DefaultCollisionFreeAttempts,
+                    out points,
+                    out int winningVariant))
+            {
+                Debug.LogWarning(
+                    $"LineRendererGenerator: no collision-free path for '{entry.deviceName}' after {LineRendererPathBuilder.DefaultCollisionFreeAttempts} attempts. Link not created.",
+                    generator);
+                return;
+            }
+
+            Undo.RecordObject(generator, "Create Line Renderer Connection");
+        }
+        else
+        {
+            points = LineRendererPathBuilder.BuildPoints(
+                start,
+                end,
+                entry.deviceName,
+                0,
+                entry.zigzagAmount,
+                buildOptions);
+        }
+
         string childName = GetLinkChildName(entry.deviceName);
         DestroyLinkChildIfPresent(generator.transform, entry.deviceName);
 
@@ -223,23 +271,6 @@ public class LineRendererGeneratorEditor : Editor
         LineRenderer lineRenderer = lineObject.GetComponent<LineRenderer>();
         if (lineRenderer != null && !lineRenderer.useWorldSpace)
             lineRenderer.useWorldSpace = true;
-
-        Physics.SyncTransforms();
-
-        Vector3 start = generator.transform.position;
-        Vector3 end = GetActivatorLinkEndPosition(entry.device);
-        LineRendererPathBuildOptions buildOptions = LineRendererPathBuildOptions.ForEditor(
-            entry.routeVariantIndex,
-            generator.AvoidObstaclesWhenGenerating,
-            generator.PathObstacleLayers,
-            generator.PathClearanceRadius);
-        Vector3[] points = LineRendererPathBuilder.BuildPoints(
-            start,
-            end,
-            entry.deviceName,
-            0,
-            entry.zigzagAmount,
-            buildOptions);
 
         lineRenderer.positionCount = points.Length;
         lineRenderer.SetPositions(points);
@@ -311,7 +342,7 @@ public class LineRendererGeneratorEditor : Editor
         for (int i = 0; i < deviceRoot.childCount; i++)
         {
             Transform child = deviceRoot.GetChild(i);
-            if (child.name == ActivatorLinkEndChildName)
+            if (child.name.Trim() == ActivatorLinkEndChildName)
                 return child;
 
             Transform nested = FindActivatorLinkEndTransform(child);
