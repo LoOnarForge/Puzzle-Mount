@@ -20,6 +20,7 @@ public class PressurePlate : MonoBehaviour
     private readonly List<MediumDoor> mediumDoors = new List<MediumDoor>();
     private readonly List<TrapDoor> trapDoors = new List<TrapDoor>();
     private readonly List<Bridge> bridges = new List<Bridge>();
+    private readonly List<SlideOutPlatform> slideOutPlatforms = new List<SlideOutPlatform>();
     private readonly Collider[] overlapBuffer = new Collider[OverlapBufferSize];
     private readonly HashSet<Collider> countedWeightColliders = new HashSet<Collider>();
 
@@ -192,6 +193,9 @@ public class PressurePlate : MonoBehaviour
 
         foreach (Bridge bridge in bridges)
             bridge.ApplyOpenState(pressed);
+
+        foreach (SlideOutPlatform slideOutPlatform in slideOutPlatforms)
+            slideOutPlatform.ApplyOpenState(pressed);
     }
 
     // Matches MediumDoor skull timing: pressed = closed to open, released = default to closed.
@@ -217,6 +221,7 @@ public class PressurePlate : MonoBehaviour
         mediumDoors.Clear();
         trapDoors.Clear();
         bridges.Clear();
+        slideOutPlatforms.Clear();
 
         foreach (GameObject deviceObject in connectedDevices)
         {
@@ -244,7 +249,14 @@ public class PressurePlate : MonoBehaviour
                 continue;
             }
 
-            Debug.Log($"[{nameof(PressurePlate)}] '{name}' ignored connected object '{deviceObject.name}' — only {nameof(MediumDoor)}, {nameof(TrapDoor)}, and {nameof(Bridge)} are supported.", this);
+            SlideOutPlatform slideOutPlatform = deviceObject.GetComponent<SlideOutPlatform>();
+            if (slideOutPlatform != null)
+            {
+                slideOutPlatforms.Add(slideOutPlatform);
+                continue;
+            }
+
+            Debug.Log($"[{nameof(PressurePlate)}] '{name}' ignored connected object '{deviceObject.name}' — only {nameof(MediumDoor)}, {nameof(TrapDoor)}, {nameof(Bridge)}, and {nameof(SlideOutPlatform)} are supported.", this);
         }
     }
 }

@@ -29,6 +29,7 @@ public class ButtonDevice : MonoBehaviour
     private readonly List<MediumDoor> mediumDoors = new List<MediumDoor>();
     private readonly List<TrapDoor> trapDoors = new List<TrapDoor>();
     private readonly List<Bridge> bridges = new List<Bridge>();
+    private readonly List<SlideOutPlatform> slideOutPlatforms = new List<SlideOutPlatform>();
     private readonly Collider[] overlapBuffer = new Collider[OverlapBufferSize];
     private bool isButtonMoving;
     private bool isPressed;
@@ -228,6 +229,9 @@ public class ButtonDevice : MonoBehaviour
 
         foreach (Bridge bridge in bridges)
             bridge.ApplyActivatorReverse();
+
+        foreach (SlideOutPlatform slideOutPlatform in slideOutPlatforms)
+            slideOutPlatform.ApplyActivatorReverse();
     }
 
     // Builds typed device lists once from the inspector object list.
@@ -236,6 +240,7 @@ public class ButtonDevice : MonoBehaviour
         mediumDoors.Clear();
         trapDoors.Clear();
         bridges.Clear();
+        slideOutPlatforms.Clear();
 
         foreach (GameObject deviceObject in connectedDevices)
         {
@@ -263,7 +268,14 @@ public class ButtonDevice : MonoBehaviour
                 continue;
             }
 
-            Debug.Log($"[{nameof(ButtonDevice)}] '{name}' ignored connected object '{deviceObject.name}' — only {nameof(MediumDoor)}, {nameof(TrapDoor)}, and {nameof(Bridge)} are supported.", this);
+            SlideOutPlatform slideOutPlatform = deviceObject.GetComponent<SlideOutPlatform>();
+            if (slideOutPlatform != null)
+            {
+                slideOutPlatforms.Add(slideOutPlatform);
+                continue;
+            }
+
+            Debug.Log($"[{nameof(ButtonDevice)}] '{name}' ignored connected object '{deviceObject.name}' — only {nameof(MediumDoor)}, {nameof(TrapDoor)}, {nameof(Bridge)}, and {nameof(SlideOutPlatform)} are supported.", this);
         }
     }
 }
