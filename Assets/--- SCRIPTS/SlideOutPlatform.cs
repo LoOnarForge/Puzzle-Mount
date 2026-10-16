@@ -66,11 +66,11 @@ public class SlideOutPlatform : MonoBehaviour
         if (isPlatformMoving && extend == motionTargetExtended)
             return;
 
-        if (!extend && IsRetractPathObstructed())
-            return;
-
         if (isPlatformMoving)
             StopPlatformMotion();
+
+        if (!extend && IsRetractPathObstructed())
+            return;
 
         motionTargetExtended = extend;
         platformMotionCoroutine = StartCoroutine(AnimatePlatformToState(extend));
@@ -123,6 +123,13 @@ public class SlideOutPlatform : MonoBehaviour
         if (delay > 0f)
             yield return new WaitForSeconds(delay);
 
+        if (motionTargetExtended != extending)
+        {
+            isPlatformMoving = false;
+            platformMotionCoroutine = null;
+            yield break;
+        }
+
         if (!extending && IsRetractPathObstructed())
         {
             isPlatformMoving = false;
@@ -133,6 +140,8 @@ public class SlideOutPlatform : MonoBehaviour
         if (!extending)
             retractObstructionMonitorCoroutine = StartCoroutine(MonitorRetractObstructionDuringMotion());
 
+        Vector3 travelStartPosition = platform.position;
+        Quaternion travelStartRotation = platform.rotation;
         float duration = Mathf.Max(travelDuration, 0f);
         if (duration <= 0f)
         {
@@ -143,15 +152,19 @@ public class SlideOutPlatform : MonoBehaviour
             float elapsed = 0f;
             while (elapsed < duration)
             {
+                if (motionTargetExtended != extending)
+                    yield break;
+
                 elapsed += Time.deltaTime;
-                float extendBlend = SampleExtendBlend(extending, Mathf.Clamp01(elapsed / duration));
+                float progress = SampleSegmentProgress(extending, Mathf.Clamp01(elapsed / duration));
                 platform.SetPositionAndRotation(
-                    Vector3.Lerp(positionA.position, positionB.position, extendBlend),
-                    Quaternion.Slerp(positionA.rotation, positionB.rotation, extendBlend));
+                    Vector3.Lerp(travelStartPosition, endPosition, progress),
+                    Quaternion.Slerp(travelStartRotation, endRotation, progress));
                 yield return null;
             }
 
-            platform.SetPositionAndRotation(endPosition, endRotation);
+            if (motionTargetExtended == extending)
+                platform.SetPositionAndRotation(endPosition, endRotation);
         }
 
         if (retractObstructionMonitorCoroutine != null)
@@ -160,7 +173,9 @@ public class SlideOutPlatform : MonoBehaviour
             retractObstructionMonitorCoroutine = null;
         }
 
-        isExtended = extending;
+        if (motionTargetExtended == extending)
+            isExtended = extending;
+
         isPlatformMoving = false;
         platformMotionCoroutine = null;
     }
@@ -206,6 +221,15 @@ public class SlideOutPlatform : MonoBehaviour
 
         float fastTime = (normalizedTime - slowShare) / (1f - slowShare);
         return Mathf.Lerp(1f - slowShare, 0f, fastTime);
+    }
+
+    // 0 at move start, 1 at move end — for lerping from current pose (retract path blend runs 1→0 on the full A–B span).
+    private static float SampleSegmentProgress(bool extending, float normalizedTime)
+    {
+        if (extending)
+            return SampleExtendBlend(true, normalizedTime);
+
+        return 1f - SampleExtendBlend(false, normalizedTime);
     }
 
     private bool IsRetractPathObstructed()
@@ -259,4 +283,5 @@ public class SlideOutPlatform : MonoBehaviour
         float toleranceSqr = SettledPositionTolerance * SettledPositionTolerance;
         return Vector3.SqrMagnitude(platform.position - positionA.position) > toleranceSqr;
     }
+
 }
