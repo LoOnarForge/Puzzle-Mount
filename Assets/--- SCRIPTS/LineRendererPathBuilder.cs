@@ -155,13 +155,12 @@ public static class LineRendererPathBuilder
     {
         int nameSeed = string.IsNullOrEmpty(deviceName) ? 0 : deviceName.GetHashCode();
         int routeSeed = nameSeed ^ routeVariantIndex;
-        var working = new List<Vector3>(route);
+        var working = SimplifyCollinearRoute(RemoveDuplicateConsecutive(route));
 
         if (zigzagAmount > 0)
             ApplyManhattanDetours(working, zigzagAmount, routeSeed);
 
-        working = RemoveDuplicateConsecutive(working);
-        return working.ToArray();
+        return RemoveDuplicateConsecutive(working).ToArray();
     }
 
     private static bool TryFinalizeClearRoute(
@@ -180,8 +179,7 @@ public static class LineRendererPathBuilder
 
         int nameSeed = string.IsNullOrEmpty(deviceName) ? 0 : deviceName.GetHashCode();
         int routeSeed = nameSeed ^ routeVariantIndex;
-        var working = new List<Vector3>(route);
-        working = RemoveDuplicateConsecutive(working);
+        var working = SimplifyCollinearRoute(RemoveDuplicateConsecutive(route));
 
         if (LineRendererPathObstacleCollision.RouteOverlapsObstacles(working, layers, start, end))
             return false;
@@ -813,9 +811,10 @@ public static class LineRendererPathBuilder
 
     private static List<Vector3> VoxelPathToOrthogonalRoute(Vector3 start, Vector3 end, List<Vector3Int> cellPath)
     {
+        List<Vector3Int> corners = SimplifyCellPath(cellPath);
         var world = new List<Vector3> { start };
-        for (int i = 1; i < cellPath.Count; i++)
-            world.Add(VoxelToWorld(cellPath[i]));
+        for (int i = 1; i < corners.Count; i++)
+            world.Add(VoxelToWorld(corners[i]));
 
         world.Add(end);
 
@@ -824,7 +823,30 @@ public static class LineRendererPathBuilder
         for (int i = 1; i < world.Count; i++)
             MoveAxisAlignedToTarget(route, ref cursor, world[i]);
 
-        return RemoveDuplicateConsecutive(route);
+        return SimplifyCollinearRoute(RemoveDuplicateConsecutive(route));
+    }
+
+    private static List<Vector3Int> SimplifyCellPath(List<Vector3Int> cellPath)
+    {
+        if (cellPath == null || cellPath.Count <= 2)
+            return cellPath;
+
+        var simplified = new List<Vector3Int> { cellPath[0] };
+        for (int i = 1; i < cellPath.Count - 1; i++)
+        {
+            Vector3Int previous = simplified[simplified.Count - 1];
+            Vector3Int current = cellPath[i];
+            Vector3Int next = cellPath[i + 1];
+            Vector3Int stepA = current - previous;
+            Vector3Int stepB = next - current;
+            if (stepA == stepB)
+                continue;
+
+            simplified.Add(current);
+        }
+
+        simplified.Add(cellPath[cellPath.Count - 1]);
+        return simplified;
     }
 
     private static int ModPositive(int value, int count)
@@ -908,13 +930,14 @@ public static class LineRendererPathBuilder
             return false;
 
         Vector3 direction = delta / legLength;
-        for (int attempt = 0; attempt < 4; attempt++)
-        {
-            Vector3 perpendicular = GetPerpendicularAxisOffset(legStart, legEnd, routeSeed + attempt);
-            if (perpendicular.sqrMagnitude <= MinSegmentLength * MinSegmentLength)
-                continue;
+        List<Vector3> perpendicularChoices = GetPerpendicularAxisChoices(legStart, legEnd);
+        if (perpendicularChoices.Count == 0)
+            return false;
 
-            perpendicular.Normalize();
+        int startChoice = ModPositive(routeSeed, perpendicularChoices.Count);
+        for (int attempt = 0; attempt < perpendicularChoices.Count; attempt++)
+        {
+            Vector3 perpendicular = perpendicularChoices[(startChoice + attempt) % perpendicularChoices.Count];
             Vector3 sideStep = perpendicular * step;
 
             float along0 = legLength * 0.25f;
@@ -975,7 +998,7 @@ public static class LineRendererPathBuilder
         return axesChanged == 1;
     }
 
-    private static Vector3 GetPerpendicularAxisOffset(Vector3 legStart, Vector3 legEnd, int routeSeed)
+    private static List<Vector3> GetPerpendicularAxisChoices(Vector3 legStart, Vector3 legEnd)
     {
         Vector3 delta = legEnd - legStart;
         var choices = new List<Vector3>(4);
@@ -1002,11 +1025,57 @@ public static class LineRendererPathBuilder
             choices.Add(Vector3.down);
         }
 
-        if (choices.Count == 0)
-            return Vector3.zero;
+        return choices;
+    }
 
-        int pick = Mathf.Abs(routeSeed) % choices.Count;
-        return choices[pick];
+    private static List<Vector3> SimplifyCollinearRoute(List<Vector3> points)
+    {
+        if (points == null || points.Count <= 2)
+            return points;
+
+        var simplified = new List<Vector3> { points[0] };
+        for (int i = 1; i < points.Count - 1; i++)
+        {
+            Vector3 previous = simplified[simplified.Count - 1];
+            Vector3 current = points[i];
+            Vector3 next = points[i + 1];
+
+            if (SharesSameAxisDirection(previous, current, current, next))
+                continue;
+
+            simplified.Add(current);
+        }
+
+        simplified.Add(points[points.Count - 1]);
+        return simplified;
+    }
+
+    private static bool SharesSameAxisDirection(Vector3 legStartA, Vector3 legEndA, Vector3 legStartB, Vector3 legEndB)
+    {
+        Vector3 dirA = AxisDirection(legEndA - legStartA);
+        Vector3 dirB = AxisDirection(legEndB - legStartB);
+        if (dirA.sqrMagnitude <= MinSegmentLength * MinSegmentLength)
+            return true;
+        if (dirB.sqrMagnitude <= MinSegmentLength * MinSegmentLength)
+            return true;
+
+        return dirA == dirB;
+    }
+
+    private static Vector3 AxisDirection(Vector3 delta)
+    {
+        float absX = Mathf.Abs(delta.x);
+        float absY = Mathf.Abs(delta.y);
+        float absZ = Mathf.Abs(delta.z);
+
+        if (absX >= absY && absX >= absZ && absX > MinSegmentLength)
+            return new Vector3(Mathf.Sign(delta.x), 0f, 0f);
+        if (absY >= absX && absY >= absZ && absY > MinSegmentLength)
+            return new Vector3(0f, Mathf.Sign(delta.y), 0f);
+        if (absZ > MinSegmentLength)
+            return new Vector3(0f, 0f, Mathf.Sign(delta.z));
+
+        return Vector3.zero;
     }
 
     private static void TryAddCorner(List<Vector3> points, Vector3 corner)
