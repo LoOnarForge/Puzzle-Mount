@@ -7,8 +7,11 @@ public static class LineRendererPathBuilder
     private const float ZigzagDetourStep = 0.5f;
     private const float EndpointCastSkip = 0.15f;
     private const float GridCellSize = 0.5f;
-    private const float GridBoundsMargin = 2f;
+    private const float GridBoundsMargin = 1f;
     private const int MaxGridAxisCells = 256;
+    private const float MaxObstacleAvoidanceExtraLength = 2f;
+    private const float TightDetourStep = 0.5f;
+    private const float TightDetourMaxOffset = 2f;
 
     private static readonly float[] LaneOffsetMagnitudes = { 0.5f, 1f, 1.5f, 2f, 3f, 4f };
 
@@ -60,32 +63,153 @@ public static class LineRendererPathBuilder
         if (candidates.Count == 0)
             return BuildMinimalOrthogonalRoute(start, end, 0);
 
-        var usable = new List<List<Vector3>>();
         if (options.avoidObstacles && options.obstacleLayers.value != 0 && options.castRadius > 0f)
         {
-            for (int i = 0; i < candidates.Count; i++)
-            {
-                if (IsRouteClear(candidates[i], start, end, options.obstacleLayers, options.castRadius))
-                    usable.Add(candidates[i]);
-            }
-
-            if (usable.Count > 0)
-            {
-                int pick = ModPositive(options.routeVariantIndex, usable.Count);
-                return new List<Vector3>(usable[pick]);
-            }
-
-            List<Vector3> gridRoute = BuildGridAvoidanceRoute(start, end, options.obstacleLayers, options.castRadius);
-            if (gridRoute != null && gridRoute.Count >= 2)
-                return gridRoute;
-
-            Debug.LogWarning(
-                "LineRendererPathBuilder: no clear preset route and grid avoidance failed; using first preset.",
-                null);
+            List<Vector3> avoided = SelectShortestObstacleAvoidingRoute(start, end, candidates, options);
+            if (avoided != null && avoided.Count >= 2)
+                return avoided;
         }
 
         int variantPick = ModPositive(options.routeVariantIndex, candidates.Count);
         return new List<Vector3>(candidates[variantPick]);
+    }
+
+    private static List<Vector3> SelectShortestObstacleAvoidingRoute(
+        Vector3 start,
+        Vector3 end,
+        List<List<Vector3>> candidates,
+        LineRendererPathBuildOptions options)
+    {
+        float baselineLength = RouteLength(candidates[0]);
+        float maxLength = baselineLength + MaxObstacleAvoidanceExtraLength;
+
+        List<Vector3> bestRoute = null;
+        float bestLength = float.MaxValue;
+
+        for (int i = 0; i < candidates.Count; i++)
+        {
+            List<Vector3> candidate = candidates[i];
+            float length = RouteLength(candidate);
+            if (length > maxLength)
+                break;
+
+            if (!IsRouteClear(candidate, start, end, options.obstacleLayers, options.castRadius))
+                continue;
+
+            if (length < bestLength)
+            {
+                bestLength = length;
+                bestRoute = candidate;
+            }
+        }
+
+        List<Vector3> tightDetour = BuildTightDetourRoute(start, end, options.obstacleLayers, options.castRadius);
+        if (tightDetour != null)
+        {
+            float tightLength = RouteLength(tightDetour);
+            if (tightLength < bestLength)
+            {
+                bestLength = tightLength;
+                bestRoute = tightDetour;
+            }
+        }
+
+        List<Vector3> gridRoute = BuildGridAvoidanceRoute(start, end, options.obstacleLayers, options.castRadius);
+        if (gridRoute != null && gridRoute.Count >= 2)
+        {
+            float gridLength = RouteLength(gridRoute);
+            if (gridLength < bestLength)
+                bestRoute = gridRoute;
+        }
+
+        if (bestRoute != null)
+            return new List<Vector3>(bestRoute);
+
+        for (int i = 0; i < candidates.Count; i++)
+        {
+            if (!IsRouteClear(candidates[i], start, end, options.obstacleLayers, options.castRadius))
+                continue;
+
+            Debug.LogWarning(
+                "LineRendererPathBuilder: only long detours clear obstacles; using shortest clear preset.",
+                null);
+            return new List<Vector3>(candidates[i]);
+        }
+
+        Debug.LogWarning(
+            "LineRendererPathBuilder: no clear route found; using shortest preset.",
+            null);
+        return null;
+    }
+
+    private static List<Vector3> BuildTightDetourRoute(
+        Vector3 start,
+        Vector3 end,
+        LayerMask layers,
+        float radius)
+    {
+        List<Vector3> bestRoute = null;
+        float bestLength = float.MaxValue;
+
+        for (int orderIndex = 0; orderIndex < AxisStepOrders.Length; orderIndex++)
+        {
+            List<Vector3> minimal = BuildMinimalOrthogonalRoute(start, end, orderIndex);
+            if (IsRouteClear(minimal, start, end, layers, radius))
+                continue;
+
+            for (float offset = TightDetourStep; offset <= TightDetourMaxOffset + MinSegmentLength; offset += TightDetourStep)
+            {
+                TryAddTightDetourCandidate(start, end, offset, ref bestRoute, ref bestLength, layers, radius);
+                TryAddTightDetourCandidate(start, end, -offset, ref bestRoute, ref bestLength, layers, radius);
+            }
+        }
+
+        return bestRoute;
+    }
+
+    private static void TryAddTightDetourCandidate(
+        Vector3 start,
+        Vector3 end,
+        float offset,
+        ref List<Vector3> bestRoute,
+        ref float bestLength,
+        LayerMask layers,
+        float radius)
+    {
+        if (Mathf.Abs(start.x - end.x) > MinSegmentLength && Mathf.Abs(start.z - end.z) > MinSegmentLength)
+        {
+            ConsiderTightDetourRoute(
+                BuildRouteThroughWaypoints(start, end,
+                    new Vector3(start.x, start.y, start.z + offset),
+                    new Vector3(end.x, start.y, start.z + offset)),
+                ref bestRoute, ref bestLength, start, end, layers, radius);
+
+            ConsiderTightDetourRoute(
+                BuildRouteThroughWaypoints(start, end,
+                    new Vector3(start.x + offset, start.y, start.z),
+                    new Vector3(start.x + offset, start.y, end.z)),
+                ref bestRoute, ref bestLength, start, end, layers, radius);
+        }
+    }
+
+    private static void ConsiderTightDetourRoute(
+        List<Vector3> route,
+        ref List<Vector3> bestRoute,
+        ref float bestLength,
+        Vector3 start,
+        Vector3 end,
+        LayerMask layers,
+        float radius)
+    {
+        if (!IsRouteClear(route, start, end, layers, radius))
+            return;
+
+        float length = RouteLength(route);
+        if (length >= bestLength)
+            return;
+
+        bestLength = length;
+        bestRoute = route;
     }
 
     private static List<List<Vector3>> CollectRouteCandidates(Vector3 start, Vector3 end)
