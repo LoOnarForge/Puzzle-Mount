@@ -21,6 +21,7 @@ public class RoughZone : MonoBehaviour
     [SerializeField] private BoxCollider zoneTrigger;
     [SerializeField] private HexZone hexZone;
     [SerializeField] private ParticleSystem zoneParticleSystem;
+    [SerializeField] private SpriteGenerator spriteGenerator;
     [SerializeField] private bool isPSActive = true;
     [FormerlySerializedAs("floorMarkerSprite")]
     [SerializeField] private Sprite frameSprite;
@@ -61,6 +62,7 @@ public class RoughZone : MonoBehaviour
     private void OnValidate()
     {
         ApplyIsPSActive();
+        SyncSpriteGenerator();
 #if UNITY_EDITOR
         QueueEditorFloorRebuild();
 #endif
@@ -71,6 +73,7 @@ public class RoughZone : MonoBehaviour
         ApplyEvenSizeColliderCenterOffset();
         EnsureZoneParticleSystem();
         SyncZoneParticleSystem();
+        SyncSpriteGenerator();
     }
 
     private void Start()
@@ -81,6 +84,7 @@ public class RoughZone : MonoBehaviour
         SyncZoneParticleSystem();
         ApplyIsPSActive();
         ApplyPlayModeTriggerInset();
+        SyncSpriteGenerator();
     }
 
     private void OnDestroy()
@@ -122,6 +126,7 @@ public class RoughZone : MonoBehaviour
         RebuildFloorMarkers();
         SyncHexZoneFromTrigger();
         SyncZoneParticleSystem();
+        SyncSpriteGenerator();
         ApplyIsPSActive();
     }
 #endif
@@ -233,6 +238,7 @@ public class RoughZone : MonoBehaviour
         insetSize.x = Mathf.Max(insetSize.x - PlayModeTriggerXZSizeReduction, 0.01f);
         insetSize.z = Mathf.Max(insetSize.z - PlayModeTriggerXZSizeReduction, 0.01f);
         zoneTrigger.size = insetSize;
+        SyncSpriteGenerator();
     }
 
     private void RestoreTriggerSizeAfterPlay()
@@ -243,6 +249,7 @@ public class RoughZone : MonoBehaviour
         zoneTrigger.size = savedTriggerSize;
         hasSavedTriggerSize = false;
         hasFloorMarkerLayoutBounds = false;
+        SyncSpriteGenerator();
     }
 
     private void CaptureFloorMarkerLayoutBounds()
@@ -348,6 +355,14 @@ public class RoughZone : MonoBehaviour
             zoneParticleSystem.Stop(true, ParticleSystemStopBehavior.StopEmittingAndClear);
             zoneParticleSystem.Play(true);
         }
+    }
+
+    private void SyncSpriteGenerator()
+    {
+        if (spriteGenerator == null || zoneTrigger == null)
+            return;
+
+        spriteGenerator.SyncFromZone(zoneTrigger, primaryColor, secondaryColor);
     }
 
     private void SyncZoneParticleSystem()

@@ -417,6 +417,30 @@ public class SpriteGenerator : MonoBehaviour
         return false;
     }
 
+    // Aligns spawn/travel bounds and colors with the zone box collider.
+    public void SyncFromZone(BoxCollider zoneBox, Color primary, Color secondary)
+    {
+        primaryColor = primary;
+        secondaryColor = secondary;
+        zoneTrigger = zoneBox;
+        if (zoneBox == null)
+            return;
+
+        Transform zoneTransform = zoneBox.transform;
+        transform.SetPositionAndRotation(
+            zoneTransform.TransformPoint(zoneBox.center),
+            zoneTransform.rotation);
+    }
+
+    // Sets which zone-local directions sprites may travel.
+    public void SetDirections(bool east, bool west, bool north, bool south)
+    {
+        this.east = east;
+        this.west = west;
+        this.north = north;
+        this.south = south;
+    }
+
     private float GetMinSpeed() => Mathf.Min(minSpeed, maxSpeed);
     private float GetMaxSpeed() => Mathf.Max(minSpeed, maxSpeed);
     private float GetMinScale() => Mathf.Min(minScale, maxScale);
