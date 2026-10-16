@@ -111,13 +111,11 @@ public class MediumDoor : MonoBehaviour
         }
     }
 
-    // Toggle activation — used by levers and one-shot activators.
     public void OnLeverOperated()
     {
-        ApplyOpenState(!isDoorOpen);
+        ApplyActivatorReverse();
     }
 
-    // Reverses settled state or in-progress motion — used by pressure plates and buttons.
     public void ApplyActivatorReverse()
     {
         bool effectivelyOpen = isDoorMoving ? doorMotionTargetOpen : isDoorOpen || IsVisuallyAwayFromClosed();

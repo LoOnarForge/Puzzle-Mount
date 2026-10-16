@@ -100,22 +100,19 @@ public class Bridge : MonoBehaviour
         RefreshBridgeState();
     }
 
-    // Called by a powered Lever when the player operates it.
     public void OnLeverOperated()
     {
-        if (!hasValidLayout || (!isSelfPowered && !isPowered) || isSequenceRunning)
+        if (!hasValidLayout || (!isSelfPowered && !isPowered))
             return;
 
-        ApplyOpenState(!isBridgeOpen);
+        ApplyActivatorReverse();
     }
 
-    // Reverses settled state or in-progress motion — used by pressure plates and buttons.
     public void ApplyActivatorReverse()
     {
         ApplyOpenState(!IsEffectivelyOpenOrOpening());
     }
 
-    // Drives toward explicit open or closed (pressure plate: held = extend, released = retract).
     public void ApplyOpenState(bool isOpen)
     {
         activatorDemandsOpen = isOpen;
@@ -538,7 +535,10 @@ public class Bridge : MonoBehaviour
 
     private bool IsEffectivelyOpenOrOpening()
     {
-        if (isSequenceRunning || isBridgeOpen)
+        if (isSequenceRunning)
+            return !isClosing;
+
+        if (isBridgeOpen)
             return true;
 
         return HasPartialGapBridge();

@@ -44,7 +44,7 @@ public class SlideOutPlatform : MonoBehaviour
 
     public void OnLeverOperated()
     {
-        ApplyOpenState(!isExtended);
+        ApplyActivatorReverse();
     }
 
     public void ApplyActivatorReverse()

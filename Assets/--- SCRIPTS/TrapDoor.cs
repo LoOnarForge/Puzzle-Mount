@@ -53,13 +53,11 @@ public class TrapDoor : MonoBehaviour
         isTrapOpen = false;
     }
 
-    // Toggle activation — used by levers.
     public void OnLeverOperated()
     {
-        ApplyOpenState(!isTrapOpen);
+        ApplyActivatorReverse();
     }
 
-    // Reverses settled state or in-progress motion — used by pressure plates and buttons.
     public void ApplyActivatorReverse()
     {
         bool effectivelyOpen = isTrapMoving ? trapMotionTargetOpen : isTrapOpen || IsVisuallyAwayFromClosed();

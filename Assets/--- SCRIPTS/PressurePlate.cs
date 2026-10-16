@@ -192,10 +192,10 @@ public class PressurePlate : MonoBehaviour
             trapDoor.ApplyActivatorReverse();
 
         foreach (Bridge bridge in bridges)
-            bridge.ApplyOpenState(pressed);
+            bridge.ApplyActivatorReverse();
 
         foreach (SlideOutPlatform slideOutPlatform in slideOutPlatforms)
-            slideOutPlatform.ApplyOpenState(pressed);
+            slideOutPlatform.ApplyActivatorReverse();
     }
 
     // Matches MediumDoor skull timing: pressed = closed to open, released = default to closed.
