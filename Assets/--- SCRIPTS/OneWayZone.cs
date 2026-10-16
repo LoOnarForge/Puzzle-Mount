@@ -41,6 +41,7 @@ public class OneWayZone : MonoBehaviour
 
 #if UNITY_EDITOR
     private bool editorFloorRebuildQueued;
+    private bool editorApplyPsQueued;
 #endif
 
     private void OnEnable()
@@ -57,7 +58,14 @@ public class OneWayZone : MonoBehaviour
 
     private void OnValidate()
     {
+#if UNITY_EDITOR
+        if (Application.isPlaying)
+            QueueApplyIsPSActive();
+        else
+            ApplyIsPSActive();
+#else
         ApplyIsPSActive();
+#endif
         SyncSpriteGenerator();
 #if UNITY_EDITOR
         QueueEditorFloorRebuild();
@@ -114,6 +122,24 @@ public class OneWayZone : MonoBehaviour
         SyncHexZoneFromTrigger();
         SyncZoneParticleSystem();
         SyncSpriteGenerator();
+        ApplyIsPSActive();
+    }
+
+    private void QueueApplyIsPSActive()
+    {
+        if (editorApplyPsQueued)
+            return;
+
+        editorApplyPsQueued = true;
+        UnityEditor.EditorApplication.delayCall += RunQueuedApplyIsPSActive;
+    }
+
+    private void RunQueuedApplyIsPSActive()
+    {
+        editorApplyPsQueued = false;
+        if (this == null)
+            return;
+
         ApplyIsPSActive();
     }
 #endif

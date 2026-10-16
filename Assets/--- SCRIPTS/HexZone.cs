@@ -643,13 +643,30 @@ public class HexZone : MonoBehaviour
 
     private static void ClearChildren(Transform root)
     {
+        if (root == null)
+            return;
+
         for (int i = root.childCount - 1; i >= 0; i--)
         {
             Transform child = root.GetChild(i);
+            if (child == null)
+                continue;
+
+            GameObject go = child.gameObject;
             if (Application.isPlaying)
-                Destroy(child.gameObject);
-            else
-                DestroyImmediate(child.gameObject);
+            {
+                Destroy(go);
+                continue;
+            }
+
+            if (!go.scene.IsValid())
+                continue;
+
+#if UNITY_EDITOR
+            UnityEditor.Undo.DestroyObjectImmediate(go);
+#else
+            DestroyImmediate(go);
+#endif
         }
     }
 

@@ -34,6 +34,7 @@ public class SlipperySurfaceZone : MonoBehaviour
 
 #if UNITY_EDITOR
     private bool editorFloorRebuildQueued;
+    private bool editorApplyPsQueued;
 #endif
 
     private readonly HashSet<RunodeMovement> runodesInTrigger = new HashSet<RunodeMovement>();
@@ -49,7 +50,14 @@ public class SlipperySurfaceZone : MonoBehaviour
 
     private void OnValidate()
     {
+#if UNITY_EDITOR
+        if (Application.isPlaying)
+            QueueApplyIsPSActive();
+        else
+            ApplyIsPSActive();
+#else
         ApplyIsPSActive();
+#endif
         SyncSpriteGenerator();
 #if UNITY_EDITOR
         QueueEditorFloorRebuild();
@@ -105,6 +113,24 @@ public class SlipperySurfaceZone : MonoBehaviour
         SyncHexZoneFromTrigger();
         SyncZoneParticleSystem();
         SyncSpriteGenerator();
+        ApplyIsPSActive();
+    }
+
+    private void QueueApplyIsPSActive()
+    {
+        if (editorApplyPsQueued)
+            return;
+
+        editorApplyPsQueued = true;
+        UnityEditor.EditorApplication.delayCall += RunQueuedApplyIsPSActive;
+    }
+
+    private void RunQueuedApplyIsPSActive()
+    {
+        editorApplyPsQueued = false;
+        if (this == null)
+            return;
+
         ApplyIsPSActive();
     }
 #endif
