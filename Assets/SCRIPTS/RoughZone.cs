@@ -34,6 +34,11 @@ public class RoughZone : MonoBehaviour
     [Header("PUSH SPEED ON ROUGH:")]
     [SerializeField] private float normalMoveSpeed = 5f;
     [SerializeField] private float roughMoveSpeed = 2.5f;
+    [SerializeField] private float timWalkSpeed = 1.5f;
+    [SerializeField] private float timRunSpeed = 3f;
+
+    public float TimWalkSpeed => timWalkSpeed;
+    public float TimRunSpeed => timRunSpeed;
 
     private bool isRebuildingFloorMarkers;
 

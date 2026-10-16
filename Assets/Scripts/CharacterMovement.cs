@@ -333,7 +333,7 @@ public partial class CharacterMovement : MonoBehaviour
         }
         
         // Use moveInput magnitude for better analog control and precision
-        float targetSpeed = (shouldRun ? runSpeed : walkSpeed) * moveInput.magnitude;
+        float targetSpeed = (shouldRun ? GetTimFloorRunSpeed() : GetTimFloorWalkSpeed()) * moveInput.magnitude;
         
         // Start acceleration from zero (removed startSpeed snap)
         

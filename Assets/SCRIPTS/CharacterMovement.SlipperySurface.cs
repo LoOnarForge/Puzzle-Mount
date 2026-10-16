@@ -7,13 +7,8 @@ public partial class CharacterMovement
     private const float SlipperyDiagonalAxisMin = 0.4f;
     private const float SlipperyDiagonalGraceSeconds = 0.15f;
     private const float SlipperyCoastStartGraceSeconds = 0.15f;
-    private const float SlipperyZoneProbeLift = 0.1f;
-    private const float SlipperyZoneProbeRadius = 0.35f;
-    private const float SlipperyZoneFeetVerticalTolerance = 0.15f;
     private const float SlipperyDirectionEpsilon = 0.0001f;
     private const float SlipperyNeverDiagonalTime = -999f;
-
-    private static readonly Collider[] SlipperyZoneOverlapHits = new Collider[8];
 
     private SlipperyCoastSample pendingCoastSample;
     private SlipperyCoastMotion activeCoast;
@@ -180,35 +175,7 @@ public partial class CharacterMovement
 
     private bool IsOverSlipperyZone()
     {
-        Bounds timBounds = controller.bounds;
-        Vector3 probe = new Vector3(timBounds.center.x, timBounds.min.y + SlipperyZoneProbeLift, timBounds.center.z);
-
-        int hitCount = Physics.OverlapSphereNonAlloc(
-            probe,
-            SlipperyZoneProbeRadius,
-            SlipperyZoneOverlapHits,
-            Physics.AllLayers,
-            QueryTriggerInteraction.Collide);
-
-        float feetY = probe.y;
-
-        for (int i = 0; i < hitCount; i++)
-        {
-            Collider zoneCollider = SlipperyZoneOverlapHits[i];
-            if (zoneCollider.GetComponentInParent<SlipperySurfaceZone>() == null)
-                continue;
-
-            Bounds zoneBounds = zoneCollider.bounds;
-            if (feetY < zoneBounds.min.y - SlipperyZoneFeetVerticalTolerance ||
-                feetY > zoneBounds.max.y + SlipperyZoneFeetVerticalTolerance)
-            {
-                continue;
-            }
-
-            return true;
-        }
-
-        return false;
+        return GetTimFloorZoneAtFeet().Kind == TimFloorZoneKind.Slippery;
     }
 
     private static bool TryGetHorizontalMoveDirection(Vector3 moveDirection, out Vector3 normalized, out float length)
