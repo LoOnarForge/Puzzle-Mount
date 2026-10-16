@@ -20,8 +20,13 @@ public class LineRendererGeneratorEditor : Editor
         EditorGUILayout.PropertyField(serializedObject.FindProperty("cometPrefab"));
         EditorGUILayout.PropertyField(serializedObject.FindProperty("beamSpeedMin"));
         EditorGUILayout.PropertyField(serializedObject.FindProperty("beamSpeedMax"));
+        EditorGUILayout.PropertyField(serializedObject.FindProperty("avoidObstaclesWhenGenerating"));
+        EditorGUILayout.PropertyField(serializedObject.FindProperty("pathObstacleLayers"));
+        EditorGUILayout.PropertyField(serializedObject.FindProperty("pathClearanceRadius"));
 
         LineRendererGenerator generator = (LineRendererGenerator)target;
+        if (generator.AvoidObstaclesWhenGenerating && generator.PathObstacleLayers.value == 0)
+            EditorGUILayout.HelpBox("Assign Path Obstacle Layers (e.g. environment colliders) for avoidance when generating lines.", MessageType.Info);
         if (generator.CometPrefab == null)
             EditorGUILayout.HelpBox("Comet Prefab is placed at the moving beam head.", MessageType.None);
         if (generator.LineRendererPrefab == null)
@@ -62,9 +67,15 @@ public class LineRendererGeneratorEditor : Editor
             EditorGUILayout.LabelField(entry.deviceName ?? "(missing name)", EditorStyles.boldLabel);
             entry.device = (GameObject)EditorGUILayout.ObjectField("Device", entry.device, typeof(GameObject), true);
             entry.zigzagAmount = EditorGUILayout.IntSlider("Zigzag (extra 90° detours)", entry.zigzagAmount, 0, ZigzagAmountMax);
+            entry.routeVariantIndex = EditorGUILayout.IntField("Route variant", entry.routeVariantIndex);
             EditorGUILayout.BeginHorizontal();
             if (GUILayout.Button("Create Line Renderer Child"))
                 CreateOrRecreateLineChild(generator, entry);
+            if (GUILayout.Button("Next Route + Recreate"))
+            {
+                entry.routeVariantIndex++;
+                CreateOrRecreateLineChild(generator, entry);
+            }
             if (GUILayout.Button("Delete From LineRendererGenerator"))
                 RemoveLinkAt(generator, i);
             EditorGUILayout.EndHorizontal();
@@ -213,16 +224,22 @@ public class LineRendererGeneratorEditor : Editor
         if (lineRenderer != null && !lineRenderer.useWorldSpace)
             lineRenderer.useWorldSpace = true;
 
+        Physics.SyncTransforms();
+
         Vector3 start = generator.transform.position;
         Vector3 end = GetActivatorLinkEndPosition(entry.device);
-        int variationSeed = Random.Range(int.MinValue, int.MaxValue);
+        LineRendererPathBuildOptions buildOptions = LineRendererPathBuildOptions.ForEditor(
+            entry.routeVariantIndex,
+            generator.AvoidObstaclesWhenGenerating,
+            generator.PathObstacleLayers,
+            generator.PathClearanceRadius);
         Vector3[] points = LineRendererPathBuilder.BuildPoints(
             start,
             end,
             entry.deviceName,
             0,
             entry.zigzagAmount,
-            variationSeed);
+            buildOptions);
 
         lineRenderer.positionCount = points.Length;
         lineRenderer.SetPositions(points);
