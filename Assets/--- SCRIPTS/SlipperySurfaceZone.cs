@@ -154,9 +154,6 @@ public class SlipperySurfaceZone : MonoBehaviour
         if (runode == null)
             return;
 
-        if (!ContainsGridPosition(SnapHorizontal(runode.transform.position)))
-            return;
-
         runodesInTrigger.Add(runode);
     }
 
@@ -399,11 +396,9 @@ public class SlipperySurfaceZone : MonoBehaviour
 
         Bounds b = zoneTrigger.bounds;
         float x = gridPosition.x;
-        float y = gridPosition.y;
         float z = gridPosition.z;
 
         return x + CellHalfExtent > b.min.x && x - CellHalfExtent < b.max.x &&
-               y + CellHalfExtent > b.min.y && y - CellHalfExtent < b.max.y &&
                z + CellHalfExtent > b.min.z && z - CellHalfExtent < b.max.z;
     }
 
