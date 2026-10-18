@@ -11,12 +11,15 @@ GameObject:
   - component: {fileID: 3482712872726872271}
   - component: {fileID: 2787446421458026799}
   - component: {fileID: 7861685480932991646}
+  - component: {fileID: 7847271314538851468}
+  - component: {fileID: 5556272599297880852}
+  - component: {fileID: 5191728242034736085}
   m_Layer: 13
   m_Name: Pressure Plate (001)
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
-  m_StaticEditorFlags: 0
+  m_StaticEditorFlags: 2147483647
   m_IsActive: 1
 --- !u!4 &3482712872726872271
 Transform:
@@ -26,7 +29,7 @@ Transform:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 932074500180385741}
   serializedVersion: 2
-  m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
   m_LocalPosition: {x: 11, y: 0, z: 2}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
@@ -95,6 +98,59 @@ MonoBehaviour:
   meshFilters:
   - {fileID: 8735175227737931590}
   - {fileID: 1053327995482934018}
+--- !u!114 &7847271314538851468
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 932074500180385741}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 7f89cc6d824df384d91d28eb1905f73b, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::ActivatorOutlineHighlight
+  outlineMaterial: {fileID: 0}
+  outlineColor: {r: 0.74901944, g: 1.4980392, b: 1.3878894, a: 1}
+  outlineWidth: 0.02
+  skipEyeMeshes: 1
+  applyStaticFlagsOnAwake: 1
+--- !u!114 &5556272599297880852
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 932074500180385741}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 4b767999dfac57948aff6d844acc958c, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::ActivatorConnectionLinesHover
+--- !u!114 &5191728242034736085
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 932074500180385741}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: fddf7a8a6a150d24e8da737272f1bc0e, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::LineRendererGenerator
+  lineRendererPrefab: {fileID: 6551300570831054712, guid: b67fb007e03c7924baea9d02fee0b5be, type: 3}
+  editorPreviewMaterial: {fileID: 2100000, guid: a7c3e9f1b2d4085469f0a1e2d3c4b5a6, type: 2}
+  beamLineMaterial: {fileID: 2100000, guid: 86cf7924ddaacac468cfbebbaddb1d83, type: 2}
+  cometPrefab: {fileID: 9159425867087915925, guid: 976fbf787a7184648b08aee5406eabb6, type: 3}
+  beamSpeedMin: 6
+  beamSpeedMax: 9
+  avoidObstaclesWhenGenerating: 1
+  pathObstacleLayers:
+    serializedVersion: 2
+    m_Bits: 11264
+  pathClearanceRadius: 0.25
+  links: []
 --- !u!1 &1934612361360438259
 GameObject:
   m_ObjectHideFlags: 0
@@ -203,7 +259,7 @@ GameObject:
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
-  m_StaticEditorFlags: 0
+  m_StaticEditorFlags: 2147483647
   m_IsActive: 1
 --- !u!4 &1753436421760070069
 Transform:
@@ -291,7 +347,7 @@ GameObject:
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
-  m_StaticEditorFlags: 0
+  m_StaticEditorFlags: 2147483647
   m_IsActive: 1
 --- !u!4 &570189827024826501
 Transform:
@@ -581,7 +637,7 @@ GameObject:
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
-  m_StaticEditorFlags: 0
+  m_StaticEditorFlags: 2147483647
   m_IsActive: 1
 --- !u!4 &2737578715001359589
 Transform:
@@ -635,7 +691,7 @@ GameObject:
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
-  m_StaticEditorFlags: 0
+  m_StaticEditorFlags: 2147483647
   m_IsActive: 1
 --- !u!4 &4597967793846960668
 Transform:

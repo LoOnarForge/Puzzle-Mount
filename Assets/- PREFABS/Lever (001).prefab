@@ -17,7 +17,7 @@ GameObject:
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
-  m_StaticEditorFlags: 0
+  m_StaticEditorFlags: 2147483647
   m_IsActive: 1
 --- !u!4 &7283560362033003688
 Transform:
@@ -142,7 +142,7 @@ GameObject:
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
-  m_StaticEditorFlags: 0
+  m_StaticEditorFlags: 2147483647
   m_IsActive: 1
 --- !u!4 &4282005136065954529
 Transform:
@@ -232,7 +232,7 @@ GameObject:
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
-  m_StaticEditorFlags: 0
+  m_StaticEditorFlags: 2147483647
   m_IsActive: 1
 --- !u!4 &6602919682018282728
 Transform:
@@ -516,7 +516,7 @@ GameObject:
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
-  m_StaticEditorFlags: 0
+  m_StaticEditorFlags: 2147483647
   m_IsActive: 1
 --- !u!4 &4197386726877502309
 Transform:
@@ -624,7 +624,7 @@ GameObject:
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
-  m_StaticEditorFlags: 0
+  m_StaticEditorFlags: 2147483647
   m_IsActive: 1
 --- !u!4 &3205293266277772940
 Transform:
@@ -848,7 +848,7 @@ GameObject:
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
-  m_StaticEditorFlags: 0
+  m_StaticEditorFlags: 2147483647
   m_IsActive: 1
 --- !u!4 &8253551819936691727
 Transform:
@@ -954,12 +954,15 @@ GameObject:
   m_Component:
   - component: {fileID: 1890467499025177595}
   - component: {fileID: 8828515927793236645}
+  - component: {fileID: 4263125353244771445}
+  - component: {fileID: 799697991204657725}
+  - component: {fileID: 8343003577234555372}
   m_Layer: 13
   m_Name: Lever (001)
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
-  m_StaticEditorFlags: 0
+  m_StaticEditorFlags: 2147483647
   m_IsActive: 1
 --- !u!4 &1890467499025177595
 Transform:
@@ -1000,8 +1003,64 @@ MonoBehaviour:
     allocatedMw: 0
     poweringSource: {fileID: 0}
   leverHandle: {fileID: 4978818627398781714}
-  connectedDevices: []
+  connectedDevices:
+  - {fileID: 0}
+  - {fileID: 0}
+  - {fileID: 0}
   isPowered: 0
+--- !u!114 &4263125353244771445
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 8526102275491710381}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 7f89cc6d824df384d91d28eb1905f73b, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::ActivatorOutlineHighlight
+  outlineMaterial: {fileID: 0}
+  outlineColor: {r: 0.74901944, g: 1.4980392, b: 1.3878894, a: 1}
+  outlineWidth: 0.02
+  skipEyeMeshes: 1
+  applyStaticFlagsOnAwake: 1
+--- !u!114 &799697991204657725
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 8526102275491710381}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 4b767999dfac57948aff6d844acc958c, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::ActivatorConnectionLinesHover
+--- !u!114 &8343003577234555372
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 8526102275491710381}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: fddf7a8a6a150d24e8da737272f1bc0e, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::LineRendererGenerator
+  lineRendererPrefab: {fileID: 6551300570831054712, guid: b67fb007e03c7924baea9d02fee0b5be, type: 3}
+  editorPreviewMaterial: {fileID: 2100000, guid: a7c3e9f1b2d4085469f0a1e2d3c4b5a6, type: 2}
+  beamLineMaterial: {fileID: 2100000, guid: 86cf7924ddaacac468cfbebbaddb1d83, type: 2}
+  cometPrefab: {fileID: 9159425867087915925, guid: 976fbf787a7184648b08aee5406eabb6, type: 3}
+  beamSpeedMin: 6
+  beamSpeedMax: 9
+  avoidObstaclesWhenGenerating: 1
+  pathObstacleLayers:
+    serializedVersion: 2
+    m_Bits: 11264
+  pathClearanceRadius: 0.25
+  links: []
 --- !u!1 &8543609184400602373
 GameObject:
   m_ObjectHideFlags: 0
@@ -1016,7 +1075,7 @@ GameObject:
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
-  m_StaticEditorFlags: 0
+  m_StaticEditorFlags: 2147483647
   m_IsActive: 1
 --- !u!4 &3067650490994502174
 Transform:
@@ -1050,7 +1109,7 @@ GameObject:
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
-  m_StaticEditorFlags: 0
+  m_StaticEditorFlags: 2147483647
   m_IsActive: 1
 --- !u!4 &3426493835049033934
 Transform:
