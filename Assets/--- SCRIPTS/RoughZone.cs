@@ -23,6 +23,7 @@ public class RoughZone : MonoBehaviour
     [SerializeField] private ParticleSystem zoneParticleSystem;
     [SerializeField] private SpriteGenerator spriteGenerator;
     [SerializeField] private bool isPSActive = true;
+    [SerializeField] private bool showZoneFrame = true;
     [FormerlySerializedAs("floorMarkerSprite")]
     [SerializeField] private Sprite frameSprite;
     [FormerlySerializedAs("floorMarkerColor")]
@@ -302,9 +303,9 @@ public class RoughZone : MonoBehaviour
         if (isRebuildingFloorMarkers || zoneTrigger == null)
             return;
 
-        if (frameSprite == null)
+        if (!showZoneFrame || frameSprite == null)
         {
-            DestroyEmptyRuntimeFloorSpriteObjects();
+            DestroyFloorMarkerObjects();
             return;
         }
 
@@ -440,7 +441,7 @@ public class RoughZone : MonoBehaviour
 
     private void UpdateFloorMarkerPulse()
     {
-        if (frameSprite == null)
+        if (!showZoneFrame || frameSprite == null)
             return;
 
         Color frameColor = primaryColor;

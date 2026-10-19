@@ -27,7 +27,7 @@ public class HexZone : MonoBehaviour
         public float WaitTimer;
     }
 
-    private const float FloorInsetFromBottom = 0.01f;
+    private const float FloorInsetFromBottom = -0.09f;
 
     [Header("Zone")]
     [SerializeField] private BoxCollider zoneTrigger;
