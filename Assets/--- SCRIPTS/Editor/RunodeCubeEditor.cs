@@ -31,6 +31,9 @@ public class RunodeCubeEditor : Editor
     {
         serializedObject.Update();
 
+        EditorGUILayout.PropertyField(serializedObject.FindProperty("isStationary"));
+        EditorGUILayout.PropertyField(serializedObject.FindProperty("isFixed"));
+
         if (GUILayout.Button("RESET ALL FACES"))
         {
             serializedObject.FindProperty("topFace").intValue = (int)RunodeLineType.Empty;
@@ -84,6 +87,11 @@ public class RunodeCubeEditor : Editor
             EditorGUILayout.PropertyField(serializedObject.FindProperty("tSectionSprite"));
             EditorGUILayout.PropertyField(serializedObject.FindProperty("crossSprite"));
         }
+
+        EditorGUILayout.Space();
+        EditorGUILayout.PropertyField(serializedObject.FindProperty("stationaryColor"));
+        EditorGUILayout.PropertyField(serializedObject.FindProperty("fixedColor"));
+        EditorGUILayout.PropertyField(serializedObject.FindProperty("runodeBody"));
 
         serializedObject.ApplyModifiedProperties();
 

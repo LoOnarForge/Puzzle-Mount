@@ -36,6 +36,11 @@ public enum RunodeLineType
 
 public class RunodeCube : MonoBehaviour
 {
+    // Ticked: Tim and pistons cannot push this cube. Rotation stays allowed.
+    public bool isStationary;
+    // Ticked: cannot be pushed or rotated. Wins over isStationary when both are ticked.
+    public bool isFixed;
+
     public RunodeLineType topFace    = RunodeLineType.Empty;
     public RunodeLineType bottomFace = RunodeLineType.Empty;
     public RunodeLineType northFace  = RunodeLineType.Empty;
@@ -56,13 +61,85 @@ public class RunodeCube : MonoBehaviour
     public Sprite tSectionSprite;
     public Sprite crossSprite;
 
+    [ColorUsage(true, true)]
+    public Color stationaryColor = Color.white;
+    [ColorUsage(true, true)]
+    public Color fixedColor = Color.white;
+    public MeshRenderer runodeBody;
+
     private const float RefreshRadius = 2.1f;
+    private static readonly int BaseColorId = Shader.PropertyToID("_BaseColor");
 
     private RunodeLine[] lines;
+    private MaterialPropertyBlock bodyColorBlock;
 
     private void Awake()
     {
         lines = GetComponentsInChildren<RunodeLine>();
+        ApplyMobilityToMovement();
+    }
+
+    private void Start()
+    {
+        ApplyVariantBodyColor();
+    }
+
+    private void OnValidate()
+    {
+        ApplyVariantBodyColor();
+
+        if (Application.isPlaying)
+            ApplyMobilityToMovement();
+    }
+
+    // Returns the body tint for a ticked variant. Fixed wins when both are ticked.
+    public bool TryGetVariantBodyColor(out Color color)
+    {
+        if (isFixed)
+        {
+            color = fixedColor;
+            return true;
+        }
+
+        if (isStationary)
+        {
+            color = stationaryColor;
+            return true;
+        }
+
+        color = default;
+        return false;
+    }
+
+    // Tells RunodeMovement which push and rotation limits are ticked.
+    private void ApplyMobilityToMovement()
+    {
+        RunodeMovement movement = GetComponent<RunodeMovement>();
+        if (movement == null)
+            return;
+
+        movement.ApplyMobilityLimits(isStationary || isFixed, isFixed);
+    }
+
+    // Tints the body mesh for the ticked variant. Leaves the mesh alone when neither is ticked.
+    private void ApplyVariantBodyColor()
+    {
+        if (runodeBody == null)
+            return;
+
+        if (!TryGetVariantBodyColor(out Color color))
+        {
+            if (!Application.isPlaying)
+                runodeBody.SetPropertyBlock(null);
+            return;
+        }
+
+        if (bodyColorBlock == null)
+            bodyColorBlock = new MaterialPropertyBlock();
+
+        runodeBody.GetPropertyBlock(bodyColorBlock);
+        bodyColorBlock.SetColor(BaseColorId, color);
+        runodeBody.SetPropertyBlock(bodyColorBlock);
     }
 
     public RunodeLine[] GetLines() => lines;
