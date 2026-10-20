@@ -2,18 +2,27 @@ using UnityEngine;
 
 public class RunodeCubeVisualRandomizer : MonoBehaviour
 {
+    [Header("Runode body (mesh)")]
     [SerializeField] private Mesh[] meshes;
     [Space(10)]
     [SerializeField] private Material[] materials;
     [Space(10)]
     [SerializeField] private MeshFilter meshFilter;
     [SerializeField] private MeshRenderer meshRenderer;
-    [Space(10)]
+
+    [Header("Power lines (sprites)")]
     [SerializeField] private RunodeLineSpriteLibrary lineSpriteLibrary;
 
     public RunodeLineSpriteLibrary LineSpriteLibrary => lineSpriteLibrary;
 
     private void Awake()
+    {
+        ApplyRandomBodyMesh();
+        ApplyRandomBodyMaterial();
+        ApplyRandomLineSprites();
+    }
+
+    private void ApplyRandomBodyMesh()
     {
         if (meshFilter != null && meshes != null && meshes.Length > 0)
         {
@@ -42,15 +51,16 @@ public class RunodeCubeVisualRandomizer : MonoBehaviour
             meshTransform.localPosition = targetVolumeCenter
                 - rotation * Vector3.Scale(compensatedLocalScale, meshCenterLocal);
         }
+    }
 
+    private void ApplyRandomBodyMaterial()
+    {
         if (meshRenderer != null && materials != null && materials.Length > 0)
         {
             Material chosenMaterial = materials[Random.Range(0, materials.Length)];
             if (chosenMaterial != null)
                 meshRenderer.sharedMaterial = chosenMaterial;
         }
-
-        ApplyRandomLineSprites();
     }
 
     private static Vector3 GetTargetVolumeCenter(

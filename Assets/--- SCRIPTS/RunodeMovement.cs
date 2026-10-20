@@ -2,8 +2,6 @@ using UnityEngine;
 using System.Collections;
 using System.Collections.Generic;
 
-[RequireComponent(typeof(Rigidbody))]
-[RequireComponent(typeof(BoxCollider))]
 public class RunodeMovement : MonoBehaviour
 {
     [Header("MOVEMENT:")]
@@ -28,8 +26,6 @@ public class RunodeMovement : MonoBehaviour
     public bool IsGrounded => CheckGroundedWithRaycast();
     public bool IsBusy => isMovingPos || isRotating;
 
-    private bool pushBlocked;
-
     [Header("PHYSICS LAYERS:")]
     [SerializeField] private LayerMask groundCheckMask = 0;
     [SerializeField] private LayerMask obstructionCheckMask = 0;
@@ -45,6 +41,10 @@ public class RunodeMovement : MonoBehaviour
 
     private void Awake()
     {
+        rb = GetComponent<Rigidbody>();
+        if (rb == null)
+            return;
+
         visualParent = transform.GetChild(0);
 
         // Capture the base rotation before any randomization happens
@@ -53,7 +53,6 @@ public class RunodeMovement : MonoBehaviour
             baseRotation = visualParent.localRotation;
         }
 
-        rb = GetComponent<Rigidbody>();
         runodeCube = GetComponent<RunodeCube>();
         rb.isKinematic = false;
         rb.useGravity = true;
@@ -61,7 +60,10 @@ public class RunodeMovement : MonoBehaviour
     }
     private void Start()
     {
-        if (randomRotateOnStart && (runodeCube == null || !runodeCube.isFixed))
+        if (rb == null)
+            return;
+
+        if (randomRotateOnStart)
         {
             ApplyRandomRotation();
         }
@@ -69,17 +71,11 @@ public class RunodeMovement : MonoBehaviour
         SnapToGrid();
     }
 
-    // Called by RunodeCube. blockPush stops Tim and piston pushes. blockRotate stops player rotation.
-    public void ApplyMobilityLimits(bool blockPush, bool blockRotate)
-    {
-        pushBlocked = blockPush;
-
-        if (blockRotate)
-            isRotatable = false;
-    }
-
     private void FixedUpdate()
     {
+        if (rb == null)
+            return;
+
         isGrounded = CheckGroundedWithRaycast();
 
         if (!wasGrounded && isGrounded && runodeCube != null)
@@ -92,7 +88,9 @@ public class RunodeMovement : MonoBehaviour
 
     public void SetKinematic(bool kinematic)
     {
-        if (rb == null) rb = GetComponent<Rigidbody>();
+        if (rb == null)
+            return;
+
         rb.isKinematic = kinematic;
 
         if (!kinematic)
@@ -134,7 +132,7 @@ public class RunodeMovement : MonoBehaviour
     // Returns true if this cube is allowed to move one step in the given direction.
     public bool CanPushSingle(Vector3 direction)
     {
-        if (pushBlocked) return false;
+        if (rb == null) return false;
         if (isMovingPos) return false;
         if (!CheckGroundedWithRaycast()) return false;
 
@@ -174,7 +172,7 @@ public class RunodeMovement : MonoBehaviour
     // Starts moving this cube one grid step in the given direction.
     public void PushSingle(Vector3 direction)
     {
-        if (pushBlocked) return;
+        if (rb == null) return;
 
         Vector3 pushDir = GetGridDirection(direction);
         Vector3 snappedStart = new Vector3(Mathf.Round(transform.position.x), transform.position.y, Mathf.Round(transform.position.z));
@@ -247,11 +245,11 @@ public class RunodeMovement : MonoBehaviour
             Mathf.Round(transform.position.z));
         transform.position = startPos;
 
-        if (direction == Vector3.right || direction == Vector3.left)
+        if (rb != null && (direction == Vector3.right || direction == Vector3.left))
         {
             rb.constraints = RigidbodyConstraints.FreezePositionZ | RigidbodyConstraints.FreezeRotation;
         }
-        else if (direction == Vector3.forward || direction == Vector3.back)
+        else if (rb != null && (direction == Vector3.forward || direction == Vector3.back))
         {
             rb.constraints = RigidbodyConstraints.FreezePositionX | RigidbodyConstraints.FreezeRotation;
         }
@@ -280,7 +278,8 @@ public class RunodeMovement : MonoBehaviour
         transform.position = targetPosition;
         Physics.SyncTransforms();
         isMovingPos = false;
-        rb.constraints = RigidbodyConstraints.FreezePositionX | RigidbodyConstraints.FreezePositionZ | RigidbodyConstraints.FreezeRotation;
+        if (rb != null)
+            rb.constraints = RigidbodyConstraints.FreezePositionX | RigidbodyConstraints.FreezePositionZ | RigidbodyConstraints.FreezeRotation;
 
         if (runodeCube != null)
             runodeCube.RefreshCubeAndAdjacentConnections();

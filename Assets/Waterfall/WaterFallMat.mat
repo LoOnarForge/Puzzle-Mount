@@ -1,0 +1,101 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &-4937674869973112551
+MonoBehaviour:
+  m_ObjectHideFlags: 11
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: d0353a89b1f911e48b9e16bdc9f2e058, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Unity.RenderPipelines.Universal.Editor::UnityEditor.Rendering.Universal.AssetVersion
+  version: 10
+--- !u!21 &2100000
+Material:
+  serializedVersion: 8
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_Name: WaterFallMat
+  m_Shader: {fileID: -6465566751694194690, guid: f5a4619eed65c15429bf949954930b82, type: 3}
+  m_Parent: {fileID: 0}
+  m_ModifiedSerializedProperties: 0
+  m_ValidKeywords: []
+  m_InvalidKeywords: []
+  m_LightmapFlags: 2
+  m_EnableInstancingVariants: 0
+  m_DoubleSidedGI: 0
+  m_CustomRenderQueue: 3000
+  stringTagMap: {}
+  disabledShaderPasses:
+  - MOTIONVECTORS
+  m_LockedProperties: _Border
+  m_SavedProperties:
+    serializedVersion: 3
+    m_TexEnvs:
+    - unity_Lightmaps:
+        m_Texture: {fileID: 0}
+        m_Scale: {x: 1, y: 1}
+        m_Offset: {x: 0, y: 0}
+    - unity_LightmapsInd:
+        m_Texture: {fileID: 0}
+        m_Scale: {x: 1, y: 1}
+        m_Offset: {x: 0, y: 0}
+    - unity_ShadowMasks:
+        m_Texture: {fileID: 0}
+        m_Scale: {x: 1, y: 1}
+        m_Offset: {x: 0, y: 0}
+    m_Ints: []
+    m_Floats:
+    - _Blur: 0
+    - _BottomBrightness: 4
+    - _BottomSpeed: -1
+    - _BottomStrenght: 11
+    - _CLIP_THRESHOLD: 0.5
+    - _ControlSpeed: 0.1
+    - _Erosion: 0
+    - _FoamCutoff: 3.81
+    - _FoamSIze: 20
+    - _FoamSpeed: 0.22
+    - _MaskScale: 0
+    - _QueueControl: 0
+    - _QueueOffset: 0
+    - _Radius: 0
+    - _RefractionScale: 1.7
+    - _RefractionSpeed: 0.3
+    - _RefractionStrenght: 0.01
+    - _RippleScale: 100
+    - _RipplesAmount: 5
+    - _Speed: 0.1
+    - _Threshold: 0.5
+    - _TopDownRadius: 0.79
+    - _VoronoiSpeed: 3
+    - _VoronoisScale: 8.02
+    - _WaterDepth: 0.08
+    - _test1: 0.1
+    - _teste2: 0
+    m_Colors:
+    - _Border: {r: 766.99615, g: 766.99615, b: 766.99615, a: 1}
+    - _BottomColor: {r: 0.5381523, g: 0.6416431, b: 0.9883373, a: 1}
+    - _COLOR: {r: 1, g: 0.40646967, b: 0.08962262, a: 1}
+    - _Color: {r: 1, g: 0.4009434, b: 0.4009434, a: 1}
+    - _Colortest: {r: 0, g: 0, b: 0, a: 1}
+    - _DepthColor: {r: 0, g: 1, b: 0.93928087, a: 1}
+    - _FoamCOlor: {r: 1, g: 1, b: 1, a: 1}
+    - _FoamColor: {r: 1, g: 1, b: 1, a: 1}
+    - _HighlightColor: {r: 0.9528302, g: 0.9528302, b: 0.9528302, a: 1}
+    - _InsideBorderColor: {r: 0, g: 1, b: 0.9202754, a: 1}
+    - _MeshCOlor: {r: 1, g: 0, b: 0, a: 1}
+    - _RefractionSpeed: {r: 0, g: 0.3, b: 0, a: 0}
+    - _RippleColor: {r: 0, g: 0.20784314, b: 1, a: 1}
+    - _RippleSpeed: {r: 0.9, g: 122.02, b: 0, a: 0}
+    - _Tint: {r: 0.09558988, g: 0.7032683, b: 1.304119, a: 1}
+    - _TopDownRadiusColor: {r: 1024, g: 1024, b: 1024, a: 1}
+    - _WaterColor: {r: 0, g: 4.263822, b: 7.906698, a: 0.22745098}
+    - _color: {r: 1, g: 0, b: 0, a: 1}
+  m_BuildTextureStacks: []
+  m_AllowLocking: 1

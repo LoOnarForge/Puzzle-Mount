@@ -65,10 +65,7 @@ public class RunodeHighlighter : MonoBehaviour
 
     private void Start()
     {
-        // Read after VisualRandomizer Awake so highlight restores the chosen material tint.
-        if (cube != null && cube.TryGetVariantBodyColor(out Color variantColor))
-            restingColor = variantColor;
-        else if (cubeRenderer != null && cubeRenderer.sharedMaterial != null && cubeRenderer.sharedMaterial.HasProperty(BaseColorId))
+        if (cubeRenderer != null && cubeRenderer.sharedMaterial != null && cubeRenderer.sharedMaterial.HasProperty(BaseColorId))
             restingColor = cubeRenderer.sharedMaterial.GetColor(BaseColorId);
 
         currentColor = restingColor;
@@ -242,8 +239,7 @@ public class RunodeHighlighter : MonoBehaviour
 
         RunodeMovement pushable = controller.PushableRunode;
         bool wasPushable = isPushable;
-        bool variantBlocksPushTint = cube != null && (cube.isStationary || cube.isFixed);
-        isPushable = pushable != null && pushable.gameObject == gameObject && !variantBlocksPushTint;
+        isPushable = pushable != null && pushable.gameObject == gameObject;
         if (isPushable != wasPushable) colorNeedsUpdate = true;
     }
 
