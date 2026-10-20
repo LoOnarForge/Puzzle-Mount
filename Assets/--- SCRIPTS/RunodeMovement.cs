@@ -7,6 +7,10 @@ public class RunodeMovement : MonoBehaviour
     [Header("MOVEMENT:")]
     public float moveSpeed = 5f;
 
+    [Header("FALLING:")]
+    public float fallAcceleration = 18f;
+    public float maxFallSpeed = 10f;
+
     [Header("ROTATION:")]
     // When false, the player cannot rotate this cube in-game. Random rotation on start is unaffected.
     public bool isRotatable = true;
@@ -24,7 +28,7 @@ public class RunodeMovement : MonoBehaviour
     public bool isRotating { get; private set; }
 
     public bool IsGrounded => CheckGroundedWithRaycast();
-    public bool IsBusy => isMovingPos || isRotating;
+    public bool IsBusy => isMovingPos || isRotating || isFalling;
 
     [Header("PHYSICS LAYERS:")]
     [SerializeField] private LayerMask groundCheckMask = 0;
@@ -34,6 +38,9 @@ public class RunodeMovement : MonoBehaviour
     private Transform visualParent;
     private RunodeCube runodeCube;
     private bool wasGrounded;
+    private bool isFalling;
+    private bool codeMovementSuspended;
+    private const int FallSearchMinY = -256;
 
     // Stores the rotation as it was set in the Editor
     private Quaternion baseRotation;
@@ -54,9 +61,9 @@ public class RunodeMovement : MonoBehaviour
         }
 
         runodeCube = GetComponent<RunodeCube>();
-        rb.isKinematic = false;
-        rb.useGravity = true;
-        rb.constraints = RigidbodyConstraints.FreezePositionX | RigidbodyConstraints.FreezePositionZ | RigidbodyConstraints.FreezeRotation;
+        rb.isKinematic = true;
+        rb.useGravity = false;
+        rb.constraints = RigidbodyConstraints.FreezeRotation;
     }
     private void Start()
     {
@@ -84,25 +91,25 @@ public class RunodeMovement : MonoBehaviour
         }
 
         wasGrounded = isGrounded;
+
+        if (!codeMovementSuspended && !IsBusy && !isGrounded && TryGetFallTarget(out Vector3 fallTarget))
+            StartCoroutine(FallTo(fallTarget));
     }
 
     public void SetKinematic(bool kinematic)
     {
+        codeMovementSuspended = kinematic;
+
         if (rb == null)
             return;
 
-        rb.isKinematic = kinematic;
-
-        if (!kinematic)
-        {
-            rb.constraints = RigidbodyConstraints.FreezePositionX | RigidbodyConstraints.FreezePositionZ | RigidbodyConstraints.FreezeRotation;
-        }
+        rb.isKinematic = true;
+        rb.useGravity = false;
     }
 
     private void SnapToGrid()
     {
-        Vector3 p = transform.position;
-        transform.position = new Vector3(Mathf.Round(p.x), p.y, Mathf.Round(p.z));
+        ApplyGridPosition(transform.position);
     }
 
     // Rotates the visual mesh only — colliders and triggers stay in place.
@@ -133,7 +140,7 @@ public class RunodeMovement : MonoBehaviour
     public bool CanPushSingle(Vector3 direction)
     {
         if (rb == null) return false;
-        if (isMovingPos) return false;
+        if (IsBusy) return false;
         if (!CheckGroundedWithRaycast()) return false;
 
         Vector3 pushDir = GetGridDirection(direction);
@@ -181,8 +188,34 @@ public class RunodeMovement : MonoBehaviour
 
     private bool CheckGroundedWithRaycast()
     {
+        return IsGroundedAt(transform.position);
+    }
+
+    private bool IsGroundedAt(Vector3 worldPosition)
+    {
         int mask = groundCheckMask == 0 ? ~0 : groundCheckMask;
-        return Physics.Raycast(transform.position + Vector3.up * 0.1f, Vector3.down, 0.7f, mask);
+        return Physics.Raycast(worldPosition + Vector3.up * 0.1f, Vector3.down, 0.7f, mask);
+    }
+
+    private bool TryGetFallTarget(out Vector3 targetPosition)
+    {
+        float x = Mathf.Round(transform.position.x);
+        float z = Mathf.Round(transform.position.z);
+        float currentY = transform.position.y;
+
+        int startCell = Mathf.FloorToInt(currentY);
+        for (int cellY = startCell; cellY >= FallSearchMinY; cellY--)
+        {
+            Vector3 test = new Vector3(x, cellY, z);
+            if (!IsGroundedAt(test))
+                continue;
+
+            targetPosition = test;
+            return cellY < currentY - 0.01f;
+        }
+
+        targetPosition = default;
+        return false;
     }
 
     private Vector3 GetGridDirection(Vector3 direction)
@@ -245,15 +278,6 @@ public class RunodeMovement : MonoBehaviour
             Mathf.Round(transform.position.z));
         transform.position = startPos;
 
-        if (rb != null && (direction == Vector3.right || direction == Vector3.left))
-        {
-            rb.constraints = RigidbodyConstraints.FreezePositionZ | RigidbodyConstraints.FreezeRotation;
-        }
-        else if (rb != null && (direction == Vector3.forward || direction == Vector3.back))
-        {
-            rb.constraints = RigidbodyConstraints.FreezePositionX | RigidbodyConstraints.FreezeRotation;
-        }
-
         targetPosition.y = startPos.y;
 
         float elapsed = 0f;
@@ -275,14 +299,69 @@ public class RunodeMovement : MonoBehaviour
             yield return null;
         }
 
-        transform.position = targetPosition;
-        Physics.SyncTransforms();
+        ApplyGridPosition(targetPosition);
         isMovingPos = false;
-        if (rb != null)
-            rb.constraints = RigidbodyConstraints.FreezePositionX | RigidbodyConstraints.FreezePositionZ | RigidbodyConstraints.FreezeRotation;
 
         if (runodeCube != null)
             runodeCube.RefreshCubeAndAdjacentConnections();
+    }
+
+    private IEnumerator FallTo(Vector3 targetPosition)
+    {
+        if (runodeCube != null)
+        {
+            RunodeLine[] lines = runodeCube.GetLines();
+            foreach (RunodeLine line in lines)
+            {
+                if (line.IsPowered)
+                    line.PowerDownLine();
+            }
+        }
+
+        isFalling = true;
+
+        Vector3 startPos = new Vector3(
+            Mathf.Round(transform.position.x),
+            transform.position.y,
+            Mathf.Round(transform.position.z));
+        transform.position = startPos;
+
+        targetPosition = new Vector3(startPos.x, Mathf.Round(targetPosition.y), startPos.z);
+
+        float fallVelocity = 0f;
+        float slip = isSlipping ? Mathf.Max(slipSpeedMultiplier, 0.01f) : 1f;
+        float acceleration = fallAcceleration * slip;
+        float speedCap = maxFallSpeed * slip;
+        float targetY = targetPosition.y;
+
+        while (transform.position.y > targetY + 0.0001f)
+        {
+            float dt = Time.deltaTime;
+            fallVelocity = Mathf.Min(fallVelocity + acceleration * dt, speedCap);
+
+            float newY = transform.position.y - fallVelocity * dt;
+            if (newY <= targetY)
+                newY = targetY;
+
+            transform.position = new Vector3(startPos.x, newY, startPos.z);
+
+            yield return null;
+        }
+
+        ApplyGridPosition(targetPosition);
+        isFalling = false;
+
+        if (runodeCube != null)
+            runodeCube.RefreshCubeAndAdjacentConnections();
+    }
+
+    private void ApplyGridPosition(Vector3 position)
+    {
+        transform.position = new Vector3(
+            Mathf.Round(position.x),
+            Mathf.Round(position.y),
+            Mathf.Round(position.z));
+        Physics.SyncTransforms();
     }
 
     private void ApplyRandomRotation()
