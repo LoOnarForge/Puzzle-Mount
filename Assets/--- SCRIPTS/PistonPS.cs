@@ -6,6 +6,7 @@ public class PistonPS : MonoBehaviour
 {
     private const float MinSpan = 0.01f;
     private const float RetractedSpanTolerance = 0.005f;
+    private const float SpanChangeEpsilon = 0.001f;
 
     [Header("Shaft Endpoints")]
     [SerializeField] private Transform baseAnchor;
@@ -16,6 +17,8 @@ public class PistonPS : MonoBehaviour
     private float referenceWidth;
     private float referenceHeight;
     private float retractedSpan = -1f;
+    private float lastAppliedSpan = -1f;
+    private bool particlesActive;
 
     private void Awake()
     {
@@ -29,7 +32,7 @@ public class PistonPS : MonoBehaviour
         referenceWidth = shapeScale.x;
         referenceHeight = shapeScale.y;
 
-        ResolveAnchorsIfMissing();
+        ResolveAnchorsOnce();
         particleSystem.Stop(true, ParticleSystemStopBehavior.StopEmittingAndClear);
     }
 
@@ -40,36 +43,39 @@ public class PistonPS : MonoBehaviour
 
     private void LateUpdate()
     {
-        ResolveAnchorsIfMissing();
-        TryCaptureRetractedSpan();
-
         if (baseAnchor == null || faceAnchor == null)
         {
-            StopParticles();
+            SetParticlesActive(false);
             return;
         }
 
         if (!TryGetSpan(out Vector3 start, out _, out Vector3 forward, out float rawSpan))
         {
-            StopParticles();
+            SetParticlesActive(false);
             return;
         }
 
         if (IsWithinRetractedSpan(rawSpan))
         {
-            StopParticles();
+            TryCaptureRetractedSpan();
+            SetParticlesActive(false);
             return;
         }
 
-        transform.SetPositionAndRotation(
-            start + forward * (rawSpan * 0.5f),
-            Quaternion.LookRotation(forward, GetShaftUp(forward)));
+        if (!particlesActive || Mathf.Abs(lastAppliedSpan - rawSpan) > SpanChangeEpsilon)
+        {
+            transform.SetPositionAndRotation(
+                start + forward * (rawSpan * 0.5f),
+                Quaternion.LookRotation(forward, GetShaftUp(forward)));
 
-        ParticleSystem.ShapeModule shape = particleSystem.shape;
-        shape.scale = new Vector3(referenceWidth, referenceHeight, rawSpan);
-        shape.position = Vector3.zero;
+            ParticleSystem.ShapeModule shape = particleSystem.shape;
+            shape.scale = new Vector3(referenceWidth, referenceHeight, rawSpan);
+            shape.position = Vector3.zero;
 
-        PlayParticles();
+            lastAppliedSpan = rawSpan;
+        }
+
+        SetParticlesActive(true);
     }
 
     private void TryCaptureRetractedSpan()
@@ -97,14 +103,19 @@ public class PistonPS : MonoBehaviour
         return span <= retractedSpan + RetractedSpanTolerance;
     }
 
-    private void ResolveAnchorsIfMissing()
+    private void ResolveAnchorsOnce()
     {
+        if (baseAnchor != null && faceAnchor != null)
+            return;
+
         Transform searchRoot = transform.parent;
         if (searchRoot == null)
             return;
 
-        foreach (Transform child in searchRoot.GetComponentsInChildren<Transform>(true))
+        Transform[] children = searchRoot.GetComponentsInChildren<Transform>(true);
+        for (int i = 0; i < children.Length; i++)
         {
+            Transform child = children[i];
             if (child.name == "Light Shaft START")
                 baseAnchor = child;
 
@@ -113,17 +124,25 @@ public class PistonPS : MonoBehaviour
         }
     }
 
-    private void PlayParticles()
+    private void SetParticlesActive(bool active)
     {
-        if (particleRenderer != null)
-            particleRenderer.enabled = true;
+        if (particlesActive == active)
+            return;
 
-        if (!particleSystem.isPlaying)
-            particleSystem.Play();
-    }
+        particlesActive = active;
 
-    private void StopParticles()
-    {
+        if (active)
+        {
+            if (particleRenderer != null)
+                particleRenderer.enabled = true;
+
+            if (!particleSystem.isPlaying)
+                particleSystem.Play();
+            return;
+        }
+
+        lastAppliedSpan = -1f;
+
         if (particleRenderer != null)
             particleRenderer.enabled = false;
 
