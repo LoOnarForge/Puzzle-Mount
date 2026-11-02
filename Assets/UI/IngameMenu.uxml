@@ -29,6 +29,24 @@
             <ui:Button name="QuitButton" text="Quit Game" class="menu-button" />
         </ui:VisualElement>
 
+        <!-- Graphics settings (FPS testing) -->
+        <ui:VisualElement name="SettingsPanel" style="display: none; align-items: flex-start; max-width: 520px;">
+            <ui:Label text="GRAPHICS" style="font-size: 48px; color: white; -unity-font-style: bold; margin-bottom: 16px; align-self: center;" />
+            <ui:Toggle name="ShadowsToggle" label="Shadows" class="settings-toggle" value="true" />
+            <ui:Label name="ShadowDistanceLabel" text="Shadow distance: 50" style="color: white; font-size: 20px; margin-top: 10px;" />
+            <ui:Slider name="ShadowDistanceSlider" low-value="0" high-value="120" value="50" style="width: 400px;" />
+            <ui:Label name="RenderScaleLabel" text="Render scale: 100%" style="color: white; font-size: 20px; margin-top: 10px;" />
+            <ui:Slider name="RenderScaleSlider" low-value="25" high-value="100" value="100" style="width: 400px;" />
+            <ui:Label text="Resolution (standalone build)" style="color: white; font-size: 22px; margin-top: 12px; margin-bottom: 4px;" />
+            <ui:Label name="ResolutionHint" text="Resolution presets do not resize the Editor Game view. Use Render scale here for FPS tests in Play mode." style="color: rgb(200, 200, 200); font-size: 16px; max-width: 480px; white-space: normal; margin-bottom: 8px;" />
+            <ui:Toggle name="ResolutionPreset0" class="settings-toggle" value="true" />
+            <ui:Toggle name="ResolutionPreset1" class="settings-toggle" />
+            <ui:Toggle name="ResolutionPreset2" class="settings-toggle" />
+            <ui:Toggle name="ResolutionPreset3" class="settings-toggle" />
+            <ui:Toggle name="ResolutionPreset4" class="settings-toggle" />
+            <ui:Button name="SettingsBackButton" text="Back" class="menu-button" style="align-self: center; margin-top: 20px;" />
+        </ui:VisualElement>
+
     </ui:VisualElement>
 
     <!-- Confirmation Popup -->
