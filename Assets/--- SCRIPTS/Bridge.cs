@@ -45,6 +45,7 @@ public class Bridge : MonoBehaviour
     }
 
     [SerializeField] private bool isSelfPowered;
+    [SerializeField] private bool isOpen;
 
     [SerializeField] private SocketSlot[] sockets = new SocketSlot[SocketCount]
     {
@@ -86,6 +87,10 @@ public class Bridge : MonoBehaviour
     private void Awake()
     {
         hasValidLayout = TryBuildLayout();
+
+        if (isOpen)
+            activatorDemandsOpen = true;
+
         InitialSocketConfiguration();
     }
 
@@ -102,7 +107,7 @@ public class Bridge : MonoBehaviour
 
     public void OnLeverOperated()
     {
-        if (!hasValidLayout || (!isSelfPowered && !isPowered))
+        if (!hasValidLayout)
             return;
 
         ApplyActivatorReverse();
@@ -141,6 +146,7 @@ public class Bridge : MonoBehaviour
         if (isSelfPowered)
         {
             isPowered = true;
+            TryFulfillOpenDemand();
             return;
         }
 
@@ -170,6 +176,7 @@ public class Bridge : MonoBehaviour
         }
 
         RefreshBridgeState();
+        TryFulfillOpenDemand();
     }
 
     private void RefreshBridgeState()
@@ -196,10 +203,13 @@ public class Bridge : MonoBehaviour
 
         bool poweredNow = hasEnabledSocket && allPowered;
         bool lostPower = isPowered && !poweredNow;
+        bool gainedPower = !isPowered && poweredNow;
         isPowered = poweredNow;
 
         if (lostPower)
             ForceBeginClose();
+        else if (gainedPower)
+            TryFulfillOpenDemand();
     }
 
     private bool TryBuildLayout()
@@ -268,8 +278,21 @@ public class Bridge : MonoBehaviour
 
     private void ForceBeginClose()
     {
-        activatorDemandsOpen = false;
         BeginCloseMotion();
+    }
+
+    private void TryFulfillOpenDemand()
+    {
+        if (!activatorDemandsOpen || !isPowered || !hasValidLayout)
+            return;
+
+        if (isBridgeOpen)
+            return;
+
+        if (isSequenceRunning && !isClosing)
+            return;
+
+        BeginOpenMotion();
     }
 
     private IEnumerator OpenSequence(int id)

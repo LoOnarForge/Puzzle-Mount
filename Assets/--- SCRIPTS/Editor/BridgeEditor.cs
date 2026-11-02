@@ -11,6 +11,7 @@ public class BridgeEditor : Editor
         serializedObject.Update();
 
         EditorGUILayout.PropertyField(serializedObject.FindProperty("isSelfPowered"), new GUIContent("Is Self Powered"));
+        EditorGUILayout.PropertyField(serializedObject.FindProperty("isOpen"), new GUIContent("Is Open"));
 
         EditorGUILayout.Space(20);
         ColorManager colorManager = Object.FindAnyObjectByType<ColorManager>();
