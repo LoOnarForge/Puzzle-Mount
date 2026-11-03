@@ -147,6 +147,28 @@ public class MovingPlatform : MonoBehaviour
         return false;
     }
 
+    public static bool TryGetPlatformVelocityForJump(CharacterMovement tim, out Vector3 worldVelocity)
+    {
+        worldVelocity = Vector3.zero;
+
+        if (tim == null || Time.deltaTime <= 0f)
+            return false;
+
+        foreach (MovingPlatform movingPlatform in ActivePlatforms)
+        {
+            if (!movingPlatform.isTransportingTim || !movingPlatform.isPlatformMoving)
+                continue;
+
+            if (!movingPlatform.IsTimRiding(tim))
+                continue;
+
+            worldVelocity = movingPlatform.platformMotionDelta / Time.deltaTime;
+            return true;
+        }
+
+        return false;
+    }
+
     private bool TryGetTimCarryDelta(CharacterMovement tim, out Vector3 delta)
     {
         delta = default;

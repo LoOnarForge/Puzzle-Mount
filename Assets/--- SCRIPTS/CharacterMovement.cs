@@ -19,6 +19,9 @@ public partial class CharacterMovement : MonoBehaviour
     
     [Header("AIR CONTROL")]
     public float momentumDecay = 2f;
+
+    [Header("JUMP")]
+    [SerializeField] [Range(0f, 100f)] private float jumpPlatformMovementPercent = 35f;
     
     [Header("DEBUG - SPEED VISUALIZATION")]
     [SerializeField] private float currentSpeedVisual;
@@ -337,9 +340,14 @@ public partial class CharacterMovement : MonoBehaviour
             }
             else
             {
-                // Moving jump - use current buildup speed for the jump arc
                 float jumpSpeed = currentSpeedBuildup;
                 jumpMomentum = currentMovement.normalized * jumpSpeed;
+
+                if (jumpPlatformMovementPercent > 0f
+                    && MovingPlatform.TryGetPlatformVelocityForJump(this, out Vector3 platformVelocity))
+                {
+                    jumpMomentum += platformVelocity * (jumpPlatformMovementPercent * 0.01f);
+                }
             }
             
             // Apply vertical jump velocity
