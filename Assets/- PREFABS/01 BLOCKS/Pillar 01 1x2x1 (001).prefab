@@ -29,7 +29,8 @@ Transform:
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children:
-  - {fileID: 5667674164443642206}
+  - {fileID: 5117929368025792659}
+  - {fileID: 8086274529214154143}
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &3502510249123750905
@@ -57,12 +58,12 @@ Transform:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 3502510249123750905}
   serializedVersion: 2
-  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
   m_LocalPosition: {x: 0, y: -0.5, z: 0}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
-  m_Father: {fileID: 5667674164443642206}
+  m_Father: {fileID: 2664080833768732411}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!65 &401700752678681492
 BoxCollider:
@@ -109,14 +110,14 @@ Transform:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 4527103013079362661}
   serializedVersion: 2
-  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
   m_LocalPosition: {x: 0, y: 0, z: 0}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children:
   - {fileID: 608822423112610280}
   - {fileID: 2485523664956752077}
-  m_Father: {fileID: 5667674164443642206}
+  m_Father: {fileID: 2664080833768732411}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &4793937968557354723
 GameObject:
@@ -129,7 +130,7 @@ GameObject:
   - component: {fileID: 2485523664956752077}
   - component: {fileID: 4865141852225237849}
   - component: {fileID: 4269216946706752755}
-  - component: {fileID: 8739519759052630305}
+  - component: {fileID: 6039081939652712268}
   m_Layer: 10
   m_Name: Mesh (02)
   m_TagString: Untagged
@@ -209,7 +210,7 @@ MeshRenderer:
   m_SortingOrder: 0
   m_MaskInteraction: 0
   m_AdditionalVertexStreams: {fileID: 0}
---- !u!114 &8739519759052630305
+--- !u!114 &6039081939652712268
 MonoBehaviour:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
@@ -218,11 +219,14 @@ MonoBehaviour:
   m_GameObject: {fileID: 4793937968557354723}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: cfaaefc5e4fe6c94888dd4f07aa246da, type: 3}
+  m_Script: {fileID: 11500000, guid: ea86a571c1f67c84a964a0e7a9cbf445, type: 3}
   m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::RunodeStaticCubeVisualRandomizer
+  m_EditorClassIdentifier: Assembly-CSharp::BlockMeshRandomizer
   isRandomMesh: 1
   isRandomMaterial: 1
+  isRandomRotation: 1
+  isUniformForAll: 1
+  rotationMode: 1
   meshes:
   - {fileID: 4300000, guid: c78359acc065d0849bfbbcbac8fe6525, type: 2}
   - {fileID: 4300000, guid: f7637995c0147a9428153d5419acea8d, type: 2}
@@ -240,7 +244,8 @@ MonoBehaviour:
   - {fileID: 2100000, guid: 2761a180deeaf8445ab31845de3f0db1, type: 2}
   - {fileID: 2100000, guid: 776c45e3e59593e44a0d5edfb91b183b, type: 2}
   - {fileID: 2100000, guid: 8f35cff12e2edac43a92cc314bc11c1a, type: 2}
-  meshFilter: {fileID: 4865141852225237849}
+  meshFilters:
+  - {fileID: 4865141852225237849}
 --- !u!1 &4929677186015032996
 GameObject:
   m_ObjectHideFlags: 0
@@ -252,7 +257,7 @@ GameObject:
   - component: {fileID: 608822423112610280}
   - component: {fileID: 3301470331267943950}
   - component: {fileID: 2638235700918985774}
-  - component: {fileID: 9159210677785340806}
+  - component: {fileID: 1059339342689572914}
   m_Layer: 10
   m_Name: Mesh (01)
   m_TagString: Untagged
@@ -332,7 +337,7 @@ MeshRenderer:
   m_SortingOrder: 0
   m_MaskInteraction: 0
   m_AdditionalVertexStreams: {fileID: 0}
---- !u!114 &9159210677785340806
+--- !u!114 &1059339342689572914
 MonoBehaviour:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
@@ -341,11 +346,14 @@ MonoBehaviour:
   m_GameObject: {fileID: 4929677186015032996}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: cfaaefc5e4fe6c94888dd4f07aa246da, type: 3}
+  m_Script: {fileID: 11500000, guid: ea86a571c1f67c84a964a0e7a9cbf445, type: 3}
   m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::RunodeStaticCubeVisualRandomizer
+  m_EditorClassIdentifier: Assembly-CSharp::BlockMeshRandomizer
   isRandomMesh: 1
   isRandomMaterial: 1
+  isRandomRotation: 1
+  isUniformForAll: 1
+  rotationMode: 1
   meshes:
   - {fileID: 4300000, guid: c78359acc065d0849bfbbcbac8fe6525, type: 2}
   - {fileID: 4300000, guid: f7637995c0147a9428153d5419acea8d, type: 2}
@@ -363,37 +371,5 @@ MonoBehaviour:
   - {fileID: 2100000, guid: 2761a180deeaf8445ab31845de3f0db1, type: 2}
   - {fileID: 2100000, guid: 776c45e3e59593e44a0d5edfb91b183b, type: 2}
   - {fileID: 2100000, guid: 8f35cff12e2edac43a92cc314bc11c1a, type: 2}
-  meshFilter: {fileID: 3301470331267943950}
---- !u!1 &7241163474985109143
-GameObject:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  serializedVersion: 6
-  m_Component:
-  - component: {fileID: 5667674164443642206}
-  m_Layer: 10
-  m_Name: Visual PC
-  m_TagString: Untagged
-  m_Icon: {fileID: 0}
-  m_NavMeshLayer: 0
-  m_StaticEditorFlags: 2147483647
-  m_IsActive: 1
---- !u!4 &5667674164443642206
-Transform:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 7241163474985109143}
-  serializedVersion: 2
-  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 0, y: 0, z: 0}
-  m_LocalScale: {x: 1, y: 1, z: 1}
-  m_ConstrainProportionsScale: 0
-  m_Children:
-  - {fileID: 5117929368025792659}
-  - {fileID: 8086274529214154143}
-  m_Father: {fileID: 2664080833768732411}
-  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+  meshFilters:
+  - {fileID: 3301470331267943950}

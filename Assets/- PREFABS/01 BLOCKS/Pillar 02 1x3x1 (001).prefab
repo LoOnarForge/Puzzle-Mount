@@ -29,7 +29,8 @@ Transform:
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children:
-  - {fileID: 4528474482278420557}
+  - {fileID: 7476382448228201652}
+  - {fileID: 8724213792595782491}
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &1722870471536277666
@@ -43,7 +44,7 @@ GameObject:
   - component: {fileID: 4989675109411550520}
   - component: {fileID: 594518958251894421}
   - component: {fileID: 343026906637841458}
-  - component: {fileID: 9222065454084323471}
+  - component: {fileID: 5872946395500794022}
   m_Layer: 10
   m_Name: Mesh (02)
   m_TagString: Untagged
@@ -123,7 +124,7 @@ MeshRenderer:
   m_SortingOrder: 0
   m_MaskInteraction: 0
   m_AdditionalVertexStreams: {fileID: 0}
---- !u!114 &9222065454084323471
+--- !u!114 &5872946395500794022
 MonoBehaviour:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
@@ -132,11 +133,14 @@ MonoBehaviour:
   m_GameObject: {fileID: 1722870471536277666}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: cfaaefc5e4fe6c94888dd4f07aa246da, type: 3}
+  m_Script: {fileID: 11500000, guid: ea86a571c1f67c84a964a0e7a9cbf445, type: 3}
   m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::RunodeStaticCubeVisualRandomizer
+  m_EditorClassIdentifier: Assembly-CSharp::BlockMeshRandomizer
   isRandomMesh: 1
   isRandomMaterial: 1
+  isRandomRotation: 1
+  isUniformForAll: 1
+  rotationMode: 1
   meshes:
   - {fileID: 4300000, guid: c78359acc065d0849bfbbcbac8fe6525, type: 2}
   - {fileID: 4300000, guid: f7637995c0147a9428153d5419acea8d, type: 2}
@@ -154,7 +158,8 @@ MonoBehaviour:
   - {fileID: 2100000, guid: 2761a180deeaf8445ab31845de3f0db1, type: 2}
   - {fileID: 2100000, guid: 776c45e3e59593e44a0d5edfb91b183b, type: 2}
   - {fileID: 2100000, guid: 8f35cff12e2edac43a92cc314bc11c1a, type: 2}
-  meshFilter: {fileID: 594518958251894421}
+  meshFilters:
+  - {fileID: 594518958251894421}
 --- !u!1 &2209264089877529314
 GameObject:
   m_ObjectHideFlags: 0
@@ -166,7 +171,7 @@ GameObject:
   - component: {fileID: 5453985655364661917}
   - component: {fileID: 5181540503857199087}
   - component: {fileID: 7625940885233569193}
-  - component: {fileID: 4985440065131010966}
+  - component: {fileID: 6922740120534226044}
   m_Layer: 10
   m_Name: Mesh (07)
   m_TagString: Untagged
@@ -246,7 +251,7 @@ MeshRenderer:
   m_SortingOrder: 0
   m_MaskInteraction: 0
   m_AdditionalVertexStreams: {fileID: 0}
---- !u!114 &4985440065131010966
+--- !u!114 &6922740120534226044
 MonoBehaviour:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
@@ -255,11 +260,14 @@ MonoBehaviour:
   m_GameObject: {fileID: 2209264089877529314}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: cfaaefc5e4fe6c94888dd4f07aa246da, type: 3}
+  m_Script: {fileID: 11500000, guid: ea86a571c1f67c84a964a0e7a9cbf445, type: 3}
   m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::RunodeStaticCubeVisualRandomizer
+  m_EditorClassIdentifier: Assembly-CSharp::BlockMeshRandomizer
   isRandomMesh: 1
   isRandomMaterial: 1
+  isRandomRotation: 1
+  isUniformForAll: 1
+  rotationMode: 1
   meshes:
   - {fileID: 4300000, guid: c78359acc065d0849bfbbcbac8fe6525, type: 2}
   - {fileID: 4300000, guid: f7637995c0147a9428153d5419acea8d, type: 2}
@@ -277,7 +285,8 @@ MonoBehaviour:
   - {fileID: 2100000, guid: 2761a180deeaf8445ab31845de3f0db1, type: 2}
   - {fileID: 2100000, guid: 776c45e3e59593e44a0d5edfb91b183b, type: 2}
   - {fileID: 2100000, guid: 8f35cff12e2edac43a92cc314bc11c1a, type: 2}
-  meshFilter: {fileID: 5181540503857199087}
+  meshFilters:
+  - {fileID: 5181540503857199087}
 --- !u!1 &2736684622377741033
 GameObject:
   m_ObjectHideFlags: 0
@@ -303,12 +312,12 @@ Transform:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 2736684622377741033}
   serializedVersion: 2
-  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
   m_LocalPosition: {x: 0, y: 0, z: 0}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
-  m_Father: {fileID: 4528474482278420557}
+  m_Father: {fileID: 5933627137731675182}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!65 &8020951159786067380
 BoxCollider:
@@ -342,7 +351,7 @@ GameObject:
   - component: {fileID: 2136061519908404794}
   - component: {fileID: 5805547961867173214}
   - component: {fileID: 148349470600384987}
-  - component: {fileID: 7102841185353020013}
+  - component: {fileID: 7830440681855172515}
   m_Layer: 10
   m_Name: Mesh (05)
   m_TagString: Untagged
@@ -422,7 +431,7 @@ MeshRenderer:
   m_SortingOrder: 0
   m_MaskInteraction: 0
   m_AdditionalVertexStreams: {fileID: 0}
---- !u!114 &7102841185353020013
+--- !u!114 &7830440681855172515
 MonoBehaviour:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
@@ -431,11 +440,14 @@ MonoBehaviour:
   m_GameObject: {fileID: 4417929518566650281}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: cfaaefc5e4fe6c94888dd4f07aa246da, type: 3}
+  m_Script: {fileID: 11500000, guid: ea86a571c1f67c84a964a0e7a9cbf445, type: 3}
   m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::RunodeStaticCubeVisualRandomizer
+  m_EditorClassIdentifier: Assembly-CSharp::BlockMeshRandomizer
   isRandomMesh: 1
   isRandomMaterial: 1
+  isRandomRotation: 1
+  isUniformForAll: 1
+  rotationMode: 1
   meshes:
   - {fileID: 4300000, guid: c78359acc065d0849bfbbcbac8fe6525, type: 2}
   - {fileID: 4300000, guid: f7637995c0147a9428153d5419acea8d, type: 2}
@@ -453,7 +465,8 @@ MonoBehaviour:
   - {fileID: 2100000, guid: 2761a180deeaf8445ab31845de3f0db1, type: 2}
   - {fileID: 2100000, guid: 776c45e3e59593e44a0d5edfb91b183b, type: 2}
   - {fileID: 2100000, guid: 8f35cff12e2edac43a92cc314bc11c1a, type: 2}
-  meshFilter: {fileID: 5805547961867173214}
+  meshFilters:
+  - {fileID: 5805547961867173214}
 --- !u!1 &5300036203683666754
 GameObject:
   m_ObjectHideFlags: 0
@@ -465,7 +478,7 @@ GameObject:
   - component: {fileID: 7576380089322466867}
   - component: {fileID: 7410303494940877847}
   - component: {fileID: 2994108662933671683}
-  - component: {fileID: 8858560032995334140}
+  - component: {fileID: 1890761841551740769}
   m_Layer: 10
   m_Name: Mesh (06)
   m_TagString: Untagged
@@ -545,7 +558,7 @@ MeshRenderer:
   m_SortingOrder: 0
   m_MaskInteraction: 0
   m_AdditionalVertexStreams: {fileID: 0}
---- !u!114 &8858560032995334140
+--- !u!114 &1890761841551740769
 MonoBehaviour:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
@@ -554,11 +567,14 @@ MonoBehaviour:
   m_GameObject: {fileID: 5300036203683666754}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: cfaaefc5e4fe6c94888dd4f07aa246da, type: 3}
+  m_Script: {fileID: 11500000, guid: ea86a571c1f67c84a964a0e7a9cbf445, type: 3}
   m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::RunodeStaticCubeVisualRandomizer
+  m_EditorClassIdentifier: Assembly-CSharp::BlockMeshRandomizer
   isRandomMesh: 1
   isRandomMaterial: 1
+  isRandomRotation: 1
+  isUniformForAll: 1
+  rotationMode: 1
   meshes:
   - {fileID: 4300000, guid: c78359acc065d0849bfbbcbac8fe6525, type: 2}
   - {fileID: 4300000, guid: f7637995c0147a9428153d5419acea8d, type: 2}
@@ -576,7 +592,8 @@ MonoBehaviour:
   - {fileID: 2100000, guid: 2761a180deeaf8445ab31845de3f0db1, type: 2}
   - {fileID: 2100000, guid: 776c45e3e59593e44a0d5edfb91b183b, type: 2}
   - {fileID: 2100000, guid: 8f35cff12e2edac43a92cc314bc11c1a, type: 2}
-  meshFilter: {fileID: 7410303494940877847}
+  meshFilters:
+  - {fileID: 7410303494940877847}
 --- !u!1 &6013071649929709760
 GameObject:
   m_ObjectHideFlags: 0
@@ -601,7 +618,7 @@ Transform:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 6013071649929709760}
   serializedVersion: 2
-  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
   m_LocalPosition: {x: 0, y: 0, z: 0}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
@@ -612,7 +629,7 @@ Transform:
   - {fileID: 7576380089322466867}
   - {fileID: 5453985655364661917}
   - {fileID: 2136061519908404794}
-  m_Father: {fileID: 4528474482278420557}
+  m_Father: {fileID: 5933627137731675182}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &6458134549136846875
 GameObject:
@@ -625,7 +642,7 @@ GameObject:
   - component: {fileID: 1832675614847447647}
   - component: {fileID: 2702383903130242324}
   - component: {fileID: 9081956351556309242}
-  - component: {fileID: 6584370809826550600}
+  - component: {fileID: 1044785037658426404}
   m_Layer: 10
   m_Name: Mesh (04)
   m_TagString: Untagged
@@ -705,7 +722,7 @@ MeshRenderer:
   m_SortingOrder: 0
   m_MaskInteraction: 0
   m_AdditionalVertexStreams: {fileID: 0}
---- !u!114 &6584370809826550600
+--- !u!114 &1044785037658426404
 MonoBehaviour:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
@@ -714,11 +731,14 @@ MonoBehaviour:
   m_GameObject: {fileID: 6458134549136846875}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: cfaaefc5e4fe6c94888dd4f07aa246da, type: 3}
+  m_Script: {fileID: 11500000, guid: ea86a571c1f67c84a964a0e7a9cbf445, type: 3}
   m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::RunodeStaticCubeVisualRandomizer
+  m_EditorClassIdentifier: Assembly-CSharp::BlockMeshRandomizer
   isRandomMesh: 1
   isRandomMaterial: 1
+  isRandomRotation: 1
+  isUniformForAll: 1
+  rotationMode: 1
   meshes:
   - {fileID: 4300000, guid: c78359acc065d0849bfbbcbac8fe6525, type: 2}
   - {fileID: 4300000, guid: f7637995c0147a9428153d5419acea8d, type: 2}
@@ -736,40 +756,8 @@ MonoBehaviour:
   - {fileID: 2100000, guid: 2761a180deeaf8445ab31845de3f0db1, type: 2}
   - {fileID: 2100000, guid: 776c45e3e59593e44a0d5edfb91b183b, type: 2}
   - {fileID: 2100000, guid: 8f35cff12e2edac43a92cc314bc11c1a, type: 2}
-  meshFilter: {fileID: 2702383903130242324}
---- !u!1 &7230382149306823671
-GameObject:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  serializedVersion: 6
-  m_Component:
-  - component: {fileID: 4528474482278420557}
-  m_Layer: 10
-  m_Name: Visual PC
-  m_TagString: Untagged
-  m_Icon: {fileID: 0}
-  m_NavMeshLayer: 0
-  m_StaticEditorFlags: 2147483647
-  m_IsActive: 1
---- !u!4 &4528474482278420557
-Transform:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 7230382149306823671}
-  serializedVersion: 2
-  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 0, y: 0, z: 0}
-  m_LocalScale: {x: 1, y: 1, z: 1}
-  m_ConstrainProportionsScale: 0
-  m_Children:
-  - {fileID: 7476382448228201652}
-  - {fileID: 8724213792595782491}
-  m_Father: {fileID: 5933627137731675182}
-  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+  meshFilters:
+  - {fileID: 2702383903130242324}
 --- !u!1 &8272621970744760587
 GameObject:
   m_ObjectHideFlags: 0
@@ -781,7 +769,7 @@ GameObject:
   - component: {fileID: 5420711875854311540}
   - component: {fileID: 2182542667497962813}
   - component: {fileID: 656474454796623710}
-  - component: {fileID: 813630817025834027}
+  - component: {fileID: 5816067345480346667}
   m_Layer: 10
   m_Name: Mesh (01)
   m_TagString: Untagged
@@ -861,7 +849,7 @@ MeshRenderer:
   m_SortingOrder: 0
   m_MaskInteraction: 0
   m_AdditionalVertexStreams: {fileID: 0}
---- !u!114 &813630817025834027
+--- !u!114 &5816067345480346667
 MonoBehaviour:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
@@ -870,11 +858,14 @@ MonoBehaviour:
   m_GameObject: {fileID: 8272621970744760587}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: cfaaefc5e4fe6c94888dd4f07aa246da, type: 3}
+  m_Script: {fileID: 11500000, guid: ea86a571c1f67c84a964a0e7a9cbf445, type: 3}
   m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::RunodeStaticCubeVisualRandomizer
+  m_EditorClassIdentifier: Assembly-CSharp::BlockMeshRandomizer
   isRandomMesh: 1
   isRandomMaterial: 1
+  isRandomRotation: 1
+  isUniformForAll: 1
+  rotationMode: 1
   meshes:
   - {fileID: 4300000, guid: c78359acc065d0849bfbbcbac8fe6525, type: 2}
   - {fileID: 4300000, guid: f7637995c0147a9428153d5419acea8d, type: 2}
@@ -892,4 +883,5 @@ MonoBehaviour:
   - {fileID: 2100000, guid: 2761a180deeaf8445ab31845de3f0db1, type: 2}
   - {fileID: 2100000, guid: 776c45e3e59593e44a0d5edfb91b183b, type: 2}
   - {fileID: 2100000, guid: 8f35cff12e2edac43a92cc314bc11c1a, type: 2}
-  meshFilter: {fileID: 2182542667497962813}
+  meshFilters:
+  - {fileID: 2182542667497962813}
