@@ -2,6 +2,7 @@ using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.InputSystem;
 
+[DefaultExecutionOrder(50)]
 [RequireComponent(typeof(CharacterController))]
 public partial class CharacterMovement : MonoBehaviour
 {
@@ -94,6 +95,7 @@ public partial class CharacterMovement : MonoBehaviour
         }
         
         SetupInputActions();
+        InitGroundProbe();
     }
 
     // Turns Tim into a ragdoll and flings him away from the hit direction.
@@ -170,7 +172,9 @@ public partial class CharacterMovement : MonoBehaviour
         if (Time.timeScale == 0 || isDead)
             return;
 
-        CheckGroundStatus();
+        MovingPlatform.ApplyCarriedMotionToTim(this, controller);
+
+        wasGroundedLastFrame = isGrounded;
         ReadInput();
 
         if (isMovementEnabled)
@@ -192,53 +196,8 @@ public partial class CharacterMovement : MonoBehaviour
         }
 
         ApplyGravity();
+        RefreshGroundedState();
         UpdateAnimations();
-    }
-    
-    private void CheckGroundStatus()
-    {
-        wasGroundedLastFrame = isGrounded;
-        isGrounded = controller.isGrounded;
-        
-        // Capture momentum when walking off edge (grounded → airborne)
-        if (!isGrounded && wasGroundedLastFrame)
-        {
-            // If jump was NOT triggered (velocity.y <= 0), it's a walk-off
-            if (velocity.y <= 0.1f)
-            {
-                Vector3 groundDir = Vector3.zero;
-                if (cameraFollow != null)
-                {
-                    groundDir = cameraFollow.GetMovementDirectionForCameraAngle(moveInput);
-                }
-                else
-                {
-                    groundDir = new Vector3(moveInput.x, 0, moveInput.y);
-                }
-
-                if (groundDir.magnitude > 0.1f)
-                {
-                    jumpMomentum = groundDir.normalized * currentSpeedBuildup;
-                }
-            }
-        }
-        
-        // Reset jump momentum and jumping animation when landing
-        if (isGrounded && !wasGroundedLastFrame)
-        {
-            jumpMomentum = Vector3.zero;
-            
-            if (playerAnimator != null)
-            {
-                playerAnimator.SetJumpingState(false);
-            }
-        }
-
-        // Apply momentum decay while airborne
-        if (!isGrounded && jumpMomentum.magnitude > 0.01f)
-        {
-            jumpMomentum = Vector3.Lerp(jumpMomentum, Vector3.zero, momentumDecay * Time.deltaTime);
-        }
     }
 
     private Vector3 GetMovementDirectionInternal()
@@ -353,7 +312,7 @@ public partial class CharacterMovement : MonoBehaviour
     
     private void ApplyGravity()
     {
-        if (isGrounded && velocity.y < 0)
+        if (isGrounded && !isJumping && velocity.y < 0)
         {
             velocity.y = -2f;
         }
@@ -366,8 +325,9 @@ public partial class CharacterMovement : MonoBehaviour
     {
         if (!isMovementEnabled) return;
 
-        if (isGrounded)
+        if (CanJumpNow())
         {
+            BeginJump();
             Vector3 currentMovement = GetMovementDirectionInternal();
             
             if (currentMovement.magnitude < 0.1f)
@@ -401,7 +361,12 @@ public partial class CharacterMovement : MonoBehaviour
             currentSpeedVisual = currentSpeedBuildup;
             
             // Keep original animator logic unchanged
-            float animSpeed = currentSpeed > 0.1f ? (isSprinting ? 1.0f : 0.5f) : 0f;
+            float animSpeed = 0f;
+            if (currentSpeed > 0.1f)
+                animSpeed = isSprinting ? 1.0f : 0.5f;
+            else if (isJumping || (!isGrounded && velocity.y > 0f))
+                animSpeed = 0.5f;
+
             playerAnimator.UpdateMovementAnimation(animSpeed, isGrounded, velocity.y);
         }
     }
