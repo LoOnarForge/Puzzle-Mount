@@ -3,6 +3,8 @@ using UnityEngine;
 public class FrameRateDisplay : MonoBehaviour
 {
     [SerializeField] private bool capAt60Fps;
+    [SerializeField] private bool capAt40Fps;
+    [SerializeField] private bool capAt50Fps;
     [SerializeField] private bool capAt30Fps;
     [SerializeField] private bool capAt15Fps;
 
@@ -13,6 +15,8 @@ public class FrameRateDisplay : MonoBehaviour
     private const float FpsLabelHeight = 50f;
     private const int UncappedFrameRate = -1;
     private const int Cap60Fps = 60;
+    private const int Cap40Fps = 40;
+    private const int Cap50Fps = 50;
     private const int Cap30Fps = 30;
     private const int Cap15Fps = 15;
 
@@ -96,6 +100,10 @@ public class FrameRateDisplay : MonoBehaviour
     {
         if (capAt60Fps)
             return Cap60Fps;
+        if (capAt50Fps)
+            return Cap50Fps;
+        if (capAt40Fps)
+            return Cap40Fps;
         if (capAt30Fps)
             return Cap30Fps;
         if (capAt15Fps)
