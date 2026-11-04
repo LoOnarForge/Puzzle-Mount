@@ -13,6 +13,8 @@ public class MovingPlatform : MonoBehaviour
     private const int MaxStopTimer = 10;
     private const float TimPlatformVerticalSlack = 2f;
     private const float TimPlatformHorizontalSlack = 0.25f;
+    private const float LegEaseInDistanceShare = 0.1f;
+    private const float LegEaseOutDistanceShare = 0.25f;
 
     private static readonly List<MovingPlatform> ActivePlatforms = new List<MovingPlatform>();
 
@@ -28,6 +30,7 @@ public class MovingPlatform : MonoBehaviour
     [SerializeField] private bool isTransportingRunodes;
     [SerializeField] private Collider occupancyTrigger;
     [SerializeField] private Transform platform;
+    [SerializeField] private GameObject stopPrototype;
     [SerializeField] private List<RouteStop> stops = new List<RouteStop>();
     [SerializeField] private int currentStopIndex;
 
@@ -35,6 +38,14 @@ public class MovingPlatform : MonoBehaviour
     private bool legInProgress;
     private float legElapsed;
     private float legDuration;
+    private float legEaseInDuration;
+    private float legEaseOutDuration;
+    private float legCruiseDuration;
+    private float legTravelDistance;
+    private float legDistanceEaseIn;
+    private float legDistanceCruise;
+    private float legDistanceEaseOut;
+    private float legCruiseSpeed;
     private Vector3 legStartPosition;
     private Vector3 legEndPosition;
     private List<RunodeMovement> legRunodes = new List<RunodeMovement>();
@@ -276,8 +287,14 @@ public class MovingPlatform : MonoBehaviour
             runode.SetKinematic(true);
 
         legElapsed = 0f;
-        legDuration = legSpeed > 0 && distance > MinLegDistance ? distance / legSpeed : 0f;
+        if (legSpeed <= 0 || distance <= MinLegDistance)
+        {
+            SetPlatformWorldPosition(legEndPosition);
+            FinishLegRunodes();
+            return true;
+        }
 
+        ConfigureLegMotionPhases(distance, legSpeed);
         if (legDuration <= 0f)
         {
             SetPlatformWorldPosition(legEndPosition);
@@ -290,17 +307,59 @@ public class MovingPlatform : MonoBehaviour
         return true;
     }
 
+    private void ConfigureLegMotionPhases(float distance, int legSpeed)
+    {
+        legTravelDistance = distance;
+        legCruiseSpeed = legSpeed;
+
+        legDistanceEaseIn = distance * LegEaseInDistanceShare;
+        legDistanceEaseOut = distance * LegEaseOutDistanceShare;
+        legDistanceCruise = distance - legDistanceEaseIn - legDistanceEaseOut;
+
+        legEaseInDuration = legDistanceEaseIn > 0f ? (2f * legDistanceEaseIn / legCruiseSpeed) : 0f;
+        legEaseOutDuration = legDistanceEaseOut > 0f ? (2f * legDistanceEaseOut / legCruiseSpeed) : 0f;
+        legCruiseDuration = legDistanceCruise > 0f ? legDistanceCruise / legCruiseSpeed : 0f;
+        legDuration = legEaseInDuration + legCruiseDuration + legEaseOutDuration;
+    }
+
+    private float SampleLegDistanceAlongPath(float elapsed)
+    {
+        if (elapsed <= legEaseInDuration)
+        {
+            float normalizedTime = legEaseInDuration > 0f ? elapsed / legEaseInDuration : 1f;
+            return legDistanceEaseIn * normalizedTime * normalizedTime;
+        }
+
+        if (elapsed <= legEaseInDuration + legCruiseDuration)
+        {
+            float cruiseElapsed = elapsed - legEaseInDuration;
+            return legDistanceEaseIn + legCruiseSpeed * cruiseElapsed;
+        }
+
+        if (elapsed <= legDuration)
+        {
+            float normalizedTime = legEaseOutDuration > 0f
+                ? (elapsed - legEaseInDuration - legCruiseDuration) / legEaseOutDuration
+                : 1f;
+            float decelProgress = 1f - (1f - normalizedTime) * (1f - normalizedTime);
+            return legDistanceEaseIn + legDistanceCruise + legDistanceEaseOut * decelProgress;
+        }
+
+        return legTravelDistance;
+    }
+
     private void TickLeg(float deltaTime)
     {
         legElapsed += deltaTime;
-        float progress = legDuration > 0f ? Mathf.Clamp01(legElapsed / legDuration) : 1f;
-        Vector3 newPosition = Vector3.Lerp(legStartPosition, legEndPosition, progress);
+        float traveled = SampleLegDistanceAlongPath(legElapsed);
+        float pathProgress = legTravelDistance > 0f ? traveled / legTravelDistance : 1f;
+        Vector3 newPosition = Vector3.Lerp(legStartPosition, legEndPosition, pathProgress);
         Vector3 delta = newPosition - platform.position;
 
         SetPlatformWorldPosition(newPosition);
         ApplyRunodeTransportDelta(delta, legRunodes);
 
-        if (progress < 1f)
+        if (legElapsed < legDuration)
             return;
 
         SetPlatformWorldPosition(legEndPosition);

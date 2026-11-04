@@ -21,6 +21,7 @@ public partial class CharacterMovement : MonoBehaviour
     public float momentumDecay = 2f;
 
     [Header("JUMP")]
+    [SerializeField] private bool isUsingMomentum = true;
     [SerializeField] [Range(0f, 100f)] private float jumpPlatformMovementPercent = 35f;
     
     [Header("DEBUG - SPEED VISUALIZATION")]
@@ -32,6 +33,10 @@ public partial class CharacterMovement : MonoBehaviour
     private const float DeathTossStrength = 8f;
     private const float DeathTossUpwardRatio = 0.5f;
     private const float SprintTapThreshold = 0.2f;
+    private const float WithPlatformJumpMomentumScale = 1f;
+    private const float SidewaysPlatformJumpMomentumScale = 0.1f;
+    private const float AgainstPlatformJumpMomentumScale = 0.2f;
+    private const float PlatformJumpDirectionAlignmentThreshold = 0.707106781f;
     
     // Physics settings
     public float gravity = -20f;
@@ -68,6 +73,7 @@ public partial class CharacterMovement : MonoBehaviour
     
     // Air control variables
     private Vector3 jumpMomentum;
+    private Vector3 jumpFacingDirection;
     private bool wasGroundedLastFrame;
     
     // Speed buildup variables
@@ -215,6 +221,9 @@ public partial class CharacterMovement : MonoBehaviour
         }
         else
         {
+            if (!isUsingMomentum)
+                return Vector3.zero;
+
             return jumpMomentum;
         }
     }
@@ -279,10 +288,9 @@ public partial class CharacterMovement : MonoBehaviour
             HandleSlipperySurfaceMovement();
         }
         
-        if (moveDirection != Vector3.zero)
-        {
-            RotatePlayer(moveDirection);
-        }
+        Vector3 facingDirection = GetFacingDirectionForMovement(moveDirection);
+        if (facingDirection != Vector3.zero)
+            RotatePlayer(facingDirection);
     }
 
     
@@ -307,6 +315,34 @@ public partial class CharacterMovement : MonoBehaviour
         return currentSpeedBuildup;
     }
     
+    private static float GetPlatformJumpMomentumScale(Vector3 jumpDirection, Vector3 platformVelocity)
+    {
+        Vector3 platformHorizontal = platformVelocity;
+        platformHorizontal.y = 0f;
+
+        if (platformHorizontal.sqrMagnitude <= 0.0001f)
+            return 0f;
+
+        platformHorizontal.Normalize();
+        float alignment = Vector3.Dot(jumpDirection, platformHorizontal);
+
+        if (alignment >= PlatformJumpDirectionAlignmentThreshold)
+            return WithPlatformJumpMomentumScale;
+
+        if (alignment <= -PlatformJumpDirectionAlignmentThreshold)
+            return AgainstPlatformJumpMomentumScale;
+
+        return SidewaysPlatformJumpMomentumScale;
+    }
+
+    private Vector3 GetFacingDirectionForMovement(Vector3 moveDirection)
+    {
+        if (isJumping && jumpFacingDirection.sqrMagnitude > 0.01f)
+            return jumpFacingDirection;
+
+        return moveDirection;
+    }
+
     private void RotatePlayer(Vector3 direction)
     {
         Quaternion targetRotation = Quaternion.LookRotation(direction);
@@ -335,18 +371,26 @@ public partial class CharacterMovement : MonoBehaviour
             
             if (currentMovement.magnitude < 0.1f)
             {
-                // Stationary jump - no horizontal momentum
-                jumpMomentum = Vector3.zero;
+                jumpFacingDirection = Vector3.zero;
             }
             else
             {
-                float jumpSpeed = currentSpeedBuildup;
-                jumpMomentum = currentMovement.normalized * jumpSpeed;
+                jumpFacingDirection = currentMovement;
+                jumpFacingDirection.y = 0f;
+                jumpFacingDirection.Normalize();
+            }
+
+            jumpMomentum = Vector3.zero;
+            if (isUsingMomentum && jumpFacingDirection.sqrMagnitude > 0.01f)
+            {
+                jumpMomentum = jumpFacingDirection * currentSpeedBuildup;
 
                 if (jumpPlatformMovementPercent > 0f
                     && MovingPlatform.TryGetPlatformVelocityForJump(this, out Vector3 platformVelocity))
                 {
-                    jumpMomentum += platformVelocity * (jumpPlatformMovementPercent * 0.01f);
+                    float directionScale = GetPlatformJumpMomentumScale(jumpFacingDirection, platformVelocity);
+                    float appliedPercent = jumpPlatformMovementPercent * 0.01f * directionScale;
+                    jumpMomentum += platformVelocity * appliedPercent;
                 }
             }
             

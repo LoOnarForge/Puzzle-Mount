@@ -34,12 +34,16 @@ public partial class CharacterMovement
         if (groundedContact && !wasGroundedLastFrame)
         {
             jumpMomentum = Vector3.zero;
+            jumpFacingDirection = Vector3.zero;
 
             if (playerAnimator != null)
                 playerAnimator.SetJumpingState(false);
         }
 
-        if (!groundedContact && wasGroundedLastFrame && velocity.y <= WalkOffMaxUpwardVelocity)
+        if (isUsingMomentum
+            && !groundedContact
+            && wasGroundedLastFrame
+            && velocity.y <= WalkOffMaxUpwardVelocity)
         {
             Vector3 groundDir = Vector3.zero;
             if (cameraFollow != null)
@@ -51,7 +55,7 @@ public partial class CharacterMovement
                 jumpMomentum = groundDir.normalized * currentSpeedBuildup;
         }
 
-        if (!groundedContact && jumpMomentum.magnitude > 0.01f)
+        if (isUsingMomentum && !groundedContact && jumpMomentum.magnitude > 0.01f)
             jumpMomentum = Vector3.Lerp(jumpMomentum, Vector3.zero, momentumDecay * Time.deltaTime);
 
         isGrounded = groundedContact;
