@@ -15,6 +15,8 @@ public class MovingPlatform : MonoBehaviour
     private const float TimPlatformHorizontalSlack = 0.25f;
     private const float LegEaseInDistanceShare = 0.1f;
     private const float LegEaseOutDistanceShare = 0.25f;
+    private const float RunodeOccupancyConfirmSeconds = 1f;
+    private const float RunodeResumeMovementDelaySeconds = 1f;
 
     private static readonly List<MovingPlatform> ActivePlatforms = new List<MovingPlatform>();
 
@@ -54,6 +56,10 @@ public class MovingPlatform : MonoBehaviour
     private readonly Collider[] platformOccupancyResults = new Collider[16];
     private int platformOccupancyMask;
     private CharacterMovement sceneTim;
+
+    private float runodePresenceSince = -1f;
+    private bool runodeConfirmedBlocking;
+    private float runodeMovementResumeTime = -1f;
 
     private void OnEnable()
     {
@@ -103,6 +109,8 @@ public class MovingPlatform : MonoBehaviour
 
         if (legInProgress)
             TickLeg(Time.deltaTime);
+
+        TickRunodeOccupancyGate();
 
         platformMotionDelta = platform.position - platformPositionBefore;
     }
@@ -254,7 +262,7 @@ public class MovingPlatform : MonoBehaviour
             if (timOnPlatform != null && !isTransportingTim)
                 return true;
 
-            if (runodes.Count > 0 && !isTransportingRunodes)
+            if (!isTransportingRunodes && IsRunodeBlockingMovement())
                 return true;
 
             if (isTransportingRunodes && runodes.Count > 1)
@@ -276,7 +284,7 @@ public class MovingPlatform : MonoBehaviour
         if (timOnPlatform != null && !isTransportingTim)
             return false;
 
-        if (!isTransportingRunodes && carriedRunodes.Count > 0)
+        if (!isTransportingRunodes && IsRunodeBlockingMovement())
             return false;
 
         if (isTransportingRunodes && carriedRunodes.Count > 1)
@@ -406,6 +414,42 @@ public class MovingPlatform : MonoBehaviour
             return;
 
         SetPlatformWorldPosition(stop.position);
+    }
+
+    private void TickRunodeOccupancyGate()
+    {
+        if (isTransportingRunodes)
+            return;
+
+        bool runodeInVolume = GetRunodesInOccupancyVolume().Count > 0;
+
+        if (runodeInVolume)
+        {
+            runodeMovementResumeTime = -1f;
+
+            if (runodePresenceSince < 0f)
+                runodePresenceSince = Time.time;
+            else if (!runodeConfirmedBlocking && Time.time - runodePresenceSince >= RunodeOccupancyConfirmSeconds)
+                runodeConfirmedBlocking = true;
+        }
+        else
+        {
+            runodePresenceSince = -1f;
+
+            if (runodeConfirmedBlocking)
+            {
+                runodeConfirmedBlocking = false;
+                runodeMovementResumeTime = Time.time + RunodeResumeMovementDelaySeconds;
+            }
+        }
+    }
+
+    private bool IsRunodeBlockingMovement()
+    {
+        if (runodeConfirmedBlocking)
+            return true;
+
+        return runodeMovementResumeTime >= 0f && Time.time < runodeMovementResumeTime;
     }
 
     private bool TryGetOccupancy(out CharacterMovement timOnPlatform, out List<RunodeMovement> runodes)
