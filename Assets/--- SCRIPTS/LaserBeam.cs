@@ -182,6 +182,7 @@ public class LaserBeam : MonoBehaviour
         {
             EvaluateActivatorMode();
             UpdateSkullFromActivationBeam();
+            prevBeamObstructed = beamObstructed;
         }
 
         if (!ButtonShutdownInProgress())
@@ -423,8 +424,6 @@ public class LaserBeam : MonoBehaviour
                 EvaluateButton();
                 break;
         }
-
-        prevBeamObstructed = beamObstructed;
     }
 
     private void EvaluatePressurePlate()
@@ -501,11 +500,24 @@ public class LaserBeam : MonoBehaviour
         if (activatorMode == ActivatorMode.Button)
             return;
 
-        if (beamObstructed == skullClosedFromBeam)
-            return;
+        switch (activatorMode)
+        {
+            case ActivatorMode.PressurePlate:
+                if (beamObstructed == skullClosedFromBeam)
+                    return;
 
-        skullClosedFromBeam = beamObstructed;
-        ApplySkullPressedState(beamObstructed);
+                skullClosedFromBeam = beamObstructed;
+                ApplySkullPressedState(beamObstructed);
+                break;
+
+            case ActivatorMode.Lever:
+                if (!beamObstructed || prevBeamObstructed)
+                    return;
+
+                skullClosedFromBeam = !skullClosedFromBeam;
+                ApplySkullPressedState(skullClosedFromBeam);
+                break;
+        }
     }
 
     private void SyncBeamColorForState()

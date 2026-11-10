@@ -76,6 +76,8 @@ public class ActivatorConnectionLinesHover : MonoBehaviour
         lineVisuals.Clear();
         LineRendererGenerator generator = activatorRoot.GetComponent<LineRendererGenerator>();
 
+        bool laserActivator = activatorRoot.GetComponent<LaserBeam>() != null;
+
         LineRenderer[] lines = activatorRoot.GetComponentsInChildren<LineRenderer>(true);
         for (int i = 0; i < lines.Length; i++)
         {
@@ -84,6 +86,8 @@ public class ActivatorConnectionLinesHover : MonoBehaviour
                 continue;
 
             ActivatorConnectionLineImpulse impulse = line.GetComponent<ActivatorConnectionLineImpulse>();
+            if (laserActivator && impulse == null)
+                continue;
 
             var state = new LineVisualState
             {
