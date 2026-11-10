@@ -8,7 +8,7 @@ Material:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_Name: Laser Beam
-  m_Shader: {fileID: 4800000, guid: 8d773e10abe81ca4b99ff21ed45e9d36, type: 3}
+  m_Shader: {fileID: 4800000, guid: 8243e45cfc4356c40ae34a7f09a2b2e0, type: 3}
   m_Parent: {fileID: 0}
   m_ModifiedSerializedProperties: 0
   m_ValidKeywords: []
@@ -17,8 +17,7 @@ Material:
   m_EnableInstancingVariants: 0
   m_DoubleSidedGI: 0
   m_CustomRenderQueue: -1
-  stringTagMap:
-    RenderType: Transparent
+  stringTagMap: {}
   disabledShaderPasses: []
   m_LockedProperties: 
   m_SavedProperties:
@@ -35,11 +34,14 @@ Material:
     m_Ints: []
     m_Floats:
     - _BumpScale: 1
+    - _EdgeSoftness: 0.01
     - _EmissionStrength: 0
+    - _EndFadeLength: 0.361
     - _LightInfluence: 1
-    - _MinBrightness: 0
+    - _MinBrightness: 0.133
     m_Colors:
     - _BaseColor: {r: 1, g: 1, b: 1, a: 1}
+    - _Color: {r: 1, g: 1, b: 1, a: 1}
     - _EmissionColor: {r: 0, g: 0.046813738, b: 0.008460762, a: 1}
     - _HighlightColor: {r: 1, g: 1, b: 1, a: 1}
   m_BuildTextureStacks: []

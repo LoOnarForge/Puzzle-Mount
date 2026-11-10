@@ -29,8 +29,10 @@ public class LaserBeam : MonoBehaviour
     private static readonly int BaseColorId = Shader.PropertyToID("_BaseColor");
     private static readonly int EmissionColorId = Shader.PropertyToID("_EmissionColor");
     private static readonly int EmissionStrengthId = Shader.PropertyToID("_EmissionStrength");
+    private static readonly int EndFadeLengthId = Shader.PropertyToID("_EndFadeLength");
     private static readonly int SkullEmissionColorId = Shader.PropertyToID("_EmissionColor");
     private const float BeamMaterialEmissionStrength = 1f;
+    private const float DefaultBeamEndFadeLength = 0.18f;
 
 #if UNITY_EDITOR
     private bool editorLineSetupQueued;
@@ -263,6 +265,9 @@ public class LaserBeam : MonoBehaviour
             line.useWorldSpace = true;
             line.positionCount = 2;
             line.alignment = LineAlignment.View;
+            line.textureMode = LineTextureMode.Stretch;
+            line.numCapVertices = 8;
+            line.numCornerVertices = 4;
             line.startWidth = lineWidth;
             line.endWidth = lineWidth;
             line.shadowCastingMode = ShadowCastingMode.Off;
@@ -578,10 +583,31 @@ public class LaserBeam : MonoBehaviour
             linePropertyBlocks[i].SetColor(BaseColorId, hdrBeamColor);
             linePropertyBlocks[i].SetColor(EmissionColorId, hdrBeamColor);
             linePropertyBlocks[i].SetFloat(EmissionStrengthId, BeamMaterialEmissionStrength);
+            linePropertyBlocks[i].SetFloat(EndFadeLengthId, GetBeamEndFadeLength(i));
             line.SetPropertyBlock(linePropertyBlocks[i]);
         }
 
         ApplySkullEyeColorFromBeam();
+    }
+
+    private float GetMaterialEndFadeLength()
+    {
+        if (beamMaterial == null || !beamMaterial.HasProperty(EndFadeLengthId))
+            return DefaultBeamEndFadeLength;
+
+        return Mathf.Clamp01(beamMaterial.GetFloat(EndFadeLengthId));
+    }
+
+    private float GetBeamEndFadeLength(int beamIndex)
+    {
+        if (beamObstructed[beamIndex])
+            return 0f;
+
+        float beamRange = GetBeamRange(beamIndex);
+        if (beamRange <= 0f)
+            return 0f;
+
+        return GetMaterialEndFadeLength();
     }
 
     private bool TryGetBeamStarts(out Vector3 startA, out Vector3 startB)
