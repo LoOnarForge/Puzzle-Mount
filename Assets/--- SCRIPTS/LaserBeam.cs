@@ -2,6 +2,7 @@ using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.Rendering;
+using UnityEngine.Serialization;
 #if UNITY_EDITOR
 using UnityEditor;
 #endif
@@ -38,8 +39,11 @@ public class LaserBeam : MonoBehaviour
     [SerializeField] private SkullBehaviour skullBehaviour;
 
     [Header("RANGE")]
+    [FormerlySerializedAs("range")]
     [Min(0f)]
-    [SerializeField] private float range = 10f;
+    [SerializeField] private float beamRangeA = 10f;
+    [Min(0f)]
+    [SerializeField] private float beamRangeB = 10f;
 
     [Header("HIT")]
     [SerializeField] private LayerMask hitLayers = Physics.DefaultRaycastLayers;
@@ -51,6 +55,9 @@ public class LaserBeam : MonoBehaviour
     [Header("LINES")]
     [SerializeField] private Transform beamStartA;
     [SerializeField] private Transform beamStartB;
+    [Tooltip("0 = Beam A is activation. 1 = Beam B is activation. The other beam is visual only.")]
+    [Range(0, 1)]
+    [SerializeField] private int activationBeamIndex = 1;
     [SerializeField] private Material beamMaterial;
     [Min(0f)]
     [SerializeField] private float lineWidth = 0.05f;
@@ -74,11 +81,10 @@ public class LaserBeam : MonoBehaviour
 
     private bool pressurePlateIsPressed;
     private bool buttonConsumed;
-    private bool prevBeamObstructedA;
-    private bool prevBeamObstructedB;
+    private bool prevActivationBeamObstructed;
     private Coroutine skullTransitionCoroutine;
 
-    public float Range => range;
+    public float Range => GetBeamRange(GetActivationBeamIndex());
     public Color BeamColor => beamColor;
     public ActivatorMode Mode => activatorMode;
     public GameObject CurrentHitObjectA => currentHits[0];
@@ -115,7 +121,8 @@ public class LaserBeam : MonoBehaviour
 
     private void OnValidate()
     {
-        range = Mathf.Max(0f, range);
+        beamRangeA = Mathf.Max(0f, beamRangeA);
+        beamRangeB = Mathf.Max(0f, beamRangeB);
         lineWidth = Mathf.Max(0f, lineWidth);
 
         QueueEditorLineSetup();
@@ -156,7 +163,16 @@ public class LaserBeam : MonoBehaviour
     // Sets max beam reach before a blocking hit.
     public void SetRange(float value)
     {
-        range = Mathf.Max(0f, value);
+        value = Mathf.Max(0f, value);
+        if (GetActivationBeamIndex() == 0)
+            beamRangeA = value;
+        else
+            beamRangeB = value;
+    }
+
+    private float GetBeamRange(int beamIndex)
+    {
+        return beamIndex == 0 ? beamRangeA : beamRangeB;
     }
 
     private void EnsureBeamLineChildren()
@@ -278,13 +294,14 @@ public class LaserBeam : MonoBehaviour
     private void UpdateBeamEndpoint(int index, Vector3 origin, Vector3 direction)
     {
         currentHits[index] = null;
-        beamLengths[index] = Mathf.Max(0f, range);
+        float beamRange = GetBeamRange(index);
+        beamLengths[index] = Mathf.Max(0f, beamRange);
 
         Vector3 end = origin + direction * beamLengths[index];
 
-        if (range > 0f)
+        if (beamRange > 0f)
         {
-            RaycastHit[] hits = Physics.RaycastAll(origin, direction, range, hitLayers, triggerInteraction);
+            RaycastHit[] hits = Physics.RaycastAll(origin, direction, beamRange, hitLayers, triggerInteraction);
             System.Array.Sort(hits, (a, b) => a.distance.CompareTo(b.distance));
 
             for (int i = 0; i < hits.Length; i++)
@@ -348,10 +365,11 @@ public class LaserBeam : MonoBehaviour
 
     private bool IsBeamObstructed(int beamIndex)
     {
-        if (range <= 0f)
+        float beamRange = GetBeamRange(beamIndex);
+        if (beamRange <= 0f)
             return false;
 
-        return beamLengths[beamIndex] < range - ObstructionDistanceEpsilon;
+        return beamLengths[beamIndex] < beamRange - ObstructionDistanceEpsilon;
     }
 
     private void EvaluateActivatorMode()
@@ -369,13 +387,22 @@ public class LaserBeam : MonoBehaviour
                 break;
         }
 
-        prevBeamObstructedA = beamObstructed[0];
-        prevBeamObstructedB = beamObstructed[1];
+        prevActivationBeamObstructed = IsActivationBeamObstructed();
+    }
+
+    private int GetActivationBeamIndex()
+    {
+        return Mathf.Clamp(activationBeamIndex, 0, BeamCount - 1);
+    }
+
+    private bool IsActivationBeamObstructed()
+    {
+        return beamObstructed[GetActivationBeamIndex()];
     }
 
     private void EvaluatePressurePlate()
     {
-        bool pressed = beamObstructed[0] || beamObstructed[1];
+        bool pressed = IsActivationBeamObstructed();
         if (pressed == pressurePlateIsPressed)
             return;
 
@@ -385,9 +412,8 @@ public class LaserBeam : MonoBehaviour
 
     private void EvaluateLever()
     {
-        bool bothObstructed = beamObstructed[0] && beamObstructed[1];
-        bool bothWereObstructed = prevBeamObstructedA && prevBeamObstructedB;
-        if (!bothObstructed || bothWereObstructed)
+        bool obstructed = IsActivationBeamObstructed();
+        if (!obstructed || prevActivationBeamObstructed)
             return;
 
         NotifyLeverDevices();
@@ -398,9 +424,8 @@ public class LaserBeam : MonoBehaviour
         if (buttonConsumed)
             return;
 
-        bool crossedNow = beamObstructed[0] || beamObstructed[1];
-        bool crossedBefore = prevBeamObstructedA || prevBeamObstructedB;
-        if (!crossedNow || crossedBefore)
+        bool crossedNow = IsActivationBeamObstructed();
+        if (!crossedNow || prevActivationBeamObstructed)
             return;
 
         buttonConsumed = true;
