@@ -20,6 +20,7 @@ public class LaserBeam : MonoBehaviour
     }
 
     private const int BeamCount = 2;
+    private const int ActivationBeamIndex = 1;
     private const string BeamLineChildAName = "BeamLineA";
     private const string BeamLineChildBName = "BeamLineB";
     private const float ObstructionDistanceEpsilon = 0.001f;
@@ -29,6 +30,7 @@ public class LaserBeam : MonoBehaviour
     private static readonly int EmissionColorId = Shader.PropertyToID("_EmissionColor");
     private static readonly int EmissionStrengthId = Shader.PropertyToID("_EmissionStrength");
     private static readonly int SkullEmissionColorId = Shader.PropertyToID("_EmissionColor");
+    private const float BeamMaterialEmissionStrength = 1f;
 
 #if UNITY_EDITOR
     private bool editorLineSetupQueued;
@@ -48,25 +50,18 @@ public class LaserBeam : MonoBehaviour
 
     [Header("HIT")]
     [SerializeField] private LayerMask hitLayers = Physics.DefaultRaycastLayers;
-    [SerializeField] private QueryTriggerInteraction triggerInteraction = QueryTriggerInteraction.Ignore;
 
     [Header("COLOR")]
     [ColorUsage(true, true)]
     [SerializeField] private Color beamColor = Color.red;
-    [Min(0f)]
-    [SerializeField] private float beamEmissionStrength = 2f;
-
     [Header("LINES")]
     [SerializeField] private Transform beamStartA;
     [SerializeField] private Transform beamStartB;
-    [Tooltip("0 = Beam A is activation. 1 = Beam B is activation. The other beam is visual only.")]
-    [Range(0, 1)]
-    [SerializeField] private int activationBeamIndex = 1;
     [SerializeField] private Material beamMaterial;
     [Min(0f)]
     [SerializeField] private float lineWidth = 0.05f;
-    [Tooltip("Line renderers only. Raycasts ignore this.")]
-    [SerializeField] private Vector3 beamVisualOffset;
+    [Tooltip("Line renderers only, local Y on this object. Raycasts ignore this.")]
+    [SerializeField] private float beamVisualOffsetY;
 
     private LineRenderer[] beamLines;
     private readonly MaterialPropertyBlock[] linePropertyBlocks = new MaterialPropertyBlock[BeamCount];
@@ -89,7 +84,7 @@ public class LaserBeam : MonoBehaviour
     private Coroutine skullTransitionCoroutine;
     private MaterialPropertyBlock skullPropertyBlock;
 
-    public float Range => GetBeamRange(GetActivationBeamIndex());
+    public float Range => GetBeamRange(ActivationBeamIndex);
     public Color BeamColor => beamColor;
     public ActivatorMode Mode => activatorMode;
     public GameObject CurrentHitObjectA => currentHits[0];
@@ -130,7 +125,6 @@ public class LaserBeam : MonoBehaviour
         beamRangeA = Mathf.Max(0f, beamRangeA);
         beamRangeB = Mathf.Max(0f, beamRangeB);
         lineWidth = Mathf.Max(0f, lineWidth);
-        beamEmissionStrength = Mathf.Max(0f, beamEmissionStrength);
 
         QueueEditorLineSetup();
 
@@ -171,10 +165,7 @@ public class LaserBeam : MonoBehaviour
     public void SetRange(float value)
     {
         value = Mathf.Max(0f, value);
-        if (GetActivationBeamIndex() == 0)
-            beamRangeA = value;
-        else
-            beamRangeB = value;
+        beamRangeB = value;
     }
 
     private float GetBeamRange(int beamIndex)
@@ -308,7 +299,7 @@ public class LaserBeam : MonoBehaviour
 
         if (beamRange > 0f)
         {
-            RaycastHit[] hits = Physics.RaycastAll(origin, direction, beamRange, hitLayers, triggerInteraction);
+            RaycastHit[] hits = Physics.RaycastAll(origin, direction, beamRange, hitLayers, QueryTriggerInteraction.Ignore);
             System.Array.Sort(hits, (a, b) => a.distance.CompareTo(b.distance));
 
             for (int i = 0; i < hits.Length; i++)
@@ -334,7 +325,7 @@ public class LaserBeam : MonoBehaviour
         if (!HasRequiredBeamLines() || beamLines[index] == null)
             return;
 
-        Vector3 visualOffsetWorld = transform.TransformVector(beamVisualOffset);
+        Vector3 visualOffsetWorld = transform.up * beamVisualOffsetY;
 
         LineRenderer line = beamLines[index];
         line.enabled = true;
@@ -397,14 +388,9 @@ public class LaserBeam : MonoBehaviour
         prevActivationBeamObstructed = IsActivationBeamObstructed();
     }
 
-    private int GetActivationBeamIndex()
-    {
-        return Mathf.Clamp(activationBeamIndex, 0, BeamCount - 1);
-    }
-
     private bool IsActivationBeamObstructed()
     {
-        return beamObstructed[GetActivationBeamIndex()];
+        return beamObstructed[ActivationBeamIndex];
     }
 
     private void EvaluatePressurePlate()
@@ -591,7 +577,7 @@ public class LaserBeam : MonoBehaviour
             linePropertyBlocks[i].SetColor(MainColorId, hdrBeamColor);
             linePropertyBlocks[i].SetColor(BaseColorId, hdrBeamColor);
             linePropertyBlocks[i].SetColor(EmissionColorId, hdrBeamColor);
-            linePropertyBlocks[i].SetFloat(EmissionStrengthId, beamEmissionStrength);
+            linePropertyBlocks[i].SetFloat(EmissionStrengthId, BeamMaterialEmissionStrength);
             line.SetPropertyBlock(linePropertyBlocks[i]);
         }
 
