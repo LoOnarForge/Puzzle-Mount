@@ -30,7 +30,6 @@ public class LaserBeam : MonoBehaviour
     private static readonly int EmissionColorId = Shader.PropertyToID("_EmissionColor");
     private static readonly int EmissionStrengthId = Shader.PropertyToID("_EmissionStrength");
     private static readonly int EndFadeLengthId = Shader.PropertyToID("_EndFadeLength");
-    private static readonly int SkullEmissionColorId = Shader.PropertyToID("_EmissionColor");
     private const float BeamMaterialEmissionStrength = 1f;
     private const float DefaultBeamEndFadeLength = 0.18f;
 
@@ -83,8 +82,8 @@ public class LaserBeam : MonoBehaviour
     private bool pressurePlateIsPressed;
     private bool buttonConsumed;
     private bool prevActivationBeamObstructed;
+    private bool skullClosedFromBeam;
     private Coroutine skullTransitionCoroutine;
-    private MaterialPropertyBlock skullPropertyBlock;
 
     public float Range => GetBeamRange(ActivationBeamIndex);
     public Color BeamColor => beamColor;
@@ -110,7 +109,6 @@ public class LaserBeam : MonoBehaviour
             skullBehaviour = GetComponentInChildren<SkullBehaviour>(true);
 
         ApplyBeamMaterial();
-        ApplySkullEyeColorFromBeam();
     }
 
     private void OnEnable()
@@ -154,6 +152,7 @@ public class LaserBeam : MonoBehaviour
             return;
 
         EvaluateActivatorMode();
+        UpdateSkullFromActivationBeam();
     }
 
     // Sets beam color from the Inspector or code.
@@ -432,8 +431,6 @@ public class LaserBeam : MonoBehaviour
 
     private void NotifyPressurePlateDevices(bool pressed)
     {
-        ApplySkullPressedState(pressed);
-
         foreach (MediumDoor mediumDoor in mediumDoors)
             mediumDoor.ApplyActivatorReverse();
 
@@ -486,12 +483,17 @@ public class LaserBeam : MonoBehaviour
             slideOutPlatform.ApplyActivatorReverse();
     }
 
-    private void ApplySkullPressedState(bool pressed)
+    private void UpdateSkullFromActivationBeam()
     {
-        ApplySkullEyeColorFromBeam();
+        bool obstructed = IsActivationBeamObstructed();
+        if (obstructed == skullClosedFromBeam)
+            return;
+
+        skullClosedFromBeam = obstructed;
+        ApplySkullPressedState(obstructed);
     }
 
-    private void ApplySkullEyeColorFromBeam()
+    private void ApplySkullPressedState(bool beamBlocked)
     {
         if (skullBehaviour == null)
             return;
@@ -502,17 +504,9 @@ public class LaserBeam : MonoBehaviour
             skullTransitionCoroutine = null;
         }
 
-        Renderer emissionRenderer = skullBehaviour.GetComponent<Renderer>();
-        if (emissionRenderer == null)
-            emissionRenderer = skullBehaviour.GetComponentInChildren<Renderer>(true);
-
-        if (emissionRenderer == null)
-            return;
-
-        skullPropertyBlock ??= new MaterialPropertyBlock();
-        emissionRenderer.GetPropertyBlock(skullPropertyBlock);
-        skullPropertyBlock.SetColor(SkullEmissionColorId, beamColor);
-        emissionRenderer.SetPropertyBlock(skullPropertyBlock);
+        skullTransitionCoroutine = StartCoroutine(beamBlocked
+            ? skullBehaviour.TransitionOpenedToClosed()
+            : skullBehaviour.TransitionClosedToOpen());
     }
 
     private void BuildConnectedDeviceLists()
@@ -568,26 +562,26 @@ public class LaserBeam : MonoBehaviour
         if (!HasRequiredBeamLines())
             return;
 
-        Color hdrBeamColor = beamColor;
+        Color beamTint = beamColor;
+        Color beamEmission = beamColor;
+        beamEmission.a = 1f;
 
         for (int i = 0; i < BeamCount; i++)
         {
             LineRenderer line = beamLines[i];
 
-            line.startColor = hdrBeamColor;
-            line.endColor = hdrBeamColor;
+            line.startColor = beamTint;
+            line.endColor = beamTint;
 
             linePropertyBlocks[i] ??= new MaterialPropertyBlock();
             line.GetPropertyBlock(linePropertyBlocks[i]);
-            linePropertyBlocks[i].SetColor(MainColorId, hdrBeamColor);
-            linePropertyBlocks[i].SetColor(BaseColorId, hdrBeamColor);
-            linePropertyBlocks[i].SetColor(EmissionColorId, hdrBeamColor);
+            linePropertyBlocks[i].SetColor(MainColorId, beamTint);
+            linePropertyBlocks[i].SetColor(BaseColorId, beamTint);
+            linePropertyBlocks[i].SetColor(EmissionColorId, beamEmission);
             linePropertyBlocks[i].SetFloat(EmissionStrengthId, BeamMaterialEmissionStrength);
             linePropertyBlocks[i].SetFloat(EndFadeLengthId, GetBeamEndFadeLength(i));
             line.SetPropertyBlock(linePropertyBlocks[i]);
         }
-
-        ApplySkullEyeColorFromBeam();
     }
 
     private float GetMaterialEndFadeLength()

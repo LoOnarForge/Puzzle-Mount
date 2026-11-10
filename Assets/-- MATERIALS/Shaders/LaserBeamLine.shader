@@ -28,7 +28,7 @@ Shader "Custom/LaserBeamLine"
             Name "ForwardLit"
             Tags { "LightMode" = "UniversalForward" }
 
-            Blend SrcAlpha OneMinusSrcAlpha
+            Blend One OneMinusSrcAlpha
             ZWrite Off
             ZTest LEqual
             Cull Off
@@ -121,7 +121,8 @@ Shader "Custom/LaserBeamLine"
             {
                 half4 sprite = SAMPLE_TEXTURE2D(_MainTex, sampler_MainTex, input.uv);
                 half shapeAlpha = BeamAlpha(input.uv);
-                half alpha = sprite.a * _BaseColor.a * _Color.a * shapeAlpha;
+                half opacity = sprite.a * _BaseColor.a * _Color.a;
+                half alpha = opacity * shapeAlpha;
 
                 half3 tint = sprite.rgb * _BaseColor.rgb * _Color.rgb;
 
@@ -131,9 +132,10 @@ Shader "Custom/LaserBeamLine"
 
                 half3 lighting = ambient + CalculateDirectLighting(normalWS, input.positionWS);
                 half3 lit = lerp(tint, tint * lighting, _LightInfluence);
-                half3 emission = _EmissionColor.rgb * _EmissionStrength * alpha;
+                half3 emission = _EmissionColor.rgb * _EmissionStrength * shapeAlpha;
+                half3 premulRgb = lit * alpha + emission;
 
-                return half4(lit * alpha + emission, alpha);
+                return half4(premulRgb, alpha);
             }
             ENDHLSL
         }

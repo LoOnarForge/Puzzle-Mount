@@ -77,10 +77,16 @@ public class SkullBehaviour : MonoBehaviour
         yield return RunEmissionTransition(defaultColor, closedColor);
     }
 
-    // Closed → open — same transition logic, different endpoints.
+      // Closed → open — same transition logic, different endpoints.
     public IEnumerator TransitionClosedToOpen()
     {
         yield return RunEmissionTransition(closedColor, openedColor);
+    }
+
+    // Open → closed — e.g. laser skull when the beam is blocked.
+    public IEnumerator TransitionOpenedToClosed()
+    {
+        yield return RunEmissionTransition(openedColor, closedColor);
     }
 
     private IEnumerator RunEmissionTransition(Color startEmission, Color endEmission)

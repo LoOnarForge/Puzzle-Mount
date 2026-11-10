@@ -11565,6 +11565,11 @@ Transform:
   m_CorrespondingSourceObject: {fileID: 1063904379662006042, guid: a5d313f912ce9d144a571520f22b07c9, type: 3}
   m_PrefabInstance: {fileID: 1279312373}
   m_PrefabAsset: {fileID: 0}
+--- !u!1 &822874552 stripped
+GameObject:
+  m_CorrespondingSourceObject: {fileID: 3472183193194607240, guid: f246874639a38754b837d9bea967d7de, type: 3}
+  m_PrefabInstance: {fileID: 2052911862}
+  m_PrefabAsset: {fileID: 0}
 --- !u!1001 &825945943
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -18266,7 +18271,7 @@ LineRenderer:
       m_Curve:
       - serializedVersion: 3
         time: 0
-        value: 0.007
+        value: 0.01
         inSlope: 0
         outSlope: 0
         tangentMode: 0
@@ -18275,7 +18280,7 @@ LineRenderer:
         outWeight: 0.33333334
       - serializedVersion: 3
         time: 1
-        value: 0.007
+        value: 0.01
         inSlope: 0
         outSlope: 0
         tangentMode: 0
@@ -18287,8 +18292,8 @@ LineRenderer:
       m_RotationOrder: 4
     colorGradient:
       serializedVersion: 2
-      key0: {r: 0, g: 1, b: 0.5411765, a: 1}
-      key1: {r: 0, g: 1, b: 0.5411765, a: 1}
+      key0: {r: 0, g: 1, b: 1, a: 1}
+      key1: {r: 0, g: 1, b: 1, a: 1}
       key2: {r: 0, g: 0, b: 0, a: 0}
       key3: {r: 0, g: 0, b: 0, a: 0}
       key4: {r: 0, g: 0, b: 0, a: 0}
@@ -20986,19 +20991,20 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 2736a5cb2ab7ee848a4c4a41a2e9fa33, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::LaserBeam
-  activatorMode: 0
-  connectedDevices: []
+  activatorMode: 1
+  connectedDevices:
+  - {fileID: 822874552}
   skullBehaviour: {fileID: 7612351720718291286}
   beamRangeA: 2
   beamRangeB: 10
   hitLayers:
     serializedVersion: 2
     m_Bits: 16787456
-  beamColor: {r: 0, g: 2.9960787, b: 0.54148877, a: 1}
+  beamColor: {r: 0, g: 1.8451463, b: 2.9960785, a: 1}
   beamStartA: {fileID: 1180208963}
   beamStartB: {fileID: 1762272343}
   beamMaterial: {fileID: 2100000, guid: 5d9b5eaa8ede3414899591eac1d0ed89, type: 2}
-  lineWidth: 0.007
+  lineWidth: 0.01
   beamVisualOffsetY: -0.31
 --- !u!4 &1344554347
 Transform:
@@ -27687,7 +27693,7 @@ LineRenderer:
       m_Curve:
       - serializedVersion: 3
         time: 0
-        value: 0.007
+        value: 0.01
         inSlope: 0
         outSlope: 0
         tangentMode: 0
@@ -27696,7 +27702,7 @@ LineRenderer:
         outWeight: 0.33333334
       - serializedVersion: 3
         time: 1
-        value: 0.007
+        value: 0.01
         inSlope: 0
         outSlope: 0
         tangentMode: 0
@@ -27708,8 +27714,8 @@ LineRenderer:
       m_RotationOrder: 4
     colorGradient:
       serializedVersion: 2
-      key0: {r: 0, g: 1, b: 0.5411765, a: 1}
-      key1: {r: 0, g: 1, b: 0.5411765, a: 1}
+      key0: {r: 0, g: 1, b: 1, a: 1}
+      key1: {r: 0, g: 1, b: 1, a: 1}
       key2: {r: 0, g: 0, b: 0, a: 0}
       key3: {r: 0, g: 0, b: 0, a: 0}
       key4: {r: 0, g: 0, b: 0, a: 0}
@@ -33201,6 +33207,63 @@ PrefabInstance:
     m_AddedGameObjects: []
     m_AddedComponents: []
   m_SourcePrefab: {fileID: 100100000, guid: 236c6e43d375cbf419a144103342b96d, type: 3}
+--- !u!1001 &2052911862
+PrefabInstance:
+  m_ObjectHideFlags: 0
+  serializedVersion: 2
+  m_Modification:
+    serializedVersion: 3
+    m_TransformParent: {fileID: 0}
+    m_Modifications:
+    - target: {fileID: 3472183193194607240, guid: f246874639a38754b837d9bea967d7de, type: 3}
+      propertyPath: m_Name
+      value: Medium Door (001)
+      objectReference: {fileID: 0}
+    - target: {fileID: 6635925349569615995, guid: f246874639a38754b837d9bea967d7de, type: 3}
+      propertyPath: m_LocalPosition.x
+      value: -16
+      objectReference: {fileID: 0}
+    - target: {fileID: 6635925349569615995, guid: f246874639a38754b837d9bea967d7de, type: 3}
+      propertyPath: m_LocalPosition.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 6635925349569615995, guid: f246874639a38754b837d9bea967d7de, type: 3}
+      propertyPath: m_LocalPosition.z
+      value: -0
+      objectReference: {fileID: 0}
+    - target: {fileID: 6635925349569615995, guid: f246874639a38754b837d9bea967d7de, type: 3}
+      propertyPath: m_LocalRotation.w
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 6635925349569615995, guid: f246874639a38754b837d9bea967d7de, type: 3}
+      propertyPath: m_LocalRotation.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 6635925349569615995, guid: f246874639a38754b837d9bea967d7de, type: 3}
+      propertyPath: m_LocalRotation.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 6635925349569615995, guid: f246874639a38754b837d9bea967d7de, type: 3}
+      propertyPath: m_LocalRotation.z
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 6635925349569615995, guid: f246874639a38754b837d9bea967d7de, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 6635925349569615995, guid: f246874639a38754b837d9bea967d7de, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 6635925349569615995, guid: f246874639a38754b837d9bea967d7de, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.z
+      value: 0
+      objectReference: {fileID: 0}
+    m_RemovedComponents: []
+    m_RemovedGameObjects: []
+    m_AddedGameObjects: []
+    m_AddedComponents: []
+  m_SourcePrefab: {fileID: 100100000, guid: f246874639a38754b837d9bea967d7de, type: 3}
 --- !u!1001 &2053590125
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -35143,7 +35206,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 2147483647
-  m_IsActive: 0
+  m_IsActive: 1
 --- !u!4 &445838867323462600
 Transform:
   m_ObjectHideFlags: 0
@@ -36099,7 +36162,7 @@ ParticleSystem:
   ShapeModule:
     serializedVersion: 6
     enabled: 1
-    type: 5
+    type: 4
     angle: 25
     length: 5
     boxThickness: {x: 0, y: 0, z: 0}
@@ -36107,7 +36170,7 @@ ParticleSystem:
     donutRadius: 0.2
     m_Position: {x: 0, y: 0, z: 0}
     m_Rotation: {x: 0, y: 0, z: 0}
-    m_Scale: {x: 0.1, y: 0.2, z: 0.06}
+    m_Scale: {x: 0.1, y: 0.2, z: 0.4}
     placementMode: 0
     m_MeshMaterialIndex: 0
     m_MeshNormalOffset: 0
@@ -51198,9 +51261,9 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::SkullBehaviour
   emissionRenderer: {fileID: 1411549958487439330}
-  defaultColor: {r: 0, g: 4, b: 0.72292995, a: 1}
-  openedColor: {r: 0, g: 5.9921565, b: 0, a: 1}
-  closedColor: {r: 5.9921575, g: 0, b: 0, a: 1}
+  defaultColor: {r: 0, g: 1.8451463, b: 2.9960785, a: 1}
+  openedColor: {r: 0, g: 0.1254902, b: 0.7490196, a: 1}
+  closedColor: {r: 0, g: 1.8451463, b: 2.9960785, a: 1}
   eyeTransitionDuration: 0.25
   eyeFlashDuration: 0.075
   transitionCompleteParticleSystem: {fileID: 1794084320789526190}
@@ -51577,13 +51640,13 @@ Transform:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 324777364976877074}
   serializedVersion: 2
-  m_LocalRotation: {x: -0.7071068, y: 0, z: 0, w: 0.7071068}
-  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalRotation: {x: -0, y: -1, z: -0, w: 0.00000011920925}
+  m_LocalPosition: {x: 0, y: 0, z: -0.43}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
   m_Father: {fileID: 1395419673086710822}
-  m_LocalEulerAnglesHint: {x: -90, y: 0, z: 0}
+  m_LocalEulerAnglesHint: {x: 0, y: -180, z: 0}
 --- !u!1001 &9091540916932186545
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -51687,3 +51750,4 @@ SceneRoots:
   - {fileID: 4071591644035133647}
   - {fileID: 1540025849}
   - {fileID: 1344554347}
+  - {fileID: 2052911862}
