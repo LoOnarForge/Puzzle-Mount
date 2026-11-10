@@ -98,6 +98,10 @@ public class ActivatorHoverTracker : MonoBehaviour
         if (plate != null)
             return plate.transform;
 
+        LaserBeam laserBeam = collider.GetComponentInParent<LaserBeam>();
+        if (laserBeam != null)
+            return laserBeam.transform;
+
         return null;
     }
 }

@@ -23,6 +23,8 @@ public class LaserBeam : MonoBehaviour
     private const string LegacyBeamLineChildAName = "BeamLineA";
     private const float ObstructionDistanceEpsilon = 0.001f;
     private const float MinRayHitDistance = 0.02f;
+    private const int InitialRaycastHitCapacity = 24;
+    private const int MaxRaycastHitCapacity = 256;
     private static readonly int MainColorId = Shader.PropertyToID("_Color");
     private static readonly int BaseColorId = Shader.PropertyToID("_BaseColor");
     private static readonly int EmissionColorId = Shader.PropertyToID("_EmissionColor");
@@ -68,10 +70,14 @@ public class LaserBeam : MonoBehaviour
 
     private LineRenderer beamLine;
     private MaterialPropertyBlock linePropertyBlock;
+    private RaycastHit[] raycastHits;
     private float beamLength;
+    private float cachedMaterialEndFadeLength = DefaultBeamEndFadeLength;
     private GameObject currentHit;
     private bool beamObstructed;
     private bool beamEndpointsValid;
+    private Color lastAppliedBeamColor;
+    private float lastAppliedEndFadeLength = float.NaN;
 
     private readonly List<MediumDoor> mediumDoors = new List<MediumDoor>();
     private readonly List<TrapDoor> trapDoors = new List<TrapDoor>();
@@ -102,6 +108,7 @@ public class LaserBeam : MonoBehaviour
 
     private void Awake()
     {
+        raycastHits = new RaycastHit[InitialRaycastHitCapacity];
         EnsureBeamLine();
         CacheLineRendererDefaults();
         BuildConnectedDeviceLists();
@@ -142,7 +149,7 @@ public class LaserBeam : MonoBehaviour
         BuildConnectedDeviceLists();
 
         if (Application.isPlaying)
-            ApplyBeamColor();
+            ApplyBeamColor(force: true);
         else
             SyncBeamColorForState();
     }
@@ -165,7 +172,7 @@ public class LaserBeam : MonoBehaviour
     public void SetBeamColor(Color color)
     {
         beamColor = color;
-        ApplyBeamColor();
+        ApplyBeamColor(force: true);
     }
 
     public void SetRange(float value)
@@ -216,6 +223,8 @@ public class LaserBeam : MonoBehaviour
             return;
 
         beamLine.sharedMaterial = beamMaterial;
+        RefreshMaterialEndFadeCache();
+        lastAppliedEndFadeLength = float.NaN;
     }
 
 #if UNITY_EDITOR
@@ -238,7 +247,7 @@ public class LaserBeam : MonoBehaviour
         ApplyBeamMaterial();
         CacheLineRendererDefaults();
         CastAndDraw();
-        ApplyBeamColor();
+        ApplyBeamColor(force: true);
     }
 #endif
 
@@ -288,28 +297,53 @@ public class LaserBeam : MonoBehaviour
 
         Vector3 end = origin + direction * beamLength;
 
-        if (beamRange > 0f)
+        if (beamRange > 0f && TryGetClosestValidHit(origin, direction, out RaycastHit closestHit))
         {
-            RaycastHit[] hits = Physics.RaycastAll(origin, direction, beamRange, hitLayers, QueryTriggerInteraction.Ignore);
-            System.Array.Sort(hits, (a, b) => a.distance.CompareTo(b.distance));
-
-            for (int i = 0; i < hits.Length; i++)
-            {
-                Collider hitCollider = hits[i].collider;
-                if (hitCollider == null || ShouldIgnoreHitCollider(hitCollider))
-                    continue;
-
-                if (hits[i].distance < MinRayHitDistance)
-                    continue;
-
-                beamLength = hits[i].distance;
-                currentHit = hitCollider.gameObject;
-                end = hits[i].point;
-                break;
-            }
+            beamLength = closestHit.distance;
+            currentHit = closestHit.collider.gameObject;
+            end = closestHit.point;
         }
 
         ApplyEndpointToLineRenderer(origin, end);
+    }
+
+    private bool TryGetClosestValidHit(Vector3 origin, Vector3 direction, out RaycastHit closestHit)
+    {
+        closestHit = default;
+
+        if (raycastHits == null || raycastHits.Length == 0)
+            raycastHits = new RaycastHit[InitialRaycastHitCapacity];
+
+        int hitCount = Physics.RaycastNonAlloc(origin, direction, raycastHits, beamRange, hitLayers, QueryTriggerInteraction.Ignore);
+        while (hitCount == raycastHits.Length && raycastHits.Length < MaxRaycastHitCapacity)
+        {
+            int newCapacity = Mathf.Min(raycastHits.Length * 2, MaxRaycastHitCapacity);
+            System.Array.Resize(ref raycastHits, newCapacity);
+            hitCount = Physics.RaycastNonAlloc(origin, direction, raycastHits, beamRange, hitLayers, QueryTriggerInteraction.Ignore);
+        }
+
+        float closestDistance = float.MaxValue;
+        bool found = false;
+
+        for (int i = 0; i < hitCount; i++)
+        {
+            RaycastHit hit = raycastHits[i];
+            Collider hitCollider = hit.collider;
+            if (hitCollider == null || ShouldIgnoreHitCollider(hitCollider))
+                continue;
+
+            if (hit.distance < MinRayHitDistance)
+                continue;
+
+            if (hit.distance >= closestDistance)
+                continue;
+
+            closestDistance = hit.distance;
+            closestHit = hit;
+            found = true;
+        }
+
+        return found;
     }
 
     private void ApplyEndpointToLineRenderer(Vector3 origin, Vector3 end)
@@ -375,7 +409,7 @@ public class LaserBeam : MonoBehaviour
             return;
 
         pressurePlateIsPressed = beamObstructed;
-        NotifyPressurePlateDevices(pressurePlateIsPressed);
+        NotifyApplyActivatorReverseDevices();
     }
 
     private void EvaluateLever()
@@ -397,10 +431,10 @@ public class LaserBeam : MonoBehaviour
         buttonConsumed = true;
         skullClosedFromBeam = true;
         ApplySkullPressedState(true);
-        NotifyButtonDevices();
+        NotifyApplyActivatorReverseDevices();
     }
 
-    private void NotifyPressurePlateDevices(bool pressed)
+    private void NotifyApplyActivatorReverseDevices()
     {
         foreach (MediumDoor mediumDoor in mediumDoors)
             mediumDoor.ApplyActivatorReverse();
@@ -439,21 +473,6 @@ public class LaserBeam : MonoBehaviour
             slideOutPlatform.OnLeverOperated();
     }
 
-    private void NotifyButtonDevices()
-    {
-        foreach (MediumDoor mediumDoor in mediumDoors)
-            mediumDoor.ApplyActivatorReverse();
-
-        foreach (TrapDoor trapDoor in trapDoors)
-            trapDoor.ApplyActivatorReverse();
-
-        foreach (Bridge bridge in bridges)
-            bridge.ApplyActivatorReverse();
-
-        foreach (SlideOutPlatform slideOutPlatform in slideOutPlatforms)
-            slideOutPlatform.ApplyActivatorReverse();
-    }
-
     private void UpdateSkullFromActivationBeam()
     {
         if (activatorMode == ActivatorMode.Button)
@@ -469,7 +488,7 @@ public class LaserBeam : MonoBehaviour
     private void SyncBeamColorForState()
     {
         beamColor = IsLaserVisualClosed() ? beamClosedColor : beamOpenedColor;
-        ApplyBeamColor();
+        ApplyBeamColor(force: true);
     }
 
     private bool IsLaserVisualClosed()
@@ -518,12 +537,12 @@ public class LaserBeam : MonoBehaviour
         if (duration <= 0f)
         {
             beamColor = to;
-            ApplyBeamColor();
+            ApplyBeamColor(force: true);
             yield break;
         }
 
         beamColor = from;
-        ApplyBeamColor();
+        ApplyBeamColor(force: true);
 
         float elapsed = 0f;
         while (elapsed < duration)
@@ -531,12 +550,12 @@ public class LaserBeam : MonoBehaviour
             elapsed += Time.deltaTime;
             float t = Mathf.SmoothStep(0f, 1f, Mathf.Clamp01(elapsed / duration));
             beamColor = Color.Lerp(from, to, t);
-            ApplyBeamColor();
+            ApplyBeamColor(force: true);
             yield return null;
         }
 
         beamColor = to;
-        ApplyBeamColor();
+        ApplyBeamColor(force: true);
     }
 
     private void BuildConnectedDeviceLists()
@@ -587,10 +606,19 @@ public class LaserBeam : MonoBehaviour
         }
     }
 
-    private void ApplyBeamColor()
+    private void ApplyBeamColor(bool force = false)
     {
         if (!HasBeamLine())
             return;
+
+        float endFadeLength = GetBeamEndFadeLength();
+        if (!force
+            && beamColor == lastAppliedBeamColor
+            && Mathf.Approximately(endFadeLength, lastAppliedEndFadeLength))
+            return;
+
+        lastAppliedBeamColor = beamColor;
+        lastAppliedEndFadeLength = endFadeLength;
 
         Color beamTint = beamColor;
         Color beamEmission = beamColor;
@@ -605,19 +633,22 @@ public class LaserBeam : MonoBehaviour
         linePropertyBlock.SetColor(BaseColorId, beamTint);
         linePropertyBlock.SetColor(EmissionColorId, beamEmission);
         linePropertyBlock.SetFloat(EmissionStrengthId, BeamMaterialEmissionStrength);
-        linePropertyBlock.SetFloat(EndFadeLengthId, GetBeamEndFadeLength());
+        linePropertyBlock.SetFloat(EndFadeLengthId, endFadeLength);
         beamLine.SetPropertyBlock(linePropertyBlock);
 
         if (skullBehaviour != null)
             skullBehaviour.ApplyLaserParticleColor(beamColor);
     }
 
-    private float GetMaterialEndFadeLength()
+    private void RefreshMaterialEndFadeCache()
     {
         if (beamMaterial == null || !beamMaterial.HasProperty(EndFadeLengthId))
-            return DefaultBeamEndFadeLength;
+        {
+            cachedMaterialEndFadeLength = DefaultBeamEndFadeLength;
+            return;
+        }
 
-        return Mathf.Clamp01(beamMaterial.GetFloat(EndFadeLengthId));
+        cachedMaterialEndFadeLength = Mathf.Clamp01(beamMaterial.GetFloat(EndFadeLengthId));
     }
 
     private float GetBeamEndFadeLength()
@@ -628,7 +659,7 @@ public class LaserBeam : MonoBehaviour
         if (beamRange <= 0f)
             return 0f;
 
-        return GetMaterialEndFadeLength();
+        return cachedMaterialEndFadeLength;
     }
 
     private bool TryGetBeamDirection(out Vector3 direction)

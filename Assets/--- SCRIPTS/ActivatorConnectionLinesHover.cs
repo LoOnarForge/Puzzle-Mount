@@ -64,6 +64,10 @@ public class ActivatorConnectionLinesHover : MonoBehaviour
         if (plate != null)
             return plate.transform;
 
+        LaserBeam laserBeam = GetComponentInParent<LaserBeam>();
+        if (laserBeam != null)
+            return laserBeam.transform;
+
         return transform;
     }
 

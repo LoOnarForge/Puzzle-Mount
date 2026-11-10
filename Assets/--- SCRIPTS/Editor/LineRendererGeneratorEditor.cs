@@ -189,6 +189,10 @@ public class LineRendererGeneratorEditor : Editor
         if (plate != null)
             return plate;
 
+        LaserBeam laserBeam = activatorRoot.GetComponent<LaserBeam>();
+        if (laserBeam != null)
+            return laserBeam;
+
         return null;
     }
 
