@@ -154,10 +154,7 @@ public class LaserBeam : MonoBehaviour
 
         CastAndDraw();
         ApplyBeamColor();
-    }
 
-    private void FixedUpdate()
-    {
         if (!Application.isPlaying || !beamEndpointsValid)
             return;
 
@@ -398,6 +395,8 @@ public class LaserBeam : MonoBehaviour
             return;
 
         buttonConsumed = true;
+        skullClosedFromBeam = true;
+        ApplySkullPressedState(true);
         NotifyButtonDevices();
     }
 
@@ -457,6 +456,9 @@ public class LaserBeam : MonoBehaviour
 
     private void UpdateSkullFromActivationBeam()
     {
+        if (activatorMode == ActivatorMode.Button)
+            return;
+
         if (beamObstructed == skullClosedFromBeam)
             return;
 
@@ -466,8 +468,16 @@ public class LaserBeam : MonoBehaviour
 
     private void SyncBeamColorForState()
     {
-        beamColor = skullClosedFromBeam ? beamClosedColor : beamOpenedColor;
+        beamColor = IsLaserVisualClosed() ? beamClosedColor : beamOpenedColor;
         ApplyBeamColor();
+    }
+
+    private bool IsLaserVisualClosed()
+    {
+        if (activatorMode == ActivatorMode.Button && buttonConsumed)
+            return true;
+
+        return skullClosedFromBeam;
     }
 
     private void ApplySkullPressedState(bool beamBlocked)
