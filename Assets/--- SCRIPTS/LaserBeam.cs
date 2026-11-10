@@ -144,9 +144,12 @@ public class LaserBeam : MonoBehaviour
 
         ApplyBeamMaterial();
         CacheLineRendererDefaults();
-        ApplyBeamColor();
         BuildConnectedDeviceLists();
-        SyncBeamColorForState();
+
+        if (Application.isPlaying)
+            ApplyBeamColor();
+        else
+            SyncBeamColorForState();
     }
 
     private void LateUpdate()
@@ -502,7 +505,6 @@ public class LaserBeam : MonoBehaviour
             return;
 
         skullClosedFromBeam = obstructed;
-        SyncBeamColorForState();
         ApplySkullPressedState(obstructed);
     }
 
@@ -514,18 +516,61 @@ public class LaserBeam : MonoBehaviour
 
     private void ApplySkullPressedState(bool beamBlocked)
     {
-        if (skullBehaviour == null)
-            return;
-
         if (skullTransitionCoroutine != null)
         {
             StopCoroutine(skullTransitionCoroutine);
             skullTransitionCoroutine = null;
         }
 
-        skullTransitionCoroutine = StartCoroutine(beamBlocked
-            ? skullBehaviour.TransitionOpenedToClosed()
-            : skullBehaviour.TransitionClosedToOpen());
+        skullTransitionCoroutine = StartCoroutine(TransitionSkullAndBeams(beamBlocked));
+    }
+
+    private IEnumerator TransitionSkullAndBeams(bool beamBlocked)
+    {
+        Coroutine skullRoutine = null;
+        if (skullBehaviour != null)
+        {
+            skullRoutine = StartCoroutine(beamBlocked
+                ? skullBehaviour.TransitionOpenedToClosed()
+                : skullBehaviour.TransitionClosedToOpen());
+        }
+
+        yield return LerpBeamColors(beamBlocked);
+
+        if (skullRoutine != null)
+            yield return skullRoutine;
+
+        skullTransitionCoroutine = null;
+    }
+
+    private IEnumerator LerpBeamColors(bool beamBlocked)
+    {
+        Color from = beamBlocked ? beamOpenedColor : beamClosedColor;
+        Color to = beamBlocked ? beamClosedColor : beamOpenedColor;
+        float duration = skullBehaviour != null ? skullBehaviour.EyeTransitionDuration : 0.25f;
+
+        if (duration <= 0f)
+        {
+            beamColor = to;
+            ApplyBeamColor();
+            yield break;
+        }
+
+        beamColor = from;
+        ApplyBeamColor();
+
+        float elapsed = 0f;
+        while (elapsed < duration)
+        {
+            elapsed += Time.deltaTime;
+            float t = Mathf.SmoothStep(0f, 1f, Mathf.Clamp01(elapsed / duration));
+            beamColor = Color.Lerp(from, to, t);
+            ApplyBeamColor();
+            yield return null;
+        }
+
+        beamColor = to;
+        ApplyBeamColor();
     }
 
     private void BuildConnectedDeviceLists()

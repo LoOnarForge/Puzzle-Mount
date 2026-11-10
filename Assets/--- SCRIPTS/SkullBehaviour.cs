@@ -29,6 +29,8 @@ public class SkullBehaviour : MonoBehaviour
 
     [SerializeField] [Range(EyeTransitionDurationMin, EyeTransitionDurationMax)] private float eyeTransitionDuration = 0.25f;
 
+    public float EyeTransitionDuration => eyeTransitionDuration;
+
     [SerializeField] [Range(EyeFlashDurationMin, EyeFlashDurationMax)] private float eyeFlashDuration = 0.075f;
 
     [SerializeField] private ParticleSystem transitionCompleteParticleSystem;
@@ -44,7 +46,7 @@ public class SkullBehaviour : MonoBehaviour
         propertyBlock = new MaterialPropertyBlock();
 
         if (emissionRenderer == null)
-            emissionRenderer = GetComponent<Renderer>();
+            emissionRenderer = GetComponentInChildren<Renderer>(true);
 
         MigrateLegacyIntensity();
         if (isPSActive)
@@ -63,7 +65,7 @@ public class SkullBehaviour : MonoBehaviour
             propertyBlock = new MaterialPropertyBlock();
 
         if (emissionRenderer == null)
-            emissionRenderer = GetComponent<Renderer>();
+            emissionRenderer = GetComponentInChildren<Renderer>(true);
 
         MigrateLegacyIntensity();
 
@@ -77,13 +79,13 @@ public class SkullBehaviour : MonoBehaviour
         yield return RunEmissionTransition(defaultColor, closedColor);
     }
 
-      // Closed → open — same transition logic, different endpoints.
+    // Closed → open — same transition logic, different endpoints.
     public IEnumerator TransitionClosedToOpen()
     {
         yield return RunEmissionTransition(closedColor, openedColor);
     }
 
-    // Open → closed — e.g. laser skull when the beam is blocked.
+    // Open → closed — laser beam blocked (PressurePlate uses closed ↔ open on the plate).
     public IEnumerator TransitionOpenedToClosed()
     {
         yield return RunEmissionTransition(openedColor, closedColor);
@@ -111,7 +113,7 @@ public class SkullBehaviour : MonoBehaviour
         {
             elapsed += Time.deltaTime;
             float t = Mathf.Clamp01(elapsed / eyeTransitionDuration);
-            ApplyEmission(LerpEmissionWithFlash(startEmission, endEmission, t));
+            ApplyEmission(LerpEmissionSmooth(startEmission, endEmission, t));
             yield return null;
         }
 
@@ -119,28 +121,10 @@ public class SkullBehaviour : MonoBehaviour
         EnableTransitionCompleteParticle();
     }
 
-    // Only A or B at a time (no mixed hue). Flash is extra brightness on that same color at the handoff — never additive white/RGB mix.
-    private Color LerpEmissionWithFlash(Color from, Color to, float t)
+    private Color LerpEmissionSmooth(Color from, Color to, float t)
     {
-        t = Mathf.Clamp01(t);
-
-        float flashPhase = Mathf.Clamp01((t - (0.5f - eyeFlashDuration)) / (eyeFlashDuration * 2f));
-        float flashMul = 1f + EyeFlashBoost * Mathf.Sin(flashPhase * Mathf.PI);
-
-        Color result;
-        if (t < 0.5f)
-        {
-            float fade = 1f - Mathf.SmoothStep(0f, EyeFadeOutEnd, t);
-            result = from * (fade * flashMul);
-        }
-        else
-        {
-            float fade = Mathf.SmoothStep(EyeFadeInStart, 1f, t);
-            result = to * (fade * flashMul);
-        }
-
-        result.a = Mathf.Lerp(from.a, to.a, t);
-        return result;
+        t = Mathf.SmoothStep(0f, 1f, Mathf.Clamp01(t));
+        return Color.Lerp(from, to, t);
     }
 
     private void EnableTransitionCompleteParticle()
