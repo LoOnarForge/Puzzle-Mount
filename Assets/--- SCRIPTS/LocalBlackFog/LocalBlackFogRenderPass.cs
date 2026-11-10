@@ -25,7 +25,8 @@ public class LocalBlackFogRenderPass : ScriptableRenderPass
     {
         this.material = material;
         volumeBuffer = new ComputeBuffer(MaxVolumes, Marshal.SizeOf<LocalBlackFogVolumeGpu>());
-        renderPassEvent = RenderPassEvent.AfterRenderingTransparents;
+        // Fog opaques only; color/depth must match. Transparents (particles, god rays) draw afterward.
+        renderPassEvent = RenderPassEvent.BeforeRenderingTransparents;
         requiresIntermediateTexture = true;
     }
 
