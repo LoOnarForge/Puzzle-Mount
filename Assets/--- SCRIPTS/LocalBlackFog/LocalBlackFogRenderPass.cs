@@ -71,7 +71,8 @@ public class LocalBlackFogRenderPass : ScriptableRenderPass
             return;
 
         TextureHandle color = resourceData.activeColorTexture;
-        TextureHandle depth = resourceData.activeDepthTexture;
+        // Resolved R32 depth (non-MS); URP schedules copy after opaques when this pass requests Depth input.
+        TextureHandle depth = resourceData.cameraDepthTexture;
         if (!color.IsValid() || !depth.IsValid())
             return;
 

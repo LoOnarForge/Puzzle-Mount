@@ -32,6 +32,8 @@ public class LaserBeam : MonoBehaviour
     private static readonly int EndFadeLengthId = Shader.PropertyToID("_EndFadeLength");
     private const float BeamMaterialEmissionStrength = 1f;
     private const float DefaultBeamEndFadeLength = 0.18f;
+    private const float ButtonShutdownFadeDuration = 1f;
+    private static readonly Color BeamOffColor = new Color(0f, 0f, 0f, 0f);
 
 #if UNITY_EDITOR
     private bool editorLineSetupQueued;
@@ -89,9 +91,13 @@ public class LaserBeam : MonoBehaviour
 
     private bool pressurePlateIsPressed;
     private bool buttonConsumed;
+    private bool laserDead;
+    private bool buttonBeamShuttingDown;
+    private float buttonShutdownFadeT;
     private bool prevBeamObstructed;
     private bool skullClosedFromBeam;
     private Coroutine skullTransitionCoroutine;
+    private Coroutine buttonShutdownCoroutine;
 
     public float Range => beamRange;
     public Color BeamColor => beamColor;
@@ -130,6 +136,14 @@ public class LaserBeam : MonoBehaviour
         EnsureBeamLine();
         ApplyBeamMaterial();
         CacheLineRendererDefaults();
+
+        if (laserDead)
+        {
+            if (beamLine != null)
+                beamLine.enabled = false;
+            return;
+        }
+
         CastAndDraw();
         SyncBeamColorForState();
     }
@@ -159,14 +173,24 @@ public class LaserBeam : MonoBehaviour
         if (!HasBeamLine())
             return;
 
-        CastAndDraw();
-        ApplyBeamColor();
-
-        if (!Application.isPlaying || !beamEndpointsValid)
+        if (laserDead)
             return;
 
-        EvaluateActivatorMode();
-        UpdateSkullFromActivationBeam();
+        CastAndDraw();
+
+        if (Application.isPlaying && beamEndpointsValid && !ButtonShutdownInProgress())
+        {
+            EvaluateActivatorMode();
+            UpdateSkullFromActivationBeam();
+        }
+
+        if (!ButtonShutdownInProgress())
+            ApplyBeamColor();
+    }
+
+    private bool ButtonShutdownInProgress()
+    {
+        return buttonBeamShuttingDown;
     }
 
     public void SetBeamColor(Color color)
@@ -429,9 +453,8 @@ public class LaserBeam : MonoBehaviour
             return;
 
         buttonConsumed = true;
-        skullClosedFromBeam = true;
-        ApplySkullPressedState(true);
         NotifyApplyActivatorReverseDevices();
+        BeginButtonLaserShutdown();
     }
 
     private void NotifyApplyActivatorReverseDevices()
@@ -493,10 +516,69 @@ public class LaserBeam : MonoBehaviour
 
     private bool IsLaserVisualClosed()
     {
-        if (activatorMode == ActivatorMode.Button && buttonConsumed)
-            return true;
-
         return skullClosedFromBeam;
+    }
+
+    private void BeginButtonLaserShutdown()
+    {
+        if (skullTransitionCoroutine != null)
+        {
+            StopCoroutine(skullTransitionCoroutine);
+            skullTransitionCoroutine = null;
+        }
+
+        if (buttonShutdownCoroutine != null)
+            StopCoroutine(buttonShutdownCoroutine);
+
+        buttonBeamShuttingDown = true;
+        buttonShutdownFadeT = 0f;
+        beamColor = beamOpenedColor;
+        ApplyBeamColor(force: true);
+        buttonShutdownCoroutine = StartCoroutine(ButtonLaserShutdownSequence());
+    }
+
+    private IEnumerator ButtonLaserShutdownSequence()
+    {
+        Coroutine skullFade = null;
+        if (skullBehaviour != null)
+            skullFade = StartCoroutine(skullBehaviour.TransitionFadeToOff(ButtonShutdownFadeDuration));
+
+        Color from = beamOpenedColor;
+        float fadeStartTime = Time.unscaledTime;
+
+        do
+        {
+            float elapsed = Time.unscaledTime - fadeStartTime;
+            float t = Mathf.SmoothStep(0f, 1f, Mathf.Clamp01(elapsed / ButtonShutdownFadeDuration));
+            buttonShutdownFadeT = t;
+            beamColor = Color.Lerp(from, BeamOffColor, t);
+            ApplyBeamColor(force: true);
+            yield return null;
+        }
+        while (Time.unscaledTime - fadeStartTime < ButtonShutdownFadeDuration);
+
+        buttonShutdownFadeT = 1f;
+        beamColor = BeamOffColor;
+        ApplyBeamColor(force: true);
+
+        if (skullFade != null)
+            yield return skullFade;
+
+        FinalizeLaserShutdown();
+        buttonShutdownCoroutine = null;
+    }
+
+    private void FinalizeLaserShutdown()
+    {
+        laserDead = true;
+        buttonBeamShuttingDown = false;
+        buttonShutdownFadeT = 0f;
+
+        if (beamLine != null)
+            beamLine.enabled = false;
+
+        if (skullBehaviour != null)
+            skullBehaviour.StopLaserParticles();
     }
 
     private void ApplySkullPressedState(bool beamBlocked)
@@ -611,6 +693,9 @@ public class LaserBeam : MonoBehaviour
         if (!HasBeamLine())
             return;
 
+        if (!laserDead)
+            beamLine.enabled = true;
+
         float endFadeLength = GetBeamEndFadeLength();
         if (!force
             && beamColor == lastAppliedBeamColor
@@ -622,7 +707,8 @@ public class LaserBeam : MonoBehaviour
 
         Color beamTint = beamColor;
         Color beamEmission = beamColor;
-        beamEmission.a = 1f;
+        if (!buttonBeamShuttingDown)
+            beamEmission.a = 1f;
 
         beamLine.startColor = beamTint;
         beamLine.endColor = beamTint;
@@ -632,11 +718,14 @@ public class LaserBeam : MonoBehaviour
         linePropertyBlock.SetColor(MainColorId, beamTint);
         linePropertyBlock.SetColor(BaseColorId, beamTint);
         linePropertyBlock.SetColor(EmissionColorId, beamEmission);
-        linePropertyBlock.SetFloat(EmissionStrengthId, BeamMaterialEmissionStrength);
+        float emissionStrength = buttonBeamShuttingDown
+            ? Mathf.Lerp(BeamMaterialEmissionStrength, 0f, buttonShutdownFadeT)
+            : BeamMaterialEmissionStrength;
+        linePropertyBlock.SetFloat(EmissionStrengthId, emissionStrength);
         linePropertyBlock.SetFloat(EndFadeLengthId, endFadeLength);
         beamLine.SetPropertyBlock(linePropertyBlock);
 
-        if (skullBehaviour != null)
+        if (skullBehaviour != null && !laserDead)
             skullBehaviour.ApplyLaserParticleColor(beamColor);
     }
 
@@ -653,10 +742,13 @@ public class LaserBeam : MonoBehaviour
 
     private float GetBeamEndFadeLength()
     {
-        if (beamObstructed)
+        if (beamRange <= 0f)
             return 0f;
 
-        if (beamRange <= 0f)
+        if (activatorMode == ActivatorMode.Button || buttonBeamShuttingDown)
+            return cachedMaterialEndFadeLength;
+
+        if (beamObstructed)
             return 0f;
 
         return cachedMaterialEndFadeLength;

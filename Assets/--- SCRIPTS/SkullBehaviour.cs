@@ -98,6 +98,38 @@ public class SkullBehaviour : MonoBehaviour
         yield return RunEmissionTransition(openedColor, closedColor);
     }
 
+    public IEnumerator TransitionFadeToOff(float duration)
+    {
+        yield return RunEmissionTransitionWithDuration(openedColor, Color.black, duration);
+    }
+
+    private IEnumerator RunEmissionTransitionWithDuration(Color startEmission, Color endEmission, float duration)
+    {
+        if (emissionRenderer == null)
+            yield break;
+
+        if (duration <= 0f)
+        {
+            ApplyEmission(endEmission);
+            yield break;
+        }
+
+        ApplyEmission(startEmission);
+
+        float fadeStartTime = Time.unscaledTime;
+
+        do
+        {
+            float elapsed = Time.unscaledTime - fadeStartTime;
+            float t = Mathf.Clamp01(elapsed / duration);
+            ApplyEmission(LerpEmissionSmooth(startEmission, endEmission, t));
+            yield return null;
+        }
+        while (Time.unscaledTime - fadeStartTime < duration);
+
+        ApplyEmission(endEmission);
+    }
+
     private IEnumerator RunEmissionTransition(Color startEmission, Color endEmission)
     {
         if (emissionRenderer == null)
@@ -143,6 +175,15 @@ public class SkullBehaviour : MonoBehaviour
 
         ParticleSystem.MainModule main = transitionCompleteParticleSystem.main;
         main.startColor = color;
+    }
+
+    public void StopLaserParticles()
+    {
+        if (!isLaserSkull || transitionCompleteParticleSystem == null)
+            return;
+
+        transitionCompleteParticleSystem.Stop(true, ParticleSystemStopBehavior.StopEmittingAndClear);
+        SetTransitionCompleteParticleActive(false);
     }
 
     private void EnsureLaserParticlePlaying()
