@@ -35,6 +35,7 @@ public class SkullBehaviour : MonoBehaviour
 
     [SerializeField] private ParticleSystem transitionCompleteParticleSystem;
     [SerializeField] private bool isPSActive = true;
+    [SerializeField] private bool isLaserSkull;
 
     // Absorbed into defaultColor (HDR) — kept so existing prefab intensity values migrate once.
     [SerializeField] [HideInInspector] private float emissionIntensity = 1f;
@@ -50,7 +51,13 @@ public class SkullBehaviour : MonoBehaviour
 
         MigrateLegacyIntensity();
         if (isPSActive)
-            SetTransitionCompleteParticleActive(false);
+        {
+            if (isLaserSkull)
+                EnsureLaserParticlePlaying();
+            else
+                SetTransitionCompleteParticleActive(false);
+        }
+
         ApplyEmission(defaultColor);
     }
 
@@ -96,7 +103,7 @@ public class SkullBehaviour : MonoBehaviour
         if (emissionRenderer == null)
             yield break;
 
-        if (isPSActive)
+        if (isPSActive && !isLaserSkull)
             SetTransitionCompleteParticleActive(false);
 
         if (eyeTransitionDuration <= 0f)
@@ -127,9 +134,31 @@ public class SkullBehaviour : MonoBehaviour
         return Color.Lerp(from, to, t);
     }
 
-    private void EnableTransitionCompleteParticle()
+    public void ApplyLaserParticleColor(Color color)
+    {
+        if (!isLaserSkull || !isPSActive || transitionCompleteParticleSystem == null)
+            return;
+
+        EnsureLaserParticlePlaying();
+
+        ParticleSystem.MainModule main = transitionCompleteParticleSystem.main;
+        main.startColor = color;
+    }
+
+    private void EnsureLaserParticlePlaying()
     {
         if (!isPSActive || transitionCompleteParticleSystem == null)
+            return;
+
+        SetTransitionCompleteParticleActive(true);
+
+        if (!transitionCompleteParticleSystem.isPlaying)
+            transitionCompleteParticleSystem.Play(true);
+    }
+
+    private void EnableTransitionCompleteParticle()
+    {
+        if (isLaserSkull || !isPSActive || transitionCompleteParticleSystem == null)
             return;
 
         SetTransitionCompleteParticleActive(true);

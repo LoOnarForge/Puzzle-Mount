@@ -19,10 +19,8 @@ public class LaserBeam : MonoBehaviour
         Button
     }
 
-    private const int BeamCount = 2;
-    private const int ActivationBeamIndex = 1;
-    private const string BeamLineChildAName = "BeamLineA";
-    private const string BeamLineChildBName = "BeamLineB";
+    private const string BeamLineChildName = "BeamLineB";
+    private const string LegacyBeamLineChildAName = "BeamLineA";
     private const float ObstructionDistanceEpsilon = 0.001f;
     private const float MinRayHitDistance = 0.02f;
     private static readonly int MainColorId = Shader.PropertyToID("_Color");
@@ -43,11 +41,9 @@ public class LaserBeam : MonoBehaviour
     [SerializeField] private SkullBehaviour skullBehaviour;
 
     [Header("RANGE")]
-    [FormerlySerializedAs("range")]
+    [FormerlySerializedAs("beamRangeB")]
     [Min(0f)]
-    [SerializeField] private float beamRangeA = 10f;
-    [Min(0f)]
-    [SerializeField] private float beamRangeB = 10f;
+    [SerializeField] private float beamRange = 10f;
 
     [Header("HIT")]
     [SerializeField] private LayerMask hitLayers = Physics.DefaultRaycastLayers;
@@ -60,20 +56,21 @@ public class LaserBeam : MonoBehaviour
     [SerializeField] private Color beamClosedColor = Color.red;
 
     private Color beamColor;
-    [Header("LINES")]
-    [SerializeField] private Transform beamStartA;
-    [SerializeField] private Transform beamStartB;
+
+    [Header("LINE")]
+    [FormerlySerializedAs("beamStartB")]
+    [SerializeField] private Transform beamStart;
     [SerializeField] private Material beamMaterial;
     [Min(0f)]
     [SerializeField] private float lineWidth = 0.05f;
-    [Tooltip("Line renderers only, local Y on this object. Raycasts ignore this.")]
+    [Tooltip("Line renderer only, local Y on this object. Raycasts ignore this.")]
     [SerializeField] private float beamVisualOffsetY;
 
-    private LineRenderer[] beamLines;
-    private readonly MaterialPropertyBlock[] linePropertyBlocks = new MaterialPropertyBlock[BeamCount];
-    private readonly float[] beamLengths = new float[BeamCount];
-    private readonly GameObject[] currentHits = new GameObject[BeamCount];
-    private readonly bool[] beamObstructed = new bool[BeamCount];
+    private LineRenderer beamLine;
+    private MaterialPropertyBlock linePropertyBlock;
+    private float beamLength;
+    private GameObject currentHit;
+    private bool beamObstructed;
     private bool beamEndpointsValid;
 
     private readonly List<MediumDoor> mediumDoors = new List<MediumDoor>();
@@ -86,19 +83,18 @@ public class LaserBeam : MonoBehaviour
 
     private bool pressurePlateIsPressed;
     private bool buttonConsumed;
-    private bool prevActivationBeamObstructed;
+    private bool prevBeamObstructed;
     private bool skullClosedFromBeam;
     private Coroutine skullTransitionCoroutine;
 
-    public float Range => GetBeamRange(ActivationBeamIndex);
+    public float Range => beamRange;
     public Color BeamColor => beamColor;
     public ActivatorMode Mode => activatorMode;
-    public GameObject CurrentHitObjectA => currentHits[0];
-    public GameObject CurrentHitObjectB => currentHits[1];
+    public GameObject CurrentHitObject => currentHit;
 
     private void Reset()
     {
-        EnsureBeamLineChildren();
+        EnsureBeamLine();
         CacheLineRendererDefaults();
         ApplyBeamMaterial();
         SyncBeamColorForState();
@@ -106,7 +102,7 @@ public class LaserBeam : MonoBehaviour
 
     private void Awake()
     {
-        EnsureBeamLineChildren();
+        EnsureBeamLine();
         CacheLineRendererDefaults();
         BuildConnectedDeviceLists();
 
@@ -124,7 +120,7 @@ public class LaserBeam : MonoBehaviour
 
     private void OnEnable()
     {
-        EnsureBeamLineChildren();
+        EnsureBeamLine();
         ApplyBeamMaterial();
         CacheLineRendererDefaults();
         CastAndDraw();
@@ -133,13 +129,12 @@ public class LaserBeam : MonoBehaviour
 
     private void OnValidate()
     {
-        beamRangeA = Mathf.Max(0f, beamRangeA);
-        beamRangeB = Mathf.Max(0f, beamRangeB);
+        beamRange = Mathf.Max(0f, beamRange);
         lineWidth = Mathf.Max(0f, lineWidth);
 
         QueueEditorLineSetup();
 
-        if (!HasRequiredBeamLines())
+        if (!HasBeamLine())
             return;
 
         ApplyBeamMaterial();
@@ -154,7 +149,7 @@ public class LaserBeam : MonoBehaviour
 
     private void LateUpdate()
     {
-        if (!HasRequiredBeamLines())
+        if (!HasBeamLine())
             return;
 
         CastAndDraw();
@@ -170,69 +165,60 @@ public class LaserBeam : MonoBehaviour
         UpdateSkullFromActivationBeam();
     }
 
-    // Sets beam color from the Inspector or code.
     public void SetBeamColor(Color color)
     {
         beamColor = color;
         ApplyBeamColor();
     }
 
-    // Sets max beam reach before a blocking hit.
     public void SetRange(float value)
     {
-        value = Mathf.Max(0f, value);
-        beamRangeB = value;
+        beamRange = Mathf.Max(0f, value);
     }
 
-    private float GetBeamRange(int beamIndex)
+    private void EnsureBeamLine()
     {
-        return beamIndex == 0 ? beamRangeA : beamRangeB;
-    }
+        ResolveBeamStartReference();
+        DisableLegacyFakeBeamLine();
 
-    private void EnsureBeamLineChildren()
-    {
-        ResolveBeamStartReferences();
+        if (beamStart == null)
+            return;
 
-        beamLines = new LineRenderer[BeamCount];
-        beamLines[0] = GetOrCreateLineOnStart(beamStartA, BeamLineChildAName);
-        beamLines[1] = GetOrCreateLineOnStart(beamStartB, BeamLineChildBName);
+        beamLine = beamStart.GetComponent<LineRenderer>();
+        if (beamLine == null)
+            beamLine = beamStart.gameObject.AddComponent<LineRenderer>();
 
         LineRenderer lineOnRoot = GetComponent<LineRenderer>();
         if (lineOnRoot != null)
             lineOnRoot.enabled = false;
     }
 
-    private void ResolveBeamStartReferences()
+    private void DisableLegacyFakeBeamLine()
     {
-        if (beamStartA == null)
-            beamStartA = transform.Find(BeamLineChildAName);
+        Transform legacyStart = transform.Find(LegacyBeamLineChildAName);
+        if (legacyStart == null)
+            return;
 
-        if (beamStartB == null)
-            beamStartB = transform.Find(BeamLineChildBName);
+        LineRenderer legacyLine = legacyStart.GetComponent<LineRenderer>();
+        if (legacyLine != null)
+            legacyLine.enabled = false;
     }
 
-    private LineRenderer GetOrCreateLineOnStart(Transform start, string childName)
+    private void ResolveBeamStartReference()
     {
-        if (start == null)
-            start = transform.Find(childName);
+        if (beamStart == null)
+            beamStart = transform.Find(BeamLineChildName);
 
-        if (start == null)
-            return null;
-
-        LineRenderer line = start.GetComponent<LineRenderer>();
-        if (line != null)
-            return line;
-
-        return start.gameObject.AddComponent<LineRenderer>();
+        if (beamStart == null)
+            beamStart = transform.Find(LegacyBeamLineChildAName);
     }
 
     private void ApplyBeamMaterial()
     {
-        if (beamMaterial == null || !HasRequiredBeamLines())
+        if (beamMaterial == null || beamLine == null)
             return;
 
-        for (int i = 0; i < BeamCount; i++)
-            beamLines[i].sharedMaterial = beamMaterial;
+        beamLine.sharedMaterial = beamMaterial;
     }
 
 #if UNITY_EDITOR
@@ -242,16 +228,16 @@ public class LaserBeam : MonoBehaviour
             return;
 
         editorLineSetupQueued = true;
-        EditorApplication.delayCall += EditorSetupBeamLines;
+        EditorApplication.delayCall += EditorSetupBeamLine;
     }
 
-    private void EditorSetupBeamLines()
+    private void EditorSetupBeamLine()
     {
         editorLineSetupQueued = false;
         if (this == null)
             return;
 
-        EnsureBeamLineChildren();
+        EnsureBeamLine();
         ApplyBeamMaterial();
         CacheLineRendererDefaults();
         CastAndDraw();
@@ -259,62 +245,51 @@ public class LaserBeam : MonoBehaviour
     }
 #endif
 
-    private bool HasRequiredBeamLines()
+    private bool HasBeamLine()
     {
-        return beamLines != null
-            && beamLines.Length >= BeamCount
-            && beamLines[0] != null
-            && beamLines[1] != null;
+        return beamLine != null;
     }
 
     private void CacheLineRendererDefaults()
     {
-        if (!HasRequiredBeamLines())
+        if (beamLine == null)
             return;
 
-        for (int i = 0; i < BeamCount; i++)
-        {
-            LineRenderer line = beamLines[i];
-            line.enabled = true;
-            line.useWorldSpace = true;
-            line.positionCount = 2;
-            line.alignment = LineAlignment.View;
-            line.textureMode = LineTextureMode.Stretch;
-            line.numCapVertices = 8;
-            line.numCornerVertices = 4;
-            line.startWidth = lineWidth;
-            line.endWidth = lineWidth;
-            line.shadowCastingMode = ShadowCastingMode.Off;
-            line.receiveShadows = false;
-        }
+        beamLine.enabled = true;
+        beamLine.useWorldSpace = true;
+        beamLine.positionCount = 2;
+        beamLine.alignment = LineAlignment.View;
+        beamLine.textureMode = LineTextureMode.Stretch;
+        beamLine.numCapVertices = 8;
+        beamLine.numCornerVertices = 4;
+        beamLine.startWidth = lineWidth;
+        beamLine.endWidth = lineWidth;
+        beamLine.shadowCastingMode = ShadowCastingMode.Off;
+        beamLine.receiveShadows = false;
     }
 
     private void CastAndDraw()
     {
-        ResolveBeamStartReferences();
+        ResolveBeamStartReference();
         beamEndpointsValid = false;
 
-        if (!TryGetBeamStarts(out Vector3 startA, out Vector3 startB))
+        if (beamStart == null)
             return;
 
         if (!TryGetBeamDirection(out Vector3 direction))
             return;
 
-        UpdateBeamEndpoint(0, startA, direction);
-        UpdateBeamEndpoint(1, startB, direction);
-
-        beamObstructed[0] = IsBeamObstructed(0);
-        beamObstructed[1] = IsBeamObstructed(1);
+        UpdateBeamEndpoint(beamStart.position, direction);
+        beamObstructed = IsBeamObstructed();
         beamEndpointsValid = true;
     }
 
-    private void UpdateBeamEndpoint(int index, Vector3 origin, Vector3 direction)
+    private void UpdateBeamEndpoint(Vector3 origin, Vector3 direction)
     {
-        currentHits[index] = null;
-        float beamRange = GetBeamRange(index);
-        beamLengths[index] = Mathf.Max(0f, beamRange);
+        currentHit = null;
+        beamLength = Mathf.Max(0f, beamRange);
 
-        Vector3 end = origin + direction * beamLengths[index];
+        Vector3 end = origin + direction * beamLength;
 
         if (beamRange > 0f)
         {
@@ -330,28 +305,28 @@ public class LaserBeam : MonoBehaviour
                 if (hits[i].distance < MinRayHitDistance)
                     continue;
 
-                beamLengths[index] = hits[i].distance;
-                currentHits[index] = hitCollider.gameObject;
+                beamLength = hits[i].distance;
+                currentHit = hitCollider.gameObject;
                 end = hits[i].point;
                 break;
             }
         }
-        ApplyEndpointToLineRenderer(index, origin, end);
+
+        ApplyEndpointToLineRenderer(origin, end);
     }
 
-    private void ApplyEndpointToLineRenderer(int index, Vector3 origin, Vector3 end)
+    private void ApplyEndpointToLineRenderer(Vector3 origin, Vector3 end)
     {
-        if (!HasRequiredBeamLines() || beamLines[index] == null)
+        if (beamLine == null)
             return;
 
         Vector3 visualOffsetWorld = transform.up * beamVisualOffsetY;
 
-        LineRenderer line = beamLines[index];
-        line.enabled = true;
-        line.useWorldSpace = true;
-        line.alignment = LineAlignment.View;
-        line.SetPosition(0, origin + visualOffsetWorld);
-        line.SetPosition(1, end + visualOffsetWorld);
+        beamLine.enabled = true;
+        beamLine.useWorldSpace = true;
+        beamLine.alignment = LineAlignment.View;
+        beamLine.SetPosition(0, origin + visualOffsetWorld);
+        beamLine.SetPosition(1, end + visualOffsetWorld);
     }
 
     private bool ShouldIgnoreHitCollider(Collider hitCollider)
@@ -361,18 +336,9 @@ public class LaserBeam : MonoBehaviour
 
         Transform hitTransform = hitCollider.transform;
 
-        if (beamLines != null)
-        {
-            for (int i = 0; i < BeamCount; i++)
-            {
-                LineRenderer line = beamLines[i];
-                if (line == null)
-                    continue;
-
-                if (hitTransform == line.transform || hitTransform.IsChildOf(line.transform))
-                    return true;
-            }
-        }
+        if (beamLine != null
+            && (hitTransform == beamLine.transform || hitTransform.IsChildOf(beamLine.transform)))
+            return true;
 
         if (hitTransform == transform)
             return true;
@@ -380,13 +346,12 @@ public class LaserBeam : MonoBehaviour
         return false;
     }
 
-    private bool IsBeamObstructed(int beamIndex)
+    private bool IsBeamObstructed()
     {
-        float beamRange = GetBeamRange(beamIndex);
         if (beamRange <= 0f)
             return false;
 
-        return beamLengths[beamIndex] < beamRange - ObstructionDistanceEpsilon;
+        return beamLength < beamRange - ObstructionDistanceEpsilon;
     }
 
     private void EvaluateActivatorMode()
@@ -404,28 +369,21 @@ public class LaserBeam : MonoBehaviour
                 break;
         }
 
-        prevActivationBeamObstructed = IsActivationBeamObstructed();
-    }
-
-    private bool IsActivationBeamObstructed()
-    {
-        return beamObstructed[ActivationBeamIndex];
+        prevBeamObstructed = beamObstructed;
     }
 
     private void EvaluatePressurePlate()
     {
-        bool pressed = IsActivationBeamObstructed();
-        if (pressed == pressurePlateIsPressed)
+        if (beamObstructed == pressurePlateIsPressed)
             return;
 
-        pressurePlateIsPressed = pressed;
-        NotifyPressurePlateDevices(pressed);
+        pressurePlateIsPressed = beamObstructed;
+        NotifyPressurePlateDevices(pressurePlateIsPressed);
     }
 
     private void EvaluateLever()
     {
-        bool obstructed = IsActivationBeamObstructed();
-        if (!obstructed || prevActivationBeamObstructed)
+        if (!beamObstructed || prevBeamObstructed)
             return;
 
         NotifyLeverDevices();
@@ -436,8 +394,7 @@ public class LaserBeam : MonoBehaviour
         if (buttonConsumed)
             return;
 
-        bool crossedNow = IsActivationBeamObstructed();
-        if (!crossedNow || prevActivationBeamObstructed)
+        if (!beamObstructed || prevBeamObstructed)
             return;
 
         buttonConsumed = true;
@@ -500,12 +457,11 @@ public class LaserBeam : MonoBehaviour
 
     private void UpdateSkullFromActivationBeam()
     {
-        bool obstructed = IsActivationBeamObstructed();
-        if (obstructed == skullClosedFromBeam)
+        if (beamObstructed == skullClosedFromBeam)
             return;
 
-        skullClosedFromBeam = obstructed;
-        ApplySkullPressedState(obstructed);
+        skullClosedFromBeam = beamObstructed;
+        ApplySkullPressedState(beamObstructed);
     }
 
     private void SyncBeamColorForState()
@@ -623,29 +579,27 @@ public class LaserBeam : MonoBehaviour
 
     private void ApplyBeamColor()
     {
-        if (!HasRequiredBeamLines())
+        if (!HasBeamLine())
             return;
 
         Color beamTint = beamColor;
         Color beamEmission = beamColor;
         beamEmission.a = 1f;
 
-        for (int i = 0; i < BeamCount; i++)
-        {
-            LineRenderer line = beamLines[i];
+        beamLine.startColor = beamTint;
+        beamLine.endColor = beamTint;
 
-            line.startColor = beamTint;
-            line.endColor = beamTint;
+        linePropertyBlock ??= new MaterialPropertyBlock();
+        beamLine.GetPropertyBlock(linePropertyBlock);
+        linePropertyBlock.SetColor(MainColorId, beamTint);
+        linePropertyBlock.SetColor(BaseColorId, beamTint);
+        linePropertyBlock.SetColor(EmissionColorId, beamEmission);
+        linePropertyBlock.SetFloat(EmissionStrengthId, BeamMaterialEmissionStrength);
+        linePropertyBlock.SetFloat(EndFadeLengthId, GetBeamEndFadeLength());
+        beamLine.SetPropertyBlock(linePropertyBlock);
 
-            linePropertyBlocks[i] ??= new MaterialPropertyBlock();
-            line.GetPropertyBlock(linePropertyBlocks[i]);
-            linePropertyBlocks[i].SetColor(MainColorId, beamTint);
-            linePropertyBlocks[i].SetColor(BaseColorId, beamTint);
-            linePropertyBlocks[i].SetColor(EmissionColorId, beamEmission);
-            linePropertyBlocks[i].SetFloat(EmissionStrengthId, BeamMaterialEmissionStrength);
-            linePropertyBlocks[i].SetFloat(EndFadeLengthId, GetBeamEndFadeLength(i));
-            line.SetPropertyBlock(linePropertyBlocks[i]);
-        }
+        if (skullBehaviour != null)
+            skullBehaviour.ApplyLaserParticleColor(beamColor);
     }
 
     private float GetMaterialEndFadeLength()
@@ -656,31 +610,15 @@ public class LaserBeam : MonoBehaviour
         return Mathf.Clamp01(beamMaterial.GetFloat(EndFadeLengthId));
     }
 
-    private float GetBeamEndFadeLength(int beamIndex)
+    private float GetBeamEndFadeLength()
     {
-        if (beamObstructed[beamIndex])
+        if (beamObstructed)
             return 0f;
 
-        float beamRange = GetBeamRange(beamIndex);
         if (beamRange <= 0f)
             return 0f;
 
         return GetMaterialEndFadeLength();
-    }
-
-    private bool TryGetBeamStarts(out Vector3 startA, out Vector3 startB)
-    {
-        startA = default;
-        startB = default;
-
-        ResolveBeamStartReferences();
-
-        if (beamStartA == null || beamStartB == null)
-            return false;
-
-        startA = beamStartA.position;
-        startB = beamStartB.position;
-        return true;
     }
 
     private bool TryGetBeamDirection(out Vector3 direction)
