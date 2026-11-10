@@ -18292,8 +18292,8 @@ LineRenderer:
       m_RotationOrder: 4
     colorGradient:
       serializedVersion: 2
-      key0: {r: 0, g: 1, b: 1, a: 1}
-      key1: {r: 0, g: 1, b: 1, a: 1}
+      key0: {r: 0, g: 1, b: 0, a: 1}
+      key1: {r: 0, g: 1, b: 0, a: 1}
       key2: {r: 0, g: 0, b: 0, a: 0}
       key3: {r: 0, g: 0, b: 0, a: 0}
       key4: {r: 0, g: 0, b: 0, a: 0}
@@ -21000,7 +21000,8 @@ MonoBehaviour:
   hitLayers:
     serializedVersion: 2
     m_Bits: 16787456
-  beamColor: {r: 0, g: 1.8451463, b: 2.9960785, a: 1}
+  beamOpenedColor: {r: 0, g: 2.9960783, b: 0, a: 1}
+  beamClosedColor: {r: 2, g: 0, b: 0, a: 1}
   beamStartA: {fileID: 1180208963}
   beamStartB: {fileID: 1762272343}
   beamMaterial: {fileID: 2100000, guid: 5d9b5eaa8ede3414899591eac1d0ed89, type: 2}
@@ -27714,8 +27715,8 @@ LineRenderer:
       m_RotationOrder: 4
     colorGradient:
       serializedVersion: 2
-      key0: {r: 0, g: 1, b: 1, a: 1}
-      key1: {r: 0, g: 1, b: 1, a: 1}
+      key0: {r: 0, g: 1, b: 0, a: 1}
+      key1: {r: 0, g: 1, b: 0, a: 1}
       key2: {r: 0, g: 0, b: 0, a: 0}
       key3: {r: 0, g: 0, b: 0, a: 0}
       key4: {r: 0, g: 0, b: 0, a: 0}
@@ -51262,8 +51263,8 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::SkullBehaviour
   emissionRenderer: {fileID: 1411549958487439330}
   defaultColor: {r: 0, g: 1.8451463, b: 2.9960785, a: 1}
-  openedColor: {r: 0, g: 0.1254902, b: 0.7490196, a: 1}
-  closedColor: {r: 0, g: 1.8451463, b: 2.9960785, a: 1}
+  openedColor: {r: 0, g: 5.9921565, b: 0, a: 1}
+  closedColor: {r: 5.9921575, g: 0, b: 0, a: 1}
   eyeTransitionDuration: 0.25
   eyeFlashDuration: 0.075
   transitionCompleteParticleSystem: {fileID: 1794084320789526190}

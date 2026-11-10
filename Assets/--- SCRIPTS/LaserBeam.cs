@@ -54,7 +54,12 @@ public class LaserBeam : MonoBehaviour
 
     [Header("COLOR")]
     [ColorUsage(true, true)]
-    [SerializeField] private Color beamColor = Color.red;
+    [FormerlySerializedAs("beamColor")]
+    [SerializeField] private Color beamOpenedColor = Color.red;
+    [ColorUsage(true, true)]
+    [SerializeField] private Color beamClosedColor = Color.red;
+
+    private Color beamColor;
     [Header("LINES")]
     [SerializeField] private Transform beamStartA;
     [SerializeField] private Transform beamStartB;
@@ -96,7 +101,7 @@ public class LaserBeam : MonoBehaviour
         EnsureBeamLineChildren();
         CacheLineRendererDefaults();
         ApplyBeamMaterial();
-        ApplyBeamColor();
+        SyncBeamColorForState();
     }
 
     private void Awake()
@@ -109,6 +114,12 @@ public class LaserBeam : MonoBehaviour
             skullBehaviour = GetComponentInChildren<SkullBehaviour>(true);
 
         ApplyBeamMaterial();
+        SyncBeamColorForState();
+    }
+
+    private void Start()
+    {
+        SyncBeamColorForState();
     }
 
     private void OnEnable()
@@ -117,7 +128,7 @@ public class LaserBeam : MonoBehaviour
         ApplyBeamMaterial();
         CacheLineRendererDefaults();
         CastAndDraw();
-        ApplyBeamColor();
+        SyncBeamColorForState();
     }
 
     private void OnValidate()
@@ -135,6 +146,7 @@ public class LaserBeam : MonoBehaviour
         CacheLineRendererDefaults();
         ApplyBeamColor();
         BuildConnectedDeviceLists();
+        SyncBeamColorForState();
     }
 
     private void LateUpdate()
@@ -490,7 +502,14 @@ public class LaserBeam : MonoBehaviour
             return;
 
         skullClosedFromBeam = obstructed;
+        SyncBeamColorForState();
         ApplySkullPressedState(obstructed);
+    }
+
+    private void SyncBeamColorForState()
+    {
+        beamColor = skullClosedFromBeam ? beamClosedColor : beamOpenedColor;
+        ApplyBeamColor();
     }
 
     private void ApplySkullPressedState(bool beamBlocked)
