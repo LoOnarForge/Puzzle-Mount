@@ -108,6 +108,8 @@ public class ActivatorConnectionLinesHover : MonoBehaviour
                         generator.BeamSpeedMin,
                         generator.BeamSpeedMax);
                 impulse.CachePathFromLineRenderer();
+                if (generator != null)
+                    impulse.ResolveLinkTargetFromGenerator(generator);
             }
 
             lineVisuals.Add(state);

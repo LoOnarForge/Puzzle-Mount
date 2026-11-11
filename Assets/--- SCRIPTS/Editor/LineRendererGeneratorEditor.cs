@@ -292,6 +292,7 @@ public class LineRendererGeneratorEditor : Editor
 
         Undo.RecordObject(lineImpulse, "Configure Line Impulse");
         lineImpulse.ConfigureFromGenerator(generator.CometPrefab, playMaterial, generator.BeamSpeedMin, generator.BeamSpeedMax);
+        lineImpulse.SetLinkTargetDevice(entry.device);
         lineImpulse.CachePathFromLineRenderer();
         lineImpulse.enabled = false;
         EditorUtility.SetDirty(lineImpulse);

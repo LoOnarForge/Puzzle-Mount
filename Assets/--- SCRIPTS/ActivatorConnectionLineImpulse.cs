@@ -39,6 +39,7 @@ public class ActivatorConnectionLineImpulse : MonoBehaviour
     private float externalAlphaScale = 1f;
     private bool isRunning;
     private bool loopWhileRequested;
+    [SerializeField] private GameObject linkTargetDevice;
 
     public bool IsRunning => isRunning;
 
@@ -47,7 +48,12 @@ public class ActivatorConnectionLineImpulse : MonoBehaviour
         lineRenderer = GetComponent<LineRenderer>();
         ApplyLineRendererSettings();
         if (Application.isPlaying)
+        {
             ApplyPlayLineMaterial();
+            LineRendererGenerator generator = GetComponentInParent<LineRendererGenerator>();
+            if (generator != null)
+                ResolveLinkTargetFromGenerator(generator);
+        }
         else
             ApplyEditorPreviewMaterialFromGenerator();
         CaptureHeadColorFromLineRenderer();
@@ -143,6 +149,22 @@ public class ActivatorConnectionLineImpulse : MonoBehaviour
         lineRenderer.sharedMaterial = generator.EditorPreviewMaterial;
     }
 
+    // Stores which connected device this link line ends at (from LineRendererGenerator links).
+    public void ResolveLinkTargetFromGenerator(LineRendererGenerator generator)
+    {
+        if (generator == null)
+            return;
+
+        if (generator.TryGetDeviceForLinkLine(transform, out GameObject device))
+            linkTargetDevice = device;
+    }
+
+    // Assigns the device reached when this link pulse completes.
+    public void SetLinkTargetDevice(GameObject device)
+    {
+        linkTargetDevice = device;
+    }
+
     // True while the cursor is over the activator — starts the next cycle when the current one finishes.
     public void SetLoopWhileRequested(bool requested)
     {
@@ -207,6 +229,7 @@ public class ActivatorConnectionLineImpulse : MonoBehaviour
         headDistance = 0f;
         lineRenderer.positionCount = 0;
         HideHeadVisual();
+        FlashLinkTargetDevice();
 
         if (loopWhileRequested)
         {
@@ -216,6 +239,18 @@ public class ActivatorConnectionLineImpulse : MonoBehaviour
 
         isRunning = false;
         enabled = false;
+    }
+
+    private void FlashLinkTargetDevice()
+    {
+        if (linkTargetDevice == null)
+            return;
+
+        DeviceHighlight highlight = linkTargetDevice.GetComponent<DeviceHighlight>();
+        if (highlight == null || highlight.gameObject != linkTargetDevice)
+            return;
+
+        highlight.FlashFromConnectionPulse();
     }
 
     private void RollTravelSpeed()

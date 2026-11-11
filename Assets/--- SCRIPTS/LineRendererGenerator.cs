@@ -5,6 +5,7 @@ using UnityEngine;
 [RequireComponent(typeof(ActivatorConnectionLinesHover))]
 public class LineRendererGenerator : MonoBehaviour
 {
+    public const string LinkLineChildNamePrefix = "ACTIVATOR LINK - ";
     [SerializeField] private GameObject lineRendererPrefab;
     [SerializeField] private Material editorPreviewMaterial;
     [SerializeField] private Material beamLineMaterial;
@@ -48,7 +49,36 @@ public class LineRendererGenerator : MonoBehaviour
                 continue;
 
             impulse.ConfigureFromGenerator(CometPrefab, beamLineMaterial, beamSpeedMin, beamSpeedMax);
+            impulse.ResolveLinkTargetFromGenerator(this);
         }
+    }
+
+    // Returns the device target for a baked link line child under this activator.
+    public bool TryGetDeviceForLinkLine(Transform linkLineTransform, out GameObject device)
+    {
+        device = null;
+        if (linkLineTransform == null)
+            return false;
+
+        string lineName = linkLineTransform.name;
+        if (!lineName.StartsWith(LinkLineChildNamePrefix))
+            return false;
+
+        string deviceName = lineName.Substring(LinkLineChildNamePrefix.Length);
+        for (int i = 0; i < links.Count; i++)
+        {
+            LineRendererGeneratorLinkEntry entry = links[i];
+            if (entry == null || entry.device == null)
+                continue;
+
+            if (entry.deviceName == deviceName)
+            {
+                device = entry.device;
+                return true;
+            }
+        }
+
+        return false;
     }
 }
 
