@@ -35,12 +35,11 @@ public class LineRendererGeneratorEditor : Editor
             EditorGUILayout.HelpBox("Line Renderer Prefab must have a LineRenderer on its root.", MessageType.Warning);
 
         EditorGUILayout.Space(12);
-        if (!Application.isPlaying && GUILayout.Button("Apply Editor Preview Materials To Link Lines"))
-            ApplyEditorPreviewMaterialsToLinks(generator);
-
-        EditorGUILayout.Space(12);
         if (GUILayout.Button("Collect Devices List"))
             CollectDevices(generator);
+
+        if (GUILayout.Button("Delete All Links"))
+            DeleteAllLinks(generator);
 
         EditorGUILayout.Space(12);
         EditorGUI.BeginChangeCheck();
@@ -85,26 +84,21 @@ public class LineRendererGeneratorEditor : Editor
         }
     }
 
-    private static void ApplyEditorPreviewMaterialsToLinks(LineRendererGenerator generator)
+    private static void DeleteAllLinks(LineRendererGenerator generator)
     {
-        Material editorMaterial = generator.EditorPreviewMaterial;
-        if (editorMaterial == null)
-        {
-            Debug.LogWarning($"LineRendererGenerator on '{generator.name}': assign Editor Preview Material first.", generator);
+        List<LineRendererGeneratorLinkEntry> links = generator.LinksEditable;
+        if (links.Count == 0)
             return;
-        }
 
-        LineRenderer[] lines = generator.GetComponentsInChildren<LineRenderer>(true);
-        for (int i = 0; i < lines.Length; i++)
+        Undo.RecordObject(generator, "Delete All Links");
+        for (int i = links.Count - 1; i >= 0; i--)
         {
-            LineRenderer line = lines[i];
-            if (line == null)
-                continue;
-
-            Undo.RecordObject(line, "Apply Editor Preview Material");
-            line.sharedMaterial = editorMaterial;
-            EditorUtility.SetDirty(line);
+            LineRendererGeneratorLinkEntry entry = links[i];
+            DestroyLinkChildIfPresent(generator.transform, entry.deviceName);
+            links.RemoveAt(i);
         }
+
+        EditorUtility.SetDirty(generator);
     }
 
     private static void CollectDevices(LineRendererGenerator generator)
