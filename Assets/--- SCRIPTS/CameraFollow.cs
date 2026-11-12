@@ -142,23 +142,6 @@ public class CameraFollow : MonoBehaviour
         return CardinalYawDegrees[i];
     }
 
-    private static int YawDegreesToCardinalIndex(float yawDegrees)
-    {
-        int best = 0;
-        float bestDelta = float.MaxValue;
-        for (int i = 0; i < CardinalYawDegrees.Length; i++)
-        {
-            float delta = Mathf.Abs(Mathf.DeltaAngle(yawDegrees, CardinalYawDegrees[i]));
-            if (delta < bestDelta)
-            {
-                bestDelta = delta;
-                best = i;
-            }
-        }
-
-        return best;
-    }
-
     private float ActiveOrbitYawDegrees =>
         isFreeOrbitActive ? freeOrbitYawDegrees : GetCardinalYawDegrees(currentAngleIndex);
 
@@ -1466,12 +1449,6 @@ public class CameraFollow : MonoBehaviour
         Vector3 currentHorizontal = GetActionHorizontalOffsetXZ();
         if (currentHorizontal.sqrMagnitude < 0.0001f)
             return currentAngleIndex;
-
-        if (UsesScrollPath() && !isFreeOrbitActive)
-            return currentAngleIndex;
-
-        if (isFreeOrbitActive)
-            return YawDegreesToCardinalIndex(freeOrbitYawDegrees);
 
         int bestIndex = 0;
         float bestSqDistance = float.MaxValue;
