@@ -13,6 +13,8 @@ public partial class CharacterMovement
 
     private bool isJumping;
     private float coyoteTimeRemaining;
+    private float airborneDeathTimer;
+    private bool airborneDeathPending;
 
     private void InitGroundProbe()
     {
@@ -133,5 +135,28 @@ public partial class CharacterMovement
     {
         isJumping = true;
         coyoteTimeRemaining = 0f;
+    }
+
+    private void TickAirborneDeathTimer()
+    {
+        if (maxAirborneTimeBeforeDeath <= 0f)
+            return;
+
+        if (isGrounded)
+        {
+            if (airborneDeathPending)
+            {
+                ApplyDeathToss(Vector3.down);
+                return;
+            }
+
+            airborneDeathTimer = 0f;
+            return;
+        }
+
+        airborneDeathTimer += Time.deltaTime;
+
+        if (airborneDeathTimer >= maxAirborneTimeBeforeDeath)
+            airborneDeathPending = true;
     }
 }

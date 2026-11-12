@@ -92,6 +92,10 @@ public class DeviceHighlight : MonoBehaviour
 
             return;
 
+        if (!isActiveAndEnabled)
+
+            return;
+
         if (pulseCoroutine != null)
 
             StopCoroutine(pulseCoroutine);

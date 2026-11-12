@@ -105,6 +105,9 @@ public class CameraFollow : MonoBehaviour
     private const float PitchDownHeadroomScrollTicks = 6f;
     private const float ExtraCloseScrollTickBonus = 2f;
     private const float MaxFreeOrbitDragStepDegrees = 90f;
+    private const float FreeOrbitMaxDragDegreesPerSecondFactor = 200f;
+    private const float DeathSentencePanSpeedDivisor = 10f;
+    private const float DeathSentenceZoomScrollTicksPerSecond = 4f;
 
     private Vector3[] presetOffsets = new Vector3[]
     {
@@ -119,6 +122,16 @@ public class CameraFollow : MonoBehaviour
     private bool isInspectionMode = false;
     private bool isFreeOrbitActive;
     private float freeOrbitYawDegrees;
+
+    private enum DeathSentencePhase
+    {
+        None,
+        Zooming,
+        Panning
+    }
+
+    private DeathSentencePhase deathSentencePhase = DeathSentencePhase.None;
+    private bool wasAirborneDeathPending;
 
     private const int VolumeEdgeCount = 12;
     private static readonly int[] VolumeEdgeCornerA = { 0, 1, 3, 2, 4, 5, 7, 6, 0, 1, 2, 3 };
@@ -231,6 +244,7 @@ public class CameraFollow : MonoBehaviour
         
         if (!isInspectionMode)
         {
+            UpdateDeathSentenceBehaviour();
             UpdateFreeOrbitSnapOnMove();
             UpdateActionMode();
             UpdateOcclusionVolumeMeshHide();
@@ -252,6 +266,9 @@ public class CameraFollow : MonoBehaviour
         }
 
         if (isInspectionMode) return;
+
+        if (deathSentencePhase != DeathSentencePhase.None)
+            return;
 
         if (Mouse.current != null)
         {
@@ -677,9 +694,74 @@ public class CameraFollow : MonoBehaviour
         return Vector3.SignedAngle(northFlat, currentFlat, Vector3.up);
     }
 
+    private void UpdateDeathSentenceBehaviour()
+    {
+        if (tim == null)
+            return;
+
+        if (tim.IsAirborneDeathPending && !wasAirborneDeathPending)
+            deathSentencePhase = DeathSentencePhase.Zooming;
+
+        wasAirborneDeathPending = tim.IsAirborneDeathPending;
+
+        if (deathSentencePhase == DeathSentencePhase.Zooming)
+        {
+            TickDeathSentenceZoom();
+
+            if (tim.IsDead)
+                BeginDeathSentencePan();
+        }
+        else if (deathSentencePhase == DeathSentencePhase.Panning)
+        {
+            TickDeathSentencePan();
+        }
+    }
+
+    private void TickDeathSentenceZoom()
+    {
+        float zoomStep = scrollZoomStep * DeathSentenceZoomScrollTicksPerSecond * Time.deltaTime;
+
+        if (pitchDownAmount > 0f)
+        {
+            pitchDownAmount = Mathf.Max(0f, pitchDownAmount - zoomStep);
+            ApplyCurrentOffset();
+            return;
+        }
+
+        if (zoomDistance > minZoomDistance)
+        {
+            zoomDistance = Mathf.Max(minZoomDistance, zoomDistance - zoomStep);
+            ApplyCurrentOffset();
+            return;
+        }
+
+        if (extraCloseDistance < MaxExtraCloseDistance)
+        {
+            extraCloseDistance = Mathf.Min(MaxExtraCloseDistance, extraCloseDistance + zoomStep);
+            ApplyCurrentOffset();
+        }
+    }
+
+    private void BeginDeathSentencePan()
+    {
+        deathSentencePhase = DeathSentencePhase.Panning;
+        BeginFreeOrbitFromCurrentView();
+        ApplyCurrentOffset();
+    }
+
+    private void TickDeathSentencePan()
+    {
+        float degreesPerSecond = freeOrbitRotationSpeed * FreeOrbitMaxDragDegreesPerSecondFactor / DeathSentencePanSpeedDivisor;
+        freeOrbitYawDegrees += degreesPerSecond * Time.deltaTime;
+        ApplyCurrentOffset();
+    }
+
     private void UpdateFreeOrbitSnapOnMove()
     {
         if (tim == null || !isFreeOrbitActive)
+            return;
+
+        if (deathSentencePhase == DeathSentencePhase.Panning)
             return;
 
         // Snap when the player is giving move input, not while coasting to a stop.

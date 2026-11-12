@@ -243,14 +243,43 @@ public class ActivatorConnectionLineImpulse : MonoBehaviour
 
     private void FlashLinkTargetDevice()
     {
-        if (linkTargetDevice == null)
+        if (linkTargetDevice == null || !linkTargetDevice.activeInHierarchy)
+        {
+            LogMissingLinkTargetDevice();
             return;
+        }
 
         DeviceHighlight highlight = linkTargetDevice.GetComponent<DeviceHighlight>();
         if (highlight == null || highlight.gameObject != linkTargetDevice)
             return;
 
         highlight.FlashFromConnectionPulse();
+    }
+
+    private void LogMissingLinkTargetDevice()
+    {
+        Debug.LogWarning(
+            $"Activator '{GetActivatorDisplayName()}' refers to device '{GetLinkTargetDeviceDisplayName()}', but the object is missing/disabled.",
+            this);
+    }
+
+    private string GetActivatorDisplayName()
+    {
+        LineRendererGenerator generator = GetComponentInParent<LineRendererGenerator>();
+        return generator != null ? generator.gameObject.name : "(unknown activator)";
+    }
+
+    private string GetLinkTargetDeviceDisplayName()
+    {
+        if (linkTargetDevice != null)
+            return linkTargetDevice.name;
+
+        string lineName = transform.name;
+        string prefix = LineRendererGenerator.LinkLineChildNamePrefix;
+        if (lineName.StartsWith(prefix))
+            return lineName.Substring(prefix.Length);
+
+        return "(unknown device)";
     }
 
     private void RollTravelSpeed()

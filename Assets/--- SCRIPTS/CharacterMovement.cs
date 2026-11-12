@@ -30,6 +30,8 @@ public partial class CharacterMovement : MonoBehaviour
     [Header("DEATH TOSS")]
     [SerializeField] private float deathForceMultiplier = 1f;
 
+    [SerializeField] [Range(0f, 5f)] private float maxAirborneTimeBeforeDeath;
+
     private const float DeathTossStrength = 8f;
     private const float DeathTossUpwardRatio = 0.5f;
     private const float SprintTapThreshold = 0.2f;
@@ -38,8 +40,7 @@ public partial class CharacterMovement : MonoBehaviour
     private const float AgainstPlatformJumpMomentumScale = 0.2f;
     private const float PlatformJumpDirectionAlignmentThreshold = 0.707106781f;
     
-    // Physics settings
-    public float gravity = -20f;
+    [HideInInspector] public float gravity = -20f;
     
     private CharacterController controller;
     private PlayerInput playerInput;
@@ -79,6 +80,7 @@ public partial class CharacterMovement : MonoBehaviour
     // Speed buildup variables
     private float currentSpeedBuildup;
 
+    public bool IsAirborneDeathPending => airborneDeathPending;
     public bool IsGrounded => isGrounded;
     public float CurrentSpeed => currentSpeed;
     public bool IsStationary => moveInput.magnitude < 0.1f;
@@ -87,6 +89,11 @@ public partial class CharacterMovement : MonoBehaviour
     // Public access for TimCubeInteraction
     public Vector3 GetMovementDirectionExternal() => GetMovementDirectionInternal();
     
+    private void OnValidate()
+    {
+        maxAirborneTimeBeforeDeath = Mathf.Clamp(Mathf.Round(maxAirborneTimeBeforeDeath * 10f) / 10f, 0f, 5f);
+    }
+
     private void Awake()
     {
         controller = GetComponent<CharacterController>();
@@ -207,6 +214,7 @@ public partial class CharacterMovement : MonoBehaviour
 
         ApplyGravity();
         RefreshGroundedState();
+        TickAirborneDeathTimer();
         UpdateAnimations();
     }
 
