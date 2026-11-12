@@ -1490,6 +1490,7 @@ GameObject:
   m_Component:
   - component: {fileID: 6635925349569615995}
   - component: {fileID: 3213334259803524882}
+  - component: {fileID: 8344468719279271885}
   m_Layer: 13
   m_Name: Medium Door (001)
   m_TagString: Untagged
@@ -1510,6 +1511,7 @@ Transform:
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children:
+  - {fileID: 4958548220052400278}
   - {fileID: 5434358508004108325}
   - {fileID: 8978896256043206884}
   - {fileID: 8504762061368355775}
@@ -1558,6 +1560,21 @@ MonoBehaviour:
     m_Bits: 11264
   closeObstructionBoxCenter: {x: 0, y: 0.537, z: 0}
   closeObstructionBoxSize: {x: 1.04, y: 2, z: 0.46}
+--- !u!114 &8344468719279271885
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 3472183193194607240}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 195e5e4234f141845b1a6db62ba9d053, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::DeviceHighlight
+  pulseColor: {r: 1.2046924, g: 3.0046453, b: 2.9815693, a: 1}
+  pulseFadeIn: 0.05
+  pulseFadeOut: 0.2
 --- !u!1 &3700109887501307148
 GameObject:
   m_ObjectHideFlags: 0
@@ -3953,6 +3970,37 @@ BoxCollider:
   serializedVersion: 3
   m_Size: {x: 0.999, y: 0.25, z: 0.999}
   m_Center: {x: 0, y: 0.374, z: 0}
+--- !u!1 &8729022924687875091
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 4958548220052400278}
+  m_Layer: 0
+  m_Name: Activator Link Destination
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &4958548220052400278
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 8729022924687875091}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0.5, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 6635925349569615995}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &8775080443688967096
 GameObject:
   m_ObjectHideFlags: 0

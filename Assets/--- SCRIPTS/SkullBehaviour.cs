@@ -166,6 +166,12 @@ public class SkullBehaviour : MonoBehaviour
         return Color.Lerp(from, to, t);
     }
 
+    // Sets eye emission immediately (no transition) — e.g. laser skull initial state.
+    public void ApplyEyeStateImmediate(bool closed)
+    {
+        ApplyEmission(closed ? closedColor : openedColor);
+    }
+
     public void ApplyLaserParticleColor(Color color)
     {
         if (!isLaserSkull || !isPSActive || transitionCompleteParticleSystem == null)

@@ -216,6 +216,7 @@ GameObject:
   - component: {fileID: 4815469249080559070}
   - component: {fileID: 2613199377961141942}
   - component: {fileID: 3190597014282582548}
+  - component: {fileID: 4585043147754547791}
   m_Layer: 10
   m_Name: Slide Out Platform 1x1x2 HORIZONTAL (002)
   m_TagString: Untagged
@@ -236,6 +237,7 @@ Transform:
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children:
+  - {fileID: 7606928241104295181}
   - {fileID: 1265008927464828016}
   - {fileID: 4416409371005594622}
   - {fileID: 8037491188282800407}
@@ -319,6 +321,52 @@ MonoBehaviour:
   meshTransforms:
   - {fileID: 4416409371005594622}
   digitUnit: 0.0001
+--- !u!114 &4585043147754547791
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2875237465682645003}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 195e5e4234f141845b1a6db62ba9d053, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::DeviceHighlight
+  pulseColor: {r: 1.2046924, g: 3.0046453, b: 2.9815693, a: 1}
+  pulseFadeIn: 0.05
+  pulseFadeOut: 0.2
+--- !u!1 &3054271049337519490
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 7606928241104295181}
+  m_Layer: 0
+  m_Name: Activator Link Destination
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &7606928241104295181
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 3054271049337519490}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0.5, y: 0, z: 0.5}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 2622308941486106206}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &3547775294688332004
 GameObject:
   m_ObjectHideFlags: 0

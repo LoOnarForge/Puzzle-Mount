@@ -72,6 +72,17 @@ public class TimCubeController : MonoBehaviour
 
     private bool isCameraDragging = false;
     private Vector2 cameraDragStartPos;
+    private bool wasTimMovingForCamera;
+
+    private static bool IsCameraOrbitAlternateHeld()
+    {
+        return Keyboard.current != null && Keyboard.current.digit2Key.isPressed;
+    }
+
+    private static bool WasCameraOrbitAlternatePressedThisFrame()
+    {
+        return Keyboard.current != null && Keyboard.current.digit2Key.wasPressedThisFrame;
+    }
 
     private bool isPreciseMode = false;
 
@@ -270,30 +281,43 @@ public class TimCubeController : MonoBehaviour
     {
         if (Mouse.current == null || cameraFollow == null || cameraFollow.IsInspectionMode) return;
 
-        if (Mouse.current.middleButton.wasPressedThisFrame)
+        bool timGivingMoveInput = characterMovement != null && !characterMovement.IsStationary;
+        if (isCameraDragging && timGivingMoveInput != wasTimMovingForCamera)
+            isCameraDragging = false;
+        wasTimMovingForCamera = timGivingMoveInput;
+
+        bool orbitInputHeld = Mouse.current.middleButton.isPressed || IsCameraOrbitAlternateHeld();
+
+        if (Mouse.current.middleButton.wasPressedThisFrame || WasCameraOrbitAlternatePressedThisFrame())
         {
             cameraDragStartPos = Mouse.current.position.ReadValue();
             isCameraDragging = true;
         }
 
-        if (isCameraDragging && Mouse.current.middleButton.isPressed)
+        if (isCameraDragging && orbitInputHeld)
         {
             Vector2 currentPos = Mouse.current.position.ReadValue();
             float deltaX = currentPos.x - cameraDragStartPos.x;
 
-            if (Mathf.Abs(deltaX) > cameraFollow.cameraRotationThreshold)
+            if (timGivingMoveInput)
             {
-                if (deltaX > 0) cameraFollow.CycleClockwise();
-                else cameraFollow.CycleCounterClockwise();
+                if (Mathf.Abs(deltaX) > cameraFollow.cameraRotationThreshold)
+                {
+                    if (deltaX > 0) cameraFollow.CycleClockwise();
+                    else cameraFollow.CycleCounterClockwise();
 
+                    cameraDragStartPos = currentPos;
+                }
+            }
+            else if (Mathf.Abs(deltaX) > 0.01f)
+            {
+                cameraFollow.ApplyFreeOrbitDrag(deltaX);
                 cameraDragStartPos = currentPos;
             }
         }
 
-        if (Mouse.current.middleButton.wasReleasedThisFrame)
-        {
+        if (isCameraDragging && !orbitInputHeld)
             isCameraDragging = false;
-        }
     }
 
     private void UpdateGaze(bool mouseHitValid, RaycastHit mouseHit, RunodeMovement mouseHitCube)

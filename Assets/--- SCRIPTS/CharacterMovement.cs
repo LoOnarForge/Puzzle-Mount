@@ -82,6 +82,7 @@ public partial class CharacterMovement : MonoBehaviour
     public bool IsGrounded => isGrounded;
     public float CurrentSpeed => currentSpeed;
     public bool IsStationary => moveInput.magnitude < 0.1f;
+    public bool IsMoving => currentSpeed > 0.05f;
     
     // Public access for TimCubeInteraction
     public Vector3 GetMovementDirectionExternal() => GetMovementDirectionInternal();

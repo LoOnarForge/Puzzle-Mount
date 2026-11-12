@@ -1503,6 +1503,7 @@ GameObject:
   m_Component:
   - component: {fileID: 3157735735517152836}
   - component: {fileID: 4536022274925706186}
+  - component: {fileID: 6357944552063442361}
   m_Layer: 13
   m_Name: Piston Vertical UP (001)
   m_TagString: Untagged
@@ -1523,6 +1524,7 @@ Transform:
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children:
+  - {fileID: 2459208006122676290}
   - {fileID: 4661668492080614396}
   - {fileID: 802055422612388021}
   - {fileID: 7834624284209807925}
@@ -1568,6 +1570,21 @@ MonoBehaviour:
     m_Bits: 2147494912
   shaftColliderObject: {fileID: 3923744576956708247}
   isPowered: 0
+--- !u!114 &6357944552063442361
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 4267712715235423022}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 195e5e4234f141845b1a6db62ba9d053, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::DeviceHighlight
+  pulseColor: {r: 1.2046924, g: 3.0046453, b: 2.9815693, a: 1}
+  pulseFadeIn: 0.05
+  pulseFadeOut: 0.2
 --- !u!1 &4654495542528187995
 GameObject:
   m_ObjectHideFlags: 0
@@ -2642,6 +2659,37 @@ Transform:
   - {fileID: 8202756096361385788}
   - {fileID: 1529470955204969670}
   m_Father: {fileID: 1860098128066319897}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!1 &7018411169196162923
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 2459208006122676290}
+  m_Layer: 0
+  m_Name: Activator Link Destination
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &2459208006122676290
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 7018411169196162923}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: -0.5, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 3157735735517152836}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &7046367204720338537
 GameObject:

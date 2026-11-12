@@ -5869,6 +5869,37 @@ Transform:
   - {fileID: 8311573569497564552}
   m_Father: {fileID: 6487451502643637288}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!1 &3428356321395300578
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 3214322453748795489}
+  m_Layer: 0
+  m_Name: Activator Link Destination
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &3214322453748795489
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 3428356321395300578}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: -0.5, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 4628609860385388285}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &3475697104706136745
 GameObject:
   m_ObjectHideFlags: 0
@@ -7492,6 +7523,7 @@ GameObject:
   m_Component:
   - component: {fileID: 4628609860385388285}
   - component: {fileID: 2848848843387562197}
+  - component: {fileID: 3196840875394855703}
   m_Layer: 13
   m_Name: Piston Vertical DOWN (001)
   m_TagString: Untagged
@@ -7512,6 +7544,7 @@ Transform:
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children:
+  - {fileID: 3214322453748795489}
   - {fileID: 760944304807188500}
   - {fileID: 4117274516817581376}
   - {fileID: 5626578831490451253}
@@ -7555,6 +7588,21 @@ MonoBehaviour:
     m_Bits: 2147494912
   shaftColliderObject: {fileID: 5626578831490451253}
   isPowered: 0
+--- !u!114 &3196840875394855703
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 8208475013615067962}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 195e5e4234f141845b1a6db62ba9d053, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::DeviceHighlight
+  pulseColor: {r: 1.2046924, g: 3.0046453, b: 2.9815693, a: 1}
+  pulseFadeIn: 0.05
+  pulseFadeOut: 0.2
 --- !u!1 &8242159637481759134
 GameObject:
   m_ObjectHideFlags: 0

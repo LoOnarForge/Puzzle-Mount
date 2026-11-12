@@ -8,8 +8,6 @@ public class LineRendererGeneratorEditor : Editor
     private const int DefaultZigzagAmount = 0;
     private const int ZigzagAmountMax = 10;
     private const string LinkChildNamePrefix = "ACTIVATOR LINK - ";
-    public const string ActivatorLinkEndChildName = "Activator Link End";
-
     public override void OnInspectorGUI()
     {
         serializedObject.Update();
@@ -323,33 +321,13 @@ public class LineRendererGeneratorEditor : Editor
 
     private static Vector3 GetActivatorLinkEndPosition(GameObject device)
     {
-        Transform linkEnd = FindActivatorLinkEndTransform(device.transform);
-        if (linkEnd != null)
-            return linkEnd.position;
+        if (ActivatorLinkDestination.TryGetWorldPosition(device, out Vector3 position))
+            return position;
 
         Debug.LogWarning(
-            $"LineRendererGenerator: device '{device.name}' has no child '{ActivatorLinkEndChildName}'. Using device root position.",
+            $"LineRendererGenerator: device '{device.name}' has no '{ActivatorLinkDestination.ObjectName}' child. Using device root position.",
             device);
         return device.transform.position;
-    }
-
-    private static Transform FindActivatorLinkEndTransform(Transform deviceRoot)
-    {
-        if (deviceRoot == null)
-            return null;
-
-        for (int i = 0; i < deviceRoot.childCount; i++)
-        {
-            Transform child = deviceRoot.GetChild(i);
-            if (child.name.Trim() == ActivatorLinkEndChildName)
-                return child;
-
-            Transform nested = FindActivatorLinkEndTransform(child);
-            if (nested != null)
-                return nested;
-        }
-
-        return null;
     }
 
     private static void DestroyLinkChildIfPresent(Transform parent, string deviceName)

@@ -47,6 +47,8 @@ public class CameraFollow : MonoBehaviour
 
     [Header("CAMERA ROTATION SETTINGS")]
     public float cameraRotationThreshold = 50.0f;
+    [Tooltip("Stationary free orbit: drag sensitivity (degrees per screen pixel).")]
+    [Range(0.4f, 2f)] public float freeOrbitRotationSpeed = 0.4f;
 
     [Header("INSPECTION MODE (LEYA)")]
     public LeyasCamera leyaController;
@@ -102,6 +104,7 @@ public class CameraFollow : MonoBehaviour
     private const float BaseZoomDistance = 10f;
     private const float PitchDownHeadroomScrollTicks = 6f;
     private const float ExtraCloseScrollTickBonus = 2f;
+    private const float MaxFreeOrbitDragStepDegrees = 90f;
 
     private Vector3[] presetOffsets = new Vector3[]
     {
@@ -114,6 +117,8 @@ public class CameraFollow : MonoBehaviour
     private int currentAngleIndex = 0;
     private int originalAngleIndex = 0;
     private bool isInspectionMode = false;
+    private bool isFreeOrbitActive;
+    private float freeOrbitYawDegrees;
 
     private const int VolumeEdgeCount = 12;
     private static readonly int[] VolumeEdgeCornerA = { 0, 1, 3, 2, 4, 5, 7, 6, 0, 1, 2, 3 };
@@ -174,22 +179,19 @@ public class CameraFollow : MonoBehaviour
 
     private void ApplyCurrentOffset()
     {
-        Vector3 preset = presetOffsets[currentAngleIndex];
-
         if (pitchDownAmount > 0f)
         {
             float maxScale = maxZoomDistance / BaseZoomDistance;
-            offset = new Vector3(
-                preset.x * maxScale,
-                cameraHeight - pitchDownAmount,
-                preset.z * maxScale);
+            Vector3 horizontal = GetHorizontalOffset(maxScale);
+            offset = new Vector3(horizontal.x, cameraHeight - pitchDownAmount, horizontal.z);
             return;
         }
 
         if (extraCloseDistance > 0f)
         {
             float minScale = minZoomDistance / BaseZoomDistance;
-            Vector3 minOffset = new Vector3(preset.x * minScale, cameraHeight, preset.z * minScale);
+            Vector3 minOffset = GetHorizontalOffset(minScale);
+            minOffset.y = cameraHeight;
             if (minOffset.sqrMagnitude > 0.0001f)
                 offset = minOffset - minOffset.normalized * extraCloseDistance;
             else
@@ -198,7 +200,21 @@ public class CameraFollow : MonoBehaviour
         }
 
         float zoomScale = zoomDistance / BaseZoomDistance;
-        offset = new Vector3(preset.x * zoomScale, cameraHeight, preset.z * zoomScale);
+        Vector3 flat = GetHorizontalOffset(zoomScale);
+        offset = new Vector3(flat.x, cameraHeight, flat.z);
+    }
+
+    private Vector3 GetHorizontalOffset(float zoomScale)
+    {
+        if (isFreeOrbitActive)
+        {
+            Vector3 reference = presetOffsets[0];
+            Vector3 flat = Quaternion.Euler(0f, freeOrbitYawDegrees, 0f) * new Vector3(reference.x, 0f, reference.z);
+            return new Vector3(flat.x * zoomScale, 0f, flat.z * zoomScale);
+        }
+
+        Vector3 preset = presetOffsets[currentAngleIndex];
+        return new Vector3(preset.x * zoomScale, 0f, preset.z * zoomScale);
     }
     
     private void Start()
@@ -215,6 +231,7 @@ public class CameraFollow : MonoBehaviour
         
         if (!isInspectionMode)
         {
+            UpdateFreeOrbitSnapOnMove();
             UpdateActionMode();
             UpdateOcclusionVolumeMeshHide();
         }
@@ -296,6 +313,7 @@ public class CameraFollow : MonoBehaviour
         if (!isInspectionMode)
         {
             isInspectionMode = true;
+            isFreeOrbitActive = false;
             originalAngleIndex = currentAngleIndex;
             actionCamera.enabled = false;
             RestoreAllHiddenMeshes();
@@ -622,10 +640,136 @@ public class CameraFollow : MonoBehaviour
         frameHiddenRenderers.Clear();
     }
 
+    // Stationary-only: drag orbit from MMB (TimCubeController). Moving uses cardinal MMB steps.
+    public void ApplyFreeOrbitDrag(float screenDeltaX)
+    {
+        if (isInspectionMode)
+            return;
+
+        if (!isFreeOrbitActive)
+            BeginFreeOrbitFromCurrentView();
+
+        float degrees = screenDeltaX * freeOrbitRotationSpeed;
+        float frameStepCap = freeOrbitRotationSpeed * 200f * Time.deltaTime;
+        float maxStep = Mathf.Min(MaxFreeOrbitDragStepDegrees, frameStepCap);
+        freeOrbitYawDegrees += Mathf.Clamp(degrees, -maxStep, maxStep);
+        ApplyCurrentOffset();
+    }
+
+    private void BeginFreeOrbitFromCurrentView()
+    {
+        Vector3 horizontal = GetActionHorizontalOffsetXZ();
+        freeOrbitYawDegrees = HorizontalOffsetToFreeOrbitYawDegrees(horizontal);
+        isFreeOrbitActive = true;
+    }
+
+    private float HorizontalOffsetToFreeOrbitYawDegrees(Vector3 horizontalXZ)
+    {
+        Vector3 north = presetOffsets[0];
+        Vector3 northFlat = new Vector3(north.x, 0f, north.z);
+        if (northFlat.sqrMagnitude < 0.0001f)
+            return currentAngleIndex * 90f;
+
+        Vector3 currentFlat = new Vector3(horizontalXZ.x, 0f, horizontalXZ.z);
+        if (currentFlat.sqrMagnitude < 0.0001f)
+            return currentAngleIndex * 90f;
+
+        return Vector3.SignedAngle(northFlat, currentFlat, Vector3.up);
+    }
+
+    private void UpdateFreeOrbitSnapOnMove()
+    {
+        if (tim == null || !isFreeOrbitActive)
+            return;
+
+        // Snap when the player is giving move input, not while coasting to a stop.
+        if (!tim.IsStationary)
+            SnapFreeOrbitToNearestCardinal();
+    }
+
+    private int FindNearestCardinalIndex()
+    {
+        Vector3 currentHorizontal = GetActionHorizontalOffsetXZ();
+        int bestIndex = 0;
+        float bestSqDistance = float.MaxValue;
+
+        for (int i = 0; i < presetOffsets.Length; i++)
+        {
+            Vector3 candidateHorizontal = GetCardinalHorizontalOffsetXZ(i);
+            float sq = (candidateHorizontal - currentHorizontal).sqrMagnitude;
+            if (sq < bestSqDistance)
+            {
+                bestSqDistance = sq;
+                bestIndex = i;
+            }
+        }
+
+        return bestIndex;
+    }
+
+    private void SnapFreeOrbitToNearestCardinal()
+    {
+        currentAngleIndex = FindNearestCardinalIndex();
+        isFreeOrbitActive = false;
+        freeOrbitYawDegrees = currentAngleIndex * 90f;
+        ApplyCurrentOffset();
+    }
+
+    private Vector3 GetActionHorizontalOffsetXZ()
+    {
+        if (pitchDownAmount > 0f)
+        {
+            float maxScale = maxZoomDistance / BaseZoomDistance;
+            Vector3 horizontal = GetHorizontalOffset(maxScale);
+            return new Vector3(horizontal.x, 0f, horizontal.z);
+        }
+
+        if (extraCloseDistance > 0f)
+        {
+            float minScale = minZoomDistance / BaseZoomDistance;
+            Vector3 minOffset = GetHorizontalOffset(minScale);
+            minOffset.y = cameraHeight;
+            Vector3 dolly = minOffset.sqrMagnitude > 0.0001f
+                ? minOffset - minOffset.normalized * extraCloseDistance
+                : minOffset;
+            return new Vector3(dolly.x, 0f, dolly.z);
+        }
+
+        float zoomScale = zoomDistance / BaseZoomDistance;
+        Vector3 flat = GetHorizontalOffset(zoomScale);
+        return new Vector3(flat.x, 0f, flat.z);
+    }
+
+    private Vector3 GetCardinalHorizontalOffsetXZ(int cardinalIndex)
+    {
+        int savedIndex = currentAngleIndex;
+        bool savedFree = isFreeOrbitActive;
+
+        currentAngleIndex = cardinalIndex;
+        isFreeOrbitActive = false;
+        Vector3 horizontal = GetActionHorizontalOffsetXZ();
+
+        currentAngleIndex = savedIndex;
+        isFreeOrbitActive = savedFree;
+        return horizontal;
+    }
+
+    private void ExitFreeOrbitToCurrentCardinal()
+    {
+        if (!isFreeOrbitActive)
+            return;
+
+        currentAngleIndex = FindNearestCardinalIndex();
+        isFreeOrbitActive = false;
+        freeOrbitYawDegrees = currentAngleIndex * 90f;
+        ApplyCurrentOffset();
+    }
+
     public void CycleClockwise()
     {
         if (Time.unscaledTime < lastRotationTime + rotationCooldown) return;
 
+        ExitFreeOrbitToCurrentCardinal();
         currentAngleIndex = (currentAngleIndex + 1) % presetOffsets.Length;
         ApplyCurrentOffset();
         lastRotationTime = Time.unscaledTime;
@@ -635,6 +779,7 @@ public class CameraFollow : MonoBehaviour
     {
         if (Time.unscaledTime < lastRotationTime + rotationCooldown) return;
 
+        ExitFreeOrbitToCurrentCardinal();
         currentAngleIndex = (currentAngleIndex - 1 + presetOffsets.Length) % presetOffsets.Length;
         ApplyCurrentOffset();
         lastRotationTime = Time.unscaledTime;
@@ -644,7 +789,9 @@ public class CameraFollow : MonoBehaviour
     {
         if (Time.unscaledTime < lastRotationTime + rotationCooldown) return;
 
+        isFreeOrbitActive = false;
         currentAngleIndex = 0;
+        freeOrbitYawDegrees = 0f;
         ApplyCurrentOffset();
         lastRotationTime = Time.unscaledTime;
     }

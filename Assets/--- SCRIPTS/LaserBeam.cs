@@ -41,6 +41,8 @@ public class LaserBeam : MonoBehaviour
 
     [Header("ACTIVATOR")]
     [SerializeField] private ActivatorMode activatorMode = ActivatorMode.PressurePlate;
+    [Tooltip("Starting beam/skull state: open (green) when on; closed (red) when off.")]
+    [SerializeField] private bool isGreen = true;
     [SerializeField] private List<GameObject> connectedDevices = new List<GameObject>();
     [SerializeField] private SkullBehaviour skullBehaviour;
 
@@ -123,12 +125,18 @@ public class LaserBeam : MonoBehaviour
             skullBehaviour = GetComponentInChildren<SkullBehaviour>(true);
 
         ApplyBeamMaterial();
+        ApplyStartingPosition();
         SyncBeamColorForState();
+        ApplySkullEyeToMatchBeamState();
     }
 
     private void Start()
     {
+        CastAndDraw();
+        ApplyStartingPosition();
+        prevBeamObstructed = beamObstructed;
         SyncBeamColorForState();
+        ApplySkullEyeToMatchBeamState();
     }
 
     private void OnEnable()
@@ -524,6 +532,25 @@ public class LaserBeam : MonoBehaviour
     {
         beamColor = IsLaserVisualClosed() ? beamClosedColor : beamOpenedColor;
         ApplyBeamColor(force: true);
+    }
+
+    private void ApplySkullEyeToMatchBeamState()
+    {
+        if (skullBehaviour == null || laserDead || activatorMode == ActivatorMode.Button)
+            return;
+
+        skullBehaviour.ApplyEyeStateImmediate(skullClosedFromBeam);
+    }
+
+    private void ApplyStartingPosition()
+    {
+        if (activatorMode == ActivatorMode.Button)
+            return;
+
+        if (activatorMode == ActivatorMode.PressurePlate)
+            skullClosedFromBeam = beamObstructed || !isGreen;
+        else
+            skullClosedFromBeam = !isGreen;
     }
 
     private bool IsLaserVisualClosed()
