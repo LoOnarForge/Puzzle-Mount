@@ -1,7 +1,9 @@
 using UnityEngine;
 using UnityEngine.InputSystem;
 using UnityEngine.Rendering;
+using UnityEngine.Serialization;
 using System.Collections.Generic;
+using System.Text.RegularExpressions;
 
 /// Handles Action Mode (cardinal follow) for Tim Jones.
 /// Coordinates with LeyasCamera for Inspection Mode.
@@ -25,18 +27,44 @@ public class CameraFollow : MonoBehaviour
     [Header("View Height & Zoom")]
     [Tooltip("Camera height above Tim")]
     public float cameraHeight = 9f;
-    [Tooltip("Distance from Tim (adjust with scroll wheel)")]
+    [Tooltip("Default follow distance (used to pick the starting point on the scroll path).")]
     public float zoomDistance = 10f;
-    public float minZoomDistance = 6f;
-    public float maxZoomDistance = 14f;
-    [Tooltip("Distance change per scroll notch")]
-    public float scrollZoomStep = 0.4f;
-    [Tooltip("Extra scroll-in range beyond min zoom (fixed angle, dolly only)")]
-    public float maxExtraCloseDistance = 4f;
-    
+    [Header("Scroll wheel")]
+    [Tooltip("How many stops along the path one wheel notch skips (1 = one stop, 2 = jump two stops, etc.).")]
+    [Min(1)] public int pathStepsPerScroll = 1;
+    [Tooltip("How long the camera glides after each scroll.")]
+    [Min(0.02f)] public float scrollPathSmoothTime = 0.12f;
+
+    [FormerlySerializedAs("scrollStopCount")]
+    [HideInInspector] public int scrollStepCount = 20;
+
+    [HideInInspector] public float scrollZoomStep = 0.4f;
+    [HideInInspector] public float maxExtraCloseDistance = 4f;
+    [HideInInspector] public float maxFarSideDollyDistance = 4f;
+    [HideInInspector] public float minZoomDistance = 6f;
+    [HideInInspector] public float maxZoomDistance = 14f;
+
+    [HideInInspector] public bool useScrollPathMarkers = true;
+    [HideInInspector] public Vector3[] scrollPathStopsLocal;
+
+    private const string ScrollPathMarkerNamePrefix = "Zoom Point";
+    private const int ScrollPathBakeSamples = 64;
+
     private Vector3 lookAtOffset = Vector3.up * 2f;
     private float extraCloseDistance;
     private float pitchDownAmount;
+    private float extraFarLowerAmount;
+    private float farSideDollyDistance;
+    private int scrollStopIndex;
+    private float scrollPathT;
+    private float scrollPathTargetT;
+    private float scrollPathTVelocity;
+    private float scrollPathFurthestT = -1f;
+    private int scrollPathFurthestStopIndex = -1;
+    private bool furthestExtraScrollTowardHigh;
+    private bool furthestExtraScrollTowardLow;
+    private int scrollOutNotchesFromClose = -1;
+    private float defaultZoomDistance;
     
     [Header("Manual Control")]
     public Key clockwiseKey = Key.E;
@@ -85,7 +113,13 @@ public class CameraFollow : MonoBehaviour
     {
         get
         {
-            if (pitchDownAmount > 0f)
+            if (UsesScrollPath())
+            {
+                int maxStop = Mathf.Max(1, ActiveScrollStopCount - 1);
+                return 1f - Mathf.Clamp01(scrollPathT);
+            }
+
+            if (UsesFarViewOffset())
                 return 0f;
 
             float zoomPart = Mathf.Clamp01(Mathf.InverseLerp(BaseZoomDistance, minZoomDistance, zoomDistance));
@@ -96,6 +130,32 @@ public class CameraFollow : MonoBehaviour
         }
     }
 
+    private int ActiveScrollStopCount => scrollStepCount;
+
+    public bool UsesScrollPath() => scrollPathStopsLocal != null && scrollPathStopsLocal.Length >= 2;
+
+    public void SetScrollPathFromRecorder(IList<Vector3> stops)
+    {
+        scrollPathStopsLocal = new Vector3[stops.Count];
+        for (int i = 0; i < stops.Count; i++)
+            scrollPathStopsLocal[i] = stops[i];
+        scrollStepCount = Mathf.Max(2, stops.Count);
+        scrollStopIndex = 0;
+        ApplyScrollStop(scrollStopIndex);
+    }
+
+    public Vector3 OrbitLocalOffsetToWorld(Vector3 orbitLocalNorth)
+    {
+        float yaw = isFreeOrbitActive ? freeOrbitYawDegrees : currentAngleIndex * 90f;
+        return Quaternion.Euler(0f, yaw, 0f) * orbitLocalNorth;
+    }
+
+    public Vector3 WorldOffsetToOrbitLocal(Vector3 worldOffset)
+    {
+        float yaw = isFreeOrbitActive ? freeOrbitYawDegrees : currentAngleIndex * 90f;
+        return Quaternion.Inverse(Quaternion.Euler(0f, yaw, 0f)) * worldOffset;
+    }
+
     private Vector3 velocity = Vector3.zero;
     private CharacterMovement tim;
     private Camera actionCamera;
@@ -104,6 +164,9 @@ public class CameraFollow : MonoBehaviour
     private const float BaseZoomDistance = 10f;
     private const float PitchDownHeadroomScrollTicks = 6f;
     private const float ExtraCloseScrollTickBonus = 2f;
+    private const float FarLowerScrollTicks = 1f;
+    private const float FarSideDollyScrollTickBonus = 2f;
+    private const float MinCameraClearanceAboveLookAt = 0.25f;
     private const float MaxFreeOrbitDragStepDegrees = 90f;
     private const float FreeOrbitMaxDragDegreesPerSecondFactor = 200f;
     private const float DeathSentencePanSpeedDivisor = 10f;
@@ -148,11 +211,40 @@ public class CameraFollow : MonoBehaviour
     private float RotationLerpSpeed => Mathf.Lerp(2f, 20f, cameraResponsiveness);
     private float MaxPitchDownAmount => Mathf.Max(0f, cameraHeight - PitchDownHeadroomScrollTicks * scrollZoomStep);
     private float MaxExtraCloseDistance => maxExtraCloseDistance + ExtraCloseScrollTickBonus * scrollZoomStep;
+    private float MaxExtraFarLower => scrollZoomStep * FarLowerScrollTicks;
+    private float MaxFarSideDollyDistance => maxFarSideDollyDistance + FarSideDollyScrollTickBonus * scrollZoomStep;
+    private float MaxFarViewDropTotal =>
+        Mathf.Max(0f, cameraHeight - lookAtOffset.y - MinCameraClearanceAboveLookAt);
+
+    private float EffectiveMaxPitchDownAmount =>
+        Mathf.Min(MaxPitchDownAmount, Mathf.Max(0f, MaxFarViewDropTotal - MaxExtraFarLower));
 
     private void Awake()
     {
         actionCamera = GetComponent<Camera>();
-        ApplyCurrentOffset();
+        defaultZoomDistance = zoomDistance;
+    }
+
+    private int FindDefaultStopOnScrollPath()
+    {
+        int maxWheelStop = Mathf.Max(1, ActiveScrollStopCount - 1);
+        int best = 0;
+        float bestError = float.MaxValue;
+
+        for (int stop = 0; stop <= maxWheelStop; stop++)
+        {
+            float t = stop / (float)maxWheelStop;
+            Vector3 world = OrbitLocalOffsetToWorld(EvaluateScrollPathAtT(t));
+            float horiz = new Vector3(world.x, 0f, world.z).magnitude;
+            float error = Mathf.Abs(horiz - defaultZoomDistance) + Mathf.Abs(world.y - cameraHeight);
+            if (error < bestError)
+            {
+                bestError = error;
+                best = stop;
+            }
+        }
+
+        return best;
     }
 
     private void OnDisable()
@@ -183,20 +275,33 @@ public class CameraFollow : MonoBehaviour
 
     private void OnValidate()
     {
+        scrollStepCount = Mathf.Max(2, ActiveScrollStopCount);
+        pathStepsPerScroll = Mathf.Max(1, pathStepsPerScroll);
+        scrollStopIndex = Mathf.Clamp(scrollStopIndex, 0, ActiveScrollStopCount - 1);
+        scrollOutNotchesFromClose = -1;
         zoomDistance = Mathf.Clamp(zoomDistance, minZoomDistance, maxZoomDistance);
         extraCloseDistance = Mathf.Clamp(extraCloseDistance, 0f, MaxExtraCloseDistance);
-        pitchDownAmount = Mathf.Clamp(pitchDownAmount, 0f, MaxPitchDownAmount);
+        farSideDollyDistance = Mathf.Clamp(farSideDollyDistance, 0f, MaxFarSideDollyDistance);
+        ClampFarViewDropAmounts();
+        if (useScrollPathMarkers && target != null)
+            TryBuildScrollPathFromMarkers();
+
         if (presetOffsets != null && presetOffsets.Length > 0)
             ApplyCurrentOffset();
     }
 
     private void ApplyCurrentOffset()
     {
-        if (pitchDownAmount > 0f)
+        if (UsesScrollPath())
         {
-            float maxScale = maxZoomDistance / BaseZoomDistance;
-            Vector3 horizontal = GetHorizontalOffset(maxScale);
-            offset = new Vector3(horizontal.x, cameraHeight - pitchDownAmount, horizontal.z);
+            offset = OrbitLocalOffsetToWorld(EvaluateScrollPathAtT(scrollPathT));
+            scrollStopIndex = ScrollPathTToStopIndex(scrollPathT);
+            return;
+        }
+
+        if (UsesFarViewOffset())
+        {
+            ApplyFarViewOffset();
             return;
         }
 
@@ -229,18 +334,473 @@ public class CameraFollow : MonoBehaviour
         Vector3 preset = presetOffsets[currentAngleIndex];
         return new Vector3(preset.x * zoomScale, 0f, preset.z * zoomScale);
     }
+
+    private void ApplyScrollStop(int stop)
+    {
+        int maxStop = ActiveScrollStopCount - 1;
+        stop = Mathf.Clamp(stop, 0, maxStop);
+        scrollStopIndex = stop;
+        if (UsesScrollPath())
+        {
+            float t = ScrollPathStopIndexToT(stop);
+            scrollPathT = t;
+            scrollPathTargetT = t;
+            scrollPathTVelocity = 0f;
+            ApplyCurrentOffset();
+            return;
+        }
+
+        SetScrollStateToCloseEnd();
+        if (maxStop <= 0)
+        {
+            ApplyCurrentOffset();
+            return;
+        }
+
+        int notchesOut = Mathf.RoundToInt((maxStop - stop) * GetScrollOutNotchesFromClose() / (float)maxStop);
+        for (int i = 0; i < notchesOut; i++)
+            ScrollOutOneNotch();
+
+        ApplyCurrentOffset();
+    }
+
+    private void SetScrollStateToCloseEnd()
+    {
+        extraCloseDistance = MaxExtraCloseDistance;
+        zoomDistance = minZoomDistance;
+        pitchDownAmount = 0f;
+        extraFarLowerAmount = 0f;
+        farSideDollyDistance = 0f;
+    }
+
+    private void SetScrollStateToFarEnd()
+    {
+        extraCloseDistance = 0f;
+        zoomDistance = maxZoomDistance;
+        pitchDownAmount = EffectiveMaxPitchDownAmount;
+        extraFarLowerAmount = MaxExtraFarLower;
+        farSideDollyDistance = MaxFarSideDollyDistance;
+        ClampFarViewDropAmounts();
+    }
+
+    private int GetScrollOutNotchesFromClose()
+    {
+        if (scrollOutNotchesFromClose >= 0)
+            return scrollOutNotchesFromClose;
+
+        SetScrollStateToCloseEnd();
+        int count = 0;
+        while (CanScrollOutOneMoreNotch())
+        {
+            ScrollOutOneNotch();
+            count++;
+        }
+        scrollOutNotchesFromClose = count;
+        return count;
+    }
+
+    private bool CanScrollOutOneMoreNotch()
+    {
+        if (extraCloseDistance > 0.0001f) return true;
+        if (zoomDistance < maxZoomDistance - 0.0001f) return true;
+        if (pitchDownAmount < EffectiveMaxPitchDownAmount - 0.0001f) return true;
+        if (extraFarLowerAmount < MaxExtraFarLower - 0.0001f) return true;
+        if (farSideDollyDistance < MaxFarSideDollyDistance - 0.0001f) return true;
+        return false;
+    }
+
+    private void ScrollOutOneNotch()
+    {
+        if (extraCloseDistance > 0f)
+        {
+            extraCloseDistance = Mathf.Max(0f, extraCloseDistance - scrollZoomStep);
+            return;
+        }
+
+        if (zoomDistance < maxZoomDistance)
+        {
+            zoomDistance = Mathf.Min(maxZoomDistance, zoomDistance + scrollZoomStep);
+            return;
+        }
+
+        if (pitchDownAmount < EffectiveMaxPitchDownAmount)
+        {
+            pitchDownAmount = Mathf.Min(EffectiveMaxPitchDownAmount, pitchDownAmount + scrollZoomStep);
+            ClampFarViewDropAmounts();
+            return;
+        }
+
+        if (extraFarLowerAmount < MaxExtraFarLower)
+        {
+            extraFarLowerAmount = Mathf.Min(MaxExtraFarLower, extraFarLowerAmount + scrollZoomStep);
+            ClampFarViewDropAmounts();
+            return;
+        }
+
+        farSideDollyDistance = Mathf.Min(MaxFarSideDollyDistance, farSideDollyDistance + scrollZoomStep);
+    }
+
+    private void ScrollInOneNotch()
+    {
+        if (farSideDollyDistance > 0f)
+        {
+            farSideDollyDistance = Mathf.Max(0f, farSideDollyDistance - scrollZoomStep);
+            return;
+        }
+
+        if (extraFarLowerAmount > 0f)
+        {
+            extraFarLowerAmount = Mathf.Max(0f, extraFarLowerAmount - scrollZoomStep);
+            return;
+        }
+
+        if (pitchDownAmount > 0f)
+        {
+            pitchDownAmount = Mathf.Max(0f, pitchDownAmount - scrollZoomStep);
+            return;
+        }
+
+        if (zoomDistance > minZoomDistance)
+        {
+            zoomDistance = Mathf.Max(minZoomDistance, zoomDistance - scrollZoomStep);
+            return;
+        }
+
+        extraCloseDistance = Mathf.Min(MaxExtraCloseDistance, extraCloseDistance + scrollZoomStep);
+    }
+
+    private int FindScrollStopForDefaultZoom()
+    {
+        int maxStop = Mathf.Max(1, scrollStepCount - 1);
+        int best = 0;
+        float bestError = float.MaxValue;
+
+        for (int stop = 0; stop <= maxStop; stop++)
+        {
+            ApplyScrollStop(stop);
+            float error = Mathf.Abs(zoomDistance - defaultZoomDistance)
+                + extraCloseDistance * 4f
+                + farSideDollyDistance * 2f
+                + pitchDownAmount
+                + extraFarLowerAmount;
+            if (error < bestError)
+            {
+                bestError = error;
+                best = stop;
+            }
+        }
+
+        return best;
+    }
     
     private void Start()
     {
         tim = FindAnyObjectByType<CharacterMovement>();
         if (findPlayerAutomatically && target == null && tim != null) target = tim.transform;
+
+        if (useScrollPathMarkers)
+            TryBuildScrollPathFromMarkers();
+
+        scrollStopIndex = UsesScrollPath() ? FindDefaultStopOnScrollPath() : FindScrollStopForDefaultZoom();
+        ApplyScrollStop(scrollStopIndex);
     }
-    
+
+    private Transform GetFollowPivotTransform()
+    {
+        if (tim != null && tim.CameraFollowTarget != null)
+            return tim.CameraFollowTarget;
+        return target;
+    }
+
+    public bool TryBuildScrollPathFromMarkers()
+    {
+        if (!useScrollPathMarkers || target == null)
+            return false;
+
+        Transform pivot = GetFollowPivotTransform();
+        if (pivot == null)
+            pivot = target;
+
+        Transform[] all = target.GetComponentsInChildren<Transform>(true);
+        var guideMarkers = new List<(int order, Transform transform)>();
+        var furthestMarkers = new List<Transform>();
+
+        foreach (Transform t in all)
+        {
+            if (t == target || !t.name.StartsWith(ScrollPathMarkerNamePrefix))
+                continue;
+
+            if (t.name.IndexOf("furthest", System.StringComparison.OrdinalIgnoreCase) >= 0)
+                furthestMarkers.Add(t);
+            else
+                guideMarkers.Add((ParseScrollMarkerOrder(t.name), t));
+        }
+
+        if (guideMarkers.Count < 2)
+            return false;
+
+        guideMarkers.Sort((a, b) => a.order.CompareTo(b.order));
+
+        Vector3 pivotWorld = pivot.position;
+        var waypoints = new List<Vector3>(guideMarkers.Count);
+        foreach (var guide in guideMarkers)
+            waypoints.Add(WorldOffsetToOrbitLocal(guide.transform.position - pivotWorld));
+
+        Vector3 furthestWaypointOffset = Vector3.zero;
+        bool hasFurthestMarker = false;
+        if (furthestMarkers.Count > 0)
+        {
+            Transform furthest = furthestMarkers[0];
+            furthestWaypointOffset = WorldOffsetToOrbitLocal(furthest.position - pivotWorld);
+            hasFurthestMarker = true;
+            int insertAt = FindFurthestInsertIndex(waypoints, furthestWaypointOffset);
+            insertAt = Mathf.Clamp(insertAt, 1, waypoints.Count);
+            waypoints.Insert(insertAt, furthestWaypointOffset);
+        }
+
+        int sampleCount = Mathf.Max(2, ScrollPathBakeSamples);
+        scrollPathStopsLocal = SampleCatmullRomPath(waypoints, sampleCount);
+
+        scrollPathFurthestStopIndex = -1;
+        if (hasFurthestMarker)
+        {
+            float best = float.MaxValue;
+            for (int i = 0; i < scrollPathStopsLocal.Length; i++)
+            {
+                float dist = (scrollPathStopsLocal[i] - furthestWaypointOffset).sqrMagnitude;
+                if (dist < best)
+                {
+                    best = dist;
+                    scrollPathFurthestStopIndex = i;
+                }
+            }
+
+            scrollPathStopsLocal[scrollPathFurthestStopIndex] = furthestWaypointOffset;
+            scrollPathFurthestT = scrollPathFurthestStopIndex / (float)(sampleCount - 1);
+        }
+        else
+        {
+            scrollPathFurthestT = -1f;
+        }
+
+        int maxWheelStop = Mathf.Max(1, ActiveScrollStopCount - 1);
+        scrollStopIndex = Mathf.Clamp(scrollStopIndex, 0, maxWheelStop);
+        float startT = ScrollPathStopIndexToT(scrollStopIndex);
+        scrollPathT = startT;
+        scrollPathTargetT = startT;
+        scrollPathTVelocity = 0f;
+        ResetFurthestGateState();
+        return true;
+    }
+
+    private float ScrollPathStopIndexToT(int stop)
+    {
+        int maxStop = Mathf.Max(1, ActiveScrollStopCount - 1);
+        return Mathf.Clamp01(stop / (float)maxStop);
+    }
+
+    private int ScrollPathTToStopIndex(float t)
+    {
+        int maxStop = Mathf.Max(1, ActiveScrollStopCount - 1);
+        return Mathf.Clamp(Mathf.RoundToInt(Mathf.Clamp01(t) * maxStop), 0, maxStop);
+    }
+
+    private Vector3 EvaluateScrollPathAtT(float t)
+    {
+        if (scrollPathStopsLocal == null || scrollPathStopsLocal.Length == 0)
+            return Vector3.zero;
+
+        if (scrollPathStopsLocal.Length == 1)
+            return scrollPathStopsLocal[0];
+
+        t = Mathf.Clamp01(t);
+        float scaled = t * (scrollPathStopsLocal.Length - 1);
+        int i = Mathf.FloorToInt(scaled);
+        int j = Mathf.Min(i + 1, scrollPathStopsLocal.Length - 1);
+        float u = scaled - i;
+        return Vector3.Lerp(scrollPathStopsLocal[i], scrollPathStopsLocal[j], u);
+    }
+
+    private static Vector3 CatmullRom(Vector3 p0, Vector3 p1, Vector3 p2, Vector3 p3, float t)
+    {
+        float t2 = t * t;
+        float t3 = t2 * t;
+        return 0.5f * (2f * p1 + (-p0 + p2) * t +
+            (2f * p0 - 5f * p1 + 4f * p2 - p3) * t2 +
+            (-p0 + 3f * p1 - 3f * p2 + p3) * t3);
+    }
+
+    private static Vector3[] SampleCatmullRomPath(IReadOnlyList<Vector3> points, int sampleCount)
+    {
+        var samples = new Vector3[sampleCount];
+        if (points == null || points.Count == 0)
+            return samples;
+
+        if (points.Count == 1)
+        {
+            for (int i = 0; i < sampleCount; i++)
+                samples[i] = points[0];
+            return samples;
+        }
+
+        if (points.Count == 2)
+        {
+            for (int i = 0; i < sampleCount; i++)
+            {
+                float t = i / (float)(sampleCount - 1);
+                samples[i] = Vector3.Lerp(points[0], points[1], t);
+            }
+            return samples;
+        }
+
+        int segmentCount = points.Count - 1;
+        for (int i = 0; i < sampleCount; i++)
+        {
+            float u = i / (float)(sampleCount - 1) * segmentCount;
+            int seg = Mathf.Min(Mathf.FloorToInt(u), segmentCount - 1);
+            float t = u - seg;
+
+            Vector3 p0 = points[Mathf.Max(seg - 1, 0)];
+            Vector3 p1 = points[seg];
+            Vector3 p2 = points[seg + 1];
+            Vector3 p3 = points[Mathf.Min(seg + 2, points.Count - 1)];
+            samples[i] = CatmullRom(p0, p1, p2, p3, t);
+        }
+
+        return samples;
+    }
+
+    private static int ParseScrollMarkerOrder(string objectName)
+    {
+        Match match = Regex.Match(objectName, @"\((\d+)\)\s*$");
+        if (match.Success && int.TryParse(match.Groups[1].Value, out int n))
+            return n;
+
+        if (objectName.IndexOf("Zoom Point 01", System.StringComparison.OrdinalIgnoreCase) >= 0
+            && objectName.IndexOf("(", System.StringComparison.Ordinal) < 0)
+            return 0;
+
+        return 0;
+    }
+
+    private static int FindFurthestInsertIndex(IReadOnlyList<Vector3> points, Vector3 furthest)
+    {
+        if (points.Count < 2)
+            return points.Count;
+
+        float bestDist = float.MaxValue;
+        int insertAt = 1;
+        for (int i = 0; i < points.Count - 1; i++)
+        {
+            float dist = SqrDistancePointToSegment(furthest, points[i], points[i + 1]);
+            if (dist < bestDist)
+            {
+                bestDist = dist;
+                insertAt = i + 1;
+            }
+        }
+
+        return insertAt;
+    }
+
+    private static float SqrDistancePointToSegment(Vector3 point, Vector3 a, Vector3 b)
+    {
+        Vector3 ab = b - a;
+        float mag = ab.sqrMagnitude;
+        if (mag < 0.00001f)
+            return (point - a).sqrMagnitude;
+
+        float t = Mathf.Clamp01(Vector3.Dot(point - a, ab) / mag);
+        Vector3 closest = a + ab * t;
+        return (point - closest).sqrMagnitude;
+    }
+
+    private void ResetFurthestGateState()
+    {
+        furthestExtraScrollTowardHigh = false;
+        furthestExtraScrollTowardLow = false;
+    }
+
+    private float ScrollPathNotchT() => 1f / Mathf.Max(1, scrollStepCount - 1);
+
+    private float ScrollPathWheelDeltaT() => ScrollPathNotchT() * Mathf.Max(1, pathStepsPerScroll);
+
+    private bool IsCameraAtFurthestStop()
+    {
+        if (scrollPathFurthestT < 0f)
+            return false;
+
+        return Mathf.Abs(scrollPathT - scrollPathFurthestT) <= ScrollPathNotchT() * 0.55f;
+    }
+
+    private void ApplyScrollPathWheel(float scrollDirection)
+    {
+        float notch = ScrollPathNotchT();
+        float step = ScrollPathWheelDeltaT();
+        bool towardZoomOut = scrollDirection < 0f;
+        float furthestT = scrollPathFurthestT;
+
+        if (towardZoomOut)
+        {
+            if (furthestT >= 0f && IsCameraAtFurthestStop() && scrollPathTargetT <= furthestT + notch * 0.25f)
+            {
+                if (!furthestExtraScrollTowardHigh)
+                {
+                    furthestExtraScrollTowardHigh = true;
+                    scrollPathTargetT = furthestT;
+                    return;
+                }
+            }
+
+            float nextT = Mathf.Min(1f, scrollPathTargetT + step);
+            if (furthestT >= 0f && !furthestExtraScrollTowardHigh
+                && scrollPathT < furthestT - notch * 0.25f && nextT > furthestT)
+                nextT = furthestT;
+
+            scrollPathTargetT = nextT;
+            if (furthestExtraScrollTowardHigh && nextT > furthestT + notch * 0.15f)
+                furthestExtraScrollTowardHigh = false;
+        }
+        else
+        {
+            if (furthestT >= 0f && IsCameraAtFurthestStop() && scrollPathTargetT >= furthestT - notch * 0.25f)
+            {
+                if (!furthestExtraScrollTowardLow)
+                {
+                    furthestExtraScrollTowardLow = true;
+                    scrollPathTargetT = furthestT;
+                    return;
+                }
+            }
+
+            float nextT = Mathf.Max(0f, scrollPathTargetT - step);
+            if (furthestT >= 0f && !furthestExtraScrollTowardLow
+                && scrollPathT > furthestT + notch * 0.25f && nextT < furthestT)
+                nextT = furthestT;
+
+            scrollPathTargetT = nextT;
+            if (furthestExtraScrollTowardLow && nextT < furthestT - notch * 0.15f)
+                furthestExtraScrollTowardLow = false;
+        }
+    }
+
+    private void TickScrollPathTravel()
+    {
+        if (!UsesScrollPath())
+            return;
+
+        scrollPathT = Mathf.SmoothDamp(scrollPathT, scrollPathTargetT, ref scrollPathTVelocity, scrollPathSmoothTime);
+        ApplyCurrentOffset();
+    }
+
     private void LateUpdate()
     {
         if (target == null) return;
         
         HandleInput();
+
+        if (!isInspectionMode)
+            TickScrollPathTravel();
         
         if (!isInspectionMode)
         {
@@ -257,30 +817,27 @@ public class CameraFollow : MonoBehaviour
     
     private void HandleInput()
     {
-        if (Keyboard.current == null) return;
-
-        // Toggle Inspection Mode via Leya
-        if (Keyboard.current[inspectionToggleKey].wasPressedThisFrame)
-        {
+        if (Keyboard.current != null && Keyboard.current[inspectionToggleKey].wasPressedThisFrame)
             ToggleInspectionMode();
-        }
 
         if (isInspectionMode) return;
 
         if (deathSentencePhase != DeathSentencePhase.None)
             return;
 
+        float scrollDelta = 0f;
         if (Mouse.current != null)
-        {
-            float scroll = Mouse.current.scroll.ReadValue().y;
-            if (Mathf.Abs(scroll) > 0.01f)
-            {
-                HandleScrollZoom(Mathf.Sign(scroll));
-                ApplyCurrentOffset();
-            }
-        }
+            scrollDelta = Mouse.current.scroll.ReadValue().y;
+#if ENABLE_LEGACY_INPUT_MANAGER
+        if (Mathf.Abs(scrollDelta) < 0.01f)
+            scrollDelta = Input.mouseScrollDelta.y;
+#endif
+        if (Mathf.Abs(scrollDelta) > 0.01f)
+            HandleScrollZoom(Mathf.Sign(scrollDelta));
 
-        // Action Mode Controls
+        if (Keyboard.current == null)
+            return;
+
         if (Keyboard.current[resetKey].wasPressedThisFrame) ResetToDefault();
         if (Keyboard.current[clockwiseKey].wasPressedThisFrame) CycleClockwise();
         if (Keyboard.current[counterClockwiseKey].wasPressedThisFrame) CycleCounterClockwise();
@@ -288,39 +845,21 @@ public class CameraFollow : MonoBehaviour
 
     private void HandleScrollZoom(float scrollDirection)
     {
-        // Positive scroll = zoom in, negative = zoom out
+        int maxStop = ActiveScrollStopCount - 1;
+
+        if (UsesScrollPath())
+        {
+            ApplyScrollPathWheel(scrollDirection);
+            return;
+        }
+
+        int legacyNext = scrollStopIndex;
         if (scrollDirection > 0f)
-        {
-            if (pitchDownAmount > 0f)
-            {
-                pitchDownAmount = Mathf.Max(0f, pitchDownAmount - scrollZoomStep);
-                return;
-            }
-
-            if (zoomDistance > minZoomDistance)
-            {
-                zoomDistance = Mathf.Max(minZoomDistance, zoomDistance - scrollZoomStep);
-                return;
-            }
-
-            extraCloseDistance = Mathf.Min(MaxExtraCloseDistance, extraCloseDistance + scrollZoomStep);
-        }
+            legacyNext = Mathf.Max(0, scrollStopIndex - 1);
         else
-        {
-            if (extraCloseDistance > 0f)
-            {
-                extraCloseDistance = Mathf.Max(0f, extraCloseDistance - scrollZoomStep);
-                return;
-            }
+            legacyNext = Mathf.Min(maxStop, scrollStopIndex + 1);
 
-            if (zoomDistance < maxZoomDistance)
-            {
-                zoomDistance = Mathf.Min(maxZoomDistance, zoomDistance + scrollZoomStep);
-                return;
-            }
-
-            pitchDownAmount = Mathf.Min(MaxPitchDownAmount, pitchDownAmount + scrollZoomStep);
-        }
+        ApplyScrollStop(legacyNext);
     }
 
     private void ToggleInspectionMode()
@@ -719,7 +1258,32 @@ public class CameraFollow : MonoBehaviour
 
     private void TickDeathSentenceZoom()
     {
+        if (UsesScrollPath())
+        {
+            if (scrollPathTargetT > 0.001f)
+            {
+                float rate = DeathSentenceZoomScrollTicksPerSecond * Time.deltaTime;
+                float step = 1f / Mathf.Max(1, ActiveScrollStopCount - 1);
+                scrollPathTargetT = Mathf.Max(0f, scrollPathTargetT - step * rate);
+            }
+            return;
+        }
+
         float zoomStep = scrollZoomStep * DeathSentenceZoomScrollTicksPerSecond * Time.deltaTime;
+
+        if (farSideDollyDistance > 0f)
+        {
+            farSideDollyDistance = Mathf.Max(0f, farSideDollyDistance - zoomStep);
+            ApplyCurrentOffset();
+            return;
+        }
+
+        if (extraFarLowerAmount > 0f)
+        {
+            extraFarLowerAmount = Mathf.Max(0f, extraFarLowerAmount - zoomStep);
+            ApplyCurrentOffset();
+            return;
+        }
 
         if (pitchDownAmount > 0f)
         {
@@ -797,13 +1361,64 @@ public class CameraFollow : MonoBehaviour
         ApplyCurrentOffset();
     }
 
+    private bool IsAtFarZoomOut()
+    {
+        return extraCloseDistance <= 0.0001f && zoomDistance >= maxZoomDistance - 0.001f;
+    }
+
+    private bool UsesFarViewOffset()
+    {
+        if (!IsAtFarZoomOut())
+            return false;
+
+        return pitchDownAmount > 0f
+            || extraFarLowerAmount > 0f
+            || farSideDollyDistance > 0f;
+    }
+
+    private void ApplyFarViewOffset()
+    {
+        float maxScale = maxZoomDistance / BaseZoomDistance;
+        Vector3 horizontal = GetHorizontalOffset(maxScale);
+        float y = cameraHeight - pitchDownAmount - extraFarLowerAmount;
+        offset = BuildFarViewOffset(horizontal, y);
+    }
+
+    private Vector3 BuildFarViewOffset(Vector3 horizontal, float y)
+    {
+        Vector3 xz = new Vector3(horizontal.x, 0f, horizontal.z);
+        float xzMag = xz.magnitude;
+        if (farSideDollyDistance > 0f && xzMag > 0.0001f)
+        {
+            float newMag = Mathf.Max(0f, xzMag - farSideDollyDistance);
+            Vector3 dir = xz / xzMag;
+            return new Vector3(dir.x * newMag, y, dir.z * newMag);
+        }
+
+        return new Vector3(horizontal.x, y, horizontal.z);
+    }
+
+    private void ClampFarViewDropAmounts()
+    {
+        float maxDrop = MaxFarViewDropTotal;
+        float maxPitch = EffectiveMaxPitchDownAmount;
+        pitchDownAmount = Mathf.Clamp(pitchDownAmount, 0f, Mathf.Min(maxPitch, maxDrop));
+        float remaining = Mathf.Max(0f, maxDrop - pitchDownAmount);
+        extraFarLowerAmount = Mathf.Clamp(extraFarLowerAmount, 0f, Mathf.Min(MaxExtraFarLower, remaining));
+    }
+
     private Vector3 GetActionHorizontalOffsetXZ()
     {
-        if (pitchDownAmount > 0f)
+        if (UsesScrollPath())
+            return new Vector3(offset.x, 0f, offset.z);
+
+        if (UsesFarViewOffset())
         {
             float maxScale = maxZoomDistance / BaseZoomDistance;
             Vector3 horizontal = GetHorizontalOffset(maxScale);
-            return new Vector3(horizontal.x, 0f, horizontal.z);
+            float y = cameraHeight - pitchDownAmount - extraFarLowerAmount;
+            Vector3 farOffset = BuildFarViewOffset(horizontal, y);
+            return new Vector3(farOffset.x, 0f, farOffset.z);
         }
 
         if (extraCloseDistance > 0f)
@@ -874,7 +1489,8 @@ public class CameraFollow : MonoBehaviour
         isFreeOrbitActive = false;
         currentAngleIndex = 0;
         freeOrbitYawDegrees = 0f;
-        ApplyCurrentOffset();
+        int stop = UsesScrollPath() ? FindDefaultStopOnScrollPath() : FindScrollStopForDefaultZoom();
+        ApplyScrollStop(stop);
         lastRotationTime = Time.unscaledTime;
     }
 
