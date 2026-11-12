@@ -5322,7 +5322,7 @@ MonoBehaviour:
   target: {fileID: 863632499}
   findPlayerAutomatically: 0
   cameraResponsiveness: 0.5
-  offset: {x: -0.0000012706657, y: 6.4898067, z: -1.6863512}
+  offset: {x: -0.0000012706657, y: 6.4898067, z: -1.6863511}
   constrainY: 0
   fixedYPosition: 10
   screenFramingOffset: 0
@@ -5339,12 +5339,12 @@ MonoBehaviour:
   maxZoomDistance: 10
   useScrollPathMarkers: 1
   scrollPathStopsLocal:
-  - {x: 0, y: 5.06, z: -0.88999987}
-  - {x: -0.0000001633299, y: 5.2462783, z: -0.9999123}
-  - {x: -0.00000039549454, y: 5.5038366, z: -1.1342579}
-  - {x: -0.0000006730607, y: 5.8112364, z: -1.2932825}
-  - {x: -0.0000009725957, y: 6.1470394, z: -1.4772316}
-  - {x: -0.0000012706657, y: 6.4898067, z: -1.6863512}
+  - {x: 0, y: 5.06, z: -0.89}
+  - {x: -0.0000001633299, y: 5.2462783, z: -0.99991244}
+  - {x: -0.00000039549454, y: 5.5038366, z: -1.134258}
+  - {x: -0.0000006730607, y: 5.8112364, z: -1.2932826}
+  - {x: -0.0000009725957, y: 6.1470394, z: -1.4772317}
+  - {x: -0.0000012706657, y: 6.4898067, z: -1.6863511}
   - {x: -0.0000015438382, y: 6.8180995, z: -1.9208866}
   - {x: -0.0000017686799, y: 7.1104803, z: -2.181084}
   - {x: -0.0000019217732, y: 7.346008, z: -2.467321}
@@ -5412,8 +5412,8 @@ MonoBehaviour:
   freeOrbitRotationSpeed: 1.3
   leyaController: {fileID: 2018208394}
   enableOcclusionMeshHide: 1
-  volumeSize: {x: 2, y: 1, z: 9}
-  volumeStartOffset: {x: 0, y: -0.06, z: -5.5}
+  volumeSize: {x: 2, y: 2, z: 9}
+  volumeStartOffset: {x: 0, y: 0.5, z: -5.5}
   scaleBoxDepthWithScroll: 0
   volumeDepthScaleAtMaxZoom: 0.7
   occlusionHideLayers:
@@ -17562,7 +17562,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 2124630496601074580, guid: 8327116535cf1624d9db336499d66ebe, type: 3}
       propertyPath: m_LocalPosition.x
-      value: -20
+      value: 30
       objectReference: {fileID: 0}
     - target: {fileID: 2124630496601074580, guid: 8327116535cf1624d9db336499d66ebe, type: 3}
       propertyPath: m_LocalPosition.y
@@ -17570,7 +17570,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 2124630496601074580, guid: 8327116535cf1624d9db336499d66ebe, type: 3}
       propertyPath: m_LocalPosition.z
-      value: 4
+      value: 1
       objectReference: {fileID: 0}
     - target: {fileID: 2124630496601074580, guid: 8327116535cf1624d9db336499d66ebe, type: 3}
       propertyPath: m_LocalRotation.w
