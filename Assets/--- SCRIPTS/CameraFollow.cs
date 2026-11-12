@@ -34,6 +34,8 @@ public class CameraFollow : MonoBehaviour
     [Min(1)] public int pathStepsPerScroll = 1;
     [Tooltip("How long the camera glides after each scroll.")]
     [Min(0.02f)] public float scrollPathSmoothTime = 0.12f;
+    [Tooltip("Death sentence path glide speed as a fraction of scroll ease (0.5 = half speed).")]
+    [Range(0.05f, 1f)] public float deathSentenceScrollSpeedScale = 0.5f;
 
     [FormerlySerializedAs("scrollStopCount")]
     [HideInInspector] public int scrollStepCount = 20;
@@ -134,26 +136,40 @@ public class CameraFollow : MonoBehaviour
 
     public bool UsesScrollPath() => scrollPathStopsLocal != null && scrollPathStopsLocal.Length >= 2;
 
-    public void SetScrollPathFromRecorder(IList<Vector3> stops)
+    private static float GetCardinalYawDegrees(int cardinalIndex)
     {
-        scrollPathStopsLocal = new Vector3[stops.Count];
-        for (int i = 0; i < stops.Count; i++)
-            scrollPathStopsLocal[i] = stops[i];
-        scrollStepCount = Mathf.Max(2, stops.Count);
-        scrollStopIndex = 0;
-        ApplyScrollStop(scrollStopIndex);
+        int i = ((cardinalIndex % 4) + 4) % 4;
+        return CardinalYawDegrees[i];
     }
+
+    private static int YawDegreesToCardinalIndex(float yawDegrees)
+    {
+        int best = 0;
+        float bestDelta = float.MaxValue;
+        for (int i = 0; i < CardinalYawDegrees.Length; i++)
+        {
+            float delta = Mathf.Abs(Mathf.DeltaAngle(yawDegrees, CardinalYawDegrees[i]));
+            if (delta < bestDelta)
+            {
+                bestDelta = delta;
+                best = i;
+            }
+        }
+
+        return best;
+    }
+
+    private float ActiveOrbitYawDegrees =>
+        isFreeOrbitActive ? freeOrbitYawDegrees : GetCardinalYawDegrees(currentAngleIndex);
 
     public Vector3 OrbitLocalOffsetToWorld(Vector3 orbitLocalNorth)
     {
-        float yaw = isFreeOrbitActive ? freeOrbitYawDegrees : currentAngleIndex * 90f;
-        return Quaternion.Euler(0f, yaw, 0f) * orbitLocalNorth;
+        return Quaternion.Euler(0f, ActiveOrbitYawDegrees, 0f) * orbitLocalNorth;
     }
 
     public Vector3 WorldOffsetToOrbitLocal(Vector3 worldOffset)
     {
-        float yaw = isFreeOrbitActive ? freeOrbitYawDegrees : currentAngleIndex * 90f;
-        return Quaternion.Inverse(Quaternion.Euler(0f, yaw, 0f)) * worldOffset;
+        return Quaternion.Inverse(Quaternion.Euler(0f, ActiveOrbitYawDegrees, 0f)) * worldOffset;
     }
 
     private Vector3 velocity = Vector3.zero;
@@ -179,6 +195,9 @@ public class CameraFollow : MonoBehaviour
         new Vector3(1.5f, 0, 10),    // South 
         new Vector3(-10, 0, 1.5f)    // West  
     };
+
+    // Must match GetMovementDirectionForCameraAngle (not index * 90°).
+    private static readonly float[] CardinalYawDegrees = { 0f, -90f, 180f, 90f };
     
     private int currentAngleIndex = 0;
     private int originalAngleIndex = 0;
@@ -234,7 +253,7 @@ public class CameraFollow : MonoBehaviour
         for (int stop = 0; stop <= maxWheelStop; stop++)
         {
             float t = stop / (float)maxWheelStop;
-            Vector3 world = OrbitLocalOffsetToWorld(EvaluateScrollPathAtT(t));
+            Vector3 world = OrbitLocalOffsetToWorld(EvaluateScrollPathAtUserT(t));
             float horiz = new Vector3(world.x, 0f, world.z).magnitude;
             float error = Mathf.Abs(horiz - defaultZoomDistance) + Mathf.Abs(world.y - cameraHeight);
             if (error < bestError)
@@ -294,7 +313,7 @@ public class CameraFollow : MonoBehaviour
     {
         if (UsesScrollPath())
         {
-            offset = OrbitLocalOffsetToWorld(EvaluateScrollPathAtT(scrollPathT));
+            offset = OrbitLocalOffsetToWorld(EvaluateScrollPathAtUserT(scrollPathT));
             scrollStopIndex = ScrollPathTToStopIndex(scrollPathT);
             return;
         }
@@ -544,14 +563,14 @@ public class CameraFollow : MonoBehaviour
         Vector3 pivotWorld = pivot.position;
         var waypoints = new List<Vector3>(guideMarkers.Count);
         foreach (var guide in guideMarkers)
-            waypoints.Add(WorldOffsetToOrbitLocal(guide.transform.position - pivotWorld));
+            waypoints.Add(guide.transform.position - pivotWorld);
 
         Vector3 furthestWaypointOffset = Vector3.zero;
         bool hasFurthestMarker = false;
         if (furthestMarkers.Count > 0)
         {
             Transform furthest = furthestMarkers[0];
-            furthestWaypointOffset = WorldOffsetToOrbitLocal(furthest.position - pivotWorld);
+            furthestWaypointOffset = furthest.position - pivotWorld;
             hasFurthestMarker = true;
             int insertAt = FindFurthestInsertIndex(waypoints, furthestWaypointOffset);
             insertAt = Mathf.Clamp(insertAt, 1, waypoints.Count);
@@ -730,7 +749,7 @@ public class CameraFollow : MonoBehaviour
         if (scrollPathFurthestT < 0f)
             return false;
 
-        return Mathf.Abs(scrollPathT - scrollPathFurthestT) <= ScrollPathNotchT() * 0.55f;
+        return Mathf.Abs(scrollPathT - FurthestPathUserT) <= ScrollPathNotchT() * 0.55f;
     }
 
     private void ApplyScrollPathWheel(float scrollDirection)
@@ -738,7 +757,9 @@ public class CameraFollow : MonoBehaviour
         float notch = ScrollPathNotchT();
         float step = ScrollPathWheelDeltaT();
         bool towardZoomOut = scrollDirection < 0f;
-        float furthestT = scrollPathFurthestT;
+        float furthestT = FurthestPathUserT;
+        if (furthestT < 0f)
+            furthestT = -1f;
 
         if (towardZoomOut)
         {
@@ -789,13 +810,20 @@ public class CameraFollow : MonoBehaviour
         if (!UsesScrollPath())
             return;
 
-        scrollPathT = Mathf.SmoothDamp(scrollPathT, scrollPathTargetT, ref scrollPathTVelocity, scrollPathSmoothTime);
+        float smoothTime = scrollPathSmoothTime;
+        if (deathSentencePhase == DeathSentencePhase.Zooming && UsesScrollPath())
+            smoothTime = scrollPathSmoothTime / Mathf.Max(0.05f, deathSentenceScrollSpeedScale);
+
+        scrollPathT = Mathf.SmoothDamp(scrollPathT, scrollPathTargetT, ref scrollPathTVelocity, smoothTime);
         ApplyCurrentOffset();
     }
 
     private void LateUpdate()
     {
         if (target == null) return;
+
+        if (isInspectionMode && tim != null && (!tim.IsGrounded || tim.IsDead))
+            ExitInspectionMode();
         
         HandleInput();
 
@@ -841,6 +869,92 @@ public class CameraFollow : MonoBehaviour
         if (Keyboard.current[resetKey].wasPressedThisFrame) ResetToDefault();
         if (Keyboard.current[clockwiseKey].wasPressedThisFrame) CycleClockwise();
         if (Keyboard.current[counterClockwiseKey].wasPressedThisFrame) CycleCounterClockwise();
+
+        if (Keyboard.current[Key.Digit1].wasPressedThisFrame)
+            SnapScrollPathBookmark(ScrollPathBookmark.MaxZoomIn);
+        if (Keyboard.current[Key.Digit2].wasPressedThisFrame)
+            SnapScrollPathBookmark(ScrollPathBookmark.Furthest);
+        if (Keyboard.current[Key.Digit3].wasPressedThisFrame)
+            SnapScrollPathBookmark(ScrollPathBookmark.MaxZoomOut);
+    }
+
+    private enum ScrollPathBookmark
+    {
+        MaxZoomIn,
+        Furthest,
+        MaxZoomOut
+    }
+
+    private void SnapScrollPathBookmark(ScrollPathBookmark bookmark)
+    {
+        if (!UsesScrollPath())
+            return;
+
+        float t = bookmark switch
+        {
+            ScrollPathBookmark.MaxZoomIn => 0f,
+            ScrollPathBookmark.MaxZoomOut => 1f,
+            ScrollPathBookmark.Furthest => FurthestPathUserT,
+            _ => scrollPathT
+        };
+
+        if (bookmark == ScrollPathBookmark.Furthest && t < 0f)
+            return;
+
+        SnapScrollPathToT(t);
+    }
+
+    private void SnapScrollPathToT(float t)
+    {
+        t = Mathf.Clamp01(t);
+        scrollPathT = t;
+        scrollPathTargetT = t;
+        scrollPathTVelocity = 0f;
+        ResetFurthestGateState();
+        scrollStopIndex = ScrollPathTToStopIndex(t);
+        ApplyCurrentOffset();
+    }
+
+    private const int ScrollPathTrimStopsFromZoomIn = 5;
+    private const int DeathSentenceStopsInFromFurthest = 15;
+
+    private float ScrollPathCurveTMinFromTrim() => ScrollPathNotchT() * ScrollPathTrimStopsFromZoomIn;
+
+    private float ScrollPathUserTToCurveT(float userT)
+    {
+        float tMin = ScrollPathCurveTMinFromTrim();
+        return Mathf.Lerp(tMin, 1f, Mathf.Clamp01(userT));
+    }
+
+    private float ScrollPathCurveTToUserT(float curveT)
+    {
+        float tMin = ScrollPathCurveTMinFromTrim();
+        float span = 1f - tMin;
+        if (span < 0.0001f)
+            return 0f;
+        return Mathf.Clamp01((curveT - tMin) / span);
+    }
+
+    private float FurthestPathUserT =>
+        scrollPathFurthestT < 0f ? -1f : ScrollPathCurveTToUserT(scrollPathFurthestT);
+
+    private Vector3 EvaluateScrollPathAtUserT(float userT)
+    {
+        return EvaluateScrollPathAtT(ScrollPathUserTToCurveT(userT));
+    }
+
+    private void SnapScrollPathDeathSentenceZoom()
+    {
+        if (!UsesScrollPath())
+            return;
+
+        float t = FurthestPathUserT >= 0f
+            ? FurthestPathUserT - ScrollPathNotchT() * DeathSentenceStopsInFromFurthest
+            : 1f;
+
+        scrollPathTargetT = Mathf.Clamp01(t);
+        scrollPathTVelocity = 0f;
+        ResetFurthestGateState();
     }
 
     private void HandleScrollZoom(float scrollDirection)
@@ -862,12 +976,23 @@ public class CameraFollow : MonoBehaviour
         ApplyScrollStop(legacyNext);
     }
 
+    private bool CanEnterInspectionMode()
+    {
+        if (tim == null)
+            return true;
+
+        return tim.IsGrounded && !tim.IsDead;
+    }
+
     private void ToggleInspectionMode()
     {
         if (leyaController == null) return;
 
         if (!isInspectionMode)
         {
+            if (!CanEnterInspectionMode())
+                return;
+
             isInspectionMode = true;
             isFreeOrbitActive = false;
             originalAngleIndex = currentAngleIndex;
@@ -880,13 +1005,21 @@ public class CameraFollow : MonoBehaviour
         }
         else
         {
-            isInspectionMode = false;
-            
-            leyaController.DeactivateWithTransition(transform.position, transform.rotation, () => {
-                actionCamera.enabled = true;
-                if (tim != null) tim.SetMovementEnabled(true);
-            });
+            ExitInspectionMode();
         }
+    }
+
+    private void ExitInspectionMode()
+    {
+        if (leyaController == null || !isInspectionMode)
+            return;
+
+        isInspectionMode = false;
+
+        leyaController.DeactivateWithTransition(transform.position, transform.rotation, () => {
+            actionCamera.enabled = true;
+            if (tim != null) tim.SetMovementEnabled(true);
+        });
     }
 
     private void UpdateActionMode()
@@ -1224,11 +1357,11 @@ public class CameraFollow : MonoBehaviour
         Vector3 north = presetOffsets[0];
         Vector3 northFlat = new Vector3(north.x, 0f, north.z);
         if (northFlat.sqrMagnitude < 0.0001f)
-            return currentAngleIndex * 90f;
+            return GetCardinalYawDegrees(currentAngleIndex);
 
         Vector3 currentFlat = new Vector3(horizontalXZ.x, 0f, horizontalXZ.z);
         if (currentFlat.sqrMagnitude < 0.0001f)
-            return currentAngleIndex * 90f;
+            return GetCardinalYawDegrees(currentAngleIndex);
 
         return Vector3.SignedAngle(northFlat, currentFlat, Vector3.up);
     }
@@ -1239,7 +1372,10 @@ public class CameraFollow : MonoBehaviour
             return;
 
         if (tim.IsAirborneDeathPending && !wasAirborneDeathPending)
+        {
             deathSentencePhase = DeathSentencePhase.Zooming;
+            SnapScrollPathDeathSentenceZoom();
+        }
 
         wasAirborneDeathPending = tim.IsAirborneDeathPending;
 
@@ -1259,15 +1395,7 @@ public class CameraFollow : MonoBehaviour
     private void TickDeathSentenceZoom()
     {
         if (UsesScrollPath())
-        {
-            if (scrollPathTargetT > 0.001f)
-            {
-                float rate = DeathSentenceZoomScrollTicksPerSecond * Time.deltaTime;
-                float step = 1f / Mathf.Max(1, ActiveScrollStopCount - 1);
-                scrollPathTargetT = Mathf.Max(0f, scrollPathTargetT - step * rate);
-            }
             return;
-        }
 
         float zoomStep = scrollZoomStep * DeathSentenceZoomScrollTicksPerSecond * Time.deltaTime;
 
@@ -1336,6 +1464,15 @@ public class CameraFollow : MonoBehaviour
     private int FindNearestCardinalIndex()
     {
         Vector3 currentHorizontal = GetActionHorizontalOffsetXZ();
+        if (currentHorizontal.sqrMagnitude < 0.0001f)
+            return currentAngleIndex;
+
+        if (UsesScrollPath() && !isFreeOrbitActive)
+            return currentAngleIndex;
+
+        if (isFreeOrbitActive)
+            return YawDegreesToCardinalIndex(freeOrbitYawDegrees);
+
         int bestIndex = 0;
         float bestSqDistance = float.MaxValue;
 
@@ -1357,7 +1494,7 @@ public class CameraFollow : MonoBehaviour
     {
         currentAngleIndex = FindNearestCardinalIndex();
         isFreeOrbitActive = false;
-        freeOrbitYawDegrees = currentAngleIndex * 90f;
+        freeOrbitYawDegrees = GetCardinalYawDegrees(currentAngleIndex);
         ApplyCurrentOffset();
     }
 
@@ -1410,7 +1547,10 @@ public class CameraFollow : MonoBehaviour
     private Vector3 GetActionHorizontalOffsetXZ()
     {
         if (UsesScrollPath())
-            return new Vector3(offset.x, 0f, offset.z);
+        {
+            Vector3 onPath = OrbitLocalOffsetToWorld(EvaluateScrollPathAtUserT(scrollPathT));
+            return new Vector3(onPath.x, 0f, onPath.z);
+        }
 
         if (UsesFarViewOffset())
         {
@@ -1458,7 +1598,7 @@ public class CameraFollow : MonoBehaviour
 
         currentAngleIndex = FindNearestCardinalIndex();
         isFreeOrbitActive = false;
-        freeOrbitYawDegrees = currentAngleIndex * 90f;
+        freeOrbitYawDegrees = GetCardinalYawDegrees(currentAngleIndex);
         ApplyCurrentOffset();
     }
 
