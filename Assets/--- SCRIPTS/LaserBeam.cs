@@ -161,7 +161,9 @@ public class LaserBeam : MonoBehaviour
         beamRange = Mathf.Max(0f, beamRange);
         lineWidth = Mathf.Max(0f, lineWidth);
 
+#if UNITY_EDITOR
         QueueEditorLineSetup();
+#endif
 
         if (!HasBeamLine())
             return;
@@ -170,10 +172,11 @@ public class LaserBeam : MonoBehaviour
         CacheLineRendererDefaults();
         BuildConnectedDeviceLists();
 
-        if (Application.isPlaying)
-            ApplyBeamColor(force: true);
-        else
-            SyncBeamColorForState();
+        if (!Application.isPlaying)
+            CastAndDraw();
+
+        ApplyStartingPosition();
+        SyncBeamColorForState();
     }
 
     private void LateUpdate()

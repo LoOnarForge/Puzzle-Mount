@@ -1,11 +1,11 @@
+using System.Collections.Generic;
 using UnityEngine;
 
+[DefaultExecutionOrder(60)]
 public class FloorOfShame : MonoBehaviour
 {
     private const int SkullPrefabSlotCount = 6;
-    private const float SkullHorizontalDistance = 2f;
-    private const float SkullHeightAbovePlatform = 11f;
-    private const float MinHorizontalDirectionSqr = 0.0001f;
+    private const string SkullSpawnPointNamePrefix = "Skull Spawn point (";
 
     [SerializeField] [Range(0f, 5f)] private float platformSpawnDelaySeconds;
     [SerializeField] private GameObject platformPrefab;
@@ -20,6 +20,7 @@ public class FloorOfShame : MonoBehaviour
     private bool spawnedForCurrentFall;
     private float platformSpawnAtTime = -1f;
     private Transform spawnedSkull;
+    private readonly List<Transform> skullSpawnPointBuffer = new List<Transform>(8);
 
     private void OnValidate()
     {
@@ -35,8 +36,6 @@ public class FloorOfShame : MonoBehaviour
     {
         if (!Application.isPlaying || tim == null)
             return;
-
-        PointSkullAtTim();
 
         if (tim.IsDead)
             return;
@@ -82,28 +81,54 @@ public class FloorOfShame : MonoBehaviour
         if (skullPrefab == null)
             return;
 
-        Vector3 horizontalOffset = Random.onUnitSphere;
-        horizontalOffset.y = 0f;
-        if (horizontalOffset.sqrMagnitude < MinHorizontalDirectionSqr)
-            horizontalOffset = Vector3.forward;
-        else
-            horizontalOffset.Normalize();
-
-        Vector3 skullPosition = platformRoot.position
-            + horizontalOffset * SkullHorizontalDistance
-            + Vector3.up * SkullHeightAbovePlatform;
+        if (!TryPickRandomSkullSpawnPoint(platformRoot, out Vector3 skullPosition))
+            return;
 
         GameObject skullInstance = Instantiate(skullPrefab, skullPosition, Quaternion.identity);
         spawnedSkull = skullInstance.transform;
-        spawnedSkull.LookAt(tim.transform.position, Vector3.up);
     }
 
-    private void PointSkullAtTim()
+    private void LateUpdate()
     {
-        if (spawnedSkull == null || tim == null || tim.IsDead)
+        PointSkullAtFollowTarget();
+    }
+
+    private void PointSkullAtFollowTarget()
+    {
+        if (!Application.isPlaying || spawnedSkull == null || tim == null || !spawnedForCurrentFall)
             return;
 
-        spawnedSkull.LookAt(tim.transform.position, Vector3.up);
+        Transform followTarget = tim.CameraFollowTarget;
+        if (followTarget == null)
+            return;
+
+        spawnedSkull.rotation = Quaternion.LookRotation(
+            followTarget.position - spawnedSkull.position,
+            Vector3.up);
+    }
+
+    private bool TryPickRandomSkullSpawnPoint(Transform platformRoot, out Vector3 skullWorldPosition)
+    {
+        skullWorldPosition = default;
+        if (platformRoot == null)
+            return false;
+
+        skullSpawnPointBuffer.Clear();
+        foreach (Transform child in platformRoot.GetComponentsInChildren<Transform>(true))
+        {
+            if (child == platformRoot)
+                continue;
+
+            if (child.name.StartsWith(SkullSpawnPointNamePrefix))
+                skullSpawnPointBuffer.Add(child);
+        }
+
+        if (skullSpawnPointBuffer.Count == 0)
+            return false;
+
+        Transform spawnPoint = skullSpawnPointBuffer[Random.Range(0, skullSpawnPointBuffer.Count)];
+        skullWorldPosition = spawnPoint.position;
+        return true;
     }
 
     private GameObject PickRandomSkullPrefab()
