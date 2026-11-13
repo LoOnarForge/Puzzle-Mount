@@ -27,19 +27,21 @@ public class CameraDecorationProximityScale : MonoBehaviour
 
     private void Awake()
     {
-        Rigidbody body = GetComponent<Rigidbody>();
-        body.isKinematic = true;
-        body.useGravity = false;
-
+        // Legacy decoration volume: logic disabled; collider off so editor gizmo does not mask the camera pyramid.
         Collider collider = GetComponent<Collider>();
-        collider.isTrigger = true;
+        if (collider != null)
+            collider.enabled = false;
 
-        if (decorationLayers.value == 0)
-            decorationLayers = LayerMask.GetMask("Decorations");
+        Rigidbody body = GetComponent<Rigidbody>();
+        if (body != null)
+            body.isKinematic = true;
+
+        enabled = false;
     }
 
     private void Update()
     {
+#if false // LEGACY: disabled until uniform camera mesh pyramid volume replaces this.
         if (fadeStates.Count == 0)
             return;
 
@@ -76,6 +78,7 @@ public class CameraDecorationProximityScale : MonoBehaviour
 
         for (int i = 0; i < finishedRestore.Count; i++)
             fadeStates.Remove(finishedRestore[i]);
+#endif
     }
 
     private void OnDisable()
@@ -91,6 +94,7 @@ public class CameraDecorationProximityScale : MonoBehaviour
 
     private void OnTriggerEnter(Collider other)
     {
+#if false // LEGACY
         if (!TryResolveDecorationRenderer(other, out MeshRenderer renderer, out Color fullBaseColor))
             return;
 
@@ -108,10 +112,12 @@ public class CameraDecorationProximityScale : MonoBehaviour
             OverlapCount = 1,
             PropertyBlock = new MaterialPropertyBlock(),
         };
+#endif
     }
 
     private void OnTriggerExit(Collider other)
     {
+#if false // LEGACY
         if (!TryResolveDecorationRenderer(other, out MeshRenderer renderer, out _))
             return;
 
@@ -120,6 +126,7 @@ public class CameraDecorationProximityScale : MonoBehaviour
 
         state.OverlapCount = Mathf.Max(0, state.OverlapCount - 1);
         fadeStates[renderer] = state;
+#endif
     }
 
     private bool TryResolveDecorationRenderer(Collider other, out MeshRenderer renderer, out Color fullBaseColor)

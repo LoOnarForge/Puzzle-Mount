@@ -5256,7 +5256,7 @@ Transform:
   m_GameObject: {fileID: 330585543}
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 0, y: -962, z: 0}
+  m_LocalPosition: {x: 29.29, y: -999, z: -11}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children:
@@ -5411,16 +5411,25 @@ MonoBehaviour:
   cameraRotationThreshold: 50
   freeOrbitRotationSpeed: 1.3
   leyaController: {fileID: 2018208394}
+  localOcclusionShapeRatio: 0.631
   enableOcclusionMeshHide: 1
-  volumeSize: {x: 2, y: 2, z: 9}
-  volumeStartOffset: {x: 0, y: 0.5, z: -5.5}
-  scaleBoxDepthWithScroll: 0
-  volumeDepthScaleAtMaxZoom: 0.7
   occlusionHideLayers:
     serializedVersion: 2
     m_Bits: 2147625984
-  showVolumeBox: 0
-  volumeGizmoColor: {r: 0, g: 0, b: 0, a: 1}
+  occlusionAimPoint: {fileID: 2105703130}
+  occlusionInwardTilt: 0.761
+  cameraQuadSize: 0.531
+  cameraQuadDistance: 0.4
+  farSideQuadSize: 1.112
+  farQuadDistance: -1.62
+  showVolumeBox: 1
+  volumeGizmoColor: {r: 0, g: 1, b: 0.103749156, a: 1}
+  volumeSize: {x: 2, y: 2, z: 9}
+  volumeStartOffset: {x: 0, y: 0.5, z: -5.5}
+  scaleBoxDepthWithScroll: 1
+  volumeDepthScaleAtMaxZoom: 0.7
+  occlusionBelowAimMargin: 0.35
+  occlusionPastAimMargin: 0.05
 --- !u!114 &330585549
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -17562,7 +17571,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 2124630496601074580, guid: 8327116535cf1624d9db336499d66ebe, type: 3}
       propertyPath: m_LocalPosition.x
-      value: 30
+      value: 29.29
       objectReference: {fileID: 0}
     - target: {fileID: 2124630496601074580, guid: 8327116535cf1624d9db336499d66ebe, type: 3}
       propertyPath: m_LocalPosition.y
@@ -17570,7 +17579,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 2124630496601074580, guid: 8327116535cf1624d9db336499d66ebe, type: 3}
       propertyPath: m_LocalPosition.z
-      value: 1
+      value: 0
       objectReference: {fileID: 0}
     - target: {fileID: 2124630496601074580, guid: 8327116535cf1624d9db336499d66ebe, type: 3}
       propertyPath: m_LocalRotation.w
@@ -17611,6 +17620,14 @@ PrefabInstance:
     - target: {fileID: 4114928453314444178, guid: 8327116535cf1624d9db336499d66ebe, type: 3}
       propertyPath: m_RenderingLayerMask
       value: 2
+      objectReference: {fileID: 0}
+    - target: {fileID: 4387467891803093806, guid: 8327116535cf1624d9db336499d66ebe, type: 3}
+      propertyPath: m_LocalPosition.x
+      value: -0
+      objectReference: {fileID: 0}
+    - target: {fileID: 4387467891803093806, guid: 8327116535cf1624d9db336499d66ebe, type: 3}
+      propertyPath: m_LocalPosition.z
+      value: 1.445
       objectReference: {fileID: 0}
     - target: {fileID: 5145931557227660823, guid: 8327116535cf1624d9db336499d66ebe, type: 3}
       propertyPath: m_RenderingLayerMask
@@ -17741,6 +17758,9 @@ PrefabInstance:
     - targetCorrespondingSourceObject: {fileID: 2124630496601074580, guid: 8327116535cf1624d9db336499d66ebe, type: 3}
       insertIndex: -1
       addedObject: {fileID: 988889300}
+    - targetCorrespondingSourceObject: {fileID: 2124630496601074580, guid: 8327116535cf1624d9db336499d66ebe, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 2105703130}
     m_AddedComponents:
     - targetCorrespondingSourceObject: {fileID: 478215984424799453, guid: 8327116535cf1624d9db336499d66ebe, type: 3}
       insertIndex: -1
@@ -36237,6 +36257,37 @@ MeshFilter:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 2102411610}
   m_Mesh: {fileID: 10207, guid: 0000000000000000e000000000000000, type: 0}
+--- !u!1 &2105703129
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 2105703130}
+  m_Layer: 24
+  m_Name: Camera Occlusion Target
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &2105703130
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2105703129}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 1.35, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 863632499}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1001 &2108460056
 PrefabInstance:
   m_ObjectHideFlags: 0
