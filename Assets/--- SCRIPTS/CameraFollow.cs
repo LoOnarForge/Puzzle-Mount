@@ -97,6 +97,9 @@ public class CameraFollow : MonoBehaviour
     [Tooltip("Aim override. If unset, uses Target transform, then Tim pivot plus look-at height.")]
     public Transform occlusionAimPoint;
 
+    [Tooltip("Tim's feet height for low-object culling. Renderers with center more than 0.2m below this are never hidden.")]
+    public Transform occlusionFeetReference;
+
     [HideInInspector] [FormerlySerializedAs("occlusionInwardTilt")]
     public float occlusionInwardTilt = 0.35f;
 
@@ -229,6 +232,7 @@ public class CameraFollow : MonoBehaviour
     private const float LocalOcclusionQuadSizeReferenceDistance = 1f;
     private const int OcclusionHullPlaneCount = 6;
     private const float OcclusionHullInsideEpsilon = 0.001f;
+    private const float OcclusionBelowFeetCenterMargin = 0.2f;
     private static readonly int[] VolumeEdgeCornerA = { 0, 1, 3, 2, 4, 5, 7, 6, 0, 1, 2, 3 };
     private static readonly int[] VolumeEdgeCornerB = { 1, 3, 2, 0, 5, 7, 6, 4, 4, 5, 6, 7 };
     private static readonly int[] LocalOcclusionFarFaceCornerA = { 0, 1, 3, 2 };
@@ -1161,6 +1165,9 @@ public class CameraFollow : MonoBehaviour
             if (renderer == null || !renderer.enabled)
                 continue;
 
+            if (ShouldExcludeRendererFromLocalOcclusion(renderer))
+                continue;
+
             if (RendererBoundsIntersectsLocalOcclusionVolume(renderer.bounds, camPos, aimDir, nearDist, farDist))
                 frameHiddenRenderers.Add(renderer);
         }
@@ -1330,6 +1337,24 @@ public class CameraFollow : MonoBehaviour
         for (Transform node = go.transform; node != null; node = node.parent)
         {
             if ((layerMask & (1 << node.gameObject.layer)) != 0)
+                return true;
+        }
+
+        return false;
+    }
+
+    private bool ShouldExcludeRendererFromLocalOcclusion(Renderer renderer)
+    {
+        if (renderer == null)
+            return true;
+
+        if (tim != null && tim.IsTransformPartOfCurrentGroundSupport(renderer.transform))
+            return true;
+
+        if (occlusionFeetReference != null)
+        {
+            float feetY = occlusionFeetReference.position.y;
+            if (renderer.bounds.center.y < feetY - OcclusionBelowFeetCenterMargin)
                 return true;
         }
 

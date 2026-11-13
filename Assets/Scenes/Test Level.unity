@@ -5417,6 +5417,7 @@ MonoBehaviour:
     serializedVersion: 2
     m_Bits: 2147625984
   occlusionAimPoint: {fileID: 2105703130}
+  occlusionFeetReference: {fileID: 2115393453}
   occlusionInwardTilt: 0.761
   cameraQuadSize: 0.531
   cameraQuadDistance: 0.4
@@ -17761,6 +17762,9 @@ PrefabInstance:
     - targetCorrespondingSourceObject: {fileID: 2124630496601074580, guid: 8327116535cf1624d9db336499d66ebe, type: 3}
       insertIndex: -1
       addedObject: {fileID: 2105703130}
+    - targetCorrespondingSourceObject: {fileID: 2124630496601074580, guid: 8327116535cf1624d9db336499d66ebe, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 2115393453}
     m_AddedComponents:
     - targetCorrespondingSourceObject: {fileID: 478215984424799453, guid: 8327116535cf1624d9db336499d66ebe, type: 3}
       insertIndex: -1
@@ -36415,6 +36419,37 @@ Transform:
   m_CorrespondingSourceObject: {fileID: 5559422297699529673, guid: 3c166600e8f55224892a779b4cab78aa, type: 3}
   m_PrefabInstance: {fileID: 713490915}
   m_PrefabAsset: {fileID: 0}
+--- !u!1 &2115393452
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 2115393453}
+  m_Layer: 24
+  m_Name: Camera Occlusion Feet Target
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &2115393453
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2115393452}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: -0.034, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 863632499}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!4 &2115511635 stripped
 Transform:
   m_CorrespondingSourceObject: {fileID: 1290766267931249531, guid: 1593065747ceed0428acf5e65890e682, type: 3}

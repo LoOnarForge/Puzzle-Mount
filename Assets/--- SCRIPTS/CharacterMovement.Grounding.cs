@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using UnityEngine;
 
 public partial class CharacterMovement
@@ -15,6 +16,8 @@ public partial class CharacterMovement
     private float coyoteTimeRemaining;
     private float airborneDeathTimer;
     private bool airborneDeathPending;
+    private readonly List<Collider> groundColliderScratch = new List<Collider>();
+    private readonly List<Transform> currentGroundSupports = new List<Transform>();
 
     private void InitGroundProbe()
     {
@@ -27,6 +30,10 @@ public partial class CharacterMovement
     private void RefreshGroundedState()
     {
         bool groundedContact = EvaluateGroundContact();
+
+        currentGroundSupports.Clear();
+        if (groundedContact)
+            CollectGroundSupportTransforms(currentGroundSupports);
 
         if (groundedContact)
             coyoteTimeRemaining = CoyoteTimeSeconds;
@@ -63,9 +70,33 @@ public partial class CharacterMovement
         isGrounded = groundedContact;
     }
 
+    public bool IsTransformPartOfCurrentGroundSupport(Transform candidate)
+    {
+        if (candidate == null || currentGroundSupports.Count == 0)
+            return false;
+
+        for (int i = 0; i < currentGroundSupports.Count; i++)
+        {
+            Transform support = currentGroundSupports[i];
+            if (support == null)
+                continue;
+
+            if (candidate == support
+                || candidate.IsChildOf(support)
+                || support.IsChildOf(candidate))
+            {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
     private bool EvaluateGroundContact()
     {
-        bool sphereHit = ProbeSphereGround(out _);
+        CollectGroundColliders(groundColliderScratch);
+        bool sphereHit = groundColliderScratch.Count > 0;
+
         bool controllerHit = controller.isGrounded;
 
         if (isJumping)
@@ -84,12 +115,39 @@ public partial class CharacterMovement
         return sphereHit || controllerHit || transportDeck;
     }
 
-    private bool ProbeSphereGround(out RaycastHit hit)
+    private void CollectGroundSupportTransforms(List<Transform> targets)
     {
-        hit = default;
+        targets.Clear();
+        CollectGroundColliders(groundColliderScratch);
+
+        for (int i = 0; i < groundColliderScratch.Count; i++)
+        {
+            Collider collider = groundColliderScratch[i];
+            if (collider == null)
+                continue;
+
+            Transform support = collider.transform;
+            bool alreadyAdded = false;
+            for (int j = 0; j < targets.Count; j++)
+            {
+                if (targets[j] == support)
+                {
+                    alreadyAdded = true;
+                    break;
+                }
+            }
+
+            if (!alreadyAdded)
+                targets.Add(support);
+        }
+    }
+
+    private void CollectGroundColliders(List<Collider> colliders)
+    {
+        colliders.Clear();
 
         if (controller == null)
-            return false;
+            return;
 
         float radius = controller.radius * GroundProbeRadiusScale;
         float halfHeight = controller.height * 0.5f;
@@ -101,24 +159,36 @@ public partial class CharacterMovement
                 sphereOrigin,
                 radius,
                 Vector3.down,
-                out hit,
+                out RaycastHit hit,
                 castDistance,
                 groundMask,
                 QueryTriggerInteraction.Ignore)
             && !IsTimCollider(hit.collider))
         {
-            return true;
+            colliders.Add(hit.collider);
         }
 
         Vector3 embeddedOrigin = sphereOrigin + Vector3.down * GroundPenetrationCheckOffset;
         Collider[] overlaps = Physics.OverlapSphere(embeddedOrigin, radius, groundMask, QueryTriggerInteraction.Ignore);
         for (int i = 0; i < overlaps.Length; i++)
         {
-            if (overlaps[i] != null && !IsTimCollider(overlaps[i]))
-                return true;
-        }
+            Collider overlap = overlaps[i];
+            if (overlap == null || IsTimCollider(overlap))
+                continue;
 
-        return false;
+            bool alreadyAdded = false;
+            for (int j = 0; j < colliders.Count; j++)
+            {
+                if (colliders[j] == overlap)
+                {
+                    alreadyAdded = true;
+                    break;
+                }
+            }
+
+            if (!alreadyAdded)
+                colliders.Add(overlap);
+        }
     }
 
     private bool IsTimCollider(Collider collider)
