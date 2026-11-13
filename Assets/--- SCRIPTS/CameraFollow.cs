@@ -1,6 +1,7 @@
 using UnityEngine;
 using UnityEngine.InputSystem;
 using UnityEngine.Rendering;
+using UnityEngine.Rendering.Universal;
 using UnityEngine.Serialization;
 using System.Collections.Generic;
 using System.Text.RegularExpressions;
@@ -91,6 +92,13 @@ public class CameraFollow : MonoBehaviour
     [Tooltip("Master switch: local camera occlusion and gizmo. Off restores all hidden renderers.")]
     public bool enableOcclusionMeshHide = false;
 
+    [Tooltip("Test: if assigned, occluding renderers swap to this material instead of being hidden. Originals restore when out of the volume.")]
+    public Material occlusionGhostMaterial;
+
+    [Tooltip("Occluders whose bounds are within this distance of Tim get the ghost material. Farther occluders are hidden.")]
+    [Range(0f, 10f)]
+    public float ghostDistanceFromTim = 2f;
+
     [Tooltip("Layers whose renderers are tested for mesh occlusion (no physics).")]
     public LayerMask occlusionHideLayers = ~0;
 
@@ -104,7 +112,7 @@ public class CameraFollow : MonoBehaviour
     public float occlusionInwardTilt = 0.35f;
 
     [FormerlySerializedAs("occlusionNearQuadSizeScale")]
-    [Range(0.1f, 4f)]
+    [Range(0.1f, 8f)]
     [Tooltip("World size of the camera-side quad only.")]
     public float cameraQuadSize = 1f;
 
@@ -113,7 +121,7 @@ public class CameraFollow : MonoBehaviour
     [Tooltip("Camera-side quad offset along camera-to-aim from the camera. -2 = 2m behind camera, 0 = at camera, +2 = 2m in front.")]
     public float cameraQuadDistance = 0.25f;
 
-    [Range(0.1f, 4f)]
+    [Range(0.1f, 8f)]
     [Tooltip("World size of the aim-side quad only.")]
     public float farSideQuadSize = 1f;
 
@@ -133,6 +141,29 @@ public class CameraFollow : MonoBehaviour
     [HideInInspector] public float volumeDepthScaleAtMaxZoom = 0.7f;
     [HideInInspector] public float occlusionBelowAimMargin = 0.35f;
     [HideInInspector] public float occlusionPastAimMargin = 0.05f;
+
+    [Header("X-Ray Silhouette (Test)")]
+    [Tooltip("Draw an X-ray silhouette over parts of Tim hidden behind walls, stairs, or rocks.")]
+    public bool enableXRaySilhouette = true;
+    public Color xRayFillColor = new Color(0.2f, 0.75f, 1f, 0.25f);
+    public Color xRayRimColor = new Color(0.45f, 0.92f, 1f, 0.9f);
+    [Range(0.5f, 6f)] public float xRayRimPower = 2.2f;
+
+    [Header("Shader Cutout (Test)")]
+    [Tooltip("Drives global cutout uniforms for materials using Custom/SimpleLitCutout.")]
+    public bool enableShaderCutout = true;
+    [Range(0.5f, 6f)] public float cutoutWidthScale = 2.5f;
+    [Range(0.5f, 4f)] public float cutoutHeightScale = 1.5f;
+    [Range(0.05f, 2f)] public float cutoutEdgeSoftness = 0.45f;
+    [Range(0.2f, 8f)] public float cutoutNoiseScale = 2.2f;
+    [Range(0f, 1f)] public float cutoutNoiseStrength = 0.28f;
+    [ColorUsage(false, true)] public Color cutoutEdgeColor = new Color(1f, 0.72f, 0.28f, 1f);
+    [Range(0.05f, 1f)] public float cutoutEdgeGlowWidth = 0.35f;
+    [Range(0f, 3f)] public float cutoutEdgeGlowIntensity = 1.15f;
+    public bool enableCutoutFeetSafeBox = true;
+    public Vector3 cutoutFeetBoxHalfExtents = new Vector3(1.25f, 1f, 1.25f);
+    public float cutoutFeetBoxTopOffset = 0.12f;
+    [Range(0.02f, 1f)] public float cutoutFeetBoxFeather = 0.18f;
 
     public bool IsInspectionMode => isInspectionMode;
     public int CurrentAngleIndex => currentAngleIndex;
@@ -257,9 +288,32 @@ public class CameraFollow : MonoBehaviour
     private Vector3 localOcclusionViewUp;
     private Vector3 localOcclusionAimDirection;
     private Vector3 localOcclusionCameraForward;
+    private static readonly int XRayFillColorId = Shader.PropertyToID("_FillColor");
+    private static readonly int XRayRimColorId = Shader.PropertyToID("_RimColor");
+    private static readonly int XRayRimPowerId = Shader.PropertyToID("_RimPower");
+    private const string XRayShaderName = "Custom/TimXRaySilhouette";
+
+    private static readonly int CutoutEnabledId = Shader.PropertyToID("_TimCutoutEnabled");
+    private static readonly int CutoutNearCenterId = Shader.PropertyToID("_TimCutoutNearCenter");
+    private static readonly int CutoutFarCenterId = Shader.PropertyToID("_TimCutoutFarCenter");
+    private static readonly int CutoutAxisForwardId = Shader.PropertyToID("_TimCutoutAxisForward");
+    private static readonly int CutoutAxisRightId = Shader.PropertyToID("_TimCutoutAxisRight");
+    private static readonly int CutoutShapeParamsId = Shader.PropertyToID("_TimCutoutShapeParams");
+    private static readonly int CutoutVisualParamsId = Shader.PropertyToID("_TimCutoutVisualParams");
+    private static readonly int CutoutEdgeColorId = Shader.PropertyToID("_TimCutoutEdgeColor");
+    private static readonly int CutoutFeetBoxCenterId = Shader.PropertyToID("_TimCutoutFeetBoxCenter");
+    private static readonly int CutoutFeetBoxHalfExtentsId = Shader.PropertyToID("_TimCutoutFeetBoxHalfExtents");
+
+    private Vector3 localOcclusionHorizAimDir;
+    private Vector3 localOcclusionHorizRight;
+
+    private Material xRayMaterial;
+    private TimXRaySilhouettePass xRayPass;
+    private readonly List<Renderer> timXRayRenderers = new List<Renderer>();
     private readonly List<Renderer> occlusionMeshCandidates = new List<Renderer>();
     private readonly Dictionary<Renderer, ShadowCastingMode> proximityHiddenRenderers = new Dictionary<Renderer, ShadowCastingMode>();
     private readonly HashSet<Renderer> frameHiddenRenderers = new HashSet<Renderer>();
+    private readonly Dictionary<Renderer, Material[]> ghostSwappedOriginalMaterials = new Dictionary<Renderer, Material[]>();
 
     private float DampingTime => Mathf.Lerp(0.35f, 0.02f, cameraResponsiveness);
     private float RotationLerpSpeed => Mathf.Lerp(2f, 20f, cameraResponsiveness);
@@ -301,21 +355,31 @@ public class CameraFollow : MonoBehaviour
         return best;
     }
 
+    private void OnEnable()
+    {
+        RenderPipelineManager.beginCameraRendering += OnBeginCameraRendering;
+    }
+
     private void OnDisable()
     {
+        RenderPipelineManager.beginCameraRendering -= OnBeginCameraRendering;
         RestoreAllHiddenMeshes();
         SetVolumeLinesVisible(false);
+        DisableShaderCutoutGlobals();
     }
 
     private void OnDestroy()
     {
         if (volumeLineMaterial != null)
             Destroy(volumeLineMaterial);
+
+        if (xRayMaterial != null)
+            CoreUtils.Destroy(xRayMaterial);
     }
 
     private void OnDrawGizmos()
     {
-        if (!enableOcclusionMeshHide || !showVolumeBox)
+        if ((!enableOcclusionMeshHide && !enableShaderCutout) || !showVolumeBox)
             return;
 
         if (!TryBuildLocalCameraOcclusionVolume())
@@ -332,10 +396,20 @@ public class CameraFollow : MonoBehaviour
         Gizmos.DrawLine(aim - markerRight * markerHalf, aim + markerRight * markerHalf);
         Gizmos.DrawLine(aim - markerUp * markerHalf, aim + markerUp * markerHalf);
         Gizmos.DrawLine(aim, aim - localOcclusionAimDirection * markerHalf);
+
+        if (enableShaderCutout && enableCutoutFeetSafeBox && TryGetCutoutFeetBox(out Vector3 feetBoxCenter, out Vector3 feetBoxHalfExtents))
+        {
+            Gizmos.color = new Color(0.2f, 0.85f, 1f, 0.8f);
+            Gizmos.DrawWireCube(feetBoxCenter, feetBoxHalfExtents * 2f);
+        }
     }
 
     private void OnValidate()
     {
+        // Inspector edits during Play Mode must not rebuild the scroll path or reset the camera offset.
+        if (Application.isPlaying)
+            return;
+
         scrollStepCount = Mathf.Max(2, ActiveScrollStopCount);
         pathStepsPerScroll = Mathf.Max(1, pathStepsPerScroll);
         scrollStopIndex = Mathf.Clamp(scrollStopIndex, 0, ActiveScrollStopCount - 1);
@@ -565,7 +639,68 @@ public class CameraFollow : MonoBehaviour
         scrollStopIndex = UsesScrollPath() ? FindDefaultStopOnScrollPath() : FindScrollStopForDefaultZoom();
         ApplyScrollStop(scrollStopIndex);
         CacheOcclusionMeshCandidates();
+        CacheTimXRayRenderers();
         RestoreAllHiddenMeshes();
+    }
+
+    private void CacheTimXRayRenderers()
+    {
+        timXRayRenderers.Clear();
+        if (tim == null)
+            return;
+
+        Renderer[] renderers = tim.GetComponentsInChildren<Renderer>(true);
+        for (int i = 0; i < renderers.Length; i++)
+        {
+            Renderer renderer = renderers[i];
+            if (renderer is SkinnedMeshRenderer || renderer is MeshRenderer)
+                timXRayRenderers.Add(renderer);
+        }
+    }
+
+    private void OnBeginCameraRendering(ScriptableRenderContext context, Camera cam)
+    {
+        if (!enableXRaySilhouette || isInspectionMode)
+            return;
+
+        if (actionCamera == null)
+            actionCamera = GetComponent<Camera>();
+        if (cam != actionCamera)
+            return;
+
+        if (tim == null)
+            return;
+
+        if (timXRayRenderers.Count == 0)
+            CacheTimXRayRenderers();
+        if (timXRayRenderers.Count == 0)
+            return;
+
+        if (!EnsureXRaySilhouettePass())
+            return;
+
+        xRayMaterial.SetColor(XRayFillColorId, xRayFillColor);
+        xRayMaterial.SetColor(XRayRimColorId, xRayRimColor);
+        xRayMaterial.SetFloat(XRayRimPowerId, xRayRimPower);
+        xRayPass.SetRenderers(timXRayRenderers);
+
+        UniversalAdditionalCameraData additionalData = cam.GetUniversalAdditionalCameraData();
+        if (additionalData != null && additionalData.scriptableRenderer != null)
+            additionalData.scriptableRenderer.EnqueuePass(xRayPass);
+    }
+
+    private bool EnsureXRaySilhouettePass()
+    {
+        if (xRayPass != null && xRayMaterial != null)
+            return true;
+
+        Shader shader = Shader.Find(XRayShaderName);
+        if (shader == null)
+            return false;
+
+        xRayMaterial = CoreUtils.CreateEngineMaterial(shader);
+        xRayPass = new TimXRaySilhouettePass(xRayMaterial);
+        return true;
     }
 
     private Transform GetFollowPivotTransform()
@@ -882,15 +1017,21 @@ public class CameraFollow : MonoBehaviour
             if (enableOcclusionMeshHide)
                 UpdateLocalCameraOcclusionMeshHide();
             else
-            {
                 RestoreAllHiddenMeshes();
+
+            if (enableShaderCutout)
+                UpdateShaderCutoutGlobals();
+            else
+                DisableShaderCutoutGlobals();
+
+            if (!enableOcclusionMeshHide && !enableShaderCutout)
                 SetVolumeLinesVisible(false);
-            }
         }
         else
         {
             RestoreAllHiddenMeshes();
             SetVolumeLinesVisible(false);
+            DisableShaderCutoutGlobals();
         }
     }
     
@@ -1207,11 +1348,19 @@ public class CameraFollow : MonoBehaviour
 
         foreach (Renderer renderer in frameHiddenRenderers)
         {
-            if (renderer == null || proximityHiddenRenderers.ContainsKey(renderer))
+            if (renderer == null)
                 continue;
 
-            proximityHiddenRenderers[renderer] = renderer.shadowCastingMode;
-            renderer.shadowCastingMode = ShadowCastingMode.ShadowsOnly;
+            if (proximityHiddenRenderers.ContainsKey(renderer))
+            {
+                bool isGhosted = ghostSwappedOriginalMaterials.ContainsKey(renderer);
+                if (isGhosted == ShouldGhostOcclusionRenderer(renderer))
+                    continue;
+
+                RestoreProximityHiddenRenderer(renderer);
+            }
+
+            HideOcclusionRenderer(renderer);
         }
     }
 
@@ -1256,6 +1405,8 @@ public class CameraFollow : MonoBehaviour
         }
 
         Vector3 horizRight = Vector3.Cross(Vector3.up, horizAimDir).normalized;
+        localOcclusionHorizAimDir = horizAimDir;
+        localOcclusionHorizRight = horizRight;
 
         Vector3 cameraQuadCenter = camPos + aimDir * cameraQuadDistance;
         Vector3 aimQuadCenter = aimWorldPosition + horizAimDir * farQuadDistance;
@@ -1335,6 +1486,83 @@ public class CameraFollow : MonoBehaviour
         for (int i = 0; i < 4; i++)
             occlusionEdgeDirections[2 + i] = localOcclusionFarCorners[i] - localOcclusionNearCorners[i];
 
+        return true;
+    }
+
+    private void UpdateShaderCutoutGlobals()
+    {
+        if (!TryBuildLocalCameraOcclusionVolume())
+        {
+            DisableShaderCutoutGlobals();
+            if (!enableOcclusionMeshHide)
+                SetVolumeLinesVisible(false);
+            return;
+        }
+
+        if (!enableOcclusionMeshHide)
+        {
+            if (showVolumeBox)
+                DrawLocalOcclusionWireframePlayMode();
+            else
+                SetVolumeLinesVisible(false);
+        }
+
+        Vector3 nearCenter = 0.25f * (localOcclusionNearCorners[0] + localOcclusionNearCorners[1] + localOcclusionNearCorners[2] + localOcclusionNearCorners[3]);
+        Vector3 farCenter = 0.25f * (localOcclusionFarCorners[0] + localOcclusionFarCorners[1] + localOcclusionFarCorners[2] + localOcclusionFarCorners[3]);
+        float nearHalfWidth = 0.5f * Vector3.Distance(localOcclusionNearCorners[0], localOcclusionNearCorners[1]) * cutoutWidthScale;
+        float nearHalfHeight = 0.5f * Vector3.Distance(localOcclusionNearCorners[0], localOcclusionNearCorners[2]) * cutoutHeightScale;
+        float farHalfWidth = 0.5f * Vector3.Distance(localOcclusionFarCorners[0], localOcclusionFarCorners[1]) * cutoutWidthScale;
+        float farHalfHeight = 0.5f * Vector3.Distance(localOcclusionFarCorners[0], localOcclusionFarCorners[2]) * cutoutHeightScale;
+
+        Shader.SetGlobalFloat(CutoutEnabledId, 1f);
+        Shader.SetGlobalVector(CutoutNearCenterId, new Vector4(nearCenter.x, nearCenter.y, nearCenter.z, 0f));
+        Shader.SetGlobalVector(CutoutFarCenterId, new Vector4(farCenter.x, farCenter.y, farCenter.z, 0f));
+        Shader.SetGlobalVector(CutoutAxisForwardId, new Vector4(localOcclusionHorizAimDir.x, localOcclusionHorizAimDir.y, localOcclusionHorizAimDir.z, 0f));
+        Shader.SetGlobalVector(CutoutAxisRightId, new Vector4(localOcclusionHorizRight.x, localOcclusionHorizRight.y, localOcclusionHorizRight.z, 0f));
+        Shader.SetGlobalVector(CutoutShapeParamsId, new Vector4(nearHalfWidth, nearHalfHeight, farHalfWidth, farHalfHeight));
+        Shader.SetGlobalVector(CutoutVisualParamsId, new Vector4(cutoutEdgeSoftness, cutoutNoiseScale, cutoutNoiseStrength, cutoutEdgeGlowWidth));
+
+        Color edgeCol = cutoutEdgeColor;
+        edgeCol.a = cutoutEdgeGlowIntensity;
+        Shader.SetGlobalVector(CutoutEdgeColorId, edgeCol);
+
+        if (enableCutoutFeetSafeBox && TryGetCutoutFeetBox(out Vector3 feetBoxCenter, out Vector3 feetBoxHalfExtents))
+        {
+            Shader.SetGlobalVector(CutoutFeetBoxCenterId, new Vector4(feetBoxCenter.x, feetBoxCenter.y, feetBoxCenter.z, 1f));
+            Shader.SetGlobalVector(CutoutFeetBoxHalfExtentsId, new Vector4(feetBoxHalfExtents.x, feetBoxHalfExtents.y, feetBoxHalfExtents.z, cutoutFeetBoxFeather));
+        }
+        else
+        {
+            Shader.SetGlobalVector(CutoutFeetBoxCenterId, Vector4.zero);
+            Shader.SetGlobalVector(CutoutFeetBoxHalfExtentsId, Vector4.zero);
+        }
+    }
+
+    private static void DisableShaderCutoutGlobals()
+    {
+        Shader.SetGlobalFloat(CutoutEnabledId, 0f);
+    }
+
+    private bool TryGetCutoutFeetBox(out Vector3 boxCenter, out Vector3 halfExtents)
+    {
+        boxCenter = default;
+        halfExtents = new Vector3(
+            Mathf.Max(0.05f, cutoutFeetBoxHalfExtents.x),
+            Mathf.Max(0.05f, cutoutFeetBoxHalfExtents.y),
+            Mathf.Max(0.05f, cutoutFeetBoxHalfExtents.z));
+
+        Vector3 referencePos;
+        if (occlusionFeetReference != null)
+            referencePos = occlusionFeetReference.position;
+        else if (tim != null)
+            referencePos = tim.transform.position;
+        else if (target != null)
+            referencePos = target.position;
+        else
+            return false;
+
+        float topY = referencePos.y + cutoutFeetBoxTopOffset;
+        boxCenter = new Vector3(referencePos.x, topY - halfExtents.y, referencePos.z);
         return true;
     }
 
@@ -1586,11 +1814,19 @@ public class CameraFollow : MonoBehaviour
 
         foreach (Renderer renderer in frameHiddenRenderers)
         {
-            if (renderer == null || proximityHiddenRenderers.ContainsKey(renderer))
+            if (renderer == null)
                 continue;
 
-            proximityHiddenRenderers[renderer] = renderer.shadowCastingMode;
-            renderer.shadowCastingMode = ShadowCastingMode.ShadowsOnly;
+            if (proximityHiddenRenderers.ContainsKey(renderer))
+            {
+                bool isGhosted = ghostSwappedOriginalMaterials.ContainsKey(renderer);
+                if (isGhosted == ShouldGhostOcclusionRenderer(renderer))
+                    continue;
+
+                RestoreProximityHiddenRenderer(renderer);
+            }
+
+            HideOcclusionRenderer(renderer);
         }
     }
 
@@ -1860,12 +2096,52 @@ public class CameraFollow : MonoBehaviour
         }
     }
 
+    // True when the ghost material is assigned and the renderer's bounds are within ghostDistanceFromTim of Tim.
+    private bool ShouldGhostOcclusionRenderer(Renderer renderer)
+    {
+        if (occlusionGhostMaterial == null)
+            return false;
+
+        Transform timTransform = tim != null ? tim.transform : target;
+        if (timTransform == null)
+            return false;
+
+        Vector3 timPosition = timTransform.position;
+        Vector3 closestPoint = renderer.bounds.ClosestPoint(timPosition);
+        return (closestPoint - timPosition).sqrMagnitude <= ghostDistanceFromTim * ghostDistanceFromTim;
+    }
+
+    // Hides an occluding renderer: ghost material when close to Tim, otherwise renders shadows only.
+    private void HideOcclusionRenderer(Renderer renderer)
+    {
+        proximityHiddenRenderers[renderer] = renderer.shadowCastingMode;
+
+        if (!ShouldGhostOcclusionRenderer(renderer))
+        {
+            renderer.shadowCastingMode = ShadowCastingMode.ShadowsOnly;
+            return;
+        }
+
+        Material[] originalMaterials = renderer.sharedMaterials;
+        ghostSwappedOriginalMaterials[renderer] = originalMaterials;
+
+        Material[] ghostMaterials = new Material[originalMaterials.Length];
+        for (int i = 0; i < ghostMaterials.Length; i++)
+            ghostMaterials[i] = occlusionGhostMaterial;
+
+        renderer.sharedMaterials = ghostMaterials;
+    }
+
     private void RestoreProximityHiddenRenderer(Renderer renderer)
     {
         if (renderer != null && proximityHiddenRenderers.TryGetValue(renderer, out ShadowCastingMode originalMode))
             renderer.shadowCastingMode = originalMode;
 
+        if (renderer != null && ghostSwappedOriginalMaterials.TryGetValue(renderer, out Material[] originalMaterials))
+            renderer.sharedMaterials = originalMaterials;
+
         proximityHiddenRenderers.Remove(renderer);
+        ghostSwappedOriginalMaterials.Remove(renderer);
     }
 
     private readonly List<Renderer> tempRestoreList = new List<Renderer>();
@@ -1878,7 +2154,14 @@ public class CameraFollow : MonoBehaviour
                 entry.Key.shadowCastingMode = entry.Value;
         }
 
+        foreach (KeyValuePair<Renderer, Material[]> entry in ghostSwappedOriginalMaterials)
+        {
+            if (entry.Key != null)
+                entry.Key.sharedMaterials = entry.Value;
+        }
+
         proximityHiddenRenderers.Clear();
+        ghostSwappedOriginalMaterials.Clear();
         frameHiddenRenderers.Clear();
     }
 
