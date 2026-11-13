@@ -97,29 +97,29 @@ public class CameraFollow : MonoBehaviour
     [Tooltip("Aim override. If unset, uses Target transform, then Tim pivot plus look-at height.")]
     public Transform occlusionAimPoint;
 
-    [Tooltip("Tim's feet height for low-object culling. Renderers with center more than 0.2m below this are never hidden.")]
+    [Tooltip("Tim's feet height for low-object culling. Renderers with top at or below this height are never hidden.")]
     public Transform occlusionFeetReference;
 
     [HideInInspector] [FormerlySerializedAs("occlusionInwardTilt")]
     public float occlusionInwardTilt = 0.35f;
 
     [FormerlySerializedAs("occlusionNearQuadSizeScale")]
-    [Range(0.5f, 2f)]
+    [Range(0.1f, 4f)]
     [Tooltip("World size of the camera-side quad only.")]
     public float cameraQuadSize = 1f;
 
     [FormerlySerializedAs("occlusionNearPlaneDistance")]
     [Range(-2f, 2f)]
-    [Tooltip("Camera-side quad offset along camera forward from the camera. -2 = 2m behind camera, 0 = at camera, +2 = 2m in front.")]
+    [Tooltip("Camera-side quad offset along camera-to-aim from the camera. -2 = 2m behind camera, 0 = at camera, +2 = 2m in front.")]
     public float cameraQuadDistance = 0.25f;
 
-    [Range(0.5f, 2f)]
+    [Range(0.1f, 4f)]
     [Tooltip("World size of the aim-side quad only.")]
     public float farSideQuadSize = 1f;
 
     [FormerlySerializedAs("occlusionEndMarginBeforeAim")]
     [Range(-2f, 2f)]
-    [Tooltip("Aim-side quad offset along camera-to-target from the aim point. -2 = 2m toward camera, 0 = on target, +2 = 2m past target.")]
+    [Tooltip("Aim-side vertical quad offset along horizontal camera-to-target from the aim point. -2 = 2m toward camera, 0 = at Tim plane, +2 = 2m past target.")]
     public float farQuadDistance = 0f;
 
     [Tooltip("Draw local occlusion wireframe in play mode and scene gizmos.")]
@@ -231,8 +231,12 @@ public class CameraFollow : MonoBehaviour
     private const float LocalOcclusionShapeMaxStretch = 2f;
     private const float LocalOcclusionQuadSizeReferenceDistance = 1f;
     private const int OcclusionHullPlaneCount = 6;
+    private const int OcclusionHullUniqueEdgeDirectionCount = 6;
     private const float OcclusionHullInsideEpsilon = 0.001f;
-    private const float OcclusionBelowFeetCenterMargin = 0.2f;
+    private const float OcclusionBelowFeetMaxYMargin = 0.08f;
+    private const float MinOcclusionVolumeDepth = 0.05f;
+    private const float MinOcclusionQuadHeight = 0.05f;
+    private const float MinOcclusionAxisMagnitudeSq = 0.000001f;
     private static readonly int[] VolumeEdgeCornerA = { 0, 1, 3, 2, 4, 5, 7, 6, 0, 1, 2, 3 };
     private static readonly int[] VolumeEdgeCornerB = { 1, 3, 2, 0, 5, 7, 6, 4, 4, 5, 6, 7 };
     private static readonly int[] LocalOcclusionFarFaceCornerA = { 0, 1, 3, 2 };
@@ -245,6 +249,9 @@ public class CameraFollow : MonoBehaviour
     private readonly Vector3[] localOcclusionNearCorners = new Vector3[4];
     private readonly Vector3[] localOcclusionFarCorners = new Vector3[4];
     private readonly Plane[] occlusionClipPlanes = new Plane[OcclusionHullPlaneCount];
+    private readonly Vector3[] occlusionEdgeDirections = new Vector3[OcclusionHullUniqueEdgeDirectionCount];
+    private readonly Vector3[] obbAxesScratch = new Vector3[3];
+    private Bounds occlusionHullBounds;
     private Vector3 occlusionHullCenter;
     private Vector3 localOcclusionAimPosition;
     private Vector3 localOcclusionViewUp;
@@ -311,7 +318,7 @@ public class CameraFollow : MonoBehaviour
         if (!enableOcclusionMeshHide || !showVolumeBox)
             return;
 
-        if (!TryBuildLocalCameraOcclusionVolume(out _, out _, out _, out _))
+        if (!TryBuildLocalCameraOcclusionVolume())
             return;
 
         CopyLocalOcclusionCornersToVolumeArray();
@@ -875,11 +882,15 @@ public class CameraFollow : MonoBehaviour
             if (enableOcclusionMeshHide)
                 UpdateLocalCameraOcclusionMeshHide();
             else
+            {
                 RestoreAllHiddenMeshes();
+                SetVolumeLinesVisible(false);
+            }
         }
         else
         {
             RestoreAllHiddenMeshes();
+            SetVolumeLinesVisible(false);
         }
     }
     
@@ -1135,6 +1146,9 @@ public class CameraFollow : MonoBehaviour
             if (tim != null && renderer.transform.IsChildOf(tim.transform))
                 continue;
 
+            if (renderer.transform.IsChildOf(transform))
+                continue;
+
             occlusionMeshCandidates.Add(renderer);
         }
     }
@@ -1144,10 +1158,11 @@ public class CameraFollow : MonoBehaviour
         if (!enableOcclusionMeshHide)
         {
             RestoreAllHiddenMeshes();
+            SetVolumeLinesVisible(false);
             return;
         }
 
-        if (!TryBuildLocalCameraOcclusionVolume(out Vector3 camPos, out Vector3 aimDir, out float nearDist, out float farDist))
+        if (!TryBuildLocalCameraOcclusionVolume())
         {
             RestoreAllHiddenMeshes();
             SetVolumeLinesVisible(false);
@@ -1162,17 +1177,17 @@ public class CameraFollow : MonoBehaviour
         for (int i = 0; i < occlusionMeshCandidates.Count; i++)
         {
             Renderer renderer = occlusionMeshCandidates[i];
-            if (renderer == null || !renderer.enabled)
+            if (renderer == null || !renderer.enabled || !renderer.gameObject.activeInHierarchy)
                 continue;
 
             if (ShouldExcludeRendererFromLocalOcclusion(renderer))
                 continue;
 
-            if (RendererBoundsIntersectsLocalOcclusionVolume(renderer.bounds, camPos, aimDir, nearDist, farDist))
+            if (RendererIntersectsLocalOcclusionVolume(renderer))
                 frameHiddenRenderers.Add(renderer);
         }
 
-        if (enableOcclusionMeshHide)
+        if (showVolumeBox)
             DrawLocalOcclusionWireframePlayMode();
         else
             SetVolumeLinesVisible(false);
@@ -1200,16 +1215,9 @@ public class CameraFollow : MonoBehaviour
         }
     }
 
-    private bool TryBuildLocalCameraOcclusionVolume(
-        out Vector3 camPos,
-        out Vector3 aimDir,
-        out float nearDist,
-        out float farDist)
+    private bool TryBuildLocalCameraOcclusionVolume()
     {
-        camPos = transform.position;
-        aimDir = default;
-        nearDist = 0f;
-        farDist = 0f;
+        Vector3 camPos = transform.position;
 
         if (!TryGetOcclusionAimWorldPosition(out Vector3 aimWorldPosition))
             return false;
@@ -1223,7 +1231,7 @@ public class CameraFollow : MonoBehaviour
         if (toAim.sqrMagnitude < 0.001f)
             return false;
 
-        aimDir = toAim.normalized;
+        Vector3 aimDir = toAim.normalized;
         localOcclusionAimDirection = aimDir;
         localOcclusionAimPosition = aimWorldPosition;
         GetOcclusionVolumeAxes(aimDir, out _, out localOcclusionViewUp);
@@ -1231,18 +1239,35 @@ public class CameraFollow : MonoBehaviour
         Quaternion camRot = transform.rotation;
         Vector3 forward = camRot * Vector3.forward;
         localOcclusionCameraForward = forward;
-        Vector3 right = camRot * Vector3.right;
-        Vector3 up = camRot * Vector3.up;
 
         if (Vector3.Dot(toAim, forward) < 0.05f)
             return false;
 
-        Vector3 cameraQuadCenter = camPos + forward * cameraQuadDistance;
-        Vector3 aimQuadCenter = aimWorldPosition + aimDir * farQuadDistance;
-        nearDist = Vector3.Dot(cameraQuadCenter - camPos, forward);
-        farDist = Vector3.Dot(aimQuadCenter - camPos, forward);
-        if (Mathf.Abs(Vector3.Dot(cameraQuadCenter - aimQuadCenter, aimDir)) < 0.02f)
-            return false;
+        Vector3 horizToAim = new Vector3(toAim.x, 0f, toAim.z);
+        Vector3 horizAimDir;
+        if (horizToAim.sqrMagnitude >= MinOcclusionAxisMagnitudeSq)
+        {
+            horizAimDir = horizToAim.normalized;
+        }
+        else
+        {
+            Vector3 camHoriz = Vector3.ProjectOnPlane(forward, Vector3.up);
+            horizAimDir = camHoriz.sqrMagnitude >= MinOcclusionAxisMagnitudeSq ? camHoriz.normalized : Vector3.forward;
+        }
+
+        Vector3 horizRight = Vector3.Cross(Vector3.up, horizAimDir).normalized;
+
+        Vector3 cameraQuadCenter = camPos + aimDir * cameraQuadDistance;
+        Vector3 aimQuadCenter = aimWorldPosition + horizAimDir * farQuadDistance;
+
+        float horizSpan = Vector3.Dot(aimQuadCenter - cameraQuadCenter, horizAimDir);
+        if (horizSpan < MinOcclusionVolumeDepth)
+        {
+            if (Vector3.Dot(aimWorldPosition - cameraQuadCenter, horizAimDir) < MinOcclusionVolumeDepth)
+                return false;
+
+            aimQuadCenter = cameraQuadCenter + horizAimDir * MinOcclusionVolumeDepth;
+        }
 
         float fovHalfTan = Mathf.Tan(actionCamera.fieldOfView * 0.5f * Mathf.Deg2Rad);
         GetLocalOcclusionShapeHalfExtents(
@@ -1254,21 +1279,40 @@ public class CameraFollow : MonoBehaviour
             out float farHorizontalHalf,
             out float farVerticalHalf);
 
-        Vector3 nearPlaneCenter = cameraQuadCenter;
-        Vector3 farPlaneCenter = aimQuadCenter;
-        localOcclusionNearCorners[0] = nearPlaneCenter + (-right * nearHorizontalHalf) + (-up * nearVerticalHalf);
-        localOcclusionNearCorners[1] = nearPlaneCenter + (right * nearHorizontalHalf) + (-up * nearVerticalHalf);
-        localOcclusionNearCorners[2] = nearPlaneCenter + (-right * nearHorizontalHalf) + (up * nearVerticalHalf);
-        localOcclusionNearCorners[3] = nearPlaneCenter + (right * nearHorizontalHalf) + (up * nearVerticalHalf);
-        localOcclusionFarCorners[0] = farPlaneCenter + (-right * farHorizontalHalf) + (-up * farVerticalHalf);
-        localOcclusionFarCorners[1] = farPlaneCenter + (right * farHorizontalHalf) + (-up * farVerticalHalf);
-        localOcclusionFarCorners[2] = farPlaneCenter + (-right * farHorizontalHalf) + (up * farVerticalHalf);
-        localOcclusionFarCorners[3] = farPlaneCenter + (right * farHorizontalHalf) + (up * farVerticalHalf);
+        float nearBottomY = cameraQuadCenter.y - nearVerticalHalf;
+        float nearTopY = cameraQuadCenter.y + nearVerticalHalf;
+        float farBottomY = aimQuadCenter.y - farVerticalHalf;
+        float farTopY = aimQuadCenter.y + farVerticalHalf;
+
+        if (occlusionFeetReference != null)
+        {
+            float feetY = occlusionFeetReference.position.y;
+            nearBottomY = Mathf.Max(nearBottomY, feetY);
+            nearTopY = Mathf.Max(nearTopY, nearBottomY + MinOcclusionQuadHeight);
+            farBottomY = Mathf.Max(farBottomY, feetY);
+            farTopY = Mathf.Max(farTopY, farBottomY + MinOcclusionQuadHeight);
+        }
+
+        Vector3 nearBaseXZ = new Vector3(cameraQuadCenter.x, 0f, cameraQuadCenter.z);
+        localOcclusionNearCorners[0] = nearBaseXZ - horizRight * nearHorizontalHalf + Vector3.up * nearBottomY;
+        localOcclusionNearCorners[1] = nearBaseXZ + horizRight * nearHorizontalHalf + Vector3.up * nearBottomY;
+        localOcclusionNearCorners[2] = nearBaseXZ - horizRight * nearHorizontalHalf + Vector3.up * nearTopY;
+        localOcclusionNearCorners[3] = nearBaseXZ + horizRight * nearHorizontalHalf + Vector3.up * nearTopY;
+
+        Vector3 farBaseXZ = new Vector3(aimQuadCenter.x, 0f, aimQuadCenter.z);
+        localOcclusionFarCorners[0] = farBaseXZ - horizRight * farHorizontalHalf + Vector3.up * farBottomY;
+        localOcclusionFarCorners[1] = farBaseXZ + horizRight * farHorizontalHalf + Vector3.up * farBottomY;
+        localOcclusionFarCorners[2] = farBaseXZ - horizRight * farHorizontalHalf + Vector3.up * farTopY;
+        localOcclusionFarCorners[3] = farBaseXZ + horizRight * farHorizontalHalf + Vector3.up * farTopY;
+
+        CopyLocalOcclusionCornersToVolumeArray();
 
         occlusionHullCenter = Vector3.zero;
-        for (int i = 0; i < 4; i++)
+        occlusionHullBounds = new Bounds(volumeCorners[0], Vector3.zero);
+        for (int i = 0; i < 8; i++)
         {
-            occlusionHullCenter += localOcclusionNearCorners[i] + localOcclusionFarCorners[i];
+            occlusionHullCenter += volumeCorners[i];
+            occlusionHullBounds.Encapsulate(volumeCorners[i]);
         }
 
         occlusionHullCenter *= 0.125f;
@@ -1285,6 +1329,11 @@ public class CameraFollow : MonoBehaviour
                 localOcclusionNearCorners[cornerB],
                 localOcclusionFarCorners[cornerB]);
         }
+
+        occlusionEdgeDirections[0] = horizRight;
+        occlusionEdgeDirections[1] = Vector3.up;
+        for (int i = 0; i < 4; i++)
+            occlusionEdgeDirections[2 + i] = localOcclusionFarCorners[i] - localOcclusionNearCorners[i];
 
         return true;
     }
@@ -1303,24 +1352,134 @@ public class CameraFollow : MonoBehaviour
         return plane;
     }
 
-    private bool BoundsIntersectsOcclusionHull(Bounds bounds)
+    private bool RendererIntersectsLocalOcclusionVolume(Renderer renderer)
     {
-        Vector3 center = bounds.center;
-        Vector3 extents = bounds.extents;
+        Bounds worldBounds = renderer.bounds;
+        if (!occlusionHullBounds.Intersects(worldBounds))
+            return false;
+
+        TryExtractRendererObb(renderer, worldBounds, out Vector3 obbCenter, out Vector3 obbExtents);
+        return ObbIntersectsOcclusionHull(obbCenter, obbExtents);
+    }
+
+    private void TryExtractRendererObb(Renderer renderer, Bounds worldBoundsFallback, out Vector3 center, out Vector3 extents)
+    {
+        if (!renderer.isPartOfStaticBatch
+            && renderer is MeshRenderer
+            && renderer.TryGetComponent(out MeshFilter meshFilter)
+            && meshFilter.sharedMesh != null)
+        {
+            Bounds localBounds = meshFilter.sharedMesh.bounds;
+            Matrix4x4 localToWorld = renderer.localToWorldMatrix;
+
+            Vector3 col0 = localToWorld.GetColumn(0);
+            Vector3 col1 = localToWorld.GetColumn(1);
+            Vector3 col2 = localToWorld.GetColumn(2);
+
+            float len0Sq = col0.sqrMagnitude;
+            float len1Sq = col1.sqrMagnitude;
+            float len2Sq = col2.sqrMagnitude;
+
+            if (len0Sq >= MinOcclusionAxisMagnitudeSq
+                && len1Sq >= MinOcclusionAxisMagnitudeSq
+                && len2Sq >= MinOcclusionAxisMagnitudeSq)
+            {
+                float len0 = Mathf.Sqrt(len0Sq);
+                float len1 = Mathf.Sqrt(len1Sq);
+                float len2 = Mathf.Sqrt(len2Sq);
+
+                Vector3 ax0 = col0 / len0;
+                Vector3 ax1 = col1 / len1;
+                Vector3 ax2 = col2 / len2;
+
+                if (Mathf.Abs(Vector3.Dot(ax0, ax1)) < 0.01f
+                    && Mathf.Abs(Vector3.Dot(ax0, ax2)) < 0.01f
+                    && Mathf.Abs(Vector3.Dot(ax1, ax2)) < 0.01f)
+                {
+                    obbAxesScratch[0] = ax0;
+                    obbAxesScratch[1] = ax1;
+                    obbAxesScratch[2] = ax2;
+                    center = localToWorld.MultiplyPoint3x4(localBounds.center);
+                    Vector3 localExtents = localBounds.extents;
+                    extents = new Vector3(localExtents.x * len0, localExtents.y * len1, localExtents.z * len2);
+                    return;
+                }
+            }
+        }
+
+        obbAxesScratch[0] = Vector3.right;
+        obbAxesScratch[1] = Vector3.up;
+        obbAxesScratch[2] = Vector3.forward;
+        center = worldBoundsFallback.center;
+        extents = worldBoundsFallback.extents;
+    }
+
+    private bool ObbIntersectsOcclusionHull(Vector3 obbCenter, Vector3 obbExtents)
+    {
+        Vector3 ax0 = obbAxesScratch[0];
+        Vector3 ax1 = obbAxesScratch[1];
+        Vector3 ax2 = obbAxesScratch[2];
 
         for (int i = 0; i < OcclusionHullPlaneCount; i++)
         {
-            Vector3 normal = occlusionClipPlanes[i].normal;
-            Vector3 positiveVertex = center;
-            positiveVertex.x += normal.x >= 0f ? extents.x : -extents.x;
-            positiveVertex.y += normal.y >= 0f ? extents.y : -extents.y;
-            positiveVertex.z += normal.z >= 0f ? extents.z : -extents.z;
+            Plane plane = occlusionClipPlanes[i];
+            Vector3 normal = plane.normal;
+            float projectedRadius =
+                Mathf.Abs(Vector3.Dot(normal, ax0)) * obbExtents.x
+                + Mathf.Abs(Vector3.Dot(normal, ax1)) * obbExtents.y
+                + Mathf.Abs(Vector3.Dot(normal, ax2)) * obbExtents.z;
 
-            if (occlusionClipPlanes[i].GetDistanceToPoint(positiveVertex) < -OcclusionHullInsideEpsilon)
+            if (plane.GetDistanceToPoint(obbCenter) + projectedRadius < OcclusionHullInsideEpsilon)
                 return false;
         }
 
+        for (int i = 0; i < 3; i++)
+        {
+            Vector3 axis = obbAxesScratch[i];
+            float obbCenterProj = Vector3.Dot(axis, obbCenter);
+            float obbRadius = i == 0 ? obbExtents.x : (i == 1 ? obbExtents.y : obbExtents.z);
+            if (!HullOverlapsIntervalOnAxis(axis, obbCenterProj, obbRadius))
+                return false;
+        }
+
+        for (int i = 0; i < 3; i++)
+        {
+            Vector3 obbAxis = obbAxesScratch[i];
+            for (int j = 0; j < OcclusionHullUniqueEdgeDirectionCount; j++)
+            {
+                Vector3 cross = Vector3.Cross(obbAxis, occlusionEdgeDirections[j]);
+                if (cross.sqrMagnitude < MinOcclusionAxisMagnitudeSq)
+                    continue;
+
+                Vector3 axis = cross.normalized;
+                float obbCenterProj = Vector3.Dot(axis, obbCenter);
+                float obbRadius =
+                    Mathf.Abs(Vector3.Dot(axis, ax0)) * obbExtents.x
+                    + Mathf.Abs(Vector3.Dot(axis, ax1)) * obbExtents.y
+                    + Mathf.Abs(Vector3.Dot(axis, ax2)) * obbExtents.z;
+
+                if (!HullOverlapsIntervalOnAxis(axis, obbCenterProj, obbRadius))
+                    return false;
+            }
+        }
+
         return true;
+    }
+
+    private bool HullOverlapsIntervalOnAxis(Vector3 axis, float obbCenterProj, float obbRadius)
+    {
+        float hullMin = float.MaxValue;
+        float hullMax = float.MinValue;
+
+        for (int i = 0; i < 8; i++)
+        {
+            float proj = Vector3.Dot(axis, volumeCorners[i]);
+            if (proj < hullMin) hullMin = proj;
+            if (proj > hullMax) hullMax = proj;
+        }
+
+        return hullMax - OcclusionHullInsideEpsilon >= obbCenterProj - obbRadius
+            && hullMin + OcclusionHullInsideEpsilon <= obbCenterProj + obbRadius;
     }
 
     private void CopyLocalOcclusionCornersToVolumeArray()
@@ -1354,21 +1513,11 @@ public class CameraFollow : MonoBehaviour
         if (occlusionFeetReference != null)
         {
             float feetY = occlusionFeetReference.position.y;
-            if (renderer.bounds.center.y < feetY - OcclusionBelowFeetCenterMargin)
+            if (renderer.bounds.max.y <= feetY + OcclusionBelowFeetMaxYMargin)
                 return true;
         }
 
         return false;
-    }
-
-    private bool RendererBoundsIntersectsLocalOcclusionVolume(
-        Bounds bounds,
-        Vector3 camPos,
-        Vector3 aimDir,
-        float nearDist,
-        float farDist)
-    {
-        return BoundsIntersectsOcclusionHull(bounds);
     }
 
 #if false // Legacy overlap-box occlusion (inspector fields hidden above).

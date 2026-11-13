@@ -7,6 +7,10 @@ public partial class CharacterMovement
     private const float WalkOffMaxUpwardVelocity = 0.1f;
     private const float GroundProbeRadiusScale = 0.9f;
     private const float GroundPenetrationCheckOffset = 0.05f;
+    private const float GroundSupportProbeDistance = 0.25f;
+    private const float GroundSupportOverlapOffset = 0.05f;
+    private const int MaxGroundSupportHierarchyDepth = 3;
+    private const int MaxGroundSupportRootChildCount = 16;
 
     [Header("GROUND PROBE")]
     [SerializeField] private LayerMask groundMask;
@@ -70,6 +74,7 @@ public partial class CharacterMovement
         isGrounded = groundedContact;
     }
 
+    // Checks whether a renderer transform belongs to any collider Tim is currently standing on.
     public bool IsTransformPartOfCurrentGroundSupport(Transform candidate)
     {
         if (candidate == null || currentGroundSupports.Count == 0)
@@ -87,9 +92,31 @@ public partial class CharacterMovement
             {
                 return true;
             }
+
+            Transform supportRoot = ResolveGroundSupportRoot(support);
+            if (supportRoot != null && (candidate == supportRoot || candidate.IsChildOf(supportRoot)))
+                return true;
         }
 
         return false;
+    }
+
+    private static Transform ResolveGroundSupportRoot(Transform support)
+    {
+        Transform current = support;
+        for (int depth = 0; depth < MaxGroundSupportHierarchyDepth && current != null; depth++)
+        {
+            if (current.GetComponentInChildren<Renderer>(true) != null)
+                return current;
+
+            Transform parent = current.parent;
+            if (parent == null || parent.childCount > MaxGroundSupportRootChildCount)
+                break;
+
+            current = parent;
+        }
+
+        return current != null && current.GetComponentInChildren<Renderer>(true) != null ? current : null;
     }
 
     private bool EvaluateGroundContact()
@@ -118,7 +145,7 @@ public partial class CharacterMovement
     private void CollectGroundSupportTransforms(List<Transform> targets)
     {
         targets.Clear();
-        CollectGroundColliders(groundColliderScratch);
+        CollectGroundSupportColliders(groundColliderScratch);
 
         for (int i = 0; i < groundColliderScratch.Count; i++)
         {
@@ -139,6 +166,55 @@ public partial class CharacterMovement
 
             if (!alreadyAdded)
                 targets.Add(support);
+        }
+    }
+
+    private void CollectGroundSupportColliders(List<Collider> colliders)
+    {
+        colliders.Clear();
+
+        if (controller == null)
+            return;
+
+        float radius = controller.radius * GroundProbeRadiusScale;
+        float halfHeight = controller.height * 0.5f;
+        Vector3 worldCenter = transform.TransformPoint(controller.center);
+        Vector3 bottomSphereOrigin = worldCenter - Vector3.up * Mathf.Max(0f, halfHeight - radius);
+        float castDistance = GroundSupportProbeDistance + controller.skinWidth;
+
+        if (Physics.SphereCast(
+                bottomSphereOrigin,
+                radius,
+                Vector3.down,
+                out RaycastHit hit,
+                castDistance,
+                groundMask,
+                QueryTriggerInteraction.Ignore)
+            && !IsTimCollider(hit.collider))
+        {
+            colliders.Add(hit.collider);
+        }
+
+        Vector3 feetOverlapOrigin = bottomSphereOrigin + Vector3.down * GroundSupportOverlapOffset;
+        Collider[] overlaps = Physics.OverlapSphere(feetOverlapOrigin, radius, groundMask, QueryTriggerInteraction.Ignore);
+        for (int i = 0; i < overlaps.Length; i++)
+        {
+            Collider overlap = overlaps[i];
+            if (overlap == null || IsTimCollider(overlap))
+                continue;
+
+            bool alreadyAdded = false;
+            for (int j = 0; j < colliders.Count; j++)
+            {
+                if (colliders[j] == overlap)
+                {
+                    alreadyAdded = true;
+                    break;
+                }
+            }
+
+            if (!alreadyAdded)
+                colliders.Add(overlap);
         }
     }
 
