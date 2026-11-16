@@ -25,9 +25,10 @@ public class CameraFollow : MonoBehaviour
     [Tooltip("Test: if assigned, occluding renderers swap to this material instead of being hidden. Originals restore when out of the volume.")]
     public Material occlusionGhostMaterial;
 
-    [Tooltip("Occluders whose bounds are within this distance of Tim get the ghost material. Farther occluders are hidden.")]
-    [Range(0f, 10f)]
-    public float ghostDistanceFromTim = 2f;
+    [HideInInspector] public float ghostOcclusionFullUntilAlongTimToCam = 0.25f;
+    [HideInInspector] public float ghostOcclusionGoneFromAlongTimToCam = 0.75f;
+    [Min(0.02f)]
+    public float occlusionFadeSmoothTime = 0.1f;
 
     [Tooltip("Layers whose renderers are tested for mesh occlusion (no physics).")]
     public LayerMask occlusionHideLayers = ~0;
@@ -196,7 +197,9 @@ public class CameraFollow : MonoBehaviour
     private const int OcclusionHullUniqueEdgeDirectionCount = 6;
     private const float OcclusionHullInsideEpsilon = 0.001f;
     private const float OcclusionBelowFeetMaxYMargin = 0.08f;
+#if false // Occlusion group by hierarchy (disabled — per-renderer only for now)
     private const int OcclusionGroupMaxSiblingBranches = 32;
+#endif
     private const float MinOcclusionVolumeDepth = 0.05f;
     private const float MinOcclusionQuadHeight = 0.05f;
     private const float MinOcclusionAxisMagnitudeSq = 0.000001f;
@@ -226,9 +229,20 @@ public class CameraFollow : MonoBehaviour
     private readonly List<Renderer> occlusionMeshCandidates = new List<Renderer>();
     private readonly Dictionary<Renderer, ShadowCastingMode> proximityHiddenRenderers = new Dictionary<Renderer, ShadowCastingMode>();
     private readonly HashSet<Renderer> frameHiddenRenderers = new HashSet<Renderer>();
+#if false // Occlusion group by hierarchy (disabled — per-renderer only for now)
     private readonly HashSet<Transform> occlusionGroupRootsScratch = new HashSet<Transform>();
     private readonly List<Renderer> occlusionGroupRendererScratch = new List<Renderer>();
+#endif
     private readonly Dictionary<Renderer, Material[]> ghostSwappedOriginalMaterials = new Dictionary<Renderer, Material[]>();
+    private readonly Dictionary<Renderer, OcclusionFadeState> occlusionFadeByRenderer = new Dictionary<Renderer, OcclusionFadeState>();
+    private MaterialPropertyBlock occlusionGhostPropertyBlock;
+    private static readonly int OcclusionFadeShaderId = Shader.PropertyToID("_OcclusionFade");
+
+    private struct OcclusionFadeState
+    {
+        public float Value;
+        public float Velocity;
+    }
 
     private float DampingTime => Mathf.Lerp(0.35f, 0.02f, cameraResponsiveness);
     private float RotationLerpSpeed => Mathf.Lerp(2f, 20f, cameraResponsiveness);
@@ -237,6 +251,7 @@ public class CameraFollow : MonoBehaviour
     {
         actionCamera = GetComponent<Camera>();
         runodesLayer = LayerMask.NameToLayer(RunodesLayerName);
+        occlusionGhostPropertyBlock = new MaterialPropertyBlock();
     }
 
     private int FindDefaultStopOnScrollPath()
@@ -297,6 +312,11 @@ public class CameraFollow : MonoBehaviour
 
     private void OnValidate()
     {
+        ghostOcclusionFullUntilAlongTimToCam = Mathf.Clamp01(ghostOcclusionFullUntilAlongTimToCam);
+        ghostOcclusionGoneFromAlongTimToCam = Mathf.Clamp01(ghostOcclusionGoneFromAlongTimToCam);
+        if (ghostOcclusionGoneFromAlongTimToCam < ghostOcclusionFullUntilAlongTimToCam + 0.01f)
+            ghostOcclusionGoneFromAlongTimToCam = Mathf.Min(1f, ghostOcclusionFullUntilAlongTimToCam + 0.01f);
+
         // Inspector edits during Play Mode must not rebuild the scroll path or reset the camera offset.
         if (Application.isPlaying)
             return;
@@ -951,8 +971,10 @@ public class CameraFollow : MonoBehaviour
             tempRestoreList.Clear();
             foreach (Renderer renderer in proximityHiddenRenderers.Keys)
             {
-                if (renderer == null || !frameHiddenRenderers.Contains(renderer))
-                    tempRestoreList.Add(renderer);
+                if (renderer == null || frameHiddenRenderers.Contains(renderer))
+                    continue;
+
+                tempRestoreList.Add(renderer);
             }
 
             for (int i = 0; i < tempRestoreList.Count; i++)
@@ -964,16 +986,10 @@ public class CameraFollow : MonoBehaviour
             if (renderer == null)
                 continue;
 
-            if (proximityHiddenRenderers.ContainsKey(renderer))
-            {
-                bool isGhosted = ghostSwappedOriginalMaterials.ContainsKey(renderer);
-                if (isGhosted == ShouldGhostOcclusionRenderer(renderer))
-                    continue;
-
-                RestoreProximityHiddenRenderer(renderer);
-            }
-
-            HideOcclusionRenderer(renderer);
+            EnsureOcclusionTrackingStarted(renderer);
+            float targetFade = ComputeOcclusionTargetGhostFade(renderer);
+            SmoothOcclusionFadeToward(renderer, targetFade, occlusionFadeSmoothTime);
+            ApplyOcclusionFadeToRenderer(renderer);
         }
     }
 
@@ -1284,6 +1300,7 @@ public class CameraFollow : MonoBehaviour
         return false;
     }
 
+#if false // Occlusion group by hierarchy (disabled — per-renderer only for now)
     private static int CountDirectChildrenWithRendererSubtrees(Transform parent)
     {
         int count = 0;
@@ -1344,10 +1361,26 @@ public class CameraFollow : MonoBehaviour
 
         return best;
     }
+#endif
 
     private void BuildFrameHiddenRenderersForOcclusionVolume()
     {
         frameHiddenRenderers.Clear();
+
+        for (int i = 0; i < occlusionMeshCandidates.Count; i++)
+        {
+            Renderer renderer = occlusionMeshCandidates[i];
+            if (renderer == null || !renderer.enabled || !renderer.gameObject.activeInHierarchy)
+                continue;
+
+            if (ShouldExcludeRendererFromLocalOcclusion(renderer))
+                continue;
+
+            if (RendererIntersectsLocalOcclusionVolume(renderer))
+                frameHiddenRenderers.Add(renderer);
+        }
+
+#if false // Occlusion group by hierarchy (disabled — per-renderer only for now)
         occlusionGroupRootsScratch.Clear();
 
         for (int i = 0; i < occlusionMeshCandidates.Count; i++)
@@ -1390,6 +1423,7 @@ public class CameraFollow : MonoBehaviour
                 frameHiddenRenderers.Add(groupedRenderer);
             }
         }
+#endif
     }
 
 #if false // Legacy overlap-box occlusion (inspector fields hidden above).
@@ -1762,13 +1796,10 @@ public class CameraFollow : MonoBehaviour
         return false;
     }
 
-    // True when the ghost material is assigned and the renderer's bounds are within ghostDistanceFromTim of Tim.
-    private bool ShouldGhostOcclusionRenderer(Renderer renderer)
+    private bool TryGetRendererAlongTimToCamera01(Renderer renderer, out float along01)
     {
-        if (occlusionGhostMaterial == null)
-            return false;
-
-        if (RendererBelongsToRunode(renderer))
+        along01 = 0f;
+        if (renderer == null)
             return false;
 
         Transform timTransform = tim != null ? tim.transform : timObject;
@@ -1776,16 +1807,65 @@ public class CameraFollow : MonoBehaviour
             return false;
 
         Vector3 timPosition = timTransform.position;
-        Vector3 closestPoint = renderer.bounds.ClosestPoint(timPosition);
-        return (closestPoint - timPosition).sqrMagnitude <= ghostDistanceFromTim * ghostDistanceFromTim;
+        Vector3 cameraPosition = transform.position;
+        Vector3 toCamera = cameraPosition - timPosition;
+        float span = toCamera.magnitude;
+        if (span < 0.001f)
+            return false;
+
+        Vector3 direction = toCamera / span;
+        float projected = Vector3.Dot(renderer.bounds.center - timPosition, direction);
+        along01 = Mathf.Clamp01(projected / span);
+        return true;
     }
 
-    // Hides an occluding renderer: ghost material when close to Tim, otherwise renders shadows only.
-    private void HideOcclusionRenderer(Renderer renderer)
+    private float ComputeOcclusionTargetGhostFade(Renderer renderer)
     {
+        if (RendererBelongsToRunode(renderer) || occlusionGhostMaterial == null)
+            return 0f;
+
+        if (!TryGetRendererAlongTimToCamera01(renderer, out float along01))
+            return 0f;
+
+        float fullUntil = Mathf.Clamp01(ghostOcclusionFullUntilAlongTimToCam);
+        float goneFrom = Mathf.Max(fullUntil + 0.01f, Mathf.Clamp01(ghostOcclusionGoneFromAlongTimToCam));
+
+        if (along01 <= fullUntil)
+            return 1f;
+
+        if (along01 >= goneFrom)
+            return 0f;
+
+        return Mathf.InverseLerp(goneFrom, fullUntil, along01);
+    }
+
+    private float GetOcclusionFade(Renderer renderer)
+    {
+        if (renderer != null && occlusionFadeByRenderer.TryGetValue(renderer, out OcclusionFadeState state))
+            return state.Value;
+        return 0f;
+    }
+
+    private void SmoothOcclusionFadeToward(Renderer renderer, float targetFade, float smoothTime)
+    {
+        if (renderer == null || RendererBelongsToRunode(renderer))
+            return;
+
+        if (!occlusionFadeByRenderer.TryGetValue(renderer, out OcclusionFadeState state))
+            state = new OcclusionFadeState { Value = targetFade, Velocity = 0f };
+
+        state.Value = Mathf.SmoothDamp(state.Value, targetFade, ref state.Velocity, smoothTime);
+        occlusionFadeByRenderer[renderer] = state;
+    }
+
+    private void EnsureOcclusionTrackingStarted(Renderer renderer)
+    {
+        if (renderer == null || proximityHiddenRenderers.ContainsKey(renderer))
+            return;
+
         proximityHiddenRenderers[renderer] = renderer.shadowCastingMode;
 
-        if (!ShouldGhostOcclusionRenderer(renderer))
+        if (RendererBelongsToRunode(renderer) || occlusionGhostMaterial == null)
         {
             renderer.shadowCastingMode = ShadowCastingMode.ShadowsOnly;
             return;
@@ -1799,6 +1879,30 @@ public class CameraFollow : MonoBehaviour
             ghostMaterials[i] = occlusionGhostMaterial;
 
         renderer.sharedMaterials = ghostMaterials;
+
+        float startFade = ComputeOcclusionTargetGhostFade(renderer);
+        occlusionFadeByRenderer[renderer] = new OcclusionFadeState { Value = startFade, Velocity = 0f };
+    }
+
+    private void ApplyOcclusionFadeToRenderer(Renderer renderer)
+    {
+        if (renderer == null || RendererBelongsToRunode(renderer))
+            return;
+
+        if (!ghostSwappedOriginalMaterials.ContainsKey(renderer))
+            return;
+
+        if (occlusionGhostPropertyBlock == null)
+            return;
+
+        float fade = GetOcclusionFade(renderer);
+        occlusionGhostPropertyBlock.SetFloat(OcclusionFadeShaderId, fade);
+        renderer.SetPropertyBlock(occlusionGhostPropertyBlock);
+
+        if (!proximityHiddenRenderers.TryGetValue(renderer, out ShadowCastingMode originalMode))
+            return;
+
+        renderer.shadowCastingMode = fade <= 0.02f ? ShadowCastingMode.Off : originalMode;
     }
 
     private void RestoreProximityHiddenRenderer(Renderer renderer)
@@ -1809,8 +1913,12 @@ public class CameraFollow : MonoBehaviour
         if (renderer != null && ghostSwappedOriginalMaterials.TryGetValue(renderer, out Material[] originalMaterials))
             renderer.sharedMaterials = originalMaterials;
 
+        if (renderer != null)
+            renderer.SetPropertyBlock(null);
+
         proximityHiddenRenderers.Remove(renderer);
         ghostSwappedOriginalMaterials.Remove(renderer);
+        occlusionFadeByRenderer.Remove(renderer);
     }
 
     private readonly List<Renderer> tempRestoreList = new List<Renderer>();
@@ -1831,6 +1939,7 @@ public class CameraFollow : MonoBehaviour
 
         proximityHiddenRenderers.Clear();
         ghostSwappedOriginalMaterials.Clear();
+        occlusionFadeByRenderer.Clear();
         frameHiddenRenderers.Clear();
     }
 

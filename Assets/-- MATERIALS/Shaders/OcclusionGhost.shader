@@ -20,6 +20,9 @@ Shader "Custom/OcclusionGhost"
         [HDR] _RimColor ("Rim Color (A = opacity)", Color) = (0.7, 0.85, 1.0, 0.2)
         _RimPower ("Rim Power", Range(0.5, 8.0)) = 3.0
 
+        [Header(Occlusion)]
+        _OcclusionFade ("Occlusion Fade", Range(0.0, 1.0)) = 1.0
+
         [Header(Shadows)]
         [Toggle] _CastShadows ("Cast Shadows (keeps original shadow)", Float) = 1
 
@@ -55,6 +58,7 @@ Shader "Custom/OcclusionGhost"
             half4 _RimColor;
             half _RimPower;
             half _CastShadows;
+            half _OcclusionFade;
         CBUFFER_END
         ENDHLSL
 
@@ -187,6 +191,7 @@ Shader "Custom/OcclusionGhost"
                 half3 color = lerp(bodyColor, _WireColor.rgb, wire * _WireColor.a);
                 color += _RimColor.rgb * rim * _RimColor.a;
                 half alpha = saturate(_TintColor.a + wire * _WireColor.a + rim * _RimColor.a);
+                alpha *= _OcclusionFade;
 
                 color = MixFog(color, input.fogFactor);
                 return half4(color, alpha);
@@ -259,7 +264,7 @@ Shader "Custom/OcclusionGhost"
             half4 ShadowFrag(ShadowVaryings input) : SV_Target
             {
                 UNITY_SETUP_INSTANCE_ID(input);
-                clip(_CastShadows - 0.5);
+                clip(min(_CastShadows, _OcclusionFade) - 0.5);
                 return 0;
             }
             ENDHLSL
