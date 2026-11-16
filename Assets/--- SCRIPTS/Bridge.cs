@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.Serialization;
 
+[DefaultExecutionOrder(-100)]
 public class Bridge : MonoBehaviour
 {
     private const int SocketCount = 2;
@@ -32,6 +33,7 @@ public class Bridge : MonoBehaviour
     private class GapCube
     {
         public Transform visual;
+        public Vector3 restingLocalScale;
         public int columnFromStart;
         public float delay;
         public Vector3 startScale;
@@ -84,15 +86,18 @@ public class Bridge : MonoBehaviour
     private bool isClosing;
     private bool activatorDemandsOpen;
 
+    private static int nextGapCubesParentIndex = 1;
+    private Transform gapCubesParent;
+
     private void Awake()
     {
         hasValidLayout = TryBuildLayout();
 
-        if (isOpen)
-            activatorDemandsOpen = true;
-
         if (hasValidLayout)
             SpawnGapCubes();
+
+        if (isOpen)
+            activatorDemandsOpen = true;
 
         InitialSocketConfiguration();
     }
@@ -247,8 +252,6 @@ public class Bridge : MonoBehaviour
         if (isSequenceRunning && !isClosing)
             return;
 
-        SpawnGapCubes();
-
         isClosing = false;
         isSequenceRunning = true;
         sequenceId++;
@@ -330,7 +333,7 @@ public class Bridge : MonoBehaviour
                     continue;
 
                 float scale = SampleOpenScale(elapsed - cube.delay, growDuration, settleDuration, overshootScale);
-                cube.visual.localScale = Vector3.one * scale;
+                cube.visual.localScale = cube.restingLocalScale * scale;
             }
 
             yield return null;
@@ -351,8 +354,9 @@ public class Bridge : MonoBehaviour
 
         for (int i = 0; i < gapCubes.Count; i++)
         {
-            if (gapCubes[i].visual != null)
-                gapCubes[i].visual.localScale = Vector3.one;
+            GapCube cube = gapCubes[i];
+            if (cube.visual != null)
+                cube.visual.localScale = cube.restingLocalScale;
         }
 
         isBridgeOpen = true;
@@ -409,7 +413,7 @@ public class Bridge : MonoBehaviour
             yield break;
 
         DisableReadyRows(totalDuration);
-        ClearCubes();
+        SetGapClosedAtRest();
         isBridgeOpen = false;
         isClosing = false;
         isSequenceRunning = false;
@@ -452,7 +456,11 @@ public class Bridge : MonoBehaviour
             if (cube.visual == null)
                 continue;
 
-            float scale = cube.visual.localScale.x;
+            float resting = cube.restingLocalScale.x;
+            if (resting <= VisibleCubeScaleThreshold)
+                continue;
+
+            float scale = cube.visual.localScale.x / resting;
             if (scale <= VisibleCubeScaleThreshold)
                 continue;
 
@@ -609,9 +617,28 @@ public class Bridge : MonoBehaviour
         }
     }
 
+    private void EnsureGapCubesParent()
+    {
+        if (gapCubesParent != null)
+            return;
+
+        var parentObject = new GameObject($"Parent Bridge Cubes ({nextGapCubesParentIndex:D2})");
+        nextGapCubesParentIndex++;
+
+        Transform sceneParent = transform.parent;
+        if (sceneParent != null)
+            parentObject.transform.SetParent(sceneParent, false);
+
+        parentObject.transform.SetPositionAndRotation(transform.position, transform.rotation);
+        gapCubesParent = parentObject.transform;
+    }
+
     private void SpawnGapCubes()
     {
-        ClearCubes();
+        if (gapCubes.Count > 0)
+            return;
+
+        EnsureGapCubesParent();
 
         for (int column = 0; column < lengthCount; column++)
         {
@@ -619,14 +646,21 @@ public class Bridge : MonoBehaviour
 
             for (int across = 0; across < widthCount; across++)
             {
-                GameObject cubeObject = Instantiate(cubePrefab, GetCubePosition(column, across), transform.rotation, transform);
-                cubeObject.transform.localScale = Vector3.zero;
+                Vector3 worldPosition = GetCubePosition(column, across);
+                GameObject cubeObject = Instantiate(cubePrefab, gapCubesParent);
+                cubeObject.transform.SetPositionAndRotation(worldPosition, transform.rotation);
+                cubeObject.transform.localScale = Vector3.one;
                 RemoveColliders(cubeObject);
                 ApplyMeshPositionJitter(cubeObject.transform);
 
+                Transform meshVisual = GetCubeMeshVisual(cubeObject.transform);
+                Vector3 restingLocalScale = meshVisual.localScale;
+                meshVisual.localScale = Vector3.zero;
+
                 gapCubes.Add(new GapCube
                 {
-                    visual = cubeObject.transform,
+                    visual = meshVisual,
+                    restingLocalScale = restingLocalScale,
                     columnFromStart = column
                 });
             }
@@ -737,26 +771,21 @@ public class Bridge : MonoBehaviour
             Destroy(colliders[i]);
     }
 
-    // Offsets mesh renderers only (local X/Z), independent per cube.
-    private void ClearCubes()
+    private static Transform GetCubeMeshVisual(Transform cubeRoot)
     {
-        for (int i = 0; i < gapCubes.Count; i++)
+        MeshRenderer[] meshRenderers = cubeRoot.GetComponentsInChildren<MeshRenderer>(true);
+
+        for (int i = 0; i < meshRenderers.Length; i++)
         {
-            if (gapCubes[i].visual != null)
-                Destroy(gapCubes[i].visual.gameObject);
+            Transform meshTransform = meshRenderers[i].transform;
+            if (meshTransform != cubeRoot)
+                return meshTransform;
         }
 
-        gapCubes.Clear();
-
-        for (int i = 0; i < gapRows.Count; i++)
-        {
-            if (gapRows[i].box != null)
-                Destroy(gapRows[i].box.gameObject);
-        }
-
-        gapRows.Clear();
+        return cubeRoot;
     }
 
+    // Offsets mesh renderers only (local X/Z), independent per cube.
     private static void ApplyMeshPositionJitter(Transform cubeRoot)
     {
         MeshRenderer[] meshRenderers = cubeRoot.GetComponentsInChildren<MeshRenderer>(true);
@@ -774,4 +803,18 @@ public class Bridge : MonoBehaviour
         }
     }
 
+    private void SetGapClosedAtRest()
+    {
+        for (int i = 0; i < gapCubes.Count; i++)
+        {
+            if (gapCubes[i].visual != null)
+                gapCubes[i].visual.localScale = Vector3.zero;
+        }
+
+        for (int i = 0; i < gapRows.Count; i++)
+        {
+            if (gapRows[i].box != null)
+                gapRows[i].box.enabled = false;
+        }
+    }
 }
