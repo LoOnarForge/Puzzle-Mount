@@ -1,7 +1,6 @@
 using UnityEngine;
 using UnityEngine.InputSystem;
 using UnityEngine.Rendering;
-using UnityEngine.Rendering.Universal;
 using UnityEngine.Serialization;
 using System.Collections.Generic;
 using System.Text.RegularExpressions;
@@ -10,81 +9,12 @@ using System.Text.RegularExpressions;
 /// Coordinates with LeyasCamera for Inspection Mode.
 public class CameraFollow : MonoBehaviour
 {
-    [Header("Target Settings")]
-    public Transform target;
-    public bool findPlayerAutomatically = true;
-
-    [Header("ACTION MODE SETTINGS")]
-    [Tooltip("Adjusts speed and damping (0 = Lazy, 1 = Snappy)")]
-    [Range(0.01f, 1f)] public float cameraResponsiveness = 0.5f;
-    
-    [Header("Follow Settings")]
-    public Vector3 offset = new Vector3(0, 5, -8);
-    public bool constrainY = false;
-    public float fixedYPosition = 10f;
-    [Tooltip("Offsets the screen position without changing the camera angle")]
-    public float screenFramingOffset = 0f;
-
-    [Header("View Height & Zoom")]
-    [Tooltip("Camera height above Tim")]
-    public float cameraHeight = 9f;
-    [Tooltip("Default follow distance (used to pick the starting point on the scroll path).")]
-    public float zoomDistance = 10f;
-    [Header("Scroll wheel")]
-    [Tooltip("How many stops along the path one wheel notch skips (1 = one stop, 2 = jump two stops, etc.).")]
-    [Min(1)] public int pathStepsPerScroll = 1;
-    [Tooltip("How long the camera glides after each scroll.")]
-    [Min(0.02f)] public float scrollPathSmoothTime = 0.12f;
-    [Tooltip("Death sentence path glide speed as a fraction of scroll ease (0.5 = half speed).")]
-    [Range(0.05f, 1f)] public float deathSentenceScrollSpeedScale = 0.5f;
-
-    [FormerlySerializedAs("scrollStopCount")]
-    [HideInInspector] public int scrollStepCount = 20;
-
-    [HideInInspector] public float scrollZoomStep = 0.4f;
-    [HideInInspector] public float maxExtraCloseDistance = 4f;
-    [HideInInspector] public float maxFarSideDollyDistance = 4f;
-    [HideInInspector] public float minZoomDistance = 6f;
-    [HideInInspector] public float maxZoomDistance = 14f;
-
-    [HideInInspector] public bool useScrollPathMarkers = true;
-    [HideInInspector] public Vector3[] scrollPathStopsLocal;
-
-    private const string ScrollPathMarkerNamePrefix = "Zoom Point";
-    private const int ScrollPathBakeSamples = 64;
-
-    private Vector3 lookAtOffset = Vector3.up * 2f;
-    private float extraCloseDistance;
-    private float pitchDownAmount;
-    private float extraFarLowerAmount;
-    private float farSideDollyDistance;
-    private int scrollStopIndex;
-    private float scrollPathT;
-    private float scrollPathTargetT;
-    private float scrollPathTVelocity;
-    private float scrollPathFurthestT = -1f;
-    private int scrollPathFurthestStopIndex = -1;
-    private bool furthestExtraScrollTowardHigh;
-    private bool furthestExtraScrollTowardLow;
-    private int scrollOutNotchesFromClose = -1;
-    private float defaultZoomDistance;
-    
-    [Header("Manual Control")]
-    public Key clockwiseKey = Key.E;
-    public Key counterClockwiseKey = Key.Q;
-    public Key resetKey = Key.R;
-    public Key inspectionToggleKey = Key.Tab;
-    public float rotationCooldown = 0.25f;
-
-    [Header("CAMERA ROTATION SETTINGS")]
-    public float cameraRotationThreshold = 50.0f;
-    [Tooltip("Stationary free orbit: drag sensitivity (degrees per screen pixel).")]
-    [Range(0.4f, 2f)] public float freeOrbitRotationSpeed = 0.4f;
-
-    [Header("INSPECTION MODE (LEYA)")]
+    [Header("Tim Object")]
+    [FormerlySerializedAs("target")]
+    public Transform timObject;
     public LeyasCamera leyaController;
 
-    [Header("Local Camera Occlusion")]
+    [Header("LOCAL CAMERA OCCLUSION")]
     [Range(0f, 1f)]
     [Tooltip("Rectangle aspect at both quads. Middle = square. Lower = wider. Higher = taller. Independent of quad size sliders.")]
     public float localOcclusionShapeRatio = 0.5f;
@@ -102,7 +32,7 @@ public class CameraFollow : MonoBehaviour
     [Tooltip("Layers whose renderers are tested for mesh occlusion (no physics).")]
     public LayerMask occlusionHideLayers = ~0;
 
-    [Tooltip("Aim override. If unset, uses Target transform, then Tim pivot plus look-at height.")]
+    [Tooltip("Aim override. If unset, uses Tim Object transform, then Tim pivot plus look-at height.")]
     public Transform occlusionAimPoint;
 
     [Tooltip("Tim's feet height for low-object culling. Renderers with top at or below this height are never hidden.")]
@@ -142,53 +72,59 @@ public class CameraFollow : MonoBehaviour
     [HideInInspector] public float occlusionBelowAimMargin = 0.35f;
     [HideInInspector] public float occlusionPastAimMargin = 0.05f;
 
-    [Header("X-Ray Silhouette (Test)")]
-    [Tooltip("Draw an X-ray silhouette over parts of Tim hidden behind walls, stairs, or rocks.")]
-    public bool enableXRaySilhouette = true;
-    public Color xRayFillColor = new Color(0.2f, 0.75f, 1f, 0.25f);
-    public Color xRayRimColor = new Color(0.45f, 0.92f, 1f, 0.9f);
-    [Range(0.5f, 6f)] public float xRayRimPower = 2.2f;
+    [Header("CAMERA FOLLOW SETTINGS")]
+    [Header("Camera Responsivness:")]
+    [Tooltip("Adjusts speed and damping (0 = Lazy, 1 = Snappy)")]
+    [Range(0.01f, 1f)] public float cameraResponsiveness = 0.5f;
+    [Tooltip("Shifts the camera sideways on screen without changing where it looks.")]
+    public float screenFramingOffset = 0f;
+    [HideInInspector] [Tooltip("World offset from Tim. Set each frame from the scroll path and cardinal yaw.")]
+    public Vector3 offset = new Vector3(0, 5, -8);
 
-    [Header("Shader Cutout (Test)")]
-    [Tooltip("Drives global cutout uniforms for materials using Custom/SimpleLitCutout.")]
-    public bool enableShaderCutout = true;
-    [Range(0.5f, 6f)] public float cutoutWidthScale = 2.5f;
-    [Range(0.5f, 4f)] public float cutoutHeightScale = 1.5f;
-    [Range(0.05f, 2f)] public float cutoutEdgeSoftness = 0.45f;
-    [Range(0.2f, 8f)] public float cutoutNoiseScale = 2.2f;
-    [Range(0f, 1f)] public float cutoutNoiseStrength = 0.28f;
-    [ColorUsage(false, true)] public Color cutoutEdgeColor = new Color(1f, 0.72f, 0.28f, 1f);
-    [Range(0.05f, 1f)] public float cutoutEdgeGlowWidth = 0.35f;
-    [Range(0f, 3f)] public float cutoutEdgeGlowIntensity = 1.15f;
-    public bool enableCutoutFeetSafeBox = true;
-    public Vector3 cutoutFeetBoxHalfExtents = new Vector3(1.25f, 1f, 1.25f);
-    public float cutoutFeetBoxTopOffset = 0.12f;
-    [Range(0.02f, 1f)] public float cutoutFeetBoxFeather = 0.18f;
+    [Header("Scroll Wheel:")]
+    [Tooltip("How many stops along the path one wheel notch skips (1 = one stop, 2 = jump two stops, etc.).")]
+    [Min(1)] public int pathStepsPerScroll = 1;
+    [Tooltip("How long the camera glides after each scroll.")]
+    [Min(0.02f)] public float scrollPathSmoothTime = 0.12f;
+    [Tooltip("Death sentence path glide speed as a fraction of scroll ease (0.5 = half speed).")]
+    [Range(0.05f, 1f)] public float deathSentenceScrollSpeedScale = 0.5f;
+
+    [FormerlySerializedAs("scrollStopCount")]
+    [HideInInspector] public int scrollStepCount = 20;
+    [HideInInspector] public bool useScrollPathMarkers = true;
+    [HideInInspector] public Vector3[] scrollPathStopsLocal;
+
+    private const string ScrollPathMarkerNamePrefix = "Zoom Point";
+    private const int ScrollPathBakeSamples = 64;
+
+    private Vector3 lookAtOffset = Vector3.up * 2f;
+    private int scrollStopIndex;
+    private float scrollPathT;
+    private float scrollPathTargetT;
+    private float scrollPathTVelocity;
+    private float scrollPathFurthestT = -1f;
+    private int scrollPathFurthestStopIndex = -1;
+    private bool furthestExtraScrollTowardHigh;
+    private bool furthestExtraScrollTowardLow;
+
+    [Header("Camera Rotation:")]
+    public float cameraRotationThreshold = 50.0f;
+    [Tooltip("Stationary free orbit: drag sensitivity (degrees per screen pixel).")]
+    [Range(0.4f, 2f)] public float freeOrbitRotationSpeed = 0.4f;
+
+    [Header("Keyboard Control:")]
+    public Key clockwiseKey = Key.E;
+    public Key counterClockwiseKey = Key.Q;
+    public Key resetKey = Key.R;
+    public Key inspectionToggleKey = Key.Tab;
+    public float rotationCooldown = 0.25f;
 
     public bool IsInspectionMode => isInspectionMode;
     public int CurrentAngleIndex => currentAngleIndex;
 
     // 0 at default zoom, 1 when fully scrolled in toward the target (for occlusion volume depth).
-    public float ZoomCloseAmount
-    {
-        get
-        {
-            if (UsesScrollPath())
-            {
-                int maxStop = Mathf.Max(1, ActiveScrollStopCount - 1);
-                return 1f - Mathf.Clamp01(scrollPathT);
-            }
-
-            if (UsesFarViewOffset())
-                return 0f;
-
-            float zoomPart = Mathf.Clamp01(Mathf.InverseLerp(BaseZoomDistance, minZoomDistance, zoomDistance));
-            float extraPart = MaxExtraCloseDistance > 0f
-                ? Mathf.Clamp01(extraCloseDistance / MaxExtraCloseDistance)
-                : 0f;
-            return 0.5f * zoomPart + 0.5f * extraPart;
-        }
-    }
+    public float ZoomCloseAmount =>
+        UsesScrollPath() ? 1f - Mathf.Clamp01(scrollPathT) : 0f;
 
     private int ActiveScrollStopCount => scrollStepCount;
 
@@ -218,16 +154,11 @@ public class CameraFollow : MonoBehaviour
     private Camera actionCamera;
     private float lastRotationTime;
     
-    private const float BaseZoomDistance = 10f;
-    private const float PitchDownHeadroomScrollTicks = 6f;
-    private const float ExtraCloseScrollTickBonus = 2f;
-    private const float FarLowerScrollTicks = 1f;
-    private const float FarSideDollyScrollTickBonus = 2f;
-    private const float MinCameraClearanceAboveLookAt = 0.25f;
+    private const float DefaultPathStopHorizontal = 10f;
+    private const float DefaultPathStopHeight = 9f;
     private const float MaxFreeOrbitDragStepDegrees = 90f;
     private const float FreeOrbitMaxDragDegreesPerSecondFactor = 200f;
     private const float DeathSentencePanSpeedDivisor = 10f;
-    private const float DeathSentenceZoomScrollTicksPerSecond = 4f;
 
     private Vector3[] presetOffsets = new Vector3[]
     {
@@ -288,28 +219,9 @@ public class CameraFollow : MonoBehaviour
     private Vector3 localOcclusionViewUp;
     private Vector3 localOcclusionAimDirection;
     private Vector3 localOcclusionCameraForward;
-    private static readonly int XRayFillColorId = Shader.PropertyToID("_FillColor");
-    private static readonly int XRayRimColorId = Shader.PropertyToID("_RimColor");
-    private static readonly int XRayRimPowerId = Shader.PropertyToID("_RimPower");
-    private const string XRayShaderName = "Custom/TimXRaySilhouette";
-
-    private static readonly int CutoutEnabledId = Shader.PropertyToID("_TimCutoutEnabled");
-    private static readonly int CutoutNearCenterId = Shader.PropertyToID("_TimCutoutNearCenter");
-    private static readonly int CutoutFarCenterId = Shader.PropertyToID("_TimCutoutFarCenter");
-    private static readonly int CutoutAxisForwardId = Shader.PropertyToID("_TimCutoutAxisForward");
-    private static readonly int CutoutAxisRightId = Shader.PropertyToID("_TimCutoutAxisRight");
-    private static readonly int CutoutShapeParamsId = Shader.PropertyToID("_TimCutoutShapeParams");
-    private static readonly int CutoutVisualParamsId = Shader.PropertyToID("_TimCutoutVisualParams");
-    private static readonly int CutoutEdgeColorId = Shader.PropertyToID("_TimCutoutEdgeColor");
-    private static readonly int CutoutFeetBoxCenterId = Shader.PropertyToID("_TimCutoutFeetBoxCenter");
-    private static readonly int CutoutFeetBoxHalfExtentsId = Shader.PropertyToID("_TimCutoutFeetBoxHalfExtents");
-
     private Vector3 localOcclusionHorizAimDir;
     private Vector3 localOcclusionHorizRight;
 
-    private Material xRayMaterial;
-    private TimXRaySilhouettePass xRayPass;
-    private readonly List<Renderer> timXRayRenderers = new List<Renderer>();
     private readonly List<Renderer> occlusionMeshCandidates = new List<Renderer>();
     private readonly Dictionary<Renderer, ShadowCastingMode> proximityHiddenRenderers = new Dictionary<Renderer, ShadowCastingMode>();
     private readonly HashSet<Renderer> frameHiddenRenderers = new HashSet<Renderer>();
@@ -317,20 +229,10 @@ public class CameraFollow : MonoBehaviour
 
     private float DampingTime => Mathf.Lerp(0.35f, 0.02f, cameraResponsiveness);
     private float RotationLerpSpeed => Mathf.Lerp(2f, 20f, cameraResponsiveness);
-    private float MaxPitchDownAmount => Mathf.Max(0f, cameraHeight - PitchDownHeadroomScrollTicks * scrollZoomStep);
-    private float MaxExtraCloseDistance => maxExtraCloseDistance + ExtraCloseScrollTickBonus * scrollZoomStep;
-    private float MaxExtraFarLower => scrollZoomStep * FarLowerScrollTicks;
-    private float MaxFarSideDollyDistance => maxFarSideDollyDistance + FarSideDollyScrollTickBonus * scrollZoomStep;
-    private float MaxFarViewDropTotal =>
-        Mathf.Max(0f, cameraHeight - lookAtOffset.y - MinCameraClearanceAboveLookAt);
-
-    private float EffectiveMaxPitchDownAmount =>
-        Mathf.Min(MaxPitchDownAmount, Mathf.Max(0f, MaxFarViewDropTotal - MaxExtraFarLower));
 
     private void Awake()
     {
         actionCamera = GetComponent<Camera>();
-        defaultZoomDistance = zoomDistance;
     }
 
     private int FindDefaultStopOnScrollPath()
@@ -344,7 +246,7 @@ public class CameraFollow : MonoBehaviour
             float t = stop / (float)maxWheelStop;
             Vector3 world = OrbitLocalOffsetToWorld(EvaluateScrollPathAtUserT(t));
             float horiz = new Vector3(world.x, 0f, world.z).magnitude;
-            float error = Mathf.Abs(horiz - defaultZoomDistance) + Mathf.Abs(world.y - cameraHeight);
+            float error = Mathf.Abs(horiz - DefaultPathStopHorizontal) + Mathf.Abs(world.y - DefaultPathStopHeight);
             if (error < bestError)
             {
                 bestError = error;
@@ -355,31 +257,22 @@ public class CameraFollow : MonoBehaviour
         return best;
     }
 
-    private void OnEnable()
-    {
-        RenderPipelineManager.beginCameraRendering += OnBeginCameraRendering;
-    }
-
     private void OnDisable()
     {
-        RenderPipelineManager.beginCameraRendering -= OnBeginCameraRendering;
         RestoreAllHiddenMeshes();
         SetVolumeLinesVisible(false);
-        DisableShaderCutoutGlobals();
+        Shader.SetGlobalFloat(Shader.PropertyToID("_TimCutoutEnabled"), 0f);
     }
 
     private void OnDestroy()
     {
         if (volumeLineMaterial != null)
             Destroy(volumeLineMaterial);
-
-        if (xRayMaterial != null)
-            CoreUtils.Destroy(xRayMaterial);
     }
 
     private void OnDrawGizmos()
     {
-        if ((!enableOcclusionMeshHide && !enableShaderCutout) || !showVolumeBox)
+        if (!enableOcclusionMeshHide || !showVolumeBox)
             return;
 
         if (!TryBuildLocalCameraOcclusionVolume())
@@ -396,12 +289,6 @@ public class CameraFollow : MonoBehaviour
         Gizmos.DrawLine(aim - markerRight * markerHalf, aim + markerRight * markerHalf);
         Gizmos.DrawLine(aim - markerUp * markerHalf, aim + markerUp * markerHalf);
         Gizmos.DrawLine(aim, aim - localOcclusionAimDirection * markerHalf);
-
-        if (enableShaderCutout && enableCutoutFeetSafeBox && TryGetCutoutFeetBox(out Vector3 feetBoxCenter, out Vector3 feetBoxHalfExtents))
-        {
-            Gizmos.color = new Color(0.2f, 0.85f, 1f, 0.8f);
-            Gizmos.DrawWireCube(feetBoxCenter, feetBoxHalfExtents * 2f);
-        }
     }
 
     private void OnValidate()
@@ -413,12 +300,7 @@ public class CameraFollow : MonoBehaviour
         scrollStepCount = Mathf.Max(2, ActiveScrollStopCount);
         pathStepsPerScroll = Mathf.Max(1, pathStepsPerScroll);
         scrollStopIndex = Mathf.Clamp(scrollStopIndex, 0, ActiveScrollStopCount - 1);
-        scrollOutNotchesFromClose = -1;
-        zoomDistance = Mathf.Clamp(zoomDistance, minZoomDistance, maxZoomDistance);
-        extraCloseDistance = Mathf.Clamp(extraCloseDistance, 0f, MaxExtraCloseDistance);
-        farSideDollyDistance = Mathf.Clamp(farSideDollyDistance, 0f, MaxFarSideDollyDistance);
-        ClampFarViewDropAmounts();
-        if (useScrollPathMarkers && target != null)
+        if (useScrollPathMarkers && timObject != null)
             TryBuildScrollPathFromMarkers();
 
         if (presetOffsets != null && presetOffsets.Length > 0)
@@ -427,305 +309,63 @@ public class CameraFollow : MonoBehaviour
 
     private void ApplyCurrentOffset()
     {
-        if (UsesScrollPath())
-        {
-            offset = OrbitLocalOffsetToWorld(EvaluateScrollPathAtUserT(scrollPathT));
-            scrollStopIndex = ScrollPathTToStopIndex(scrollPathT);
+        if (!UsesScrollPath())
             return;
-        }
 
-        if (UsesFarViewOffset())
-        {
-            ApplyFarViewOffset();
-            return;
-        }
-
-        if (extraCloseDistance > 0f)
-        {
-            float minScale = minZoomDistance / BaseZoomDistance;
-            Vector3 minOffset = GetHorizontalOffset(minScale);
-            minOffset.y = cameraHeight;
-            if (minOffset.sqrMagnitude > 0.0001f)
-                offset = minOffset - minOffset.normalized * extraCloseDistance;
-            else
-                offset = minOffset;
-            return;
-        }
-
-        float zoomScale = zoomDistance / BaseZoomDistance;
-        Vector3 flat = GetHorizontalOffset(zoomScale);
-        offset = new Vector3(flat.x, cameraHeight, flat.z);
-    }
-
-    private Vector3 GetHorizontalOffset(float zoomScale)
-    {
-        if (isFreeOrbitActive)
-        {
-            Vector3 reference = presetOffsets[0];
-            Vector3 flat = Quaternion.Euler(0f, freeOrbitYawDegrees, 0f) * new Vector3(reference.x, 0f, reference.z);
-            return new Vector3(flat.x * zoomScale, 0f, flat.z * zoomScale);
-        }
-
-        Vector3 preset = presetOffsets[currentAngleIndex];
-        return new Vector3(preset.x * zoomScale, 0f, preset.z * zoomScale);
+        offset = OrbitLocalOffsetToWorld(EvaluateScrollPathAtUserT(scrollPathT));
+        scrollStopIndex = ScrollPathTToStopIndex(scrollPathT);
     }
 
     private void ApplyScrollStop(int stop)
     {
+        if (!UsesScrollPath())
+            return;
+
         int maxStop = ActiveScrollStopCount - 1;
         stop = Mathf.Clamp(stop, 0, maxStop);
         scrollStopIndex = stop;
-        if (UsesScrollPath())
-        {
-            float t = ScrollPathStopIndexToT(stop);
-            scrollPathT = t;
-            scrollPathTargetT = t;
-            scrollPathTVelocity = 0f;
-            ApplyCurrentOffset();
-            return;
-        }
-
-        SetScrollStateToCloseEnd();
-        if (maxStop <= 0)
-        {
-            ApplyCurrentOffset();
-            return;
-        }
-
-        int notchesOut = Mathf.RoundToInt((maxStop - stop) * GetScrollOutNotchesFromClose() / (float)maxStop);
-        for (int i = 0; i < notchesOut; i++)
-            ScrollOutOneNotch();
-
+        float t = ScrollPathStopIndexToT(stop);
+        scrollPathT = t;
+        scrollPathTargetT = t;
+        scrollPathTVelocity = 0f;
         ApplyCurrentOffset();
     }
 
-    private void SetScrollStateToCloseEnd()
-    {
-        extraCloseDistance = MaxExtraCloseDistance;
-        zoomDistance = minZoomDistance;
-        pitchDownAmount = 0f;
-        extraFarLowerAmount = 0f;
-        farSideDollyDistance = 0f;
-    }
-
-    private void SetScrollStateToFarEnd()
-    {
-        extraCloseDistance = 0f;
-        zoomDistance = maxZoomDistance;
-        pitchDownAmount = EffectiveMaxPitchDownAmount;
-        extraFarLowerAmount = MaxExtraFarLower;
-        farSideDollyDistance = MaxFarSideDollyDistance;
-        ClampFarViewDropAmounts();
-    }
-
-    private int GetScrollOutNotchesFromClose()
-    {
-        if (scrollOutNotchesFromClose >= 0)
-            return scrollOutNotchesFromClose;
-
-        SetScrollStateToCloseEnd();
-        int count = 0;
-        while (CanScrollOutOneMoreNotch())
-        {
-            ScrollOutOneNotch();
-            count++;
-        }
-        scrollOutNotchesFromClose = count;
-        return count;
-    }
-
-    private bool CanScrollOutOneMoreNotch()
-    {
-        if (extraCloseDistance > 0.0001f) return true;
-        if (zoomDistance < maxZoomDistance - 0.0001f) return true;
-        if (pitchDownAmount < EffectiveMaxPitchDownAmount - 0.0001f) return true;
-        if (extraFarLowerAmount < MaxExtraFarLower - 0.0001f) return true;
-        if (farSideDollyDistance < MaxFarSideDollyDistance - 0.0001f) return true;
-        return false;
-    }
-
-    private void ScrollOutOneNotch()
-    {
-        if (extraCloseDistance > 0f)
-        {
-            extraCloseDistance = Mathf.Max(0f, extraCloseDistance - scrollZoomStep);
-            return;
-        }
-
-        if (zoomDistance < maxZoomDistance)
-        {
-            zoomDistance = Mathf.Min(maxZoomDistance, zoomDistance + scrollZoomStep);
-            return;
-        }
-
-        if (pitchDownAmount < EffectiveMaxPitchDownAmount)
-        {
-            pitchDownAmount = Mathf.Min(EffectiveMaxPitchDownAmount, pitchDownAmount + scrollZoomStep);
-            ClampFarViewDropAmounts();
-            return;
-        }
-
-        if (extraFarLowerAmount < MaxExtraFarLower)
-        {
-            extraFarLowerAmount = Mathf.Min(MaxExtraFarLower, extraFarLowerAmount + scrollZoomStep);
-            ClampFarViewDropAmounts();
-            return;
-        }
-
-        farSideDollyDistance = Mathf.Min(MaxFarSideDollyDistance, farSideDollyDistance + scrollZoomStep);
-    }
-
-    private void ScrollInOneNotch()
-    {
-        if (farSideDollyDistance > 0f)
-        {
-            farSideDollyDistance = Mathf.Max(0f, farSideDollyDistance - scrollZoomStep);
-            return;
-        }
-
-        if (extraFarLowerAmount > 0f)
-        {
-            extraFarLowerAmount = Mathf.Max(0f, extraFarLowerAmount - scrollZoomStep);
-            return;
-        }
-
-        if (pitchDownAmount > 0f)
-        {
-            pitchDownAmount = Mathf.Max(0f, pitchDownAmount - scrollZoomStep);
-            return;
-        }
-
-        if (zoomDistance > minZoomDistance)
-        {
-            zoomDistance = Mathf.Max(minZoomDistance, zoomDistance - scrollZoomStep);
-            return;
-        }
-
-        extraCloseDistance = Mathf.Min(MaxExtraCloseDistance, extraCloseDistance + scrollZoomStep);
-    }
-
-    private int FindScrollStopForDefaultZoom()
-    {
-        int maxStop = Mathf.Max(1, scrollStepCount - 1);
-        int best = 0;
-        float bestError = float.MaxValue;
-
-        for (int stop = 0; stop <= maxStop; stop++)
-        {
-            ApplyScrollStop(stop);
-            float error = Mathf.Abs(zoomDistance - defaultZoomDistance)
-                + extraCloseDistance * 4f
-                + farSideDollyDistance * 2f
-                + pitchDownAmount
-                + extraFarLowerAmount;
-            if (error < bestError)
-            {
-                bestError = error;
-                best = stop;
-            }
-        }
-
-        return best;
-    }
-    
     private void Start()
     {
         tim = FindAnyObjectByType<CharacterMovement>();
-        if (findPlayerAutomatically && target == null && tim != null) target = tim.transform;
-
         if (useScrollPathMarkers)
             TryBuildScrollPathFromMarkers();
 
-        scrollStopIndex = UsesScrollPath() ? FindDefaultStopOnScrollPath() : FindScrollStopForDefaultZoom();
+        scrollStopIndex = FindDefaultStopOnScrollPath();
         ApplyScrollStop(scrollStopIndex);
         CacheOcclusionMeshCandidates();
-        CacheTimXRayRenderers();
         RestoreAllHiddenMeshes();
-    }
-
-    private void CacheTimXRayRenderers()
-    {
-        timXRayRenderers.Clear();
-        if (tim == null)
-            return;
-
-        Renderer[] renderers = tim.GetComponentsInChildren<Renderer>(true);
-        for (int i = 0; i < renderers.Length; i++)
-        {
-            Renderer renderer = renderers[i];
-            if (renderer is SkinnedMeshRenderer || renderer is MeshRenderer)
-                timXRayRenderers.Add(renderer);
-        }
-    }
-
-    private void OnBeginCameraRendering(ScriptableRenderContext context, Camera cam)
-    {
-        if (!enableXRaySilhouette || isInspectionMode)
-            return;
-
-        if (actionCamera == null)
-            actionCamera = GetComponent<Camera>();
-        if (cam != actionCamera)
-            return;
-
-        if (tim == null)
-            return;
-
-        if (timXRayRenderers.Count == 0)
-            CacheTimXRayRenderers();
-        if (timXRayRenderers.Count == 0)
-            return;
-
-        if (!EnsureXRaySilhouettePass())
-            return;
-
-        xRayMaterial.SetColor(XRayFillColorId, xRayFillColor);
-        xRayMaterial.SetColor(XRayRimColorId, xRayRimColor);
-        xRayMaterial.SetFloat(XRayRimPowerId, xRayRimPower);
-        xRayPass.SetRenderers(timXRayRenderers);
-
-        UniversalAdditionalCameraData additionalData = cam.GetUniversalAdditionalCameraData();
-        if (additionalData != null && additionalData.scriptableRenderer != null)
-            additionalData.scriptableRenderer.EnqueuePass(xRayPass);
-    }
-
-    private bool EnsureXRaySilhouettePass()
-    {
-        if (xRayPass != null && xRayMaterial != null)
-            return true;
-
-        Shader shader = Shader.Find(XRayShaderName);
-        if (shader == null)
-            return false;
-
-        xRayMaterial = CoreUtils.CreateEngineMaterial(shader);
-        xRayPass = new TimXRaySilhouettePass(xRayMaterial);
-        return true;
     }
 
     private Transform GetFollowPivotTransform()
     {
         if (tim != null && tim.CameraFollowTarget != null)
             return tim.CameraFollowTarget;
-        return target;
+        return timObject;
     }
 
     public bool TryBuildScrollPathFromMarkers()
     {
-        if (!useScrollPathMarkers || target == null)
+        if (!useScrollPathMarkers || timObject == null)
             return false;
 
         Transform pivot = GetFollowPivotTransform();
         if (pivot == null)
-            pivot = target;
+            pivot = timObject;
 
-        Transform[] all = target.GetComponentsInChildren<Transform>(true);
+        Transform[] all = timObject.GetComponentsInChildren<Transform>(true);
         var guideMarkers = new List<(int order, Transform transform)>();
         var furthestMarkers = new List<Transform>();
 
         foreach (Transform t in all)
         {
-            if (t == target || !t.name.StartsWith(ScrollPathMarkerNamePrefix))
+            if (t == timObject || !t.name.StartsWith(ScrollPathMarkerNamePrefix))
                 continue;
 
             if (t.name.IndexOf("furthest", System.StringComparison.OrdinalIgnoreCase) >= 0)
@@ -999,7 +639,7 @@ public class CameraFollow : MonoBehaviour
 
     private void LateUpdate()
     {
-        if (target == null) return;
+        if (timObject == null) return;
 
         if (isInspectionMode && tim != null && (!tim.IsGrounded || tim.IsDead))
             ExitInspectionMode();
@@ -1017,21 +657,15 @@ public class CameraFollow : MonoBehaviour
             if (enableOcclusionMeshHide)
                 UpdateLocalCameraOcclusionMeshHide();
             else
+            {
                 RestoreAllHiddenMeshes();
-
-            if (enableShaderCutout)
-                UpdateShaderCutoutGlobals();
-            else
-                DisableShaderCutoutGlobals();
-
-            if (!enableOcclusionMeshHide && !enableShaderCutout)
                 SetVolumeLinesVisible(false);
+            }
         }
         else
         {
             RestoreAllHiddenMeshes();
             SetVolumeLinesVisible(false);
-            DisableShaderCutoutGlobals();
         }
     }
     
@@ -1151,21 +785,10 @@ public class CameraFollow : MonoBehaviour
 
     private void HandleScrollZoom(float scrollDirection)
     {
-        int maxStop = ActiveScrollStopCount - 1;
-
-        if (UsesScrollPath())
-        {
-            ApplyScrollPathWheel(scrollDirection);
+        if (!UsesScrollPath())
             return;
-        }
 
-        int legacyNext = scrollStopIndex;
-        if (scrollDirection > 0f)
-            legacyNext = Mathf.Max(0, scrollStopIndex - 1);
-        else
-            legacyNext = Mathf.Min(maxStop, scrollStopIndex + 1);
-
-        ApplyScrollStop(legacyNext);
+        ApplyScrollPathWheel(scrollDirection);
     }
 
     private bool CanEnterInspectionMode()
@@ -1216,13 +839,12 @@ public class CameraFollow : MonoBehaviour
 
     private void UpdateActionMode()
     {
-        Transform followTarget = tim != null ? tim.CameraFollowTarget : target;
+        Transform followTarget = tim != null ? tim.CameraFollowTarget : timObject;
         if (followTarget == null)
             return;
 
         Vector3 targetPos = followTarget.position + offset;
-        if (constrainY) targetPos.y = fixedYPosition;
-        
+
         // Add framing offset relative to the camera's right axis to shift the camera position
         targetPos += transform.right * screenFramingOffset;
         
@@ -1249,12 +871,12 @@ public class CameraFollow : MonoBehaviour
         }
 
         Transform pivot = GetFollowPivotTransform();
-        if (target != null)
+        if (timObject != null)
         {
-            if (pivot != null && target == pivot)
+            if (pivot != null && timObject == pivot)
                 aimWorldPosition = pivot.position + lookAtOffset;
             else
-                aimWorldPosition = target.position;
+                aimWorldPosition = timObject.position;
 
             return true;
         }
@@ -1486,83 +1108,6 @@ public class CameraFollow : MonoBehaviour
         for (int i = 0; i < 4; i++)
             occlusionEdgeDirections[2 + i] = localOcclusionFarCorners[i] - localOcclusionNearCorners[i];
 
-        return true;
-    }
-
-    private void UpdateShaderCutoutGlobals()
-    {
-        if (!TryBuildLocalCameraOcclusionVolume())
-        {
-            DisableShaderCutoutGlobals();
-            if (!enableOcclusionMeshHide)
-                SetVolumeLinesVisible(false);
-            return;
-        }
-
-        if (!enableOcclusionMeshHide)
-        {
-            if (showVolumeBox)
-                DrawLocalOcclusionWireframePlayMode();
-            else
-                SetVolumeLinesVisible(false);
-        }
-
-        Vector3 nearCenter = 0.25f * (localOcclusionNearCorners[0] + localOcclusionNearCorners[1] + localOcclusionNearCorners[2] + localOcclusionNearCorners[3]);
-        Vector3 farCenter = 0.25f * (localOcclusionFarCorners[0] + localOcclusionFarCorners[1] + localOcclusionFarCorners[2] + localOcclusionFarCorners[3]);
-        float nearHalfWidth = 0.5f * Vector3.Distance(localOcclusionNearCorners[0], localOcclusionNearCorners[1]) * cutoutWidthScale;
-        float nearHalfHeight = 0.5f * Vector3.Distance(localOcclusionNearCorners[0], localOcclusionNearCorners[2]) * cutoutHeightScale;
-        float farHalfWidth = 0.5f * Vector3.Distance(localOcclusionFarCorners[0], localOcclusionFarCorners[1]) * cutoutWidthScale;
-        float farHalfHeight = 0.5f * Vector3.Distance(localOcclusionFarCorners[0], localOcclusionFarCorners[2]) * cutoutHeightScale;
-
-        Shader.SetGlobalFloat(CutoutEnabledId, 1f);
-        Shader.SetGlobalVector(CutoutNearCenterId, new Vector4(nearCenter.x, nearCenter.y, nearCenter.z, 0f));
-        Shader.SetGlobalVector(CutoutFarCenterId, new Vector4(farCenter.x, farCenter.y, farCenter.z, 0f));
-        Shader.SetGlobalVector(CutoutAxisForwardId, new Vector4(localOcclusionHorizAimDir.x, localOcclusionHorizAimDir.y, localOcclusionHorizAimDir.z, 0f));
-        Shader.SetGlobalVector(CutoutAxisRightId, new Vector4(localOcclusionHorizRight.x, localOcclusionHorizRight.y, localOcclusionHorizRight.z, 0f));
-        Shader.SetGlobalVector(CutoutShapeParamsId, new Vector4(nearHalfWidth, nearHalfHeight, farHalfWidth, farHalfHeight));
-        Shader.SetGlobalVector(CutoutVisualParamsId, new Vector4(cutoutEdgeSoftness, cutoutNoiseScale, cutoutNoiseStrength, cutoutEdgeGlowWidth));
-
-        Color edgeCol = cutoutEdgeColor;
-        edgeCol.a = cutoutEdgeGlowIntensity;
-        Shader.SetGlobalVector(CutoutEdgeColorId, edgeCol);
-
-        if (enableCutoutFeetSafeBox && TryGetCutoutFeetBox(out Vector3 feetBoxCenter, out Vector3 feetBoxHalfExtents))
-        {
-            Shader.SetGlobalVector(CutoutFeetBoxCenterId, new Vector4(feetBoxCenter.x, feetBoxCenter.y, feetBoxCenter.z, 1f));
-            Shader.SetGlobalVector(CutoutFeetBoxHalfExtentsId, new Vector4(feetBoxHalfExtents.x, feetBoxHalfExtents.y, feetBoxHalfExtents.z, cutoutFeetBoxFeather));
-        }
-        else
-        {
-            Shader.SetGlobalVector(CutoutFeetBoxCenterId, Vector4.zero);
-            Shader.SetGlobalVector(CutoutFeetBoxHalfExtentsId, Vector4.zero);
-        }
-    }
-
-    private static void DisableShaderCutoutGlobals()
-    {
-        Shader.SetGlobalFloat(CutoutEnabledId, 0f);
-    }
-
-    private bool TryGetCutoutFeetBox(out Vector3 boxCenter, out Vector3 halfExtents)
-    {
-        boxCenter = default;
-        halfExtents = new Vector3(
-            Mathf.Max(0.05f, cutoutFeetBoxHalfExtents.x),
-            Mathf.Max(0.05f, cutoutFeetBoxHalfExtents.y),
-            Mathf.Max(0.05f, cutoutFeetBoxHalfExtents.z));
-
-        Vector3 referencePos;
-        if (occlusionFeetReference != null)
-            referencePos = occlusionFeetReference.position;
-        else if (tim != null)
-            referencePos = tim.transform.position;
-        else if (target != null)
-            referencePos = target.position;
-        else
-            return false;
-
-        float topY = referencePos.y + cutoutFeetBoxTopOffset;
-        boxCenter = new Vector3(referencePos.x, topY - halfExtents.y, referencePos.z);
         return true;
     }
 
@@ -1843,7 +1388,7 @@ public class CameraFollow : MonoBehaviour
         halfExtents = default;
         aimDir = default;
 
-        Transform followTarget = tim != null ? tim.CameraFollowTarget : target;
+        Transform followTarget = tim != null ? tim.CameraFollowTarget : timObject;
         if (followTarget == null)
             return false;
 
@@ -2102,7 +1647,7 @@ public class CameraFollow : MonoBehaviour
         if (occlusionGhostMaterial == null)
             return false;
 
-        Transform timTransform = tim != null ? tim.transform : target;
+        Transform timTransform = tim != null ? tim.transform : timObject;
         if (timTransform == null)
             return false;
 
@@ -2230,44 +1775,7 @@ public class CameraFollow : MonoBehaviour
 
     private void TickDeathSentenceZoom()
     {
-        if (UsesScrollPath())
-            return;
-
-        float zoomStep = scrollZoomStep * DeathSentenceZoomScrollTicksPerSecond * Time.deltaTime;
-
-        if (farSideDollyDistance > 0f)
-        {
-            farSideDollyDistance = Mathf.Max(0f, farSideDollyDistance - zoomStep);
-            ApplyCurrentOffset();
-            return;
-        }
-
-        if (extraFarLowerAmount > 0f)
-        {
-            extraFarLowerAmount = Mathf.Max(0f, extraFarLowerAmount - zoomStep);
-            ApplyCurrentOffset();
-            return;
-        }
-
-        if (pitchDownAmount > 0f)
-        {
-            pitchDownAmount = Mathf.Max(0f, pitchDownAmount - zoomStep);
-            ApplyCurrentOffset();
-            return;
-        }
-
-        if (zoomDistance > minZoomDistance)
-        {
-            zoomDistance = Mathf.Max(minZoomDistance, zoomDistance - zoomStep);
-            ApplyCurrentOffset();
-            return;
-        }
-
-        if (extraCloseDistance < MaxExtraCloseDistance)
-        {
-            extraCloseDistance = Mathf.Min(MaxExtraCloseDistance, extraCloseDistance + zoomStep);
-            ApplyCurrentOffset();
-        }
+        // Path zoom is driven by scrollPathTargetT in TickScrollPathTravel.
     }
 
     private void BeginDeathSentencePan()
@@ -2328,83 +1836,13 @@ public class CameraFollow : MonoBehaviour
         ApplyCurrentOffset();
     }
 
-    private bool IsAtFarZoomOut()
-    {
-        return extraCloseDistance <= 0.0001f && zoomDistance >= maxZoomDistance - 0.001f;
-    }
-
-    private bool UsesFarViewOffset()
-    {
-        if (!IsAtFarZoomOut())
-            return false;
-
-        return pitchDownAmount > 0f
-            || extraFarLowerAmount > 0f
-            || farSideDollyDistance > 0f;
-    }
-
-    private void ApplyFarViewOffset()
-    {
-        float maxScale = maxZoomDistance / BaseZoomDistance;
-        Vector3 horizontal = GetHorizontalOffset(maxScale);
-        float y = cameraHeight - pitchDownAmount - extraFarLowerAmount;
-        offset = BuildFarViewOffset(horizontal, y);
-    }
-
-    private Vector3 BuildFarViewOffset(Vector3 horizontal, float y)
-    {
-        Vector3 xz = new Vector3(horizontal.x, 0f, horizontal.z);
-        float xzMag = xz.magnitude;
-        if (farSideDollyDistance > 0f && xzMag > 0.0001f)
-        {
-            float newMag = Mathf.Max(0f, xzMag - farSideDollyDistance);
-            Vector3 dir = xz / xzMag;
-            return new Vector3(dir.x * newMag, y, dir.z * newMag);
-        }
-
-        return new Vector3(horizontal.x, y, horizontal.z);
-    }
-
-    private void ClampFarViewDropAmounts()
-    {
-        float maxDrop = MaxFarViewDropTotal;
-        float maxPitch = EffectiveMaxPitchDownAmount;
-        pitchDownAmount = Mathf.Clamp(pitchDownAmount, 0f, Mathf.Min(maxPitch, maxDrop));
-        float remaining = Mathf.Max(0f, maxDrop - pitchDownAmount);
-        extraFarLowerAmount = Mathf.Clamp(extraFarLowerAmount, 0f, Mathf.Min(MaxExtraFarLower, remaining));
-    }
-
     private Vector3 GetActionHorizontalOffsetXZ()
     {
-        if (UsesScrollPath())
-        {
-            Vector3 onPath = OrbitLocalOffsetToWorld(EvaluateScrollPathAtUserT(scrollPathT));
-            return new Vector3(onPath.x, 0f, onPath.z);
-        }
+        if (!UsesScrollPath())
+            return Vector3.zero;
 
-        if (UsesFarViewOffset())
-        {
-            float maxScale = maxZoomDistance / BaseZoomDistance;
-            Vector3 horizontal = GetHorizontalOffset(maxScale);
-            float y = cameraHeight - pitchDownAmount - extraFarLowerAmount;
-            Vector3 farOffset = BuildFarViewOffset(horizontal, y);
-            return new Vector3(farOffset.x, 0f, farOffset.z);
-        }
-
-        if (extraCloseDistance > 0f)
-        {
-            float minScale = minZoomDistance / BaseZoomDistance;
-            Vector3 minOffset = GetHorizontalOffset(minScale);
-            minOffset.y = cameraHeight;
-            Vector3 dolly = minOffset.sqrMagnitude > 0.0001f
-                ? minOffset - minOffset.normalized * extraCloseDistance
-                : minOffset;
-            return new Vector3(dolly.x, 0f, dolly.z);
-        }
-
-        float zoomScale = zoomDistance / BaseZoomDistance;
-        Vector3 flat = GetHorizontalOffset(zoomScale);
-        return new Vector3(flat.x, 0f, flat.z);
+        Vector3 onPath = OrbitLocalOffsetToWorld(EvaluateScrollPathAtUserT(scrollPathT));
+        return new Vector3(onPath.x, 0f, onPath.z);
     }
 
     private Vector3 GetCardinalHorizontalOffsetXZ(int cardinalIndex)
@@ -2459,7 +1897,7 @@ public class CameraFollow : MonoBehaviour
         isFreeOrbitActive = false;
         currentAngleIndex = 0;
         freeOrbitYawDegrees = 0f;
-        int stop = UsesScrollPath() ? FindDefaultStopOnScrollPath() : FindScrollStopForDefaultZoom();
+        int stop = FindDefaultStopOnScrollPath();
         ApplyScrollStop(stop);
         lastRotationTime = Time.unscaledTime;
     }
@@ -2496,4 +1934,194 @@ public class CameraFollow : MonoBehaviour
         // Calculate movement direction: forward * W/S input + right * A/D input
         return forward * moveInput.y + right * moveInput.x;
     }
+
+#if false // Dormant: X-Ray silhouette + shader cutout (not used). Re-enable: flip to true, restore inspector fields, wire lifecycle hooks noted below.
+    // --- Inspector (move above IsInspectionMode when re-enabling) ---
+    [Header("X-Ray Silhouette (Test)")]
+    [Tooltip("Draw an X-ray silhouette over parts of Tim hidden behind walls, stairs, or rocks.")]
+    public bool enableXRaySilhouette = true;
+    public Color xRayFillColor = new Color(0.2f, 0.75f, 1f, 0.25f);
+    public Color xRayRimColor = new Color(0.45f, 0.92f, 1f, 0.9f);
+    [Range(0.5f, 6f)] public float xRayRimPower = 2.2f;
+
+    [Header("Shader Cutout (Test)")]
+    [Tooltip("Drives global cutout uniforms for materials using Custom/SimpleLitCutout.")]
+    public bool enableShaderCutout = true;
+    [Range(0.5f, 6f)] public float cutoutWidthScale = 2.5f;
+    [Range(0.5f, 4f)] public float cutoutHeightScale = 1.5f;
+    [Range(0.05f, 2f)] public float cutoutEdgeSoftness = 0.45f;
+    [Range(0.2f, 8f)] public float cutoutNoiseScale = 2.2f;
+    [Range(0f, 1f)] public float cutoutNoiseStrength = 0.28f;
+    [ColorUsage(false, true)] public Color cutoutEdgeColor = new Color(1f, 0.72f, 0.28f, 1f);
+    [Range(0.05f, 1f)] public float cutoutEdgeGlowWidth = 0.35f;
+    [Range(0f, 3f)] public float cutoutEdgeGlowIntensity = 1.15f;
+    public bool enableCutoutFeetSafeBox = true;
+    public Vector3 cutoutFeetBoxHalfExtents = new Vector3(1.25f, 1f, 1.25f);
+    public float cutoutFeetBoxTopOffset = 0.12f;
+    [Range(0.02f, 1f)] public float cutoutFeetBoxFeather = 0.18f;
+
+    private static readonly int XRayFillColorId = Shader.PropertyToID("_FillColor");
+    private static readonly int XRayRimColorId = Shader.PropertyToID("_RimColor");
+    private static readonly int XRayRimPowerId = Shader.PropertyToID("_RimPower");
+    private const string XRayShaderName = "Custom/TimXRaySilhouette";
+
+    private static readonly int CutoutEnabledId = Shader.PropertyToID("_TimCutoutEnabled");
+    private static readonly int CutoutNearCenterId = Shader.PropertyToID("_TimCutoutNearCenter");
+    private static readonly int CutoutFarCenterId = Shader.PropertyToID("_TimCutoutFarCenter");
+    private static readonly int CutoutAxisForwardId = Shader.PropertyToID("_TimCutoutAxisForward");
+    private static readonly int CutoutAxisRightId = Shader.PropertyToID("_TimCutoutAxisRight");
+    private static readonly int CutoutShapeParamsId = Shader.PropertyToID("_TimCutoutShapeParams");
+    private static readonly int CutoutVisualParamsId = Shader.PropertyToID("_TimCutoutVisualParams");
+    private static readonly int CutoutEdgeColorId = Shader.PropertyToID("_TimCutoutEdgeColor");
+    private static readonly int CutoutFeetBoxCenterId = Shader.PropertyToID("_TimCutoutFeetBoxCenter");
+    private static readonly int CutoutFeetBoxHalfExtentsId = Shader.PropertyToID("_TimCutoutFeetBoxHalfExtents");
+
+    private Material xRayMaterial;
+    private TimXRaySilhouettePass xRayPass;
+    private readonly List<Renderer> timXRayRenderers = new List<Renderer>();
+
+    // OnEnable: RenderPipelineManager.beginCameraRendering += OnBeginCameraRendering;
+    // OnDisable: RenderPipelineManager.beginCameraRendering -= OnBeginCameraRendering; DisableShaderCutoutGlobals();
+    // OnDestroy: if (xRayMaterial != null) CoreUtils.Destroy(xRayMaterial);
+    // Start: CacheTimXRayRenderers();
+    // LateUpdate (action mode): enableShaderCutout / UpdateShaderCutoutGlobals / DisableShaderCutoutGlobals; volume line rule with cutout.
+    // OnDrawGizmos: cutout feet safe box when enableShaderCutout.
+
+    private void CacheTimXRayRenderers()
+    {
+        timXRayRenderers.Clear();
+        if (tim == null)
+            return;
+
+        Renderer[] renderers = tim.GetComponentsInChildren<Renderer>(true);
+        for (int i = 0; i < renderers.Length; i++)
+        {
+            Renderer renderer = renderers[i];
+            if (renderer is SkinnedMeshRenderer || renderer is MeshRenderer)
+                timXRayRenderers.Add(renderer);
+        }
+    }
+
+    private void OnBeginCameraRendering(ScriptableRenderContext context, Camera cam)
+    {
+        if (!enableXRaySilhouette || isInspectionMode)
+            return;
+
+        if (actionCamera == null)
+            actionCamera = GetComponent<Camera>();
+        if (cam != actionCamera)
+            return;
+
+        if (tim == null)
+            return;
+
+        if (timXRayRenderers.Count == 0)
+            CacheTimXRayRenderers();
+        if (timXRayRenderers.Count == 0)
+            return;
+
+        if (!EnsureXRaySilhouettePass())
+            return;
+
+        xRayMaterial.SetColor(XRayFillColorId, xRayFillColor);
+        xRayMaterial.SetColor(XRayRimColorId, xRayRimColor);
+        xRayMaterial.SetFloat(XRayRimPowerId, xRayRimPower);
+        xRayPass.SetRenderers(timXRayRenderers);
+
+        UnityEngine.Rendering.Universal.UniversalAdditionalCameraData additionalData = cam.GetUniversalAdditionalCameraData();
+        if (additionalData != null && additionalData.scriptableRenderer != null)
+            additionalData.scriptableRenderer.EnqueuePass(xRayPass);
+    }
+
+    private bool EnsureXRaySilhouettePass()
+    {
+        if (xRayPass != null && xRayMaterial != null)
+            return true;
+
+        Shader shader = Shader.Find(XRayShaderName);
+        if (shader == null)
+            return false;
+
+        xRayMaterial = UnityEngine.Rendering.CoreUtils.CreateEngineMaterial(shader);
+        xRayPass = new TimXRaySilhouettePass(xRayMaterial);
+        return true;
+    }
+
+    private void UpdateShaderCutoutGlobals()
+    {
+        if (!TryBuildLocalCameraOcclusionVolume())
+        {
+            DisableShaderCutoutGlobals();
+            if (!enableOcclusionMeshHide)
+                SetVolumeLinesVisible(false);
+            return;
+        }
+
+        if (!enableOcclusionMeshHide)
+        {
+            if (showVolumeBox)
+                DrawLocalOcclusionWireframePlayMode();
+            else
+                SetVolumeLinesVisible(false);
+        }
+
+        Vector3 nearCenter = 0.25f * (localOcclusionNearCorners[0] + localOcclusionNearCorners[1] + localOcclusionNearCorners[2] + localOcclusionNearCorners[3]);
+        Vector3 farCenter = 0.25f * (localOcclusionFarCorners[0] + localOcclusionFarCorners[1] + localOcclusionFarCorners[2] + localOcclusionFarCorners[3]);
+        float nearHalfWidth = 0.5f * Vector3.Distance(localOcclusionNearCorners[0], localOcclusionNearCorners[1]) * cutoutWidthScale;
+        float nearHalfHeight = 0.5f * Vector3.Distance(localOcclusionNearCorners[0], localOcclusionNearCorners[2]) * cutoutHeightScale;
+        float farHalfWidth = 0.5f * Vector3.Distance(localOcclusionFarCorners[0], localOcclusionFarCorners[1]) * cutoutWidthScale;
+        float farHalfHeight = 0.5f * Vector3.Distance(localOcclusionFarCorners[0], localOcclusionFarCorners[2]) * cutoutHeightScale;
+
+        Shader.SetGlobalFloat(CutoutEnabledId, 1f);
+        Shader.SetGlobalVector(CutoutNearCenterId, new Vector4(nearCenter.x, nearCenter.y, nearCenter.z, 0f));
+        Shader.SetGlobalVector(CutoutFarCenterId, new Vector4(farCenter.x, farCenter.y, farCenter.z, 0f));
+        Shader.SetGlobalVector(CutoutAxisForwardId, new Vector4(localOcclusionHorizAimDir.x, localOcclusionHorizAimDir.y, localOcclusionHorizAimDir.z, 0f));
+        Shader.SetGlobalVector(CutoutAxisRightId, new Vector4(localOcclusionHorizRight.x, localOcclusionHorizRight.y, localOcclusionHorizRight.z, 0f));
+        Shader.SetGlobalVector(CutoutShapeParamsId, new Vector4(nearHalfWidth, nearHalfHeight, farHalfWidth, farHalfHeight));
+        Shader.SetGlobalVector(CutoutVisualParamsId, new Vector4(cutoutEdgeSoftness, cutoutNoiseScale, cutoutNoiseStrength, cutoutEdgeGlowWidth));
+
+        Color edgeCol = cutoutEdgeColor;
+        edgeCol.a = cutoutEdgeGlowIntensity;
+        Shader.SetGlobalVector(CutoutEdgeColorId, edgeCol);
+
+        if (enableCutoutFeetSafeBox && TryGetCutoutFeetBox(out Vector3 feetBoxCenter, out Vector3 feetBoxHalfExtents))
+        {
+            Shader.SetGlobalVector(CutoutFeetBoxCenterId, new Vector4(feetBoxCenter.x, feetBoxCenter.y, feetBoxCenter.z, 1f));
+            Shader.SetGlobalVector(CutoutFeetBoxHalfExtentsId, new Vector4(feetBoxHalfExtents.x, feetBoxHalfExtents.y, feetBoxHalfExtents.z, cutoutFeetBoxFeather));
+        }
+        else
+        {
+            Shader.SetGlobalVector(CutoutFeetBoxCenterId, Vector4.zero);
+            Shader.SetGlobalVector(CutoutFeetBoxHalfExtentsId, Vector4.zero);
+        }
+    }
+
+    private static void DisableShaderCutoutGlobals()
+    {
+        Shader.SetGlobalFloat(CutoutEnabledId, 0f);
+    }
+
+    private bool TryGetCutoutFeetBox(out Vector3 boxCenter, out Vector3 halfExtents)
+    {
+        boxCenter = default;
+        halfExtents = new Vector3(
+            Mathf.Max(0.05f, cutoutFeetBoxHalfExtents.x),
+            Mathf.Max(0.05f, cutoutFeetBoxHalfExtents.y),
+            Mathf.Max(0.05f, cutoutFeetBoxHalfExtents.z));
+
+        Vector3 referencePos;
+        if (occlusionFeetReference != null)
+            referencePos = occlusionFeetReference.position;
+        else if (tim != null)
+            referencePos = tim.transform.position;
+        else if (timObject != null)
+            referencePos = timObject.position;
+        else
+            return false;
+
+        float topY = referencePos.y + cutoutFeetBoxTopOffset;
+        boxCenter = new Vector3(referencePos.x, topY - halfExtents.y, referencePos.z);
+        return true;
+    }
+#endif
 }

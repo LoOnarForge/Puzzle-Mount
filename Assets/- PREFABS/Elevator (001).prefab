@@ -123,7 +123,6 @@ GameObject:
   - component: {fileID: 6160206318278117942}
   - component: {fileID: 7009646789100357818}
   - component: {fileID: 1122338528607024908}
-  - component: {fileID: 6369207349228988152}
   m_Layer: 13
   m_Name: Runode Destroyer
   m_TagString: Untagged
@@ -182,23 +181,6 @@ MonoBehaviour:
   runodeLayerMask:
     serializedVersion: 2
     m_Bits: 2048
---- !u!114 &6369207349228988152
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 277069718918389584}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: f22b6e255ed957a4ebc90a36830bbed2, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::TriggerMarker
-  targetCollider: {fileID: 7009646789100357818}
-  frameColor: {r: 1, g: 0, b: 0, a: 1}
-  icon: {fileID: 0}
-  iconSize: 0.4
-  iconOffset: {x: 0.75, y: 0.75, z: 0}
 --- !u!1 &341241584271845154
 GameObject:
   m_ObjectHideFlags: 0

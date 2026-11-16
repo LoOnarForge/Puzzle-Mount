@@ -3,7 +3,7 @@ using UnityEngine;
 using UnityEngine.Rendering;
 
 [DisallowMultipleComponent]
-[RequireComponent(typeof(LineRenderer))]
+[RequireComponent(typeof(LineRenderer))] 
 [ExecuteAlways]
 public class ActivatorConnectionLineImpulse : MonoBehaviour
 {
