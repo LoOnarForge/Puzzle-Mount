@@ -241,6 +241,7 @@ public class CameraFollow : MonoBehaviour
 #endif
     private readonly Dictionary<Renderer, Material[]> ghostSwappedOriginalMaterials = new Dictionary<Renderer, Material[]>();
     private readonly Dictionary<Renderer, float> occlusionFadeByRenderer = new Dictionary<Renderer, float>();
+    private readonly Dictionary<Renderer, Transform> occlusionPreserveAnchorByRenderer = new Dictionary<Renderer, Transform>();
     private MaterialPropertyBlock occlusionGhostPropertyBlock;
     private static readonly int OcclusionFadeShaderId = Shader.PropertyToID("_OcclusionFade");
 
@@ -918,6 +919,7 @@ public class CameraFollow : MonoBehaviour
     private void CacheOcclusionMeshCandidates()
     {
         occlusionMeshCandidates.Clear();
+        occlusionPreserveAnchorByRenderer.Clear();
         int layerMask = occlusionHideLayers.value;
         if (layerMask == 0)
             return;
@@ -939,7 +941,31 @@ public class CameraFollow : MonoBehaviour
                 continue;
 
             occlusionMeshCandidates.Add(renderer);
+            occlusionPreserveAnchorByRenderer[renderer] = ResolveOcclusionPreserveAnchor(renderer);
         }
+    }
+
+    private Transform ResolveOcclusionPreserveAnchor(Renderer renderer)
+    {
+        if (renderer == null)
+            return null;
+
+        if (RendererBelongsToRunode(renderer))
+        {
+            RunodeMovement runode = renderer.GetComponentInParent<RunodeMovement>();
+            if (runode != null)
+                return runode.transform;
+        }
+
+        ActivatorOutlineHighlight outlineHighlight = renderer.GetComponentInParent<ActivatorOutlineHighlight>();
+        if (outlineHighlight != null)
+            return outlineHighlight.transform;
+
+        DeviceHighlight deviceHighlight = renderer.GetComponentInParent<DeviceHighlight>();
+        if (deviceHighlight != null)
+            return deviceHighlight.transform;
+
+        return null;
     }
 
     private void UpdateLocalCameraOcclusionMeshHide()
@@ -1298,6 +1324,9 @@ public class CameraFollow : MonoBehaviour
             if (renderer.bounds.max.y <= feetY + OcclusionBelowFeetMaxYMargin)
                 return true;
         }
+
+        if (IsClickableActivatorRendererWithinTimPreserveRange(renderer))
+            return true;
 
         return false;
     }
@@ -1848,6 +1877,7 @@ public class CameraFollow : MonoBehaviour
 
     private const string RunodesLayerName = "Runodes";
     private const string DecorationsLayerName = "Decorations";
+    private const float OcclusionPreserveNearTimHorizontalRange = 3.05f;
     private int runodesLayer = -1;
     private int decorationsLayer = -1;
 
@@ -1887,6 +1917,28 @@ public class CameraFollow : MonoBehaviour
         }
 
         return false;
+    }
+
+    private bool IsClickableActivatorRendererWithinTimPreserveRange(Renderer renderer)
+    {
+        if (renderer == null)
+            return false;
+
+        if (!occlusionPreserveAnchorByRenderer.TryGetValue(renderer, out Transform activatorRoot)
+            || activatorRoot == null)
+        {
+            return false;
+        }
+
+        Transform timTransform = tim != null ? tim.transform : timObject;
+        if (timTransform == null)
+            return false;
+
+        float horizontalDistance = Vector3.ProjectOnPlane(
+            activatorRoot.position - timTransform.position,
+            Vector3.up).magnitude;
+
+        return horizontalDistance <= OcclusionPreserveNearTimHorizontalRange;
     }
 
     private bool TryGetRendererAlongTimToCamera01(Renderer renderer, out float along01)
