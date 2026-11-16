@@ -15,33 +15,14 @@ public class CameraFollow : MonoBehaviour
     public LeyasCamera leyaController;
 
     [Header("LOCAL CAMERA OCCLUSION")]
+    [Tooltip("Master switch: local camera occlusion and gizmo. Off restores all hidden renderers.")]
+    public bool enableOcclusionMeshHide = false;
+
     [Range(0f, 1f)]
     [Tooltip("Rectangle aspect at both quads. Middle = square. Lower = wider. Higher = taller. Independent of quad size sliders.")]
     public float localOcclusionShapeRatio = 0.5f;
 
-    [Tooltip("Master switch: local camera occlusion and gizmo. Off restores all hidden renderers.")]
-    public bool enableOcclusionMeshHide = false;
-
-    [Tooltip("Test: if assigned, occluding renderers swap to this material instead of being hidden. Originals restore when out of the volume.")]
-    public Material occlusionGhostMaterial;
-
-    [HideInInspector] public float ghostOcclusionFullUntilAlongTimToCam = 0.25f;
-    [HideInInspector] public float ghostOcclusionGoneFromAlongTimToCam = 0.75f;
-    [Min(0.02f)]
-    public float occlusionFadeSmoothTime = 0.1f;
-
-    [Tooltip("Layers whose renderers are tested for mesh occlusion (no physics).")]
-    public LayerMask occlusionHideLayers = ~0;
-
-    [Tooltip("Aim override. If unset, uses Tim Object transform, then Tim pivot plus look-at height.")]
-    public Transform occlusionAimPoint;
-
-    [Tooltip("Tim's feet height for low-object culling. Renderers with top at or below this height are never hidden.")]
-    public Transform occlusionFeetReference;
-
-    [HideInInspector] [FormerlySerializedAs("occlusionInwardTilt")]
-    public float occlusionInwardTilt = 0.35f;
-
+    [Space(10)]
     [FormerlySerializedAs("occlusionNearQuadSizeScale")]
     [Range(0.1f, 8f)]
     [Tooltip("World size of the camera-side quad only.")]
@@ -61,10 +42,32 @@ public class CameraFollow : MonoBehaviour
     [Tooltip("Aim-side vertical quad offset along horizontal camera-to-target from the aim point. -2 = 2m toward camera, 0 = at Tim plane, +2 = 2m past target.")]
     public float farQuadDistance = 0f;
 
+    [HideInInspector] public float ghostOcclusionFullUntilAlongTimToCam = 0.25f;
+    [HideInInspector] public float ghostOcclusionGoneFromAlongTimToCam = 0.75f;
+
     [Tooltip("Draw local occlusion wireframe in play mode and scene gizmos.")]
     public bool showVolumeBox = true;
 
     public Color volumeGizmoColor = new Color(1f, 0.85f, 0.1f, 1f);
+
+    [Tooltip("Layers whose renderers are tested for mesh occlusion (no physics).")]
+    public LayerMask occlusionHideLayers = ~0;
+
+    [Tooltip("Aim override. If unset, uses Tim Object transform, then Tim pivot plus look-at height.")]
+    public Transform occlusionAimPoint;
+
+    [Tooltip("Tim's feet height for low-object culling. Renderers with top at or below this height are never hidden.")]
+    public Transform occlusionFeetReference;
+
+    [Range(0f, 1f)]
+    [Tooltip("Multiplies ghost opacity for renderers on the Decorations layer (overlapping foliage). 1 = same as other occluders.")]
+    public float decorationOcclusionFadeScale = 0.35f;
+
+    [Tooltip("Test: if assigned, occluding renderers swap to this material instead of being hidden. Originals restore when out of the volume.")]
+    public Material occlusionGhostMaterial;
+
+    [HideInInspector] [FormerlySerializedAs("occlusionInwardTilt")]
+    public float occlusionInwardTilt = 0.35f;
 
     [HideInInspector] public Vector3 volumeSize = new Vector3(1f, 2f, 8f);
     [HideInInspector] public Vector3 volumeStartOffset = Vector3.zero;
@@ -237,15 +240,9 @@ public class CameraFollow : MonoBehaviour
     private readonly List<Renderer> occlusionGroupRendererScratch = new List<Renderer>();
 #endif
     private readonly Dictionary<Renderer, Material[]> ghostSwappedOriginalMaterials = new Dictionary<Renderer, Material[]>();
-    private readonly Dictionary<Renderer, OcclusionFadeState> occlusionFadeByRenderer = new Dictionary<Renderer, OcclusionFadeState>();
+    private readonly Dictionary<Renderer, float> occlusionFadeByRenderer = new Dictionary<Renderer, float>();
     private MaterialPropertyBlock occlusionGhostPropertyBlock;
     private static readonly int OcclusionFadeShaderId = Shader.PropertyToID("_OcclusionFade");
-
-    private struct OcclusionFadeState
-    {
-        public float Value;
-        public float Velocity;
-    }
 
     private float DampingTime => Mathf.Lerp(0.35f, 0.02f, cameraResponsiveness);
     private float RotationLerpSpeed => Mathf.Lerp(2f, 20f, cameraResponsiveness);
@@ -319,6 +316,8 @@ public class CameraFollow : MonoBehaviour
         ghostOcclusionGoneFromAlongTimToCam = Mathf.Clamp01(ghostOcclusionGoneFromAlongTimToCam);
         if (ghostOcclusionGoneFromAlongTimToCam < ghostOcclusionFullUntilAlongTimToCam + 0.01f)
             ghostOcclusionGoneFromAlongTimToCam = Mathf.Min(1f, ghostOcclusionFullUntilAlongTimToCam + 0.01f);
+
+        decorationOcclusionFadeScale = Mathf.Clamp01(decorationOcclusionFadeScale);
 
         // Inspector edits during Play Mode must not rebuild the scroll path or reset the camera offset.
         if (Application.isPlaying)
@@ -991,7 +990,7 @@ public class CameraFollow : MonoBehaviour
 
             EnsureOcclusionTrackingStarted(renderer);
             float targetFade = ComputeOcclusionTargetGhostFade(renderer);
-            SmoothOcclusionFadeToward(renderer, targetFade, occlusionFadeSmoothTime);
+            occlusionFadeByRenderer[renderer] = targetFade;
             ApplyOcclusionFadeToRenderer(renderer);
         }
     }
@@ -1848,7 +1847,9 @@ public class CameraFollow : MonoBehaviour
     }
 
     private const string RunodesLayerName = "Runodes";
+    private const string DecorationsLayerName = "Decorations";
     private int runodesLayer = -1;
+    private int decorationsLayer = -1;
 
     private bool RendererBelongsToRunode(Renderer renderer)
     {
@@ -1863,6 +1864,25 @@ public class CameraFollow : MonoBehaviour
         for (Transform node = renderer.transform; node != null; node = node.parent)
         {
             if (node.gameObject.layer == runodesLayer)
+                return true;
+        }
+
+        return false;
+    }
+
+    private bool RendererBelongsToDecorations(Renderer renderer)
+    {
+        if (renderer == null)
+            return false;
+
+        if (decorationsLayer < 0)
+            decorationsLayer = LayerMask.NameToLayer(DecorationsLayerName);
+        if (decorationsLayer < 0)
+            return false;
+
+        for (Transform node = renderer.transform; node != null; node = node.parent)
+        {
+            if (node.gameObject.layer == decorationsLayer)
                 return true;
         }
 
@@ -1914,21 +1934,9 @@ public class CameraFollow : MonoBehaviour
 
     private float GetOcclusionFade(Renderer renderer)
     {
-        if (renderer != null && occlusionFadeByRenderer.TryGetValue(renderer, out OcclusionFadeState state))
-            return state.Value;
+        if (renderer != null && occlusionFadeByRenderer.TryGetValue(renderer, out float fade))
+            return fade;
         return 0f;
-    }
-
-    private void SmoothOcclusionFadeToward(Renderer renderer, float targetFade, float smoothTime)
-    {
-        if (renderer == null || RendererBelongsToRunode(renderer))
-            return;
-
-        if (!occlusionFadeByRenderer.TryGetValue(renderer, out OcclusionFadeState state))
-            state = new OcclusionFadeState { Value = targetFade, Velocity = 0f };
-
-        state.Value = Mathf.SmoothDamp(state.Value, targetFade, ref state.Velocity, smoothTime);
-        occlusionFadeByRenderer[renderer] = state;
     }
 
     private void EnsureOcclusionTrackingStarted(Renderer renderer)
@@ -1953,8 +1961,7 @@ public class CameraFollow : MonoBehaviour
 
         renderer.sharedMaterials = ghostMaterials;
 
-        float startFade = ComputeOcclusionTargetGhostFade(renderer);
-        occlusionFadeByRenderer[renderer] = new OcclusionFadeState { Value = startFade, Velocity = 0f };
+        occlusionFadeByRenderer[renderer] = ComputeOcclusionTargetGhostFade(renderer);
     }
 
     private void ApplyOcclusionFadeToRenderer(Renderer renderer)
@@ -1969,6 +1976,9 @@ public class CameraFollow : MonoBehaviour
             return;
 
         float fade = GetOcclusionFade(renderer);
+        if (RendererBelongsToDecorations(renderer))
+            fade *= decorationOcclusionFadeScale;
+
         occlusionGhostPropertyBlock.SetFloat(OcclusionFadeShaderId, fade);
         renderer.SetPropertyBlock(occlusionGhostPropertyBlock);
 
