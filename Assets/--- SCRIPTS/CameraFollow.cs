@@ -196,6 +196,7 @@ public class CameraFollow : MonoBehaviour
     private const int OcclusionHullUniqueEdgeDirectionCount = 6;
     private const float OcclusionHullInsideEpsilon = 0.001f;
     private const float OcclusionBelowFeetMaxYMargin = 0.08f;
+    private const int OcclusionGroupMaxSiblingBranches = 32;
     private const float MinOcclusionVolumeDepth = 0.05f;
     private const float MinOcclusionQuadHeight = 0.05f;
     private const float MinOcclusionAxisMagnitudeSq = 0.000001f;
@@ -225,6 +226,8 @@ public class CameraFollow : MonoBehaviour
     private readonly List<Renderer> occlusionMeshCandidates = new List<Renderer>();
     private readonly Dictionary<Renderer, ShadowCastingMode> proximityHiddenRenderers = new Dictionary<Renderer, ShadowCastingMode>();
     private readonly HashSet<Renderer> frameHiddenRenderers = new HashSet<Renderer>();
+    private readonly HashSet<Transform> occlusionGroupRootsScratch = new HashSet<Transform>();
+    private readonly List<Renderer> occlusionGroupRendererScratch = new List<Renderer>();
     private readonly Dictionary<Renderer, Material[]> ghostSwappedOriginalMaterials = new Dictionary<Renderer, Material[]>();
 
     private float DampingTime => Mathf.Lerp(0.35f, 0.02f, cameraResponsiveness);
@@ -233,6 +236,7 @@ public class CameraFollow : MonoBehaviour
     private void Awake()
     {
         actionCamera = GetComponent<Camera>();
+        runodesLayer = LayerMask.NameToLayer(RunodesLayerName);
     }
 
     private int FindDefaultStopOnScrollPath()
@@ -935,20 +939,7 @@ public class CameraFollow : MonoBehaviour
         if (occlusionMeshCandidates.Count == 0)
             CacheOcclusionMeshCandidates();
 
-        frameHiddenRenderers.Clear();
-
-        for (int i = 0; i < occlusionMeshCandidates.Count; i++)
-        {
-            Renderer renderer = occlusionMeshCandidates[i];
-            if (renderer == null || !renderer.enabled || !renderer.gameObject.activeInHierarchy)
-                continue;
-
-            if (ShouldExcludeRendererFromLocalOcclusion(renderer))
-                continue;
-
-            if (RendererIntersectsLocalOcclusionVolume(renderer))
-                frameHiddenRenderers.Add(renderer);
-        }
+        BuildFrameHiddenRenderersForOcclusionVolume();
 
         if (showVolumeBox)
             DrawLocalOcclusionWireframePlayMode();
@@ -1291,6 +1282,114 @@ public class CameraFollow : MonoBehaviour
         }
 
         return false;
+    }
+
+    private static int CountDirectChildrenWithRendererSubtrees(Transform parent)
+    {
+        int count = 0;
+        for (int i = 0; i < parent.childCount; i++)
+        {
+            Transform child = parent.GetChild(i);
+            if (child.GetComponent<Renderer>() != null || child.GetComponentInChildren<Renderer>(false) != null)
+                count++;
+        }
+
+        return count;
+    }
+
+    private bool IsOcclusionGroupParentWalkStop(Transform parent)
+    {
+        if (parent == null)
+            return true;
+
+        if (timObject != null && parent == timObject)
+            return true;
+
+        if (tim != null && parent == tim.transform)
+            return true;
+
+        if (parent.IsChildOf(transform))
+            return true;
+
+        return false;
+    }
+
+    private Transform GetOcclusionGroupRoot(Transform rendererTransform)
+    {
+        if (rendererTransform == null)
+            return null;
+
+        Transform best = rendererTransform;
+        Transform node = rendererTransform;
+
+        while (node.parent != null)
+        {
+            Transform parent = node.parent;
+            if (IsOcclusionGroupParentWalkStop(parent))
+                break;
+
+            int siblingBranches = CountDirectChildrenWithRendererSubtrees(parent);
+            if (siblingBranches > OcclusionGroupMaxSiblingBranches)
+                break;
+
+            if (siblingBranches >= 2)
+            {
+                best = parent;
+                node = parent;
+                continue;
+            }
+
+            node = parent;
+        }
+
+        return best;
+    }
+
+    private void BuildFrameHiddenRenderersForOcclusionVolume()
+    {
+        frameHiddenRenderers.Clear();
+        occlusionGroupRootsScratch.Clear();
+
+        for (int i = 0; i < occlusionMeshCandidates.Count; i++)
+        {
+            Renderer renderer = occlusionMeshCandidates[i];
+            if (renderer == null || !renderer.enabled || !renderer.gameObject.activeInHierarchy)
+                continue;
+
+            if (ShouldExcludeRendererFromLocalOcclusion(renderer))
+                continue;
+
+            if (!RendererIntersectsLocalOcclusionVolume(renderer))
+                continue;
+
+            Transform root = GetOcclusionGroupRoot(renderer.transform);
+            if (root != null)
+                occlusionGroupRootsScratch.Add(root);
+        }
+
+        foreach (Transform root in occlusionGroupRootsScratch)
+        {
+            occlusionGroupRendererScratch.Clear();
+            root.GetComponentsInChildren(false, occlusionGroupRendererScratch);
+
+            for (int i = 0; i < occlusionGroupRendererScratch.Count; i++)
+            {
+                Renderer groupedRenderer = occlusionGroupRendererScratch[i];
+                if (groupedRenderer == null || !groupedRenderer.enabled || !groupedRenderer.gameObject.activeInHierarchy)
+                    continue;
+
+                if (tim != null && groupedRenderer.transform.IsChildOf(tim.transform))
+                    continue;
+
+                if (groupedRenderer.transform.IsChildOf(transform))
+                    continue;
+
+                if (ShouldExcludeRendererFromLocalOcclusion(groupedRenderer))
+                    continue;
+
+                frameHiddenRenderers.Add(groupedRenderer);
+            }
+        }
     }
 
 #if false // Legacy overlap-box occlusion (inspector fields hidden above).
@@ -1641,10 +1740,35 @@ public class CameraFollow : MonoBehaviour
         }
     }
 
+    private const string RunodesLayerName = "Runodes";
+    private int runodesLayer = -1;
+
+    private bool RendererBelongsToRunode(Renderer renderer)
+    {
+        if (renderer == null)
+            return false;
+
+        if (runodesLayer < 0)
+            runodesLayer = LayerMask.NameToLayer(RunodesLayerName);
+        if (runodesLayer < 0)
+            return false;
+
+        for (Transform node = renderer.transform; node != null; node = node.parent)
+        {
+            if (node.gameObject.layer == runodesLayer)
+                return true;
+        }
+
+        return false;
+    }
+
     // True when the ghost material is assigned and the renderer's bounds are within ghostDistanceFromTim of Tim.
     private bool ShouldGhostOcclusionRenderer(Renderer renderer)
     {
         if (occlusionGhostMaterial == null)
+            return false;
+
+        if (RendererBelongsToRunode(renderer))
             return false;
 
         Transform timTransform = tim != null ? tim.transform : timObject;
