@@ -229,6 +229,9 @@ public class CameraFollow : MonoBehaviour
     private readonly List<Renderer> occlusionMeshCandidates = new List<Renderer>();
     private readonly Dictionary<Renderer, ShadowCastingMode> proximityHiddenRenderers = new Dictionary<Renderer, ShadowCastingMode>();
     private readonly HashSet<Renderer> frameHiddenRenderers = new HashSet<Renderer>();
+    private readonly Dictionary<Renderer, ComplexMeshMarker> occlusionComplexMeshByRenderer = new Dictionary<Renderer, ComplexMeshMarker>();
+    private readonly Dictionary<ComplexMeshMarker, List<Renderer>> occlusionRenderersByComplexMesh = new Dictionary<ComplexMeshMarker, List<Renderer>>();
+    private readonly HashSet<ComplexMeshMarker> occlusionComplexMeshHitScratch = new HashSet<ComplexMeshMarker>();
 #if false // Occlusion group by hierarchy (disabled — per-renderer only for now)
     private readonly HashSet<Transform> occlusionGroupRootsScratch = new HashSet<Transform>();
     private readonly List<Renderer> occlusionGroupRendererScratch = new List<Renderer>();
@@ -1363,9 +1366,50 @@ public class CameraFollow : MonoBehaviour
     }
 #endif
 
+    // Registers every renderer under a ComplexMeshMarker for grouped occlusion.
+    public void RegisterComplexMesh(ComplexMeshMarker marker, List<Renderer> renderers)
+    {
+        if (marker == null || renderers == null)
+            return;
+
+        UnregisterComplexMesh(marker);
+
+        var group = new List<Renderer>(renderers.Count);
+        for (int i = 0; i < renderers.Count; i++)
+        {
+            Renderer renderer = renderers[i];
+            if (renderer == null)
+                continue;
+
+            group.Add(renderer);
+            occlusionComplexMeshByRenderer[renderer] = marker;
+        }
+
+        occlusionRenderersByComplexMesh[marker] = group;
+    }
+
+    // Removes a ComplexMeshMarker and its renderer mappings from occlusion grouping.
+    public void UnregisterComplexMesh(ComplexMeshMarker marker)
+    {
+        if (marker == null)
+            return;
+
+        if (!occlusionRenderersByComplexMesh.TryGetValue(marker, out List<Renderer> group))
+            return;
+
+        for (int i = 0; i < group.Count; i++)
+        {
+            if (group[i] != null)
+                occlusionComplexMeshByRenderer.Remove(group[i]);
+        }
+
+        occlusionRenderersByComplexMesh.Remove(marker);
+    }
+
     private void BuildFrameHiddenRenderersForOcclusionVolume()
     {
         frameHiddenRenderers.Clear();
+        occlusionComplexMeshHitScratch.Clear();
 
         for (int i = 0; i < occlusionMeshCandidates.Count; i++)
         {
@@ -1376,8 +1420,37 @@ public class CameraFollow : MonoBehaviour
             if (ShouldExcludeRendererFromLocalOcclusion(renderer))
                 continue;
 
-            if (RendererIntersectsLocalOcclusionVolume(renderer))
+            if (!RendererIntersectsLocalOcclusionVolume(renderer))
+                continue;
+
+            if (occlusionComplexMeshByRenderer.TryGetValue(renderer, out ComplexMeshMarker marker))
+                occlusionComplexMeshHitScratch.Add(marker);
+            else
                 frameHiddenRenderers.Add(renderer);
+        }
+
+        foreach (ComplexMeshMarker marker in occlusionComplexMeshHitScratch)
+        {
+            if (!occlusionRenderersByComplexMesh.TryGetValue(marker, out List<Renderer> group))
+                continue;
+
+            for (int i = 0; i < group.Count; i++)
+            {
+                Renderer groupedRenderer = group[i];
+                if (groupedRenderer == null || !groupedRenderer.enabled || !groupedRenderer.gameObject.activeInHierarchy)
+                    continue;
+
+                if (tim != null && groupedRenderer.transform.IsChildOf(tim.transform))
+                    continue;
+
+                if (groupedRenderer.transform.IsChildOf(transform))
+                    continue;
+
+                if (ShouldExcludeRendererFromLocalOcclusion(groupedRenderer))
+                    continue;
+
+                frameHiddenRenderers.Add(groupedRenderer);
+            }
         }
 
 #if false // Occlusion group by hierarchy (disabled — per-renderer only for now)

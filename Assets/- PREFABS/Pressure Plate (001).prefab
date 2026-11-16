@@ -13,6 +13,7 @@ GameObject:
   - component: {fileID: 7861685480932991646}
   - component: {fileID: 5556272599297880852}
   - component: {fileID: 5191728242034736085}
+  - component: {fileID: -8363765114358232761}
   m_Layer: 13
   m_Name: Pressure Plate (001)
   m_TagString: Untagged
@@ -133,6 +134,18 @@ MonoBehaviour:
     m_Bits: 11264
   pathClearanceRadius: 0.25
   links: []
+--- !u!114 &-8363765114358232761
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 932074500180385741}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 981fdf2073753154db907456838b7406, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::ComplexMeshMarker
 --- !u!1 &1934612361360438259
 GameObject:
   m_ObjectHideFlags: 0
@@ -603,6 +616,7 @@ MonoBehaviour:
   eyeFlashDuration: 0.075
   transitionCompleteParticleSystem: {fileID: 0}
   isPSActive: 0
+  isLaserSkull: 0
   emissionIntensity: 1
 --- !u!1 &7771764874699491159
 GameObject:

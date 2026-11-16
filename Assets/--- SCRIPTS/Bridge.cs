@@ -91,6 +91,9 @@ public class Bridge : MonoBehaviour
         if (isOpen)
             activatorDemandsOpen = true;
 
+        if (hasValidLayout)
+            SpawnGapCubes();
+
         InitialSocketConfiguration();
     }
 
@@ -244,8 +247,7 @@ public class Bridge : MonoBehaviour
         if (isSequenceRunning && !isClosing)
             return;
 
-        if (gapCubes.Count == 0)
-            SpawnGapCubes();
+        SpawnGapCubes();
 
         isClosing = false;
         isSequenceRunning = true;
@@ -736,23 +738,6 @@ public class Bridge : MonoBehaviour
     }
 
     // Offsets mesh renderers only (local X/Z), independent per cube.
-    private static void ApplyMeshPositionJitter(Transform cubeRoot)
-    {
-        MeshRenderer[] meshRenderers = cubeRoot.GetComponentsInChildren<MeshRenderer>(true);
-
-        for (int i = 0; i < meshRenderers.Length; i++)
-        {
-            Transform meshTransform = meshRenderers[i].transform;
-            if (meshTransform == cubeRoot)
-                continue;
-
-            Vector3 localPosition = meshTransform.localPosition;
-            localPosition.x += Random.Range(-MeshPositionJitter, MeshPositionJitter);
-            localPosition.z += Random.Range(-MeshPositionJitter, MeshPositionJitter);
-            meshTransform.localPosition = localPosition;
-        }
-    }
-
     private void ClearCubes()
     {
         for (int i = 0; i < gapCubes.Count; i++)
@@ -771,4 +756,22 @@ public class Bridge : MonoBehaviour
 
         gapRows.Clear();
     }
+
+    private static void ApplyMeshPositionJitter(Transform cubeRoot)
+    {
+        MeshRenderer[] meshRenderers = cubeRoot.GetComponentsInChildren<MeshRenderer>(true);
+
+        for (int i = 0; i < meshRenderers.Length; i++)
+        {
+            Transform meshTransform = meshRenderers[i].transform;
+            if (meshTransform == cubeRoot)
+                continue;
+
+            Vector3 localPosition = meshTransform.localPosition;
+            localPosition.x += Random.Range(-MeshPositionJitter, MeshPositionJitter);
+            localPosition.z += Random.Range(-MeshPositionJitter, MeshPositionJitter);
+            meshTransform.localPosition = localPosition;
+        }
+    }
+
 }
