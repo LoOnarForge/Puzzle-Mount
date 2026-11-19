@@ -11,6 +11,7 @@ GameObject:
   - component: {fileID: 3482712872726872271}
   - component: {fileID: 2787446421458026799}
   - component: {fileID: 7861685480932991646}
+  - component: {fileID: 8212479203974941462}
   - component: {fileID: 5556272599297880852}
   - component: {fileID: 5191728242034736085}
   - component: {fileID: -8363765114358232761}
@@ -99,6 +100,23 @@ MonoBehaviour:
   meshFilters:
   - {fileID: 8735175227737931590}
   - {fileID: 1053327995482934018}
+--- !u!114 &8212479203974941462
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 932074500180385741}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 7f89cc6d824df384d91d28eb1905f73b, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::ActivatorOutlineHighlight
+  outlineMaterial: {fileID: 2100000, guid: 5e75f67f9fd617a4eabe4d4508fda60d, type: 2}
+  outlineColor: {r: 0.74901944, g: 1.4980392, b: 1.3878894, a: 1}
+  outlineWidth: 0.02
+  skipEyeMeshes: 1
+  applyStaticFlagsOnAwake: 1
 --- !u!114 &5556272599297880852
 MonoBehaviour:
   m_ObjectHideFlags: 0

@@ -975,6 +975,10 @@ public class CameraFollow : MonoBehaviour
         if (outlineHighlight != null)
             return outlineHighlight.transform;
 
+        DeviceHighlight deviceHighlight = renderer.GetComponentInParent<DeviceHighlight>();
+        if (deviceHighlight != null)
+            return deviceHighlight.transform;
+
         return null;
     }
 
@@ -1351,14 +1355,17 @@ public class CameraFollow : MonoBehaviour
         if (renderer == null)
             return false;
 
-        RunodeHighlighter runodeHighlighter = renderer.GetComponentInParent<RunodeHighlighter>();
-        if (runodeHighlighter != null && runodeHighlighter.IsHighlightHovered)
-            return true;
-
         if (timCubeController == null)
             timCubeController = FindAnyObjectByType<TimCubeController>();
 
-        Transform hoveredRoot = timCubeController != null ? timCubeController.MouseHoveredInteractableRoot : null;
+        if (timCubeController != null && timCubeController.MouseHitCube != null)
+        {
+            Transform runodeRoot = timCubeController.MouseHitCube.transform;
+            if (renderer.transform == runodeRoot || renderer.transform.IsChildOf(runodeRoot))
+                return true;
+        }
+
+        Transform hoveredRoot = GetInteractableHoverRootForOcclusionExempt();
         if (hoveredRoot == null)
             return false;
 
@@ -1368,6 +1375,14 @@ public class CameraFollow : MonoBehaviour
         return occlusionPreserveAnchorByRenderer.TryGetValue(renderer, out Transform anchor)
             && anchor != null
             && (anchor == hoveredRoot || anchor.IsChildOf(hoveredRoot) || hoveredRoot.IsChildOf(anchor));
+    }
+
+    private Transform GetInteractableHoverRootForOcclusionExempt()
+    {
+        if (timCubeController != null && timCubeController.MouseHoveredInteractableRoot != null)
+            return timCubeController.MouseHoveredInteractableRoot;
+
+        return ActivatorHoverTracker.HoveredActivator;
     }
 
 #if false // Occlusion group by hierarchy (disabled — per-renderer only for now)
