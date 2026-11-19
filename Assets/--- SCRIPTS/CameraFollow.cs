@@ -69,7 +69,7 @@ public class CameraFollow : MonoBehaviour
     public Material occlusionGhostMaterial;
 
     [FormerlySerializedAs("occlusionClickableGhostMaterial")]
-    [Tooltip("Runodes, activators, and devices in the occlusion volume: same ghost rules and fade as occlusionGhostMaterial, usually a different tint. Child SpriteRenderers keep sprite pixels via an internal matching material (not a third slot).")]
+    [Tooltip("Ghost material for renderers under OcclusionDeviceMeshMarker. Add that marker on prefab roots that need this tint; DeviceHighlight does not control occlusion.")]
     public Material occlusionDeviceGhostMaterial;
 
     [HideInInspector] [FormerlySerializedAs("occlusionInwardTilt")]
@@ -239,9 +239,9 @@ public class CameraFollow : MonoBehaviour
     private readonly List<Renderer> occlusionMeshCandidates = new List<Renderer>();
     private readonly Dictionary<Renderer, ShadowCastingMode> proximityHiddenRenderers = new Dictionary<Renderer, ShadowCastingMode>();
     private readonly HashSet<Renderer> frameHiddenRenderers = new HashSet<Renderer>();
-    private readonly Dictionary<Renderer, ComplexMeshMarker> occlusionComplexMeshByRenderer = new Dictionary<Renderer, ComplexMeshMarker>();
-    private readonly Dictionary<ComplexMeshMarker, List<Renderer>> occlusionRenderersByComplexMesh = new Dictionary<ComplexMeshMarker, List<Renderer>>();
-    private readonly HashSet<ComplexMeshMarker> occlusionComplexMeshHitScratch = new HashSet<ComplexMeshMarker>();
+    private readonly Dictionary<Renderer, OcclusionComplexMeshMarker> occlusionComplexMeshByRenderer = new Dictionary<Renderer, OcclusionComplexMeshMarker>();
+    private readonly Dictionary<OcclusionComplexMeshMarker, List<Renderer>> occlusionRenderersByComplexMesh = new Dictionary<OcclusionComplexMeshMarker, List<Renderer>>();
+    private readonly HashSet<OcclusionComplexMeshMarker> occlusionComplexMeshHitScratch = new HashSet<OcclusionComplexMeshMarker>();
 #if false // Occlusion group by hierarchy (disabled — per-renderer only for now)
     private readonly HashSet<Transform> occlusionGroupRootsScratch = new HashSet<Transform>();
     private readonly List<Renderer> occlusionGroupRendererScratch = new List<Renderer>();
@@ -975,10 +975,6 @@ public class CameraFollow : MonoBehaviour
         if (outlineHighlight != null)
             return outlineHighlight.transform;
 
-        DeviceHighlight deviceHighlight = renderer.GetComponentInParent<DeviceHighlight>();
-        if (deviceHighlight != null)
-            return deviceHighlight.transform;
-
         return null;
     }
 
@@ -1344,7 +1340,7 @@ public class CameraFollow : MonoBehaviour
         if (RendererIsOcclusionExemptWhileInteractivelyHovered(renderer))
             return true;
 
-        if (RendererUsesDeviceOcclusionGhost(renderer) && !DeviceRendererIsBehindTimFromCamera(renderer))
+        if (RendererUsesClickableOcclusionSlab(renderer) && !DeviceRendererIsBehindTimFromCamera(renderer))
             return true;
 
         return false;
@@ -1437,8 +1433,8 @@ public class CameraFollow : MonoBehaviour
     }
 #endif
 
-    // Registers every renderer under a ComplexMeshMarker for grouped occlusion.
-    public void RegisterComplexMesh(ComplexMeshMarker marker, List<Renderer> renderers)
+    // Registers every renderer under an OcclusionComplexMeshMarker for grouped occlusion.
+    public void RegisterComplexMesh(OcclusionComplexMeshMarker marker, List<Renderer> renderers)
     {
         if (marker == null || renderers == null)
             return;
@@ -1459,8 +1455,8 @@ public class CameraFollow : MonoBehaviour
         occlusionRenderersByComplexMesh[marker] = group;
     }
 
-    // Removes a ComplexMeshMarker and its renderer mappings from occlusion grouping.
-    public void UnregisterComplexMesh(ComplexMeshMarker marker)
+    // Removes an OcclusionComplexMeshMarker and its renderer mappings from occlusion grouping.
+    public void UnregisterComplexMesh(OcclusionComplexMeshMarker marker)
     {
         if (marker == null)
             return;
@@ -1494,13 +1490,13 @@ public class CameraFollow : MonoBehaviour
             if (!RendererIntersectsLocalOcclusionVolume(renderer))
                 continue;
 
-            if (occlusionComplexMeshByRenderer.TryGetValue(renderer, out ComplexMeshMarker marker))
+            if (occlusionComplexMeshByRenderer.TryGetValue(renderer, out OcclusionComplexMeshMarker marker))
                 occlusionComplexMeshHitScratch.Add(marker);
             else
                 frameHiddenRenderers.Add(renderer);
         }
 
-        foreach (ComplexMeshMarker marker in occlusionComplexMeshHitScratch)
+        foreach (OcclusionComplexMeshMarker marker in occlusionComplexMeshHitScratch)
         {
             if (!occlusionRenderersByComplexMesh.TryGetValue(marker, out List<Renderer> group))
                 continue;
@@ -2013,7 +2009,7 @@ public class CameraFollow : MonoBehaviour
         return lateralOffset.magnitude <= DeviceOcclusionSlabLateralMax;
     }
 
-    private bool RendererUsesDeviceOcclusionGhost(Renderer renderer)
+    private bool RendererUsesClickableOcclusionSlab(Renderer renderer)
     {
         if (renderer == null)
             return false;
@@ -2021,7 +2017,15 @@ public class CameraFollow : MonoBehaviour
         if (RendererBelongsToRunode(renderer))
             return true;
 
-        return occlusionPreserveAnchorByRenderer.TryGetValue(renderer, out Transform anchor) && anchor != null;
+        return renderer.GetComponentInParent<ActivatorOutlineHighlight>() != null;
+    }
+
+    private bool RendererUsesDeviceOcclusionGhost(Renderer renderer)
+    {
+        if (renderer == null)
+            return false;
+
+        return renderer.GetComponentInParent<OcclusionDeviceMeshMarker>() != null;
     }
 
     private Material GetDeviceOcclusionGhostSourceMaterial()

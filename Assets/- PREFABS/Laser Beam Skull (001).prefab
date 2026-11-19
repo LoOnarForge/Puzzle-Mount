@@ -105,6 +105,7 @@ GameObject:
   - component: {fileID: 1604178087128398755}
   - component: {fileID: 1266939728143708320}
   - component: {fileID: -3485212280924127470}
+  - component: {fileID: -817355199335016466}
   m_Layer: 13
   m_Name: Laser Beam Skull (001)
   m_TagString: Untagged
@@ -345,6 +346,18 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 981fdf2073753154db907456838b7406, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::ComplexMeshMarker
+--- !u!114 &-817355199335016466
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2198351784137772980}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 9ec723f62e6da494a9120169cb2e3345, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::OcclusionDeviceMeshMarker
 --- !u!1 &2459660397396273467
 GameObject:
   m_ObjectHideFlags: 0

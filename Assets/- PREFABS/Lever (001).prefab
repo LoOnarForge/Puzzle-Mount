@@ -959,6 +959,7 @@ GameObject:
   - component: {fileID: 799697991204657725}
   - component: {fileID: 8343003577234555372}
   - component: {fileID: 2963837833193187525}
+  - component: {fileID: -9208859627337830327}
   m_Layer: 13
   m_Name: Lever (001)
   m_TagString: Untagged
@@ -1075,6 +1076,18 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 981fdf2073753154db907456838b7406, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::ComplexMeshMarker
+--- !u!114 &-9208859627337830327
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 8526102275491710381}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 9ec723f62e6da494a9120169cb2e3345, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::OcclusionDeviceMeshMarker
 --- !u!1 &8543609184400602373
 GameObject:
   m_ObjectHideFlags: 0

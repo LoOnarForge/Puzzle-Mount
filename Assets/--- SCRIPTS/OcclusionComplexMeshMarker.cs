@@ -2,7 +2,7 @@ using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 
-public class ComplexMeshMarker : MonoBehaviour
+public class OcclusionComplexMeshMarker : MonoBehaviour
 {
     private readonly List<Renderer> cachedRenderers = new List<Renderer>();
     private CameraFollow cameraFollow;
