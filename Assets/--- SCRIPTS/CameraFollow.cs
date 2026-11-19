@@ -2237,11 +2237,22 @@ public class CameraFollow : MonoBehaviour
         if (renderer != null && ghostSwappedOriginalMaterials.TryGetValue(renderer, out Material[] originalMaterials))
             renderer.sharedMaterials = originalMaterials;
 
-        if (renderer != null)
-            renderer.SetPropertyBlock(null);
+        FinalizeOcclusionRestorePropertyBlock(renderer);
 
         proximityHiddenRenderers.Remove(renderer);
         ghostSwappedOriginalMaterials.Remove(renderer);
+    }
+
+    private static void FinalizeOcclusionRestorePropertyBlock(Renderer renderer)
+    {
+        if (renderer == null)
+            return;
+
+        renderer.SetPropertyBlock(null);
+
+        SkullBehaviour skull = renderer.GetComponentInParent<SkullBehaviour>();
+        if (skull != null)
+            skull.ReapplyEmission();
     }
 
     private readonly List<Renderer> tempRestoreList = new List<Renderer>();
@@ -2257,7 +2268,10 @@ public class CameraFollow : MonoBehaviour
         foreach (KeyValuePair<Renderer, Material[]> entry in ghostSwappedOriginalMaterials)
         {
             if (entry.Key != null)
+            {
                 entry.Key.sharedMaterials = entry.Value;
+                FinalizeOcclusionRestorePropertyBlock(entry.Key);
+            }
         }
 
         proximityHiddenRenderers.Clear();

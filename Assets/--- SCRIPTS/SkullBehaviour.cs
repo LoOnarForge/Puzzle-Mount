@@ -41,6 +41,7 @@ public class SkullBehaviour : MonoBehaviour
     [SerializeField] [HideInInspector] private float emissionIntensity = 1f;
 
     private MaterialPropertyBlock propertyBlock;
+    private Color currentEmissionColor;
 
     private void Awake()
     {
@@ -172,6 +173,11 @@ public class SkullBehaviour : MonoBehaviour
         ApplyEmission(closed ? closedColor : openedColor);
     }
 
+    public void ReapplyEmission()
+    {
+        ApplyEmission(currentEmissionColor);
+    }
+
     public void ApplyLaserParticleColor(Color color)
     {
         if (!isLaserSkull || !isPSActive || transitionCompleteParticleSystem == null)
@@ -234,6 +240,7 @@ public class SkullBehaviour : MonoBehaviour
         if (emissionRenderer == null)
             return;
 
+        currentEmissionColor = color;
         emissionRenderer.GetPropertyBlock(propertyBlock);
         propertyBlock.SetColor(EmissionColorId, color);
         emissionRenderer.SetPropertyBlock(propertyBlock);
