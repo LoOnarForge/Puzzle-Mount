@@ -127,7 +127,6 @@ public class LaserBeam : MonoBehaviour
         ApplyBeamMaterial();
         ApplyStartingPosition();
         SyncBeamColorForState();
-        ApplySkullEyeToMatchBeamState();
     }
 
     private void Start()

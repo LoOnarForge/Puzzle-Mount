@@ -42,6 +42,7 @@ public class SkullBehaviour : MonoBehaviour
 
     private MaterialPropertyBlock propertyBlock;
     private Color currentEmissionColor;
+    private bool currentEmissionColorSet;
 
     private void Awake()
     {
@@ -175,6 +176,9 @@ public class SkullBehaviour : MonoBehaviour
 
     public void ReapplyEmission()
     {
+        if (!currentEmissionColorSet)
+            return;
+
         ApplyEmission(currentEmissionColor);
     }
 
@@ -240,7 +244,11 @@ public class SkullBehaviour : MonoBehaviour
         if (emissionRenderer == null)
             return;
 
+        if (propertyBlock == null)
+            propertyBlock = new MaterialPropertyBlock();
+
         currentEmissionColor = color;
+        currentEmissionColorSet = true;
         emissionRenderer.GetPropertyBlock(propertyBlock);
         propertyBlock.SetColor(EmissionColorId, color);
         emissionRenderer.SetPropertyBlock(propertyBlock);
