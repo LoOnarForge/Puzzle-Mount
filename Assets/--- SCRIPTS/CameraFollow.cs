@@ -66,6 +66,10 @@ public class CameraFollow : MonoBehaviour
     [Tooltip("Test: if assigned, occluding renderers swap to this material instead of being hidden. Originals restore when out of the volume.")]
     public Material occlusionGhostMaterial;
 
+    [FormerlySerializedAs("occlusionClickableGhostMaterial")]
+    [Tooltip("Runodes, activators, and devices in the occlusion volume: same ghost rules and fade as occlusionGhostMaterial, usually a different tint. Child SpriteRenderers keep sprite pixels via an internal matching material (not a third slot).")]
+    public Material occlusionDeviceGhostMaterial;
+
     [HideInInspector] [FormerlySerializedAs("occlusionInwardTilt")]
     public float occlusionInwardTilt = 0.35f;
 
@@ -155,6 +159,7 @@ public class CameraFollow : MonoBehaviour
 
     private Vector3 velocity = Vector3.zero;
     private CharacterMovement tim;
+    private TimCubeController timCubeController;
     private Camera actionCamera;
     private float lastRotationTime;
     
@@ -243,7 +248,12 @@ public class CameraFollow : MonoBehaviour
     private readonly Dictionary<Renderer, float> occlusionFadeByRenderer = new Dictionary<Renderer, float>();
     private readonly Dictionary<Renderer, Transform> occlusionPreserveAnchorByRenderer = new Dictionary<Renderer, Transform>();
     private MaterialPropertyBlock occlusionGhostPropertyBlock;
+    private Material deviceGhostSpriteMaterialRuntime;
     private static readonly int OcclusionFadeShaderId = Shader.PropertyToID("_OcclusionFade");
+    private static readonly int GhostTintColorId = Shader.PropertyToID("_TintColor");
+    private static readonly int GhostLightInfluenceId = Shader.PropertyToID("_LightInfluence");
+    private static readonly int GhostRimColorId = Shader.PropertyToID("_RimColor");
+    private static readonly int GhostRimPowerId = Shader.PropertyToID("_RimPower");
 
     private float DampingTime => Mathf.Lerp(0.35f, 0.02f, cameraResponsiveness);
     private float RotationLerpSpeed => Mathf.Lerp(2f, 20f, cameraResponsiveness);
@@ -288,6 +298,8 @@ public class CameraFollow : MonoBehaviour
     {
         if (volumeLineMaterial != null)
             Destroy(volumeLineMaterial);
+        if (deviceGhostSpriteMaterialRuntime != null)
+            Destroy(deviceGhostSpriteMaterialRuntime);
     }
 
     private void OnDrawGizmos()
@@ -361,6 +373,7 @@ public class CameraFollow : MonoBehaviour
     private void Start()
     {
         tim = FindAnyObjectByType<CharacterMovement>();
+        timCubeController = FindAnyObjectByType<TimCubeController>();
         if (useScrollPathMarkers)
             TryBuildScrollPathFromMarkers();
 
@@ -988,6 +1001,7 @@ public class CameraFollow : MonoBehaviour
             CacheOcclusionMeshCandidates();
 
         BuildFrameHiddenRenderersForOcclusionVolume();
+        SyncDeviceGhostSpriteMaterialFromSource(GetDeviceOcclusionGhostSourceMaterial());
 
         if (showVolumeBox)
             DrawLocalOcclusionWireframePlayMode();
@@ -1013,6 +1027,9 @@ public class CameraFollow : MonoBehaviour
         {
             if (renderer == null)
                 continue;
+
+            if (proximityHiddenRenderers.ContainsKey(renderer))
+                TryRefreshOcclusionGhostMaterialIfNeeded(renderer);
 
             EnsureOcclusionTrackingStarted(renderer);
             float targetFade = ComputeOcclusionTargetGhostFade(renderer);
@@ -1325,10 +1342,37 @@ public class CameraFollow : MonoBehaviour
                 return true;
         }
 
-        if (IsClickableActivatorRendererWithinTimPreserveRange(renderer))
+        if (RendererIsOcclusionExemptWhileInteractivelyHovered(renderer))
+            return true;
+
+        if (RendererUsesDeviceOcclusionGhost(renderer) && !DeviceRendererIsBehindTimFromCamera(renderer))
             return true;
 
         return false;
+    }
+
+    private bool RendererIsOcclusionExemptWhileInteractivelyHovered(Renderer renderer)
+    {
+        if (renderer == null)
+            return false;
+
+        RunodeHighlighter runodeHighlighter = renderer.GetComponentInParent<RunodeHighlighter>();
+        if (runodeHighlighter != null && runodeHighlighter.IsHighlightHovered)
+            return true;
+
+        if (timCubeController == null)
+            timCubeController = FindAnyObjectByType<TimCubeController>();
+
+        Transform hoveredRoot = timCubeController != null ? timCubeController.MouseHoveredInteractableRoot : null;
+        if (hoveredRoot == null)
+            return false;
+
+        if (renderer.transform == hoveredRoot || renderer.transform.IsChildOf(hoveredRoot))
+            return true;
+
+        return occlusionPreserveAnchorByRenderer.TryGetValue(renderer, out Transform anchor)
+            && anchor != null
+            && (anchor == hoveredRoot || anchor.IsChildOf(hoveredRoot) || hoveredRoot.IsChildOf(anchor));
     }
 
 #if false // Occlusion group by hierarchy (disabled — per-renderer only for now)
@@ -1877,7 +1921,8 @@ public class CameraFollow : MonoBehaviour
 
     private const string RunodesLayerName = "Runodes";
     private const string DecorationsLayerName = "Decorations";
-    private const float OcclusionPreserveNearTimHorizontalRange = 3.05f;
+    private const float DeviceOcclusionSlabForwardMin = 0.15f;
+    private const float DeviceOcclusionSlabLateralMax = 0.75f;
     private int runodesLayer = -1;
     private int decorationsLayer = -1;
 
@@ -1919,26 +1964,54 @@ public class CameraFollow : MonoBehaviour
         return false;
     }
 
-    private bool IsClickableActivatorRendererWithinTimPreserveRange(Renderer renderer)
+    private Transform GetDeviceOcclusionSlabAnchor(Renderer renderer)
     {
-        if (renderer == null)
-            return false;
-
-        if (!occlusionPreserveAnchorByRenderer.TryGetValue(renderer, out Transform activatorRoot)
-            || activatorRoot == null)
+        if (renderer != null
+            && occlusionPreserveAnchorByRenderer.TryGetValue(renderer, out Transform anchor)
+            && anchor != null)
         {
-            return false;
+            return anchor;
         }
+
+        if (RendererBelongsToRunode(renderer))
+        {
+            RunodeMovement runode = renderer.GetComponentInParent<RunodeMovement>();
+            if (runode != null)
+                return runode.transform;
+        }
+
+        return null;
+    }
+
+    private bool DeviceRendererIsBehindTimFromCamera(Renderer renderer)
+    {
+        Transform anchor = GetDeviceOcclusionSlabAnchor(renderer);
+        if (anchor == null)
+            return false;
 
         Transform timTransform = tim != null ? tim.transform : timObject;
         if (timTransform == null)
             return false;
 
-        float horizontalDistance = Vector3.ProjectOnPlane(
-            activatorRoot.position - timTransform.position,
-            Vector3.up).magnitude;
+        Vector3 timPosition = timTransform.position;
+        Vector3 cameraPosition = transform.position;
 
-        return horizontalDistance <= OcclusionPreserveNearTimHorizontalRange;
+        Vector3 timToCamera = cameraPosition - timPosition;
+        timToCamera.y = 0f;
+        float span = timToCamera.magnitude;
+        if (span < 0.01f)
+            return false;
+
+        Vector3 axis = timToCamera / span;
+        Vector3 offset = anchor.position - timPosition;
+        offset.y = 0f;
+
+        float forward = Vector3.Dot(offset, axis);
+        if (forward <= DeviceOcclusionSlabForwardMin || forward >= span)
+            return false;
+
+        Vector3 lateralOffset = offset - axis * forward;
+        return lateralOffset.magnitude <= DeviceOcclusionSlabLateralMax;
     }
 
     private bool TryGetRendererAlongTimToCamera01(Renderer renderer, out float along01)
@@ -1964,9 +2037,111 @@ public class CameraFollow : MonoBehaviour
         return true;
     }
 
+    private bool RendererUsesDeviceOcclusionGhost(Renderer renderer)
+    {
+        if (renderer == null)
+            return false;
+
+        if (RendererBelongsToRunode(renderer))
+            return true;
+
+        return occlusionPreserveAnchorByRenderer.TryGetValue(renderer, out Transform anchor) && anchor != null;
+    }
+
+    private Material GetDeviceOcclusionGhostSourceMaterial()
+    {
+        if (occlusionDeviceGhostMaterial != null)
+            return occlusionDeviceGhostMaterial;
+        return occlusionGhostMaterial;
+    }
+
+    private Material GetDeviceOcclusionGhostMeshMaterial()
+    {
+        if (occlusionDeviceGhostMaterial != null)
+            return occlusionDeviceGhostMaterial;
+        return occlusionGhostMaterial;
+    }
+
+    private void EnsureDeviceGhostSpriteMaterialRuntime()
+    {
+        if (deviceGhostSpriteMaterialRuntime != null)
+            return;
+
+        Shader shader = Shader.Find("Custom/OcclusionGhostSprite");
+        if (shader == null)
+            return;
+
+        deviceGhostSpriteMaterialRuntime = new Material(shader)
+        {
+            name = "Device Occlusion Ghost Sprite (Runtime)",
+            hideFlags = HideFlags.HideAndDontSave
+        };
+    }
+
+    private void SyncDeviceGhostSpriteMaterialFromSource(Material source)
+    {
+        if (source == null)
+            return;
+
+        EnsureDeviceGhostSpriteMaterialRuntime();
+        if (deviceGhostSpriteMaterialRuntime == null)
+            return;
+
+        if (source.HasProperty(GhostTintColorId))
+            deviceGhostSpriteMaterialRuntime.SetColor(GhostTintColorId, source.GetColor(GhostTintColorId));
+        if (source.HasProperty(GhostLightInfluenceId))
+            deviceGhostSpriteMaterialRuntime.SetFloat(GhostLightInfluenceId, source.GetFloat(GhostLightInfluenceId));
+        if (source.HasProperty(GhostRimColorId))
+            deviceGhostSpriteMaterialRuntime.SetColor(GhostRimColorId, source.GetColor(GhostRimColorId));
+        if (source.HasProperty(GhostRimPowerId))
+            deviceGhostSpriteMaterialRuntime.SetFloat(GhostRimPowerId, source.GetFloat(GhostRimPowerId));
+    }
+
+    private Material GetOcclusionGhostMaterialForRenderer(Renderer renderer)
+    {
+        if (!RendererUsesDeviceOcclusionGhost(renderer))
+            return occlusionGhostMaterial;
+
+        Material source = GetDeviceOcclusionGhostSourceMaterial();
+        if (source == null)
+            return null;
+
+        if (renderer is SpriteRenderer)
+        {
+            if (deviceGhostSpriteMaterialRuntime == null)
+                return null;
+            return deviceGhostSpriteMaterialRuntime;
+        }
+
+        return GetDeviceOcclusionGhostMeshMaterial();
+    }
+
+    private void TryRefreshOcclusionGhostMaterialIfNeeded(Renderer renderer)
+    {
+        if (renderer == null)
+            return;
+
+        Material expectedGhost = GetOcclusionGhostMaterialForRenderer(renderer);
+        bool expectsGhostSwap = expectedGhost != null;
+        bool hasGhostSwap = ghostSwappedOriginalMaterials.ContainsKey(renderer);
+
+        if (expectsGhostSwap != hasGhostSwap)
+        {
+            RestoreProximityHiddenRenderer(renderer);
+            return;
+        }
+
+        if (!hasGhostSwap)
+            return;
+
+        Material[] current = renderer.sharedMaterials;
+        if (current == null || current.Length == 0 || current[0] != expectedGhost)
+            RestoreProximityHiddenRenderer(renderer);
+    }
+
     private float ComputeOcclusionTargetGhostFade(Renderer renderer)
     {
-        if (RendererBelongsToRunode(renderer) || occlusionGhostMaterial == null)
+        if (GetOcclusionGhostMaterialForRenderer(renderer) == null)
             return 0f;
 
         if (!TryGetRendererAlongTimToCamera01(renderer, out float along01))
@@ -1996,20 +2171,26 @@ public class CameraFollow : MonoBehaviour
         if (renderer == null || proximityHiddenRenderers.ContainsKey(renderer))
             return;
 
-        proximityHiddenRenderers[renderer] = renderer.shadowCastingMode;
-
-        if (RendererBelongsToRunode(renderer) || occlusionGhostMaterial == null)
+        Material ghostMaterial = GetOcclusionGhostMaterialForRenderer(renderer);
+        if (ghostMaterial == null)
         {
-            renderer.shadowCastingMode = ShadowCastingMode.ShadowsOnly;
+            if (RendererBelongsToRunode(renderer))
+            {
+                proximityHiddenRenderers[renderer] = renderer.shadowCastingMode;
+                renderer.shadowCastingMode = ShadowCastingMode.ShadowsOnly;
+            }
+
             return;
         }
+
+        proximityHiddenRenderers[renderer] = renderer.shadowCastingMode;
 
         Material[] originalMaterials = renderer.sharedMaterials;
         ghostSwappedOriginalMaterials[renderer] = originalMaterials;
 
         Material[] ghostMaterials = new Material[originalMaterials.Length];
         for (int i = 0; i < ghostMaterials.Length; i++)
-            ghostMaterials[i] = occlusionGhostMaterial;
+            ghostMaterials[i] = ghostMaterial;
 
         renderer.sharedMaterials = ghostMaterials;
 
@@ -2018,11 +2199,15 @@ public class CameraFollow : MonoBehaviour
 
     private void ApplyOcclusionFadeToRenderer(Renderer renderer)
     {
-        if (renderer == null || RendererBelongsToRunode(renderer))
+        if (renderer == null)
             return;
 
         if (!ghostSwappedOriginalMaterials.ContainsKey(renderer))
+        {
+            if (RendererBelongsToRunode(renderer) && proximityHiddenRenderers.ContainsKey(renderer))
+                renderer.shadowCastingMode = ShadowCastingMode.ShadowsOnly;
             return;
+        }
 
         if (occlusionGhostPropertyBlock == null)
             return;

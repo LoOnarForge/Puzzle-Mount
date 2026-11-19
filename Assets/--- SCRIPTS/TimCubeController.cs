@@ -47,6 +47,7 @@ public class TimCubeController : MonoBehaviour
 
     public RunodeMovement MouseHitCube { get; private set; } = null;
     public Vector3 MouseHitPoint { get; private set; }
+    public Transform MouseHoveredInteractableRoot { get; private set; }
 
     private Transform timTransform;
     private CharacterMovement characterMovement;
@@ -118,6 +119,13 @@ public class TimCubeController : MonoBehaviour
 
         MouseHitCube = mouseHitCube;
         MouseHitPoint = mouseHitValid ? mouseHit.point : Vector3.zero;
+        MouseHoveredInteractableRoot = null;
+        if (mouseHitValid && mouseHitCube == null)
+        {
+            Transform interactableRoot = ResolveInteractableRoot(mouseHit.collider);
+            if (interactableRoot != null && CanInteractWithActivatorAtPoint(interactableRoot, mouseHit.point))
+                MouseHoveredInteractableRoot = interactableRoot;
+        }
 
         if (characterMovement.IsGrounded && !isRotating)
         {
@@ -413,6 +421,34 @@ public class TimCubeController : MonoBehaviour
             return false;
 
         return buttonDevice.MouseClickDetected(clickedCollider);
+    }
+
+    private static Transform ResolveInteractableRoot(Collider collider)
+    {
+        if (collider == null)
+            return null;
+
+        Lever lever = collider.GetComponentInParent<Lever>();
+        if (lever != null)
+            return lever.transform;
+
+        ButtonDevice button = collider.GetComponentInParent<ButtonDevice>();
+        if (button != null)
+            return button.transform;
+
+        PressurePlate plate = collider.GetComponentInParent<PressurePlate>();
+        if (plate != null)
+            return plate.transform;
+
+        LaserBeam laserBeam = collider.GetComponentInParent<LaserBeam>();
+        if (laserBeam != null)
+            return laserBeam.transform;
+
+        DeviceHighlight deviceHighlight = collider.GetComponentInParent<DeviceHighlight>();
+        if (deviceHighlight != null)
+            return deviceHighlight.transform;
+
+        return null;
     }
 
     // Same horizontal reach, vertical band, and grounded rule as cube rotation; sight rays aim at the click point on the device.

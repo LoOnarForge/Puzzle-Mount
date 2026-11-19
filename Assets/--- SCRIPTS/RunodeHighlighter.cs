@@ -46,6 +46,8 @@ public class RunodeHighlighter : MonoBehaviour
 
     private static RunodeHighlighter currentHovered;
 
+    public bool IsHighlightHovered => isHovered;
+
     private static readonly int BaseColorId = Shader.PropertyToID("_BaseColor");
     private static readonly int HighlightColorId = Shader.PropertyToID("_HighlightColor");
 
