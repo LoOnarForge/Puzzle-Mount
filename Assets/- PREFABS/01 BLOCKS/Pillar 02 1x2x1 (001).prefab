@@ -316,6 +316,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 7020748782110668919}
+  - component: {fileID: 1043795780454318502}
   m_Layer: 10
   m_Name: Pillar 02 1x2x1 (001)
   m_TagString: Untagged
@@ -340,6 +341,23 @@ Transform:
   - {fileID: 6889057495136173016}
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &1043795780454318502
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2885107504809882110}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 5832c0c7817e6d1408eaf35f969a0bf9, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::ZFightingRandomizer
+  meshTransforms:
+  - {fileID: 5431567227520443538}
+  - {fileID: 3477714424670281623}
+  - {fileID: 1862352050251427068}
+  digitUnit: 0.0001
 --- !u!1 &4217482595291175945
 GameObject:
   m_ObjectHideFlags: 0
