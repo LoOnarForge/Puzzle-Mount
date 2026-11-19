@@ -33,14 +33,16 @@ public class CameraFollow : MonoBehaviour
     [Tooltip("Camera-side quad offset along camera-to-aim from the camera. -2 = 2m behind camera, 0 = at camera, +2 = 2m in front.")]
     public float cameraQuadDistance = 0.25f;
 
+    [FormerlySerializedAs("farSideQuadSize")]
     [Range(0.1f, 8f)]
-    [Tooltip("World size of the aim-side quad only.")]
-    public float farSideQuadSize = 1f;
+    [Tooltip("World size of the Tim-side occlusion quad.")]
+    public float timQuadSize = 1f;
 
     [FormerlySerializedAs("occlusionEndMarginBeforeAim")]
+    [FormerlySerializedAs("farQuadDistance")]
     [Range(-2f, 2f)]
-    [Tooltip("Aim-side vertical quad offset along horizontal camera-to-target from the aim point. -2 = 2m toward camera, 0 = at Tim plane, +2 = 2m past target.")]
-    public float farQuadDistance = 0f;
+    [Tooltip("Tim-side quad offset along horizontal camera-to-target from the aim point. -2 = toward camera, 0 = at Tim plane, +2 = past target.")]
+    public float timQuadDistance = 0f;
 
     [HideInInspector] public float ghostOcclusionFullUntilAlongTimToCam = 0.25f;
     [HideInInspector] public float ghostOcclusionGoneFromAlongTimToCam = 0.75f;
@@ -245,11 +247,10 @@ public class CameraFollow : MonoBehaviour
     private readonly List<Renderer> occlusionGroupRendererScratch = new List<Renderer>();
 #endif
     private readonly Dictionary<Renderer, Material[]> ghostSwappedOriginalMaterials = new Dictionary<Renderer, Material[]>();
-    private readonly Dictionary<Renderer, float> occlusionFadeByRenderer = new Dictionary<Renderer, float>();
     private readonly Dictionary<Renderer, Transform> occlusionPreserveAnchorByRenderer = new Dictionary<Renderer, Transform>();
     private MaterialPropertyBlock occlusionGhostPropertyBlock;
     private Material deviceGhostSpriteMaterialRuntime;
-    private static readonly int OcclusionFadeShaderId = Shader.PropertyToID("_OcclusionFade");
+    private static readonly int GhostOpacityShaderId = Shader.PropertyToID("_GhostOpacity");
     private static readonly int GhostTintColorId = Shader.PropertyToID("_TintColor");
     private static readonly int GhostLightInfluenceId = Shader.PropertyToID("_LightInfluence");
     private static readonly int GhostRimColorId = Shader.PropertyToID("_RimColor");
@@ -1032,9 +1033,7 @@ public class CameraFollow : MonoBehaviour
                 TryRefreshOcclusionGhostMaterialIfNeeded(renderer);
 
             EnsureOcclusionTrackingStarted(renderer);
-            float targetFade = ComputeOcclusionTargetGhostFade(renderer);
-            occlusionFadeByRenderer[renderer] = targetFade;
-            ApplyOcclusionFadeToRenderer(renderer);
+            ApplyOcclusionGhostOpacityToRenderer(renderer);
         }
     }
 
@@ -1083,7 +1082,7 @@ public class CameraFollow : MonoBehaviour
         localOcclusionHorizRight = horizRight;
 
         Vector3 cameraQuadCenter = camPos + aimDir * cameraQuadDistance;
-        Vector3 aimQuadCenter = aimWorldPosition + horizAimDir * farQuadDistance;
+        Vector3 aimQuadCenter = aimWorldPosition + horizAimDir * timQuadDistance;
 
         float horizSpan = Vector3.Dot(aimQuadCenter - cameraQuadCenter, horizAimDir);
         if (horizSpan < MinOcclusionVolumeDepth)
@@ -1100,7 +1099,7 @@ public class CameraFollow : MonoBehaviour
             out float nearHorizontalHalf,
             out float nearVerticalHalf);
         GetLocalOcclusionShapeHalfExtents(
-            LocalOcclusionQuadSizeReferenceDistance * fovHalfTan * farSideQuadSize,
+            LocalOcclusionQuadSizeReferenceDistance * fovHalfTan * timQuadSize,
             out float farHorizontalHalf,
             out float farVerticalHalf);
 
@@ -2014,29 +2013,6 @@ public class CameraFollow : MonoBehaviour
         return lateralOffset.magnitude <= DeviceOcclusionSlabLateralMax;
     }
 
-    private bool TryGetRendererAlongTimToCamera01(Renderer renderer, out float along01)
-    {
-        along01 = 0f;
-        if (renderer == null)
-            return false;
-
-        Transform timTransform = tim != null ? tim.transform : timObject;
-        if (timTransform == null)
-            return false;
-
-        Vector3 timPosition = timTransform.position;
-        Vector3 cameraPosition = transform.position;
-        Vector3 toCamera = cameraPosition - timPosition;
-        float span = toCamera.magnitude;
-        if (span < 0.001f)
-            return false;
-
-        Vector3 direction = toCamera / span;
-        float projected = Vector3.Dot(renderer.bounds.center - timPosition, direction);
-        along01 = Mathf.Clamp01(projected / span);
-        return true;
-    }
-
     private bool RendererUsesDeviceOcclusionGhost(Renderer renderer)
     {
         if (renderer == null)
@@ -2139,11 +2115,31 @@ public class CameraFollow : MonoBehaviour
             RestoreProximityHiddenRenderer(renderer);
     }
 
-    private float ComputeOcclusionTargetGhostFade(Renderer renderer)
+    private bool TryGetRendererAlongTimToCamera01(Renderer renderer, out float along01)
     {
-        if (GetOcclusionGhostMaterialForRenderer(renderer) == null)
-            return 0f;
+        along01 = 0f;
+        if (renderer == null)
+            return false;
 
+        Transform timTransform = tim != null ? tim.transform : timObject;
+        if (timTransform == null)
+            return false;
+
+        Vector3 timPosition = timTransform.position;
+        Vector3 cameraPosition = transform.position;
+        Vector3 toCamera = cameraPosition - timPosition;
+        float span = toCamera.magnitude;
+        if (span < 0.001f)
+            return false;
+
+        Vector3 direction = toCamera / span;
+        float projected = Vector3.Dot(renderer.bounds.center - timPosition, direction);
+        along01 = Mathf.Clamp01(projected / span);
+        return true;
+    }
+
+    private float ComputeOcclusionZoneGhostOpacity(Renderer renderer)
+    {
         if (!TryGetRendererAlongTimToCamera01(renderer, out float along01))
             return 0f;
 
@@ -2157,13 +2153,6 @@ public class CameraFollow : MonoBehaviour
             return 0f;
 
         return Mathf.InverseLerp(goneFrom, fullUntil, along01);
-    }
-
-    private float GetOcclusionFade(Renderer renderer)
-    {
-        if (renderer != null && occlusionFadeByRenderer.TryGetValue(renderer, out float fade))
-            return fade;
-        return 0f;
     }
 
     private void EnsureOcclusionTrackingStarted(Renderer renderer)
@@ -2193,11 +2182,9 @@ public class CameraFollow : MonoBehaviour
             ghostMaterials[i] = ghostMaterial;
 
         renderer.sharedMaterials = ghostMaterials;
-
-        occlusionFadeByRenderer[renderer] = ComputeOcclusionTargetGhostFade(renderer);
     }
 
-    private void ApplyOcclusionFadeToRenderer(Renderer renderer)
+    private void ApplyOcclusionGhostOpacityToRenderer(Renderer renderer)
     {
         if (renderer == null)
             return;
@@ -2212,17 +2199,15 @@ public class CameraFollow : MonoBehaviour
         if (occlusionGhostPropertyBlock == null)
             return;
 
-        float fade = GetOcclusionFade(renderer);
+        float opacity = ComputeOcclusionZoneGhostOpacity(renderer);
         if (RendererBelongsToDecorations(renderer))
-            fade *= decorationOcclusionFadeScale;
+            opacity *= decorationOcclusionFadeScale;
 
-        occlusionGhostPropertyBlock.SetFloat(OcclusionFadeShaderId, fade);
+        opacity = Mathf.Clamp01(opacity);
+        occlusionGhostPropertyBlock.SetFloat(GhostOpacityShaderId, opacity);
         renderer.SetPropertyBlock(occlusionGhostPropertyBlock);
 
-        if (!proximityHiddenRenderers.TryGetValue(renderer, out ShadowCastingMode originalMode))
-            return;
-
-        renderer.shadowCastingMode = fade <= 0.02f ? ShadowCastingMode.Off : originalMode;
+        renderer.shadowCastingMode = opacity <= 0.02f ? ShadowCastingMode.Off : ShadowCastingMode.On;
     }
 
     private void RestoreProximityHiddenRenderer(Renderer renderer)
@@ -2238,7 +2223,6 @@ public class CameraFollow : MonoBehaviour
 
         proximityHiddenRenderers.Remove(renderer);
         ghostSwappedOriginalMaterials.Remove(renderer);
-        occlusionFadeByRenderer.Remove(renderer);
     }
 
     private readonly List<Renderer> tempRestoreList = new List<Renderer>();
@@ -2259,7 +2243,6 @@ public class CameraFollow : MonoBehaviour
 
         proximityHiddenRenderers.Clear();
         ghostSwappedOriginalMaterials.Clear();
-        occlusionFadeByRenderer.Clear();
         frameHiddenRenderers.Clear();
     }
 

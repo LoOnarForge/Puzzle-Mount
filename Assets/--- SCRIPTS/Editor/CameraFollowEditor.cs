@@ -10,13 +10,22 @@ public class CameraFollowEditor : Editor
     {
         serializedObject.Update();
 
-        DrawPropertiesExcluding(
-            serializedObject,
-            "m_Script",
-            "ghostOcclusionFullUntilAlongTimToCam",
-            "ghostOcclusionGoneFromAlongTimToCam");
+        SerializedProperty iterator = serializedObject.GetIterator();
+        bool enterChildren = true;
+        while (iterator.NextVisible(enterChildren))
+        {
+            enterChildren = false;
+            if (iterator.name == "m_Script")
+                continue;
+            if (iterator.name == "ghostOcclusionFullUntilAlongTimToCam"
+                || iterator.name == "ghostOcclusionGoneFromAlongTimToCam")
+                continue;
 
-        DrawGhostOcclusionAlongTimToCameraSlider();
+            EditorGUILayout.PropertyField(iterator, true);
+
+            if (iterator.name == "timQuadDistance")
+                DrawGhostOcclusionAlongTimToCameraSlider();
+        }
 
         serializedObject.ApplyModifiedProperties();
     }
@@ -28,8 +37,8 @@ public class CameraFollowEditor : Editor
         if (fullUntil == null || goneFrom == null)
             return;
 
-        EditorGUILayout.Space(8f);
-        EditorGUILayout.LabelField("Ghost Fade", EditorStyles.boldLabel);
+        EditorGUILayout.Space(4f);
+        EditorGUILayout.LabelField("Ghost Fade Along Tim To Camera", EditorStyles.boldLabel);
 
         float min = fullUntil.floatValue;
         float max = goneFrom.floatValue;

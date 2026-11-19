@@ -15,8 +15,7 @@ Shader "Custom/OcclusionGhostSprite"
         [HDR] _RimColor ("Rim Color (A = strength)", Color) = (0.7, 0.85, 1.0, 0.15)
         _RimPower ("Rim Power", Range(0.5, 8.0)) = 2.5
 
-        [Header(Occlusion)]
-        _OcclusionFade ("Occlusion Fade", Range(0.0, 1.0)) = 1.0
+        [HideInInspector] _GhostOpacity ("Ghost Opacity", Range(0.0, 1.0)) = 1.0
 
         [Enum(UnityEngine.Rendering.CullMode)] _Cull ("Cull Mode", Float) = 0
     }
@@ -62,7 +61,7 @@ Shader "Custom/OcclusionGhostSprite"
                 half4 _HighlightColor;
                 half4 _RimColor;
                 half _RimPower;
-                half _OcclusionFade;
+                half _GhostOpacity;
             CBUFFER_END
 
             struct Attributes
@@ -111,8 +110,7 @@ Shader "Custom/OcclusionGhostSprite"
                 half rim = pow(1.0 - saturate(dot(normalWS, viewDirWS)), _RimPower);
                 body += _RimColor.rgb * rim * _RimColor.a;
                 alpha += rim * _RimColor.a;
-                alpha = saturate(alpha);
-                alpha *= _OcclusionFade;
+                alpha = saturate(alpha) * _GhostOpacity;
 
                 body = MixFog(body, input.fogFactor);
                 return half4(body, alpha);
